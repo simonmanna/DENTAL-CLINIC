@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --radius: 0.75rem;
+
+  /* Base */
+  --background: 0 0% 100%;
+  --foreground: 222 47% 11%;
+
+  /* Primary (Medical Blue) */
+  --primary: 200 90% 50%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Success (Green) */
+  --success: 142 70% 45%;
+  --success-foreground: 0 0% 100%;
+
+  /* Warning (Orange/Yellow) */
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 10%;
+
+  /* Danger (Red) */
+  --danger: 0 84% 60%;
+  --danger-foreground: 0 0% 100%;
+
+  /* Info (Cyan) */
+  --info: 190 85% 45%;
+  --info-foreground: 0 0% 100%;
+
+  /* Secondary / Neutral */
+  --secondary: 220 14% 96%;
+  --secondary-foreground: 222 47% 11%;
+
+  --muted: 210 20% 96%;
+  --muted-foreground: 215 16% 47%;
+
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 200 90% 50%;
+}
+
+/* 🌙 Dark Mode */
+.dark {
+  --background: 222 47% 11%;
+  --foreground: 210 20% 98%;
+
+  --primary: 200 90% 60%;
+  --primary-foreground: 222 47% 11%;
+
+  --success: 142 70% 50%;
+  --success-foreground: 222 47% 11%;
+
+  --warning: 38 92% 55%;
+  --warning-foreground: 222 47% 11%;
+
+  --danger: 0 70% 55%;
+  --danger-foreground: 210 20% 98%;
+
+  --info: 190 85% 55%;
+  --info-foreground: 222 47% 11%;
+
+  --secondary: 217 33% 17%;
+  --secondary-foreground: 210 20% 98%;
+
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20% 65%;
+
+  --border: 217 33% 17%;
+  --input: 217 33% 17%;
+  --ring: 200 90% 60%;
+}

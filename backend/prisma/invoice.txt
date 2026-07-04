@@ -1,0 +1,878 @@
+// src/billing/invoices.service.ts
+//
+// FIELD-NAME MAP (schema → what we use here)
+// LedgerEntry.pricePerUnit     — price per unit in transaction currency
+// LedgerEntry.subtotalPrice    — pricePerUnit × quantity
+// LedgerEntry.discountAmount   — discount in transaction currency
+// LedgerEntry.taxAmount        — tax in transaction currency
+// LedgerEntry.totalPrice       — subtotalPrice - discountAmount + taxAmount  (FINAL in tx currency)
+// LedgerEntry.currency         — transaction currency (e.g. 'USD')
+// LedgerEntry.exchangeRate     — rate used to convert to baseCurrency
+// LedgerEntry.baseCurrency     — system base currency ('UGX')
+// LedgerEntry.baseAmount       — totalPrice converted to baseCurrency
+//
+// InvoiceItem.unitPrice        — price per unit in invoice currency
+// InvoiceItem.discount         — line-level discount already baked in
+// InvoiceItem.total            — final amount in invoice currency
+// InvoiceItem.originalCurrency — tx currency of the originating ledger entry
+// InvoiceItem.originalUnitPrice— pricePerUnit in originating currency
+// InvoiceItem.originalTotal    — finalTotal in originating currency
+// InvoiceItem.exchangeRate     — rate applied (entry→invoice currency)
+
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { LedgerService } from './ledger.service';
+import { CurrencyService } from './currency.service';
+import {
+  CreateInvoiceFromLedgerDto,
+  AddInvoicePaymentDto,
+} from './dto/billing.dto';
+import { InvoiceStatus, LedgerEntry, Receipt } from '@prisma/client';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Safely cast any Prisma Decimal / number / null / undefined to JS number */
+function toNum(v: unknown): number {
+  if (v == null) return 0;
+  if (typeof v === 'number') return v;
+  if (typeof (v as any).toNumber === 'function') return (v as any).toNumber();
+  const n = Number(v);
+  return isNaN(n) ? 0 : n;
+}
+
+// ─── Select shape — must exactly match Prisma schema field names ──────────────
+
+const INVOICE_SELECT = {
+  id: true,
+  invoiceNumber: true,
+  status: true,
+  // invoice-currency amounts
+  subtotal: true,
+  discountType: true,
+  discountValue: true,
+  discountAmount: true,
+  taxPercent: true,
+  taxAmount: true,
+  total: true,
+  amountPaid: true,
+  balance: true,
+  // base-currency amounts
+  baseSubtotal: true,
+  baseDiscountAmount: true,
+  baseTaxAmount: true,
+  baseTotal: true,
+  baseAmountPaid: true,
+  baseBalance: true,
+  // currency metadata
+  currency: true,
+  exchangeRate: true,
+  baseCurrency: true,
+  // misc
+  notes: true,
+  dueDate: true,
+  issuedAt: true,
+  paidAt: true,
+  createdAt: true,
+  updatedAt: true,
+  patient: {
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      patientCode: true,
+      phone: true,
+      email: true,
+      address: true,
+    },
+  },
+  visit: { select: { id: true, visitCode: true } },
+  items: {
+    select: {
+      id: true,
+      description: true,
+      quantity: true,
+      unitPrice: true,          // amount in invoice currency
+      discount: true,
+      total: true,              // final in invoice currency
+      toothNumbers: true,
+      ledgerEntryId: true,
+      // audit trail — what the item looked like in original currency
+      originalCurrency: true,
+      originalUnitPrice: true,
+      originalTotal: true,
+      exchangeRate: true,
+      ledgerEntry: {
+        select: {
+          id: true,
+          entryCode: true,
+          type: true,
+          sourceType: true,
+          // Correct schema field names on LedgerEntry:
+          currency: true,       // transaction currency
+          totalPrice: true,     // final total in transaction currency
+          baseAmount: true,     // equivalent in base currency
+          exchangeRate: true,
+        },
+      },
+    },
+  },
+  payments: {
+    orderBy: { paidAt: 'asc' as const },
+    select: {
+      id: true,
+      amount: true,
+      currency: true,
+      baseAmount: true,
+      exchangeRate: true,
+      method: true,
+      status: true,
+      reference: true,
+      transactionId: true,
+      notes: true,
+      receivedBy: true,
+      paidAt: true,
+      receipts: true,
+    },
+  },
+  receipts: true,
+} as const;
+
+// ─── Service ──────────────────────────────────────────────────────────────────
+
+@Injectable()
+export class InvoicesService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ledger: LedgerService,
+    private readonly currency: CurrencyService,
+  ) {}
+
+  // ── Create invoice from selected ledger entries ────────────────────────────
+
+  async createFromLedger(dto: CreateInvoiceFromLedgerDto, _createdBy?: string) {
+    if (!dto.ledgerEntryIds?.length) {
+      throw new BadRequestException(
+        'Select at least one ledger entry to invoice',
+      );
+    }
+
+    // Fetch entries — must be PENDING and belong to this patient
+    const entries = await this.prisma.ledgerEntry.findMany({
+      where: {
+        id: { in: dto.ledgerEntryIds },
+        patientId: dto.patientId,
+        status: 'PENDING',
+      },
+    });
+
+    if (entries.length !== dto.ledgerEntryIds.length) {
+      const foundIds = new Set(entries.map((e) => e.id));
+      const bad = dto.ledgerEntryIds.filter((id) => !foundIds.has(id));
+      throw new BadRequestException(
+        `Some entries are invalid, already invoiced, or belong to another patient: ${bad.join(', ')}`,
+      );
+    }
+
+    const baseCurrency = this.currency.getBaseCurrency(); // 'UGX'
+
+    // ── Determine invoice currency & exchange rate ──────────────────────────
+    let invoiceCurrency: string;
+    let invoiceExchangeRate: number;
+
+    if (!dto.invoiceCurrency || dto.invoiceCurrency === 'BASE') {
+      // Everything in base (UGX)
+      invoiceCurrency = baseCurrency;
+      invoiceExchangeRate = 1;
+    } else if (dto.invoiceCurrency === 'ORIGINAL') {
+      // "ORIGINAL" means: keep each entry in its own currency.
+      // We unify to base for the invoice itself (multi-currency receipt handled by item audit trail).
+      invoiceCurrency = baseCurrency;
+      invoiceExchangeRate = 1;
+    } else {
+      // Specific foreign currency (e.g. 'USD')
+      invoiceCurrency = dto.invoiceCurrency;
+      invoiceExchangeRate = dto.customExchangeRate
+        ? dto.customExchangeRate
+        : await this.currency.getExchangeRate(baseCurrency, invoiceCurrency);
+    }
+
+    // ── Build invoice line items ───────────────────────────────────────────
+    let subtotalInInvoiceCurrency = 0;
+    const itemData: Array<{
+      description: string;
+      quantity: number;
+      unitPrice: number;
+      discount: number;
+      total: number;
+      toothNumbers: number[];
+      ledgerEntryId: string;
+      originalCurrency: string;
+      originalUnitPrice: number;
+      originalTotal: number;
+      exchangeRate: number;
+    }> = [];
+
+    for (const entry of entries) {
+      // ── Read all financial fields using CORRECT schema names ──────────────
+      const entryCurrency: string = entry.currency ?? baseCurrency;
+      const entryExchangeRate: number = toNum(entry.exchangeRate ?? 1);
+      const entryPricePerUnit: number = toNum(entry.pricePerUnit);   // ✓ schema: pricePerUnit
+      const entryQuantity: number = toNum(entry.quantity);
+      const entrySubtotal: number = toNum(entry.subtotalPrice);       // ✓ schema: subtotalPrice
+      const entryDiscount: number = toNum(entry.discountAmount);      // ✓ schema: discountAmount
+      const entryTax: number = toNum(entry.taxAmount);                // ✓ schema: taxAmount
+      const entryTotalInTxCurrency: number = toNum(entry.totalPrice); // ✓ schema: totalPrice
+      const entryBaseAmount: number = toNum(entry.baseAmount);        // ✓ schema: baseAmount
+
+      // Sanity-compute totalInTxCurrency in case stored value is stale
+      const computedTotal =
+        entrySubtotal > 0
+          ? entrySubtotal - entryDiscount + entryTax
+          : entryPricePerUnit * entryQuantity - entryDiscount + entryTax;
+
+      const effectiveTxTotal =
+        entryTotalInTxCurrency > 0 ? entryTotalInTxCurrency : computedTotal;
+
+      // effectiveTxTotal is in entryCurrency.
+      // Convert to invoiceCurrency:
+      let itemTotalInInvoiceCurrency: number;
+      let itemUnitPriceInInvoiceCurrency: number;
+      let itemExchangeRate: number; // rate stored on InvoiceItem (entry → invoice currency)
+
+      if (entryCurrency === invoiceCurrency) {
+        // Same currency — no conversion needed
+        itemTotalInInvoiceCurrency = effectiveTxTotal;
+        itemUnitPriceInInvoiceCurrency = entryPricePerUnit;
+        itemExchangeRate = 1;
+      } else if (invoiceCurrency === baseCurrency) {
+        // Invoice is in base currency → use pre-computed baseAmount
+        // If baseAmount is stored, use it; otherwise re-compute via rate
+        itemTotalInInvoiceCurrency =
+          entryBaseAmount > 0 ? entryBaseAmount : effectiveTxTotal * entryExchangeRate;
+        itemUnitPriceInInvoiceCurrency = entryPricePerUnit * entryExchangeRate;
+        itemExchangeRate = entryExchangeRate;
+      } else {
+        // Invoice is in a third currency (e.g. USD when entry was EUR)
+        // Convert: entry → base → invoice
+        const baseTotal =
+          entryBaseAmount > 0 ? entryBaseAmount : effectiveTxTotal * entryExchangeRate;
+        itemTotalInInvoiceCurrency = baseTotal * invoiceExchangeRate;
+        itemUnitPriceInInvoiceCurrency =
+          entryPricePerUnit * entryExchangeRate * invoiceExchangeRate;
+        itemExchangeRate = entryExchangeRate * invoiceExchangeRate;
+      }
+
+      // Round to 2 dp to avoid floating-point drift
+      itemTotalInInvoiceCurrency = Math.round(itemTotalInInvoiceCurrency * 100) / 100;
+      itemUnitPriceInInvoiceCurrency =
+        Math.round(itemUnitPriceInInvoiceCurrency * 100) / 100;
+
+      subtotalInInvoiceCurrency += itemTotalInInvoiceCurrency;
+
+      itemData.push({
+        description: entry.description,
+        quantity: entryQuantity,
+        unitPrice: itemUnitPriceInInvoiceCurrency,
+        // discount is already baked into itemTotal; store 0 at line level
+        // (entry-level discount was already deducted when computing effectiveTxTotal)
+        discount: 0,
+        total: itemTotalInInvoiceCurrency,
+        toothNumbers: [],
+        ledgerEntryId: entry.id,
+        // Audit trail
+        originalCurrency: entryCurrency,
+        originalUnitPrice: entryPricePerUnit,
+        originalTotal: effectiveTxTotal,
+        exchangeRate: itemExchangeRate,
+      });
+    }
+
+    subtotalInInvoiceCurrency =
+      Math.round(subtotalInInvoiceCurrency * 100) / 100;
+
+    // ── Invoice-level discount ─────────────────────────────────────────────
+    let invoiceDiscountAmount = 0;
+    const discountValue = dto.discountValue ?? 0;
+    if (discountValue > 0) {
+      invoiceDiscountAmount =
+        dto.discountType === 'PERCENT'
+          ? (subtotalInInvoiceCurrency * discountValue) / 100
+          : discountValue;
+    }
+    invoiceDiscountAmount = Math.round(invoiceDiscountAmount * 100) / 100;
+
+    const taxPercent = dto.taxPercent ?? 0;
+    const taxableAmount = subtotalInInvoiceCurrency - invoiceDiscountAmount;
+    const invoiceTaxAmount = Math.round((taxableAmount * taxPercent) / 100 * 100) / 100;
+    const invoiceTotal = Math.round((taxableAmount + invoiceTaxAmount) * 100) / 100;
+
+    // ── Base-currency (UGX) equivalents for reporting ──────────────────────
+    const baseSubtotal = Math.round(
+      entries.reduce((sum, entry) => {
+        const baseAmt = toNum(entry.baseAmount);
+        // If base amount is stored, use it; else compute from tx total × rate
+        if (baseAmt > 0) return sum + baseAmt;
+        const txTotal = toNum(entry.totalPrice);
+        const rate = toNum(entry.exchangeRate ?? 1);
+        return sum + txTotal * rate;
+      }, 0) * 100,
+    ) / 100;
+
+    const discountRatio =
+      subtotalInInvoiceCurrency > 0
+        ? invoiceDiscountAmount / subtotalInInvoiceCurrency
+        : 0;
+    const baseDiscountAmount = Math.round(baseSubtotal * discountRatio * 100) / 100;
+    const baseTaxableAmount = baseSubtotal - baseDiscountAmount;
+    const baseTaxAmount = Math.round((baseTaxableAmount * taxPercent) / 100 * 100) / 100;
+    const baseTotal = Math.round((baseTaxableAmount + baseTaxAmount) * 100) / 100;
+
+    // ── Persist in a transaction ───────────────────────────────────────────
+    const invoiceNumber = await this.generateInvoiceNumber();
+
+    const invoice = await this.prisma.$transaction(async (tx) => {
+      const inv = await tx.invoice.create({
+        data: {
+          invoiceNumber,
+          patientId: dto.patientId,
+          visitId: dto.visitId ?? null,
+          status: InvoiceStatus.ISSUED,
+          // invoice currency
+          currency: invoiceCurrency,
+          exchangeRate: invoiceExchangeRate,
+          baseCurrency,
+          // invoice-currency amounts
+          subtotal: subtotalInInvoiceCurrency,
+          discountType: dto.discountType ?? null,
+          discountValue,
+          discountAmount: invoiceDiscountAmount,
+          taxPercent,
+          taxAmount: invoiceTaxAmount,
+          total: invoiceTotal,
+          amountPaid: 0,
+          balance: invoiceTotal,
+          // base-currency amounts
+          baseSubtotal,
+          baseDiscountAmount,
+          baseTaxAmount,
+          baseTotal,
+          baseAmountPaid: 0,
+          baseBalance: baseTotal,
+          notes: dto.notes ?? null,
+          dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
+          issuedAt: new Date(),
+        },
+      });
+
+      await tx.invoiceItem.createMany({
+        data: itemData.map((item) => ({ ...item, invoiceId: inv.id })),
+      });
+
+      // Mark ledger entries as INVOICED
+      await tx.ledgerEntry.updateMany({
+        where: { id: { in: dto.ledgerEntryIds } },
+        data: { status: 'INVOICED' },
+      });
+
+      return inv;
+    });
+
+    return this.getInvoice(invoice.id);
+  }
+
+  // ── Add manual item to existing invoice ───────────────────────────────────
+
+  async addItem(
+    invoiceId: string,
+    item: {
+      description: string;
+      quantity: number;
+      unitPrice: number;
+      discount?: number;
+      currency?: string;
+      exchangeRate?: number;
+    },
+  ) {
+    const invoice = await this.assertEditable(invoiceId);
+    const discount = item.discount ?? 0;
+    const itemCurrency = item.currency || invoice.currency;
+    const originalUnitPrice = item.unitPrice;
+    const originalSubtotal = item.quantity * item.unitPrice;
+    const originalTotal = originalSubtotal - discount;
+
+    let finalUnitPrice = item.unitPrice;
+    let finalTotal = originalTotal;
+    let itemExchangeRate = 1;
+
+    if (item.currency && item.currency !== invoice.currency) {
+      const conversion = await this.currency.convert(
+        item.unitPrice,
+        item.currency,
+        invoice.currency,
+        item.exchangeRate,
+      );
+      finalUnitPrice = conversion.amount;
+      finalTotal = item.quantity * finalUnitPrice - discount;
+      itemExchangeRate = conversion.rate;
+    }
+
+    await this.prisma.invoiceItem.create({
+      data: {
+        invoiceId,
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: finalUnitPrice,
+        discount,
+        total: finalTotal,
+        toothNumbers: [],
+        originalCurrency: itemCurrency,
+        originalUnitPrice,
+        originalTotal,
+        exchangeRate: itemExchangeRate,
+      },
+    });
+
+    return this.recalcAndSave(invoiceId);
+  }
+
+  // ── Remove item from invoice ───────────────────────────────────────────────
+
+  async removeItem(invoiceId: string, itemId: string) {
+    await this.assertEditable(invoiceId);
+
+    const item = await this.prisma.invoiceItem.findFirst({
+      where: { id: itemId, invoiceId },
+    });
+    if (!item) throw new NotFoundException('Invoice item not found');
+
+    if (item.ledgerEntryId) {
+      await this.prisma.ledgerEntry.update({
+        where: { id: item.ledgerEntryId },
+        data: { status: 'PENDING' },
+      });
+    }
+
+    await this.prisma.invoiceItem.delete({ where: { id: itemId } });
+    return this.recalcAndSave(invoiceId);
+  }
+
+  // ── Record a payment ──────────────────────────────────────────────────────
+
+  async addPayment(invoiceId: string, dto: AddInvoicePaymentDto) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      select: {
+        id: true,
+        total: true,
+        amountPaid: true,
+        balance: true,
+        status: true,
+        invoiceNumber: true,
+        patientId: true,
+        currency: true,
+        baseCurrency: true,
+        exchangeRate: true,
+        baseBalance: true,
+        baseAmountPaid: true,
+        baseTotal: true,
+      },
+    });
+
+    if (!invoice) throw new NotFoundException('Invoice not found');
+    if (invoice.status === 'CANCELLED') {
+      throw new BadRequestException('Cannot pay a cancelled invoice');
+    }
+    if ((invoice.balance ?? 0) <= 0) {
+      throw new BadRequestException('Invoice is already fully paid');
+    }
+    if (dto.amount <= 0) {
+      throw new BadRequestException('Payment amount must be greater than zero');
+    }
+
+    const paymentCurrency = dto.paymentCurrency || invoice.currency;
+    let paymentInInvoiceCurrency = dto.amount;
+    let paymentInBaseCurrency = dto.amountInBaseCurrency ?? dto.amount;
+
+    // Convert payment → invoice currency if needed
+    if (paymentCurrency !== invoice.currency) {
+      const conv = await this.currency.convert(
+        dto.amount,
+        paymentCurrency,
+        invoice.currency,
+        dto.exchangeRateAtPayment,
+      );
+      paymentInInvoiceCurrency = conv.amount;
+    }
+
+    // Convert payment → base currency if needed
+    if (paymentCurrency !== (invoice.baseCurrency ?? 'UGX')) {
+      const baseConv = await this.currency.convert(
+        dto.amount,
+        paymentCurrency,
+        invoice.baseCurrency ?? 'UGX',
+        dto.exchangeRateAtPayment,
+      );
+      paymentInBaseCurrency = baseConv.amount;
+    } else {
+      paymentInBaseCurrency = dto.amount;
+    }
+
+    const exchangeRateUsed = dto.exchangeRateAtPayment ?? invoice.exchangeRate ?? 1;
+
+    if (paymentInInvoiceCurrency > (invoice.balance ?? 0) + 0.01) {
+      throw new BadRequestException(
+        `Payment of ${paymentInInvoiceCurrency} ${invoice.currency} exceeds remaining balance of ${invoice.balance}`,
+      );
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const payment = await tx.payment.create({
+        data: {
+          invoiceId,
+          amount: paymentInInvoiceCurrency,
+          currency: paymentCurrency,
+          baseAmount: paymentInBaseCurrency,
+          exchangeRate: exchangeRateUsed,
+          method: dto.method as any,
+          status: 'COMPLETED',
+          reference: dto.reference ?? null,
+          transactionId: dto.transactionId ?? null,
+          notes: dto.notes ?? null,
+          receivedBy: dto.receivedBy ?? null,
+          paidAt: new Date(),
+        },
+      });
+
+      const newAmountPaid = (invoice.amountPaid ?? 0) + paymentInInvoiceCurrency;
+      const newBalance = (invoice.total ?? 0) - newAmountPaid;
+      const newBaseAmountPaid = (invoice.baseAmountPaid ?? 0) + paymentInBaseCurrency;
+      const newBaseBalance = (invoice.baseTotal ?? 0) - newBaseAmountPaid;
+
+      const newStatus: InvoiceStatus =
+        newBalance <= 0.01
+          ? InvoiceStatus.PAID
+          : newAmountPaid > 0
+            ? InvoiceStatus.PARTIALLY_PAID
+            : InvoiceStatus.ISSUED;
+
+      await tx.invoice.update({
+        where: { id: invoiceId },
+        data: {
+          amountPaid: Math.round(newAmountPaid * 100) / 100,
+          balance: Math.max(0, Math.round(newBalance * 100) / 100),
+          baseAmountPaid: Math.round(newBaseAmountPaid * 100) / 100,
+          baseBalance: Math.max(0, Math.round(newBaseBalance * 100) / 100),
+          status: newStatus,
+          paidAt: newBalance <= 0.01 ? new Date() : null,
+        },
+      });
+
+      let receipt: Receipt | null = null;
+      if (dto.generateReceipt !== false) {
+        const receiptNumber = await this.generateReceiptNumber(tx);
+        receipt = await tx.receipt.create({
+          data: {
+            receiptNumber,
+            invoiceId,
+            paymentId: payment.id,
+            amountReceived: paymentInInvoiceCurrency,
+            currency: invoice.currency,
+            generatedBy: dto.receivedBy ?? null,
+          },
+        });
+      }
+
+      return { payment, receipt };
+    });
+
+    return {
+      ...(await this.getInvoice(invoiceId)),
+      latestPayment: result.payment,
+      receipt: result.receipt,
+    };
+  }
+
+  // ── Void / cancel an invoice ───────────────────────────────────────────────
+
+  async voidInvoice(id: string, reason?: string) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id },
+      include: {
+        payments: { select: { status: true } },
+        items: { select: { ledgerEntryId: true } },
+      },
+    });
+    if (!invoice) throw new NotFoundException('Invoice not found');
+
+    if (invoice.payments.some((p) => p.status === 'COMPLETED')) {
+      throw new BadRequestException(
+        'Cannot void an invoice with completed payments. Issue a refund first.',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const ledgerIds = invoice.items
+        .map((i) => i.ledgerEntryId)
+        .filter(Boolean) as string[];
+
+      if (ledgerIds.length) {
+        await tx.ledgerEntry.updateMany({
+          where: { id: { in: ledgerIds } },
+          data: { status: 'PENDING' },
+        });
+      }
+
+      return tx.invoice.update({
+        where: { id },
+        data: {
+          status: InvoiceStatus.CANCELLED,
+          notes: reason ? `VOIDED: ${reason}` : undefined,
+        },
+      });
+    });
+  }
+
+  // ── Get a single invoice ───────────────────────────────────────────────────
+
+  async getInvoice(id: string) {
+    const inv = await this.prisma.invoice.findUnique({
+      where: { id },
+      select: INVOICE_SELECT,
+    });
+    if (!inv) throw new NotFoundException('Invoice not found');
+
+    return {
+      ...inv,
+      formatted: {
+        total: this.currency.formatAmount(inv.total, inv.currency),
+        amountPaid: this.currency.formatAmount(inv.amountPaid, inv.currency),
+        balance: this.currency.formatAmount(inv.balance, inv.currency),
+        baseTotal: this.currency.formatAmount(
+          inv.baseTotal ?? 0,
+          inv.baseCurrency ?? 'UGX',
+        ),
+      },
+    };
+  }
+
+  // ── Get receipt data (for printing) ───────────────────────────────────────
+
+  async getReceipt(invoiceId: string) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: {
+        patient: true,
+        visit: {
+          include: {
+            dentist: {
+              select: {
+                firstName: true,
+                lastName: true,
+                specialization: true,
+              },
+            },
+          },
+        },
+        items: true,
+        payments: { where: { status: 'COMPLETED' } },
+        receipts: { orderBy: { generatedAt: 'desc' } },
+      },
+    });
+    if (!invoice) throw new NotFoundException('Invoice not found');
+
+    const settingRows = await this.prisma.clinicSettings.findMany({
+      where: {
+        key: {
+          in: [
+            'clinic_name',
+            'clinic_phone',
+            'clinic_address',
+            'clinic_email',
+            'clinic_logo',
+          ],
+        },
+      },
+    });
+    const config: Record<string, string> = {};
+    settingRows.forEach((s) => { config[s.key] = s.value; });
+
+    return {
+      clinic: {
+        name: config['clinic_name'] || 'Dental Clinic',
+        phone: config['clinic_phone'] || '',
+        address: config['clinic_address'] || '',
+        email: config['clinic_email'] || '',
+        logo: config['clinic_logo'] || null,
+      },
+      invoice,
+      patient: invoice.patient,
+      dentist: invoice.visit?.dentist ?? null,
+      payments: invoice.payments,
+      receipts: invoice.receipts,
+      currencyInfo: {
+        invoiceCurrency: invoice.currency,
+        baseCurrency: invoice.baseCurrency,
+        exchangeRate: invoice.exchangeRate,
+      },
+    };
+  }
+
+  // ── List invoices (with optional filters) ─────────────────────────────────
+
+  async getPatientInvoices(params: {
+    patientId?: string;
+    visitId?: string;
+    status?: string;
+    currency?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const { page = 1, limit = 20 } = params;
+    const where: any = {};
+    if (params.patientId) where.patientId = params.patientId;
+    if (params.visitId) where.visitId = params.visitId;
+    if (params.status && params.status !== 'ALL') where.status = params.status;
+    if (params.currency) where.currency = params.currency;
+
+    const [data, total] = await Promise.all([
+      this.prisma.invoice.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: INVOICE_SELECT,
+      }),
+      this.prisma.invoice.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  // ─── Private helpers ────────────────────────────────────────────────────────
+
+  private async assertEditable(invoiceId: string) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      select: { id: true, status: true, currency: true, baseTotal: true },
+    });
+    if (!invoice) throw new NotFoundException('Invoice not found');
+    if (['PAID', 'CANCELLED'].includes(invoice.status)) {
+      throw new BadRequestException(`Cannot edit a ${invoice.status} invoice`);
+    }
+    return invoice;
+  }
+
+  /** Recompute invoice totals from its current items and persist */
+  private async recalcAndSave(invoiceId: string) {
+    const items = await this.prisma.invoiceItem.findMany({
+      where: { invoiceId },
+      select: {
+        total: true,
+        discount: true,
+        originalTotal: true,
+        exchangeRate: true,
+      },
+    });
+
+    const subtotal = Math.round(
+      items.reduce((s, i) => s + (i.total ?? 0), 0) * 100,
+    ) / 100;
+
+    // Base subtotal: sum of (originalTotal × exchangeRate) per item
+    const baseSubtotal = Math.round(
+      items.reduce((s, i) => {
+        const orig = toNum(i.originalTotal ?? i.total);
+        const rate = toNum(i.exchangeRate ?? 1);
+        return s + orig * rate;
+      }, 0) * 100,
+    ) / 100;
+
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      select: {
+        taxPercent: true,
+        discountValue: true,
+        discountType: true,
+        amountPaid: true,
+        baseCurrency: true,
+        exchangeRate: true,
+        baseAmountPaid: true,
+      },
+    });
+    if (!invoice) throw new NotFoundException('Invoice not found during recalc');
+
+    const discountAmount =
+      invoice.discountType === 'PERCENT'
+        ? (subtotal * (invoice.discountValue || 0)) / 100
+        : invoice.discountValue || 0;
+
+    const taxPercent = invoice.taxPercent || 0;
+    const taxAmount = ((subtotal - discountAmount) * taxPercent) / 100;
+    const total = Math.round((subtotal - discountAmount + taxAmount) * 100) / 100;
+    const balance = total - (invoice.amountPaid || 0);
+
+    const discountRatio = subtotal > 0 ? discountAmount / subtotal : 0;
+    const baseDiscountAmount = Math.round(baseSubtotal * discountRatio * 100) / 100;
+    const baseTaxAmount = Math.round(
+      ((baseSubtotal - baseDiscountAmount) * taxPercent) / 100 * 100,
+    ) / 100;
+    const baseTotal = Math.round(
+      (baseSubtotal - baseDiscountAmount + baseTaxAmount) * 100,
+    ) / 100;
+    const baseBalance = baseTotal - (invoice.baseAmountPaid || 0);
+
+    return this.prisma.invoice.update({
+      where: { id: invoiceId },
+      data: {
+        subtotal,
+        discountAmount: Math.round(discountAmount * 100) / 100,
+        taxAmount: Math.round(taxAmount * 100) / 100,
+        total,
+        balance: Math.max(0, Math.round(balance * 100) / 100),
+        baseSubtotal,
+        baseDiscountAmount,
+        baseTaxAmount,
+        baseTotal,
+        baseBalance: Math.max(0, Math.round(baseBalance * 100) / 100),
+        status:
+          balance <= 0.01
+            ? 'PAID'
+            : (invoice.amountPaid || 0) > 0
+              ? 'PARTIALLY_PAID'
+              : 'ISSUED',
+      },
+      select: INVOICE_SELECT,
+    });
+  }
+
+  private async generateInvoiceNumber(): Promise<string> {
+    const year = new Date().getFullYear();
+    const prefix = `INV-${year}-`;
+    const count = await this.prisma.invoice.count({
+      where: { invoiceNumber: { startsWith: prefix } },
+    });
+    return `${prefix}${String(count + 1).padStart(5, '0')}`;
+  }
+
+  private async generateReceiptNumber(tx?: any): Promise<string> {
+    const db = tx || this.prisma;
+    const year = new Date().getFullYear();
+    const prefix = `RCT-${year}-`;
+    const count = await db.receipt.count({
+      where: { receiptNumber: { startsWith: prefix } },
+    });
+    return `${prefix}${String(count + 1).padStart(5, '0')}`;
+  }
+}

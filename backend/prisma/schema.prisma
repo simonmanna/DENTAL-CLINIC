@@ -1,0 +1,3738 @@
+// DHMS - Dental Hospital Management System
+// Prisma Schema - PostgreSQL (Fixed Relations)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CurrencyCode {
+  UGX
+  USD
+}
+
+enum ReceiptStatus {
+  ACTIVE
+  VOID
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  DENTIST
+  NURSE
+  RECEPTIONIST
+  PHARMACIST
+  LAB_TECHNICIAN
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  ARRIVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+  RESCHEDULED
+  DRAFT
+}
+
+enum AppointmentType {
+  CONSULTATION
+  CLEANING
+  FILLING
+  EXTRACTION
+  ROOT_CANAL
+  ORTHODONTIC
+  CROWN
+  BRIDGE
+  IMPLANT
+  WHITENING
+  EMERGENCY
+  FOLLOW_UP
+  X_RAY
+  PEDIATRIC
+  OTHER
+}
+
+enum ToothSurface {
+  FACIAL
+  LINGUAL
+  PALATAL
+  MESIAL
+  DISTAL
+  OCCLUSAL
+  INCISAL
+  BUCCAL
+  LABIAL
+}
+
+enum TreatmentStatus {
+  PENDING
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+  REFERRED
+}
+
+enum InvoiceStatus {
+  DRAFT // editable, no ledger posted yet
+  POSTED // activated / finalized — open for payment
+  VOID // cancelled / voided (with full reversal if needed)
+}
+
+enum InvoicePaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+}
+
+enum PaymentMethod {
+  CASH
+  VISA_CARD
+  MASTERCARD
+  MTN_MOBILE_MONEY
+  AIRTEL_MONEY
+  INSURANCE
+  BANK_TRANSFER
+  CHEQUE
+  CREDIT_NOTE
+  CREDIT
+}
+
+enum PaymentType {
+  INVOICE_RECEIPT // IN  — patient paying for services/invoice
+  PURCHASE_ORDER // OUT — clinic paying a supplier
+  EXPENSE // OUT — clinic settling an expense
+  CREDIT_NOTE_APPLICATION // OUT — applying a vendor credit note (reduces AP)
+  CREDIT_NOTE_REVERSAL // IN  — reversing a previously applied credit note
+  OTHER // OUT — miscellaneous outgoing
+}
+
+// Payment TRANSACTION state — the lifecycle of an actual Payment record.
+// Split out from the former kitchen-sink enum; balance/workflow states moved
+// to {@link BalanceStatus}.
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  VOIDED
+}
+
+// BALANCE / billing-workflow state for things that carry an outstanding amount
+// (visits, visit procedures, treatment procedures, purchase orders). Distinct
+// from PaymentStatus, which is only ever the state of a Payment transaction.
+// OPEN = created, not yet invoiced; INVOICED = billed, awaiting collection.
+// (The legacy duplicate PARTIAL was folded into PARTIALLY_PAID.)
+enum BalanceStatus {
+  OPEN
+  INVOICED
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  WRITTEN_OFF
+}
+
+enum PrescriptionStatus {
+  ACTIVE
+  DISPENSED
+  EXPIRED
+  CANCELLED
+}
+
+enum ImagingType {
+  PERIAPICAL
+  BITEWING
+  PANORAMIC
+  CEPHALOMETRIC
+  CBCT
+  PHOTO_INTRAORAL
+  PHOTO_EXTRAORAL
+  OTHER
+}
+
+enum StockTransactionType {
+  PURCHASE
+  USAGE
+  ADJUSTMENT
+  RETURN
+  EXPIRED
+  DAMAGED
+  TRANSFER
+}
+
+enum InsuranceStatus {
+  ACTIVE
+  EXPIRED
+  PENDING
+  REJECTED
+}
+
+// NOTE: the former `enum ExpenseCategory` has been replaced by the dynamic
+// `model ExpenseCategory` (table `expense_categories`) so clinics can manage
+// their own categories and link each to a ledger account. See that model below.
+
+enum ExpenseStatus {
+  DRAFT
+  APPROVED
+  REJECTED
+  CANCELLED
+  POSTED
+  VOID
+}
+
+enum ExpensePaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+}
+
+enum LocationType {
+  MAIN_CLINIC
+  BRANCH
+  STORAGE
+  PHARMACY
+  LAB
+  RECEPTION
+  WAREHOUSE
+  MOBILE_UNIT
+  STORE
+  CLINIC
+  DISPENSARY
+}
+
+enum StockMovementType {
+  TRANSFER
+  RECEIPT
+  ISSUE
+  ADJUSTMENT
+  RETURN
+}
+
+enum VisitStatus {
+  ARRIVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum SaleType {
+  OTC
+  PRESCRIPTION
+  WALK_IN
+}
+
+enum PharmacySaleStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+  INVOICED
+}
+
+enum LedgerEntryType {
+  // ── New accounting-only types (preferred for new entries) ─────────
+  CHARGE // DR Accounts Receivable / CR Revenue (posted at invoice activation)
+  PAYMENT // DR Cash/Bank / CR Accounts Receivable (posted at receipt)
+  ADJUSTMENT // credit note or manual correction
+  REFUND // reversal of a prior charge
+  // ── Legacy clinical types (kept for backward compatibility) ───────
+  PROCEDURE
+  DRUG
+  CONSULTATION
+  SERVICE
+  LAB
+  IMAGING
+  OTHER
+  TREATMENT_PROCEDURE
+  TREATMENT_PROCEDURE_SESSION
+  PHARMACY_SALE
+}
+
+enum InvoiceItemType {
+  TREATMENT_PROCEDURE
+  CONSULTATION
+  PRESCRIPTION
+  XRAY
+  MATERIAL
+  LAB
+  MANUAL
+}
+
+enum LedgerEntryStatus {
+  PENDING
+  INVOICED
+  VOID
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  PARTIALLY_RECEIVED
+  FULLY_RECEIVED
+  CANCELLED
+  RECEIVED
+}
+
+enum PaymentTerms {
+  CASH_ON_DELIVERY
+  NET_7
+  NET_14
+  NET_30
+  NET_60
+  CREDIT
+}
+
+enum DeliveryStatus {
+  PENDING
+  PARTIAL
+  COMPLETE
+  RETURNED
+}
+
+enum StockAdjustmentReason {
+  CYCLE_COUNT
+  DAMAGED
+  EXPIRED
+  THEFT
+  RETURNED_TO_SUPPLIER
+  FOUND
+  INITIAL_COUNT
+  OTHER
+}
+
+enum WasteCategory {
+  EXPIRED
+  DAMAGED
+  CONTAMINATED
+  SPILLAGE
+  BREAKAGE
+  OTHER
+}
+
+enum StockLedgerType {
+  PURCHASE_RECEIPT // +qty when delivery is received
+  ADJUSTMENT_IN // +qty from stock count correction
+  ADJUSTMENT_OUT // -qty from stock count correction
+  WASTE // -qty expired / damaged / contaminated
+  TRANSFER_IN // +qty moved from another location
+  TRANSFER_OUT // -qty moved to another location
+  USAGE // -qty consumed in a procedure/visit
+  SALE // -qty sold at pharmacy counter
+  RETURN_IN // +qty returned (patient or usage reversal)
+  RETURN_TO_SUPPLIER // -qty sent back to supplier
+  OPENING_BALANCE // initial seeding of stock
+  EXPIRY_WRITE_OFF // -qty written off for expired batch
+  STOCK_OUT
+}
+
+enum SessionType {
+  SINGLE
+  MULTI
+}
+
+enum BillingType {
+  PAY_FULL // Full procedure cost added to ledger immediately as one entry
+  PAY_PARTIALLY // One ledger entry per session, all created upfront
+}
+
+enum SessionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+  CANCELLED
+  VOIDED
+}
+
+enum SessionLedgerStatus {
+  PENDING // Ledger entry exists but not yet invoiced
+  INVOICED // Pulled into an invoice
+  VOID // Written off / cancelled
+  UNPOSTED
+}
+
+enum PricingUnit {
+  FIXED
+  PER_TOOTH
+  PER_ARCH
+  PER_BRACKET
+  PER_UNIT
+}
+
+enum InstallmentStatus {
+  ACTIVE
+  COMPLETED
+  DEFAULTED
+  CANCELLED
+}
+
+enum UnitOfMeasure {
+  PIECES // pcs - General items
+  BOX // box - Packaged items
+  PACK // pack - Multi-item packs
+  BOTTLE // bottle - Liquids
+  VIAL // vial - Small liquids/injectables
+  AMPULE // amp - Injectable ampules
+  TABLET // tab - Oral medications
+  CAPSULE // cap - Capsule medications
+  STRIP // strip - Blister packs
+  TUBE // tube - Creams/ointments
+  SYRINGE // syringe - Disposable syringes
+  GLOVES_PAIR // pair - Gloves
+  ROLL // roll - Rolls (gauze, etc)
+  ML // ml - Milliliters
+  LITER // l - Liters
+  MG // mg - Milligrams
+  G // g - Grams
+  KG // kg - Kilograms
+  INCH // in - Inches (dental files, etc)
+  MM // mm - Millimeters
+  SET // set - Instrument sets
+  KIT // kit - Procedure kits
+}
+
+enum AccountType {
+  CASH // Physical cash drawer/safe
+  BANK // Bank account
+  MOBILE_MONEY // MTN, Airtel etc.
+  PETTY_CASH // Small expenses float
+}
+
+enum AccountCurrency {
+  UGX
+  USD
+}
+
+enum CashFlowDirection {
+  IN // Money received
+  OUT // Money paid out
+}
+
+enum CashFlowSource {
+  RECEIPT // From patient invoice payment receipt
+  EXPENSE_PAYMENT // Paid out for an expense
+  PURCHASE_PAYMENT // Paid out for purchase order
+  TRANSFER_IN // Received from another account (internal transfer)
+  TRANSFER_OUT // Sent to another account (internal transfer)
+  OPENING_BALANCE // Daily/period opening balance entry
+  ADJUSTMENT // Manual correction
+}
+
+enum AccountPeriodStatus {
+  OPEN // Day is still open / active
+  CLOSED // Day has been closed (no more entries allowed)
+}
+
+// ── Double-entry General Ledger ───────────────────────────────────────────────
+// NOTE: `LedgerAccount` (the Chart of Accounts) is deliberately DISTINCT from the
+// `Account` model above. `Account` = physical cash/bank/mobile-money tills with a
+// running balance. `LedgerAccount` = accounting buckets (A/R, Revenue, Patient
+// Deposits, Tax Payable, …) against which balanced journal entries are posted.
+
+enum LedgerAccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+
+enum NormalBalance {
+  DEBIT // assets & expenses increase on the debit side
+  CREDIT // liabilities, equity & income increase on the credit side
+}
+
+enum JournalStatus {
+  POSTED // live, affects the books
+  VOID // neutralised by a reversing entry (kept for audit, never deleted)
+}
+
+enum PricingModel {
+  FIXED // Flat price regardless of quantity
+  PER_TOOTH // Price per individual tooth
+  PER_ARCH // Price per arch (upper/lower)
+  PER_SESSION // Price per treatment session
+  PER_BRACKET // Price per orthodontic bracket
+  PER_UNIT // Generic per-unit pricing
+}
+
+enum BillingUnit {
+  TOOTH
+  ARCH
+  SESSION
+  BRACKET
+  UNIT
+}
+
+enum BillingServiceCategory {
+  CONSULTATION
+  PROCEDURE
+  DIAGNOSTIC // lab + imaging
+  MEDICATION // drug dispensing fee
+  THERAPY
+  SURGICAL
+  PREVENTIVE
+  ADMINISTRATIVE // e.g. filing, records
+  OTHER
+}
+
+enum AssetStatus {
+  ACTIVE // In use
+  IDLE // Not currently in use but operational
+  UNDER_MAINTENANCE // Being serviced/repaired
+  DISPOSED // Written off / sold / scrapped
+  LOST // Cannot be located
+  LEASED // Leased from external party
+}
+
+enum AssetCondition {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+  SCRAP
+}
+
+enum AssetCategory {
+  DENTAL_EQUIPMENT // Chairs, drills, handpieces, scalers
+  IMAGING_EQUIPMENT // X-ray units, CBCT, OPG
+  STERILIZATION // Autoclaves, UV cabinets
+  LABORATORY // Lab equipment
+  OFFICE_EQUIPMENT // Computers, printers, desks
+  FURNITURE // Chairs, cabinets, shelving
+  VEHICLES // Clinic vehicles
+  BUILDING // Owned property improvements
+  IT_INFRASTRUCTURE // Servers, networking, software licences
+  MEDICAL_INSTRUMENTS // Reusable instrument sets
+  OTHER
+}
+
+enum DepreciationMethod {
+  STRAIGHT_LINE // (Cost - Salvage) / Useful life
+  DECLINING_BALANCE // NBV × Rate
+  NONE // Non-depreciable (land, artwork)
+}
+
+enum MaintenanceType {
+  PREVENTIVE // Scheduled servicing
+  CORRECTIVE // Breakdown repair
+  CALIBRATION // Regulatory calibration
+  INSPECTION // Periodic check
+  OTHER
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  OVERDUE
+}
+
+enum AssetMovementType {
+  INITIAL_PLACEMENT // First location assignment
+  TRANSFER // Moved between locations
+  LOAN // Temporarily loaned to another department
+  RETURN // Returned from loan
+}
+
+enum DisposalMethod {
+  SOLD
+  SCRAPPED
+  DONATED
+  WRITTEN_OFF
+  RETURNED_TO_SUPPLIER
+  STOLEN_LOST
+}
+
+enum ChartEntryType {
+  CONDITION // A diagnosed problem (caries, fracture, etc.)
+  EXISTING // Prior work done at another clinic
+  PLANNED // Procedure added to treatment plan, not yet done
+  COMPLETED // Procedure completed at THIS clinic
+}
+
+enum ChartEntryStatus {
+  ACTIVE // Current truth
+  SUPERSEDED // Replaced by a newer entry (e.g. re-treatment)
+  RESOLVED // Condition resolved or procedure completed
+  VOIDED // ← NEW
+}
+
+enum ChartPresenceEffect {
+  NONE // normal condition (caries, pulpitis…) — tooth still present
+  EXTRACTED // acquired loss — ghost crown + X, no root, restorable
+  CONGENITAL // never developed — faint dashed, no root
+  UNERUPTED // exists but not erupted/impacted — dashed, offset
+  SUPERNUMERARY // extra tooth — drawn but flagged
+  RETAINED_ROOT // crown lost, root retained in situ (K08.3) — roots + stump
+}
+
+model ChartEntry {
+  id String @id @default(cuid())
+
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  visitId String?
+  visit   Visit?  @relation(fields: [visitId], references: [id], onDelete: SetNull)
+
+  // What tooth & surfaces this entry targets
+  toothNumber   Int?
+  toothNotation ToothNotation  @default(FDI) // ← NEW
+  surfaces      ToothSurface[]
+
+  // What kind of clinical event this is
+  type   ChartEntryType
+  status ChartEntryStatus @default(ACTIVE)
+
+  // Human-readable label shown on the chart (e.g. "Caries", "PFM Crown")
+  label String
+
+  // Structured codes (optional but good for reporting)
+  conditionCode String? // ICD-10 code  e.g. "K02.9"
+  procedureCode String? // CDT code      e.g. "D2740"
+
+  // Optional links to the data that created this entry
+  treatmentProcedureId String?
+  treatmentProcedure   TreatmentProcedure? @relation(fields: [treatmentProcedureId], references: [id], onDelete: SetNull)
+
+  procedureSessionId String?
+  procedureSession   ProcedureSession? @relation(fields: [procedureSessionId], references: [id], onDelete: SetNull)
+
+  treatmentPlans     TreatmentPlan[]
+  conditionId        String?
+  condition          Condition?        @relation(fields: [conditionId], references: [id], onDelete: SetNull)
+  patientConditionId String?
+  patientCondition   PatientCondition? @relation(fields: [patientConditionId], references: [id], onDelete: SetNull)
+
+  notes          String?
+  diagnosedAt    DateTime?
+  conditionStatus PatientConditionStatus?
+  createdAt      DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // M-2: optimistic-lock token. Mutations (updateEntry / voidEntry /
+  // supersedeEntry / updateCondition) bump it and may be gated on an
+  // expectedVersion so two concurrent edits can't silently overwrite each
+  // other. Matches the `version` pattern on treatment_procedures / sessions.
+  version Int @default(0)
+
+  providerId String?
+  provider   Staff?  @relation("ChartEntryProvider", fields: [providerId], references: [id], onDelete: SetNull)
+
+  imagingRecords ImagingRecord[] @relation("ChartEntryImaging")
+
+  @@index([patientId])
+  @@index([patientId, toothNumber])
+  @@index([visitId])
+  // D2: the condition-lifecycle updateMany filters by patientConditionId /
+  // conditionId, and getPatientEntries filters by (patientId, type, status).
+  // These back those hot paths instead of table-scanning.
+  @@index([patientConditionId])
+  @@index([conditionId])
+  @@index([patientId, type, status])
+}
+
+enum ImagingStage {
+  BEFORE
+  AFTER
+  PROGRESS
+  BASELINE
+}
+
+enum ImagingSource {
+  CHART
+  PROCEDURE
+  IMAGING_TAB
+  IMPORT
+}
+
+enum ConditionCodingSystem {
+  ICD_10
+  SNODENT
+  SNOMED_CT
+  CUSTOM
+}
+
+enum ConditionCategory {
+  CARIES
+  PERIODONTAL
+  PULPAL
+  PERIAPICAL
+  FRACTURE
+  EROSION_ATTRITION
+  DEVELOPMENTAL
+  NEOPLASTIC
+  TRAUMATIC
+  RESTORATIVE
+  OTHER
+}
+
+enum ConditionSeverity {
+  MILD
+  MODERATE
+  SEVERE
+}
+
+enum PatientConditionStatus {
+  ACTIVE
+  MONITORED
+  IN_TREATMENT
+  RESOLVED
+  RULED_OUT
+}
+
+enum StockOutCategory {
+  GENERAL_USE // Misc internal use
+  CLINIC_PROCEDURE // Used in procedure not tracked via treatment
+  TRAINING // Staff training / demonstrations
+  DAMAGED // Separate from waste — minor damage, no approval needed
+  SAMPLE // Given as sample
+  EXPIRED_MINOR // Minor expiry removal (no formal waste record)
+  TRANSFER_INFORMAL // Informal transfer (no formal transfer record)
+  OTHER
+}
+
+enum ToothNotation {
+  FDI // ISO-3950 two-digit — THE canonical system
+  UNIVERSAL // legacy/import only; should never be written by the app
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  ERROR
+  SUCCESS
+}
+
+enum NotificationCategory {
+  APPOINTMENT
+  CLINICAL
+  BILLING
+  INVENTORY
+  SYSTEM
+  ADMIN
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// ALL Models
+
+// ── NEW MODEL: ProcedureTarget ────────────────────────────────────────────────
+// Normalised tooth + surface ownership.
+// Replaces toothNumbers[] and surfaces[] arrays on TreatmentProcedure.
+
+model ProcedureTarget {
+  id String @id @default(cuid())
+
+  treatmentProcedureId String?
+  treatmentProcedure   TreatmentProcedure? @relation(fields: [treatmentProcedureId], references: [id], onDelete: Cascade)
+
+  procedureSessionId String?
+  procedureSession   ProcedureSession? @relation(fields: [procedureSessionId], references: [id], onDelete: Cascade)
+
+  toothNumber Int?
+  surfaces    ToothSurface[]
+  unitIndex   Int? // For multi-unit pricing (e.g. bracket index)
+
+  toothNotation ToothNotation @default(FDI) // ← NEW
+
+  createdAt DateTime @default(now())
+
+  @@index([treatmentProcedureId])
+  @@index([procedureSessionId])
+}
+
+model ProcedureCategory {
+  id          String              @id @default(cuid())
+  name        String              @unique
+  code        String?             @unique
+  description String?
+  color       String? // Hex color for UI (e.g. "#4A90D9")
+  icon        String? // Icon identifier for UI
+  parentId    String?
+  parent      ProcedureCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    ProcedureCategory[] @relation("CategoryHierarchy")
+  isActive    Boolean             @default(true)
+  sortOrder   Int                 @default(0)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  // ── Revenue mapping (category-level default) ──────────────────────────
+  // Optional link to the GL revenue (INCOME) account that procedures in this
+  // category post to. A procedure's own `revenueAccountId` overrides this;
+  // when both are null the posting engine falls back to TREATMENT_REVENUE.
+  revenueAccountId String?
+  revenueAccount   LedgerAccount? @relation("ProcedureCategoryRevenueAccount", fields: [revenueAccountId], references: [id], onDelete: SetNull)
+
+  procedures Procedure[]
+
+  @@index([parentId])
+  @@index([isActive])
+  @@index([revenueAccountId])
+  @@map("procedure_categories")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  password     String
+  role         UserRole  @default(RECEPTIONIST)
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  refreshToken String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  staff            Staff?
+    auditLogs        AuditLog[]
+    expensesCreated  Expense[]         @relation("ExpenseCreatedBy")
+    expensesApproved Expense[]         @relation("ExpenseApprovedBy")
+    expensesDeleted  Expense[]         @relation("ExpenseDeletedBy")
+    suppliersCreated Supplier[]        @relation("SupplierCreatedBy")
+    suppliersUpdated Supplier[]        @relation("SupplierUpdatedBy")
+  ledgerEntries    InventoryLedger[] @relation("LedgerPerformedBy")
+  stockMovements   StockMovement[]   @relation("StockMovementCreatedBy") // <-- ADD THIS
+  stockTransfers   StockTransfer[]
+
+  notifications           Notification[]           @relation("UserNotifications")
+  notificationsTriggered  Notification[]           @relation("NotificationActor")
+  notificationPreferences NotificationPreference[] @relation("NotificationPreferences")
+
+  @@map("users")
+}
+
+model Staff {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  staffCode      String   @unique @default(cuid())
+  firstName      String
+  lastName       String
+  phone          String?
+  avatar         String?
+  specialization String?
+  licenseNumber  String?
+  qualification  String?
+  bio            String?
+  isAvailable    Boolean  @default(true)
+  joiningDate    DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  progressReports  ProgressReport[]
+  schedules        StaffSchedule[]
+  appointments     Appointment[]
+  treatmentPlans   TreatmentPlan[]
+  emrRecords       EMRRecord[]
+  prescriptions    Prescription[]
+  imagingRecords   ImagingRecord[]
+  performanceNotes PerformanceNote[]
+  visits           Visit[]
+  labOrders        LabOrder[]
+  ledgerEntries    InventoryLedger[] @relation("LedgerPerformedByStaff")
+  assignedAssets   FixedAsset[]      @relation("AssetAssignedTo")
+
+  // In Staff model — add the back-relations:
+  chartEntriesProvided        ChartEntry[]         @relation("ChartEntryProvider")
+  patientConditionsProvided   PatientCondition[]   @relation("PatientConditionProvider")
+  treatmentProceduresProvided TreatmentProcedure[] @relation("TreatmentProcedureProvider")
+  procedureSessions           ProcedureSession[]   @relation("SessionProvider")
+  receiptsReceived            Receipt[]            @relation("ReceiptReceivedBy")
+
+  @@map("staff")
+}
+
+model StaffSchedule {
+  id        String   @id @default(cuid())
+  staffId   String
+  staff     Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  isWorking Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("staff_schedules")
+}
+
+model PerformanceNote {
+  id        String   @id @default(cuid())
+  staffId   String
+  staff     Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  period    String
+  notes     String
+  rating    Int?
+  createdAt DateTime @default(now())
+
+  @@map("performance_notes")
+}
+
+model StockMovement {
+  id             String            @id @default(cuid())
+  type           StockMovementType
+  itemType       String
+  itemId         String
+  itemName       String
+  quantity       Float
+  batchNumber    String?
+  fromLocationId String?
+  fromLocation   Location?         @relation("FromLocation", fields: [fromLocationId], references: [id])
+  toLocationId   String
+  toLocation     Location          @relation("ToLocation", fields: [toLocationId], references: [id])
+  reason         String?
+  reference      String?
+  performedById  String?
+  performedBy    User?             @relation("StockMovementCreatedBy", fields: [performedById], references: [id])
+  notes          String?
+  createdAt      DateTime          @default(now())
+
+  @@index([itemType, itemId])
+  @@index([fromLocationId])
+  @@index([toLocationId])
+  @@map("stock_movements")
+}
+
+model Location {
+  id        String       @id @default(cuid())
+  name      String
+  type      LocationType
+  address   String?
+  phone     String?
+  email     String?
+  isActive  Boolean      @default(true)
+  isDefault Boolean      @default(false)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  // Hierarchical fields - ADD THESE
+  parentId  String?
+  parent    Location?  @relation("LocationHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Location[] @relation("LocationHierarchy")
+  path      String     @default("") // Materialized path: "/parentId/childId/"
+  level     Int        @default(0) // 0 = root, 1 = child, etc.
+  sortOrder Int        @default(0) // For ordering siblings
+
+  inventoryStocks    InventoryLocationStock[]
+  stockMovementsFrom StockMovement[]          @relation("FromLocation")
+  stockMovementsTo   StockMovement[]          @relation("ToLocation")
+  pharmacySales      PharmacySale[]
+
+  procedureInputs      ProcedureInventoryInput[]
+  visitProcedureUsages VisitProcedureInventoryUsage[]
+
+  // These fields were outside the model block!
+  purchaseOrders   PurchaseOrder[]
+  deliveries       Delivery[]
+  stockAdjustments StockAdjustment[]
+  wasteRecords     WasteRecord[]
+  fixedAssets      FixedAsset[]
+  batches          InventoryBatch[]
+  ledgerEntries    InventoryLedger[]
+
+  transfersFrom StockTransfer[] @relation("TransferFrom")
+    transfersTo   StockTransfer[] @relation("TransferTo")
+
+    stockOuts StockOut[]
+
+    // Back-relations for the expense/payment/credit-note audit/segmentation work.
+    expenses   Expense[]
+
+    @@map("locations")
+  }
+
+model Patient {
+  id                 String    @id @default(cuid())
+  patientCode        String    @unique
+  firstName          String
+  lastName           String
+  dateOfBirth        DateTime?
+  gender             Gender?
+  phone              String?
+  alternatePhone     String?
+  email              String?
+  address            String?
+  city               String?
+  country            String    @default("Uganda")
+  occupation         String?
+  previousCardNumber String?
+  avatar             String?
+  isActive           Boolean   @default(true)
+  registeredAt       DateTime  @default(now())
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  bloodGroup               String?
+  allergies                String[]
+  medicalConditions        String[]
+  currentMedications       String[]
+  emergencyContactName     String?
+  emergencyContactPhone    String?
+  emergencyContactRelation String?
+
+  familyGroupId String?
+  familyGroup   FamilyGroup? @relation(fields: [familyGroupId], references: [id])
+  familyRole    String?
+
+  insurances PatientInsurance[]
+
+  appointments    Appointment[]
+  treatmentPlans  TreatmentPlan[]
+  emrRecords      EMRRecord[]
+  invoices        Invoice[]
+  prescriptions   Prescription[]
+  imagingRecords  ImagingRecord[]
+  documents       PatientDocument[]
+  labOrders       LabOrder[]
+  pharmacySales   PharmacySale[]
+  visits          Visit[]
+  ledgerEntries   LedgerEntry[]
+  progressReports ProgressReport[]
+
+  chartEntries ChartEntry[]
+
+  patientConditions PatientCondition[]
+
+  @@map("patients")
+}
+
+model FamilyGroup {
+  id        String    @id @default(cuid())
+  name      String
+  createdAt DateTime  @default(now())
+  patients  Patient[]
+
+  @@map("family_groups")
+}
+
+model PatientInsurance {
+  id               String          @id @default(cuid())
+  patientId        String
+  patient          Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  provider         String
+  policyNumber     String
+  memberNumber     String?
+  groupNumber      String?
+  coverageType     String?
+  coveragePercent  Decimal?        @db.Decimal(5, 2)
+  maxAnnualBenefit Decimal?        @db.Decimal(10, 2)
+  expiryDate       DateTime?
+  status           InsuranceStatus @default(ACTIVE)
+  documents        String[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@map("patient_insurance")
+}
+
+model PatientDocument {
+  id         String   @id @default(cuid())
+  patientId  String
+  patient    Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  name       String
+  type       String
+  fileUrl    String
+  fileSize   Int?
+  mimeType   String?
+  uploadedAt DateTime @default(now())
+
+  @@map("patient_documents")
+}
+
+model Appointment {
+  id              String            @id @default(cuid())
+  appointmentCode String            @unique
+  patientId       String
+  patient         Patient           @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  dentistId       String
+  dentist         Staff             @relation(fields: [dentistId], references: [id], onDelete: Restrict)
+  type            AppointmentType   @default(CONSULTATION)
+  status          AppointmentStatus @default(SCHEDULED)
+  scheduledAt     DateTime
+  duration        Int               @default(30)
+  actualStartAt   DateTime?
+  actualEndAt     DateTime?
+  chiefComplaint  String?
+  notes           String?
+  internalNotes   String?
+  isWalkIn        Boolean           @default(false)
+  reminderSentAt  DateTime?
+  followUpDate    DateTime?
+  cancelledReason String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relation - no FK here (back-reference only)
+  visit Visit?
+
+  waitlistEntry  WaitlistEntry?
+  emrRecord      EMRRecord?
+  invoices       Invoice[]
+  imagingRecords ImagingRecord[]
+  labOrders      LabOrder[]
+
+  @@map("appointments")
+}
+
+model Visit {
+  id        String @id @default(cuid())
+  visitCode String @unique
+
+  // FK on Visit side
+  appointmentId String?      @unique
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+  dentistId String
+  dentist   Staff   @relation(fields: [dentistId], references: [id])
+
+  status VisitStatus @default(ARRIVED)
+
+  subjective String?
+  objective  String?
+  assessment String?
+  plan       String?
+
+  bloodPressure String?
+  pulseRate     Int?
+  temperature   Float?
+  weight        Float?
+  height        Float?
+  oxygenSat     Float?
+
+  diagnosis       String[]
+  icdCodes        String[]
+  findings        String?
+  recommendations String?
+  followUpDate    DateTime?
+  followUpNotes   String?
+
+  totalCost     Decimal       @default(0) @db.Decimal(10, 2)
+  amountPaid    Decimal       @default(0) @db.Decimal(10, 2)
+  paymentStatus BalanceStatus @default(OPEN)
+
+  chiefComplaint          String?
+  historyOfPresentIllness String?
+
+  checkedInAt DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  visitDate   DateTime? @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  procedures        VisitProcedure[]
+  prescriptions     Prescription[]
+  imagingRecords    ImagingRecord[]
+  labOrders         LabOrder[]
+  invoices          Invoice[]
+  ledgerEntries     LedgerEntry[]
+  progressReports   ProgressReport[]
+  procedureSessions ProcedureSession[]
+  chartEntries      ChartEntry[]
+  patientConditions PatientCondition[]
+
+  @@map("visits")
+}
+
+model WaitlistEntry {
+  id            String      @id @default(cuid())
+  appointmentId String      @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  position      Int
+  notifiedAt    DateTime?
+  createdAt     DateTime    @default(now())
+
+  @@map("waitlist_entries")
+}
+
+model VisitProcedure {
+  id           String         @id @default(cuid())
+  visitId      String
+  visit        Visit          @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  procedureId  String
+  procedure    Procedure      @relation(fields: [procedureId], references: [id])
+  toothNumbers Int[]
+  surfaces     ToothSurface[]
+  notes        String?
+  cost         Decimal        @default(0) @db.Decimal(10, 2)
+  performedAt  DateTime       @default(now())
+
+  unitPrice     Decimal       @default(0) @db.Decimal(10, 2) // price per unit at time of adding
+  currency      String        @default("UGX")
+  exchangeRate  Decimal       @default(1) @db.Decimal(10, 4)
+  paymentStatus BalanceStatus @default(OPEN)
+
+  originalPrice    Decimal? @default(0) @db.Decimal(10, 2) // cost in original currency (before UGX conversion)
+  originalCurrency String   @default("UGX")
+  finalCurrency    String   @default("UGX") // Always UGX for ledger
+  amountPaid       Decimal  @default(0) @db.Decimal(10, 2)
+
+  inventoryUsages VisitProcedureInventoryUsage[]
+
+  @@map("visit_procedures")
+}
+
+/// DEPRECATED — legacy parallel tooth-state system. The source of truth for the
+/// dental chart is the ChartEntry model (+ TreatmentProcedure / PatientCondition).
+/// This model is still written by visit.service (legacy tooth-status update) and
+/// read by clinical-report (tooth-status distribution); migrate those to ChartEntry
+/// before dropping these tables. The orphaned /dental-chart API was removed
+/// 2026-06-12. Do not add new readers/writers.
+model Procedure {
+  id   String  @id @default(cuid())
+  code String? @unique
+  name String
+
+  // ── Category (proper FK instead of bare String) ───────────────────────
+  categoryId String
+  category   ProcedureCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  description String?
+
+  // ── Internal cost (what it costs the clinic) ─────────────────────────
+  baseCost Decimal @default(0) @db.Decimal(12, 2)
+
+  // ── Default selling price ─────────────────────────────────────────────
+  basePrice Decimal @default(0) @db.Decimal(12, 2)
+
+  // ── Pricing logic: HOW to calculate the total ─────────────────────────
+  pricingModel PricingModel @default(FIXED)
+  billingUnit  BillingUnit? // Explicit unit label (TOOTH, ARCH …)
+
+  // ── Price guardrails ──────────────────────────────────────────────────
+  priceRangeMin Decimal? @db.Decimal(12, 2)
+  priceRangeMax Decimal? @db.Decimal(12, 2)
+
+  // ── Currency the procedure is defined in ─────────────────────────────
+  currency String @default("UGX")
+
+  // ── Revenue mapping (per-procedure override) ──────────────────────────
+  // Optional link to the GL revenue (INCOME) account this procedure posts to.
+  // Resolution order at posting time: this field → category.revenueAccountId
+  // → system default TREATMENT_REVENUE. See InvoiceLifecycleService.
+  revenueAccountId String?
+  revenueAccount   LedgerAccount? @relation("ProcedureRevenueAccount", fields: [revenueAccountId], references: [id], onDelete: SetNull)
+
+  // Just this — no @relation attributes needed:
+  patientConditions PatientCondition[]
+
+  defaultDuration Int      @default(30)
+  requiresXray    Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  inputs              ProcedureInventoryInput[]
+  treatmentProcedures TreatmentProcedure[]
+  visitProcedures     VisitProcedure[]
+  invoiceItems        InvoiceItem[]
+  imagingRecords      ImagingRecord[]          @relation("ProcedureImaging")
+
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([pricingModel])
+  @@map("procedures")
+}
+
+model TreatmentPlan {
+  id            String          @id @default(cuid())
+  planCode      String          @unique
+  patientId     String
+  patient       Patient         @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  dentistId     String
+  dentist       Staff           @relation(fields: [dentistId], references: [id])
+  title         String
+  description   String?
+  diagnosis     String?
+  status        TreatmentStatus @default(PLANNED)
+  priority      String          @default("NORMAL")
+  estimatedCost Decimal         @default(0) @db.Decimal(10, 2)
+  actualCost    Decimal         @default(0) @db.Decimal(10, 2)
+  startDate     DateTime?
+  endDate       DateTime?
+  completedAt   DateTime?
+  notes         String?
+  consentSigned Boolean         @default(false)
+  consentDate   DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  procedures   TreatmentProcedure[]
+  attachments  TreatmentAttachment[]
+  chartEntries ChartEntry[]
+  invoices     Invoice[]             @relation("TreatmentPlanInvoices")
+
+  @@map("treatment_plans")
+}
+
+model TreatmentProcedure {
+  id              String        @id @default(cuid())
+  treatmentPlanId String
+  treatmentPlan   TreatmentPlan @relation(fields: [treatmentPlanId], references: [id], onDelete: Cascade)
+  procedureId     String
+  procedure       Procedure     @relation(fields: [procedureId], references: [id])
+
+  // ── Clinical context ──────────────────────────────────────────────────
+  notes            String?
+  scheduledDate    DateTime?
+  completedAt      DateTime?
+  performedDate    DateTime?
+  performedNotes   String?
+  actualInputsUsed Json? // ActualInput[] — recorded at performance time
+  status           TreatmentStatus @default(PLANNED)
+  sequence         Int             @default(0)
+  visitGroup       Int             @default(1)
+
+  // ── Billing context (snapshot of WHY quantity = N) ────────────────────
+  // e.g. { "teeth": [11,12,13], "arches": 1, "sessions": 3 }
+  billingContext Json?
+
+  // ── Pricing snapshot (taken at time of adding to plan) ───────────────
+  pricingModel PricingModel @default(FIXED)
+  billingUnit  BillingUnit?
+  quantity     Int          @default(1) // # of billing units
+
+  pricePerUnit   Decimal @default(0) @db.Decimal(12, 2) // selling price per unit
+  costPerUnit    Decimal @default(0) @db.Decimal(12, 2) // internal cost per unit
+  subtotalPrice  Decimal @default(0) @db.Decimal(12, 2) // pricePerUnit × quantity
+  subtotalCost   Decimal @default(0) @db.Decimal(12, 2) // costPerUnit × quantity
+  discountAmount Decimal @default(0) @db.Decimal(12, 2)
+  taxAmount      Decimal @default(0) @db.Decimal(12, 2)
+  totalPrice     Decimal @default(0) @db.Decimal(12, 2) // final after discount/tax
+
+  // ── Multi-currency ────────────────────────────────────────────────────
+  currency     String   @default("UGX") // procedure's pricing currency
+  exchangeRate Decimal? @db.Decimal(10, 4) // rate used at time of adding
+  baseCurrency String   @default("UGX") // system reporting currency
+  baseAmount   Decimal  @default(0) @db.Decimal(12, 2) // totalPrice in baseCurrency
+
+  // ── Payment tracking ──────────────────────────────────────────────────
+  amountPaid    Decimal       @default(0) @db.Decimal(12, 2)
+  paymentStatus BalanceStatus @default(OPEN)
+
+  // ── Session config ────────────────────────────────────────────────────
+  sessionType  SessionType @default(SINGLE)
+  sessionCount Int         @default(1)
+  billingType  BillingType @default(PAY_FULL)
+
+  // ── Ledger link ───────────────────────────────────────────────────────
+  ledgerEntryId String?
+  ledgerEntry   LedgerEntry?        @relation(fields: [ledgerEntryId], references: [id])
+  ledgerStatus  SessionLedgerStatus @default(PENDING)
+
+  sessions ProcedureSession[]
+
+  targets           ProcedureTarget[]
+  chartEntries      ChartEntry[]
+  phase             String?
+  plannedVisitIndex Int? // replaces visitGroup (gradual migration)
+
+  conditionLinks ConditionProcedureLink[]
+
+  resolvedConditions PatientCondition[] @relation("ResolvedByProcedure")
+
+  providerId String?
+  provider   Staff?  @relation("TreatmentProcedureProvider", fields: [providerId], references: [id], onDelete: SetNull)
+
+  invoiceItems InvoiceItem[] @relation("InvoiceItemTP")
+
+  // ── Audit reasons (denormalised for quick display; full history in AuditLog) ─
+  cancellationReason String?
+  lastEditReason     String?
+
+  // ── Optimistic concurrency control (H2) ───────────────────────────────────
+  // Bumped on every mutation; clients pass the value they last read as
+  // `expectedVersion` so a concurrent edit is rejected (409) instead of silently
+  // overwriting another clinician's change.
+  version Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([treatmentPlanId, visitGroup])
+  @@index([procedureId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@map("treatment_procedures")
+}
+
+model ProcedureSession {
+  id                   String             @id @default(cuid())
+  treatmentProcedureId String
+  treatmentProcedure   TreatmentProcedure @relation(fields: [treatmentProcedureId], references: [id], onDelete: Cascade)
+
+  // Add these fields
+  visitId String?
+  visit   Visit?  @relation(fields: [visitId], references: [id], onDelete: SetNull)
+
+  // ── Clinical identity ─────────────────────────────────────────────────
+  visitGroup    Int     @default(1)
+  sessionNumber Int // 1, 2, 3 …
+  sessionLabel  String? // "Root Canal – Session 2 of 3"
+
+  // ── Clinical tracking ─────────────────────────────────────────────────
+  status           SessionStatus  @default(PENDING)
+  performedDate    DateTime?
+  performedNotes   String?
+  actualInputsUsed Json? // ActualInput[]
+  surfaces         ToothSurface[] // ← was String[]; now DB-validated like everywhere else
+
+  // ── Optional billing (only populated when billingType = PAY_PARTIALLY) ─
+  // For PAY_FULL: leave null — the parent TreatmentProcedure carries the price
+  sessionCost  Decimal? @db.Decimal(12, 2)
+  sessionPrice Decimal? @db.Decimal(12, 2)
+
+  // ── Ledger link ───────────────────────────────────────────────────────
+  ledgerEntryId String?
+  ledgerEntry   LedgerEntry?        @relation(fields: [ledgerEntryId], references: [id])
+  ledgerStatus  SessionLedgerStatus @default(PENDING)
+
+  targets      ProcedureTarget[]
+  chartEntries ChartEntry[]
+  providerId   String?
+  startedAt    DateTime?
+  endedAt      DateTime?
+
+  progressReportLinks ProgressReportProcedure[]
+
+  phase   String? // 'CLEANING' | 'SHAPING' | 'FILLING' etc — stored as string for flexibility
+  outcome String? // 'PARTIAL' | 'COMPLETED'
+  isFinal Boolean @default(false) // marks this as the session that closes the procedure
+
+  // providerId already exists — add the relation:
+  provider Staff? @relation("SessionProvider", fields: [providerId], references: [id], onDelete: SetNull)
+
+  edits          ProcedureSessionEdit[]
+  imagingRecords ImagingRecord[]
+
+  // ── Soft delete (status = VOIDED, deletedReason = void reason) ────────
+  // Clinical records are never hard-deleted. A "void" sets status=VOIDED,
+  // stamps deletedAt/deletedById, captures deletedReason, and reverses
+  // every side effect (chart entries, ledger, imaging, progress reports).
+  deletedAt     DateTime?
+  deletedById   String?
+  deletedReason String?
+
+  // Latest edit reason, denormalised for quick display. Full diff history
+  // lives in ProcedureSessionEdit + AuditLog.
+  lastEditReason String?
+
+  // ── Optimistic concurrency control (H2) — see TreatmentProcedure.version ──
+  version Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([treatmentProcedureId])
+  @@index([visitGroup])
+  @@index([status])
+  @@index([visitId])
+  @@index([deletedAt])
+  @@map("procedure_sessions")
+}
+
+model TreatmentAttachment {
+  id              String        @id @default(cuid())
+  treatmentPlanId String
+  treatmentPlan   TreatmentPlan @relation(fields: [treatmentPlanId], references: [id], onDelete: Cascade)
+  name            String
+  fileUrl         String
+  fileType        String
+  uploadedAt      DateTime      @default(now())
+
+  @@map("treatment_attachments")
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  invoiceNumber  String        @unique
+  patientId      String
+  patient        Patient       @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  appointmentId  String?
+  appointment    Appointment?  @relation(fields: [appointmentId], references: [id])
+  visitId        String?
+  visit          Visit?        @relation(fields: [visitId], references: [id])
+  status         InvoiceStatus @default(DRAFT)
+  subtotal       Decimal       @default(0) @db.Decimal(10, 2)
+  discountType   String?
+  discountValue  Decimal       @default(0) @db.Decimal(10, 2)
+  discountAmount Decimal       @default(0) @db.Decimal(10, 2)
+  taxPercent     Decimal       @default(0) @db.Decimal(5, 2)
+  taxAmount      Decimal       @default(0) @db.Decimal(10, 2)
+  total          Decimal       @default(0) @db.Decimal(10, 2)
+  amountPaid     Decimal       @default(0) @db.Decimal(10, 2)
+  balance        Decimal       @default(0) @db.Decimal(10, 2)
+  notes          String?
+  dueDate        DateTime?
+  issuedAt       DateTime?
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // Currency fields
+  currency     String  @default("UGX")
+  exchangeRate Decimal @default(1) @db.Decimal(10, 4)
+  baseCurrency String  @default("UGX")
+
+  baseSubtotal       Decimal @default(0) @db.Decimal(10, 2)
+  baseDiscountAmount Decimal @default(0) @db.Decimal(10, 2)
+  baseTaxAmount      Decimal @default(0) @db.Decimal(10, 2)
+  baseTotal          Decimal @default(0) @db.Decimal(10, 2)
+  baseAmountPaid     Decimal @default(0) @db.Decimal(10, 2)
+  baseBalance        Decimal @default(0) @db.Decimal(10, 2)
+
+  // ── Lifecycle ─────────────────────────────────────────────────────
+  activatedAt            DateTime? // set when status moves DRAFT → POSTED
+  // Spec wording: "User's initial deposit amount & currency to pay is
+  // registered in the draft invoice as initialCurrency & initialReceipt".
+  // Implementation note: the schema uses the more verbose
+  // `initialPaymentAmount` / `initialPaymentCurrency` (these are the
+  // current DB field names). They are semantically identical to the
+  // spec's `initialReceipt` / `initialCurrency` — the deposit amount
+  // is kept in the deposit currency, NOT converted to the invoice
+  // currency. See `backend/src/billing/invoice-lifecycle.service.ts`
+  // for the write paths and the Adding Procedure spec.
+  initialPaymentAmount   Decimal?  @db.Decimal(10, 2) // deposit amount as the patient agreed (in initialPaymentCurrency) — a.k.a. spec's `initialReceipt`
+  initialPaymentCurrency String? // currency the patient agreed to pay the deposit in (e.g. "USD") — a.k.a. spec's `initialCurrency`
+
+  // ── Payment status & terms ───────────────────────────────────────
+  paymentStatus InvoicePaymentStatus @default(UNPAID)
+  paymentTerms  String               @default("CASH")
+
+  // ── Void audit trail ─────────────────────────────────────────────
+  voidedAt   DateTime?
+  voidedBy   String?
+  voidReason String?
+
+  // ── Soft delete (B6) — invoices are NEVER hard-deleted ──────────
+  deletedAt     DateTime?
+  deletedById   String?
+  deletedReason String?
+
+  // ── Audit columns (C7) ──────────────────────────────────────────
+  createdById String?
+  updatedById String?
+
+  treatmentPlanId String?
+  treatmentPlan   TreatmentPlan? @relation("TreatmentPlanInvoices", fields: [treatmentPlanId], references: [id], onDelete: SetNull)
+
+  items        InvoiceItem[]
+  payments     Payment[]
+  receipts     Receipt[]
+  pharmacySale PharmacySale?
+
+  @@index([patientId, status])
+  @@index([visitId])
+  @@index([treatmentPlanId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+  @@index([paidAt])
+  @@index([dueDate])
+  @@index([deletedAt])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id            String       @id @default(cuid())
+  invoiceId     String
+  invoice       Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  procedureId   String?
+  procedure     Procedure?   @relation(fields: [procedureId], references: [id])
+  description   String
+  quantity      Int          @default(1)
+  unitPrice     Decimal      @db.Decimal(10, 2)
+  discount      Decimal      @default(0) @db.Decimal(10, 2)
+  total         Decimal      @db.Decimal(10, 2)
+  toothNumbers  Int[]
+  createdAt     DateTime     @default(now())
+  ledgerEntryId String?
+  ledgerEntry   LedgerEntry? @relation(fields: [ledgerEntryId], references: [id])
+
+  originalCurrency  String?
+  originalUnitPrice Decimal? @db.Decimal(10, 2)
+  originalTotal     Decimal? @db.Decimal(10, 2)
+  exchangeRate      Decimal  @default(1) @db.Decimal(10, 4)
+
+  // ── New fields for refactored billing ────────────────────────────
+  itemType             InvoiceItemType     @default(MANUAL)
+  treatmentProcedureId String?
+  treatmentProcedure   TreatmentProcedure? @relation("InvoiceItemTP", fields: [treatmentProcedureId], references: [id], onDelete: SetNull)
+
+  @@index([invoiceId])
+  @@index([treatmentProcedureId])
+  @@map("invoice_items")
+}
+
+model Payment {
+  id          String            @id @default(cuid())
+  paymentCode String            @unique // was missing on old Payment
+  type        PaymentType
+  direction   CashFlowDirection // IN | OUT
+
+  // ── Source document (exactly one populated) ──────────────────────────
+  // NOTE: onDelete: Restrict — payments must never be cascaded away by deleting
+  // the source document. Invoices are soft-deleted; payments are voided in place.
+  invoiceId       String?
+  invoice         Invoice?       @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  expenseId       String?
+  expense         Expense?       @relation(fields: [expenseId], references: [id], onDelete: Restrict)
+
+  // ── Core fields ───────────────────────────────────────────────────────
+  amount        Decimal       @db.Decimal(10, 2)
+  method        PaymentMethod
+  status        PaymentStatus @default(COMPLETED)
+  reference     String?
+  transactionId String?
+  bankName      String? // bank transfers / cheques
+  chequeNumber  String?
+  notes         String?
+
+  // ── Parties ───────────────────────────────────────────────────────────
+  receivedBy   String? // populated for INVOICE_RECEIPT (cashier name)
+  recordedById String? // user who created this payment record
+  createdById  String? // audit (C7) — auth user who created this row
+  updatedById  String? // audit (C7) — last auth user to mutate this row
+
+  // ── Currency ──────────────────────────────────────────────────────────
+  currency     String  @default("UGX")
+  exchangeRate Decimal @default(1) @db.Decimal(10, 4)
+  baseAmount   Decimal @default(0) @db.Decimal(10, 2)
+
+  // ── Void tracking ─────────────────────────────────────────────────────
+  voidedAt   DateTime?
+  voidedBy   String?
+  voidReason String?
+
+  paidAt    DateTime @default(now())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    receipts        Receipt[]
+    cashFlowEntries CashFlowEntry[]
+    creditNote      VendorCreditNote? @relation("VendorCreditNotePayment")
+
+    @@index([type])
+    @@index([direction])
+    @@index([invoiceId])
+    @@index([purchaseOrderId])
+    @@index([expenseId])
+    @@index([status])
+    @@index([paidAt])
+    @@map("payments")
+  }
+
+  /// Vendor credit note — supplier-issued credit against a PurchaseOrder or an
+  /// Expense (e.g. returned defective goods, negotiated rebate, post-billing
+  /// discount). Mirrors Invoice/CreditNote symmetry in patient billing but on
+  /// the procurement side. Applied credits reduce the source document's
+  /// outstanding balance (and post `DR AP · CR Inventory/Cash` on GL).
+  ///
+  /// Lifecycle:
+  ///   DRAFT → APPROVED → APPLIED  (terminal once applied; voiding is a reversal
+  ///                               by posting an opposite Payment of type CREDIT_NOTE_REVERSAL).
+  ///
+  /// `creditNoteNumber` is generated via DocumentNumberService ('VCN' prefix).
+  model VendorCreditNote {
+    id              String                  @id @default(cuid())
+    creditNoteNumber String                 @unique
+
+    supplierId String
+    supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+
+    // Optional link to the PO or Expense this credit is reducing. Exactly one
+    // is populated; the other is null. Enforced at service-layer because
+    // Prisma doesn't support multi-column XOR constraints cleanly.
+    purchaseOrderId String?
+    purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
+    expenseId       String?
+    expense         Expense?       @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+
+    amount      Decimal                 @db.Decimal(12, 2)
+    currency    String                  @default("UGX")
+    exchangeRate Decimal                @default(1) @db.Decimal(10, 4)
+    baseAmount  Decimal                 @db.Decimal(12, 2)
+
+    reason        String // free text: "Defective shipment", "Volume rebate", etc.
+    vendorRef     String? // supplier's reference number on the credit memo
+    documentDate  DateTime               @default(now())
+    status        VendorCreditNoteStatus @default(DRAFT)
+
+    approvedById String?
+    approvedAt   DateTime?
+    appliedAt    DateTime?
+    voidedAt     DateTime?
+    voidReason   String?
+
+    // The resulting Payment that physically moves the credit onto the books.
+    // Created on APPLY via PaymentsService.createCreditNotePayment; null while
+    // the credit note is in DRAFT/APPROVED.
+    paymentId String? @unique
+    payment   Payment? @relation("VendorCreditNotePayment", fields: [paymentId], references: [id], onDelete: SetNull)
+
+    // Audit actors (denormalised on AuditLog rows; FKs for drill-down).
+    createdById String
+    updatedById String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([supplierId])
+    @@index([status])
+    @@index([documentDate])
+    @@index([purchaseOrderId])
+    @@index([expenseId])
+    @@map("vendor_credit_notes")
+  }
+
+  enum VendorCreditNoteStatus {
+    DRAFT
+    APPROVED
+    APPLIED
+    VOIDED
+  }
+
+model EMRRecord {
+  id            String       @id @default(cuid())
+  patientId     String
+  patient       Patient      @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  appointmentId String?      @unique
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  dentistId     String
+  dentist       Staff        @relation(fields: [dentistId], references: [id])
+
+  subjective String?
+  objective  String?
+  assessment String?
+  plan       String?
+
+  bloodPressure String?
+  pulseRate     Int?
+  temperature   Float?
+  weight        Float?
+  height        Float?
+  oxygenSat     Float?
+
+  diagnosis       String[]
+  icdCodes        String[]
+  findings        String?
+  recommendations String?
+  followUpDate    DateTime?
+  followUpNotes   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attachments EMRAttachment[]
+  labOrders   LabOrder[]
+
+  @@map("emr_records")
+}
+
+model EMRAttachment {
+  id         String    @id @default(cuid())
+  emrId      String
+  emr        EMRRecord @relation(fields: [emrId], references: [id], onDelete: Cascade)
+  name       String
+  fileUrl    String
+  fileType   String
+  fileSize   Int?
+  uploadedAt DateTime  @default(now())
+
+  @@map("emr_attachments")
+}
+
+model ImagingRecord {
+  id String @id @default(cuid())
+
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Restrict)
+
+  appointmentId String?
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], map: "imaging_records_appointment_fkey")
+
+  visitId String?
+  visit   Visit?  @relation(fields: [visitId], references: [id], map: "imaging_records_visit_fkey")
+
+  dentistId String?
+  dentist   Staff?  @relation(fields: [dentistId], references: [id], map: "imaging_records_dentist_fkey")
+
+  // 🔥 NEW LINKS — now live relations so imaging is queryable from a chart
+  // entry / procedure and a delete null-sets the link instead of orphaning it.
+  procedureId  String?
+  procedure    Procedure?  @relation("ProcedureImaging", fields: [procedureId], references: [id], onDelete: SetNull, map: "imaging_records_procedure_fkey")
+  chartEntryId String?
+  chartEntry   ChartEntry? @relation("ChartEntryImaging", fields: [chartEntryId], references: [id], onDelete: SetNull, map: "imaging_records_chart_entry_fkey")
+
+  // 🔥 CLASSIFICATION
+  type   ImagingType
+  stage  ImagingStage?
+  source ImagingSource?
+
+  // 🔥 GROUPING
+  groupId String?
+
+  // FILE
+  fileUrl      String
+  thumbnailUrl String?
+  storagePath  String?
+  fileName     String
+  fileSize     Int?
+  mimeType     String?
+
+  // CLINICAL
+  toothNumbers Int[]
+  notes        String?
+  findings     String?
+  annotations  Json?
+
+  // META
+  takenAt   DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ADVANCED
+  comparisons  ImagingComparison[] @relation("BaseImage")
+  comparedWith ImagingComparison[] @relation("CompareImage")
+
+  procedureSessionId String?
+  procedureSession   ProcedureSession? @relation(fields: [procedureSessionId], references: [id], onDelete: SetNull, map: "imaging_records_procedure_session_fkey")
+
+  @@index([chartEntryId])
+  @@index([procedureId])
+  @@map("imaging_records")
+}
+
+model ImagingComparison {
+  id             String        @id @default(cuid())
+  baseImageId    String
+  baseImage      ImagingRecord @relation("BaseImage", fields: [baseImageId], references: [id])
+  compareImageId String
+  compareImage   ImagingRecord @relation("CompareImage", fields: [compareImageId], references: [id])
+  notes          String?
+  createdAt      DateTime      @default(now())
+
+  @@map("imaging_comparisons")
+}
+
+model DrugCategory {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  code        String? @unique // e.g., "ANALGESIC", "ANTIBIOTIC"
+  description String?
+  color       String? // UI badge color
+  icon        String? // Lucide icon name
+
+  // Hierarchy support
+  parentId String?
+  parent   DrugCategory?  @relation("DrugCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children DrugCategory[] @relation("DrugCategoryHierarchy")
+
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  drugs Drug[]
+
+  @@index([parentId])
+  @@index([isActive])
+  @@map("drug_categories")
+}
+
+model Drug {
+  id                   String        @id @default(cuid())
+  name                 String
+  genericName          String?
+  categoryId           String?
+  category             DrugCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  form                 String?
+  strength             String?
+  manufacturer         String?
+  unit                 String        @default("tablet")
+  uom                  UnitOfMeasure @default(TABLET)
+  unitPrice            Decimal       @default(0) @db.Decimal(10, 2)
+  sellPrice            Decimal       @default(0) @db.Decimal(10, 2)
+  isActive             Boolean       @default(true)
+  requiresPrescription Boolean       @default(false)
+
+  // ✅ Add timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations...
+  prescriptionItems PrescriptionItem[]
+  saleItems         PharmacySaleItem[]
+
+  // 🔗 NEW RELATION
+  inventoryItemId String?        @unique
+  inventoryItem   InventoryItem? @relation(fields: [inventoryItemId], references: [id])
+
+  @@index([name])
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([requiresPrescription])
+  @@map("drugs")
+}
+
+model Prescription {
+  id               String             @id @default(cuid())
+  prescriptionCode String
+  visitId          String
+  visit            Visit              @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  patientId        String
+  patient          Patient            @relation(fields: [patientId], references: [id])
+  dentistId        String?
+  dentist          Staff?             @relation(fields: [dentistId], references: [id])
+  status           PrescriptionStatus @default(ACTIVE)
+  notes            String?
+  validUntil       DateTime?
+  dispensedAt      DateTime?
+  dispensedBy      String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  items         PrescriptionItem[]
+  pharmacySales PharmacySale[]
+
+  @@map("prescriptions")
+}
+
+model PrescriptionItem {
+  id             String       @id @default(cuid())
+  prescriptionId String
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  drugId         String
+  drug           Drug         @relation(fields: [drugId], references: [id])
+
+  dosage       String
+  frequency    String
+  duration     String
+  route        String?
+  quantity     Int
+  instructions String?
+  refills      Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@map("prescription_items")
+}
+
+model Supplier {
+  id            String    @id @default(cuid())
+  name          String
+  contactPerson String?
+  phone         String?
+  email         String?
+  address       String?
+  notes         String?
+  taxId         String?
+  paymentTerms  String?    @default("NET_30")
+  creditLimit   Decimal    @default(0) @db.Decimal(12, 2)
+  isActive      Boolean   @default(true)
+  version       Int       @default(0) // optimistic-lock counter
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Audit-actor relations (defence-in-depth — denormalised userName on AuditLog
+  // already survives user deletion, but these FKs let us drill-down the
+  // supplier's history through the supplier itself).
+  createdById   String?
+  createdBy     User?     @relation("SupplierCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById   String?
+  updatedBy     User?     @relation("SupplierUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  expenses          Expense[]
+  inventoryItems    InventoryItem[]
+  purchaseOrders    PurchaseOrder[]
+  creditNotes       VendorCreditNote[]
+  assets            FixedAsset[]
+
+  @@index([isActive])
+  @@index([name])
+  @@map("suppliers")
+}
+
+model InventoryCategory {
+  id          String              @id @default(cuid())
+  name        String              @unique
+  code        String?             @unique // Short code for API/UI (e.g., "CONS", "INST")
+  description String?
+  color       String? // Hex color for UI badges (e.g., "#4A90D9")
+  icon        String? // Lucide icon name for UI
+  parentId    String? // For hierarchical categories
+  parent      InventoryCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    InventoryCategory[] @relation("CategoryHierarchy")
+
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0) // For custom ordering in UI
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  // Relations
+  inventoryItems InventoryItem[]
+
+  @@index([parentId])
+  @@index([isActive])
+  @@index([sortOrder])
+  @@map("inventory_categories")
+}
+
+enum InventoryType {
+  MEDICINE
+  CONSUMABLE
+  EQUIPMENT
+}
+
+enum StockTransferStatus {
+  DRAFT
+  PENDING
+  IN_TRANSIT
+  COMPLETED
+  CANCELLED
+}
+
+model InventoryItem {
+  id            String        @id @default(cuid())
+  itemCode      String        @unique
+  name          String
+  description   String?
+  unit          String // Display unit
+  uom           UnitOfMeasure @default(PIECES) // Standard UOM
+  supplierId    String?
+  supplier      Supplier?     @relation(fields: [supplierId], references: [id])
+  minQuantity   Float         @default(0)
+  unitCost      Decimal       @default(0) @db.Decimal(10, 2)
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  type          InventoryType
+  batchTracking Boolean       @default(false)
+
+  // Relations...
+  categoryId           String?
+  category             InventoryCategory?             @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  drug                 Drug?
+  purchaseOrderItems   PurchaseOrderItem[]
+  locationStocks       InventoryLocationStock[]
+  procedureInputs      ProcedureInventoryInput[]
+  visitProcedureUsages VisitProcedureInventoryUsage[]
+  deliveryItems        DeliveryItem[]
+  adjustmentItems      StockAdjustmentItem[]
+  wasteItems           WasteItem[]
+  batches              InventoryBatch[]
+  ledgerEntries        InventoryLedger[]
+  stockTransferItems   StockTransferItem[]
+  stockOutItems        StockOutItem[]
+
+  @@map("inventory_items")
+}
+
+model PurchaseOrder {
+  id             String              @id @default(cuid())
+  poNumber       String              @unique
+  supplierId     String
+  supplier       Supplier            @relation(fields: [supplierId], references: [id])
+  locationId     String?
+  location       Location?           @relation(fields: [locationId], references: [id])
+  status         PurchaseOrderStatus @default(DRAFT)
+  paymentTerms   PaymentTerms        @default(CASH_ON_DELIVERY)
+  paymentStatus  BalanceStatus       @default(UNPAID)
+  orderType      String              @default("INVENTORY")
+  currency       String              @default("UGX")
+  exchangeRate   Decimal             @default(1) @db.Decimal(10, 4)
+  subtotal       Decimal             @default(0) @db.Decimal(10, 2)
+  taxPercent     Decimal             @default(0) @db.Decimal(5, 2)
+  taxAmount      Decimal             @default(0) @db.Decimal(10, 2)
+  discountAmount Decimal             @default(0) @db.Decimal(10, 2)
+  shippingCost   Decimal             @default(0) @db.Decimal(10, 2)
+  total          Decimal             @default(0) @db.Decimal(10, 2)
+  amountPaid     Decimal             @default(0) @db.Decimal(10, 2)
+  balance        Decimal             @default(0) @db.Decimal(10, 2)
+  amountCredited Decimal             @default(0) @db.Decimal(10, 2) // sum of applied VendorCreditNote
+  dueDate        DateTime?
+  expectedDate   DateTime?
+  approvedById   String?
+  approvedAt     DateTime?
+  approvalNotes  String?
+  submittedById  String?
+  submittedAt    DateTime?
+  notes          String?
+  internalNotes  String?
+  attachments    String[]
+  createdById    String
+  version        Int                 @default(0) // optimistic-lock counter
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  items       PurchaseOrderItem[]
+  deliveries  Delivery[]
+  payments    Payment[]
+  creditNotes VendorCreditNote[]
+
+  @@index([status])
+  @@index([supplierId])
+  @@index([paymentStatus])
+  @@index([createdAt])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id               String         @id @default(cuid())
+  purchaseOrderId  String
+  purchaseOrder    PurchaseOrder  @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  inventoryItemId  String?
+  inventoryItem    InventoryItem? @relation(fields: [inventoryItemId], references: [id])
+  itemName         String
+  unit             String // Store as string for flexibility
+  uom              UnitOfMeasure  @default(PIECES) // Standard UOM
+  quantityOrdered  Decimal        @db.Decimal(12, 4) // High precision
+  quantityReceived Decimal        @default(0) @db.Decimal(12, 4)
+  unitCost         Decimal        @db.Decimal(10, 2)
+  taxPercent       Decimal        @default(0) @db.Decimal(5, 2)
+  discount         Decimal        @default(0) @db.Decimal(10, 2)
+  total            Decimal        @db.Decimal(10, 2)
+  batchNumber      String?
+  expiryDate       DateTime?
+  notes            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  deliveryItems DeliveryItem[]
+
+  @@map("purchase_order_items")
+}
+
+model Delivery {
+  id              String         @id @default(cuid())
+  deliveryCode    String         @unique
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder  @relation(fields: [purchaseOrderId], references: [id])
+  locationId      String
+  location        Location       @relation(fields: [locationId], references: [id])
+  status          DeliveryStatus @default(PENDING)
+  deliveryDate    DateTime       @default(now())
+  receivedById    String?
+  supplierRef     String?
+  invoiceNumber   String?
+  notes           String?
+  attachments     String[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  items            DeliveryItem[]
+  InventoryLedgers InventoryLedger[]
+
+  @@index([purchaseOrderId])
+  @@index([status])
+  @@map("deliveries")
+}
+
+model DeliveryItem {
+  id                  String            @id @default(cuid())
+  deliveryId          String
+  delivery            Delivery          @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  purchaseOrderItemId String
+  purchaseOrderItem   PurchaseOrderItem @relation(fields: [purchaseOrderItemId], references: [id])
+  itemType            String
+  inventoryItemId     String
+  inventoryItem       InventoryItem     @relation(fields: [inventoryItemId], references: [id])
+  itemName            String
+  unit                String
+  uom                 UnitOfMeasure     @default(PIECES)
+  quantityDelivered   Decimal           @db.Decimal(12, 4)
+  quantityAccepted    Decimal           @db.Decimal(12, 4)
+  quantityRejected    Decimal           @default(0) @db.Decimal(12, 4)
+  quantityBilled      Float             @default(0) // For partial billing
+  rejectionReason     String?
+  unitCost            Decimal           @db.Decimal(10, 2)
+  total               Decimal           @db.Decimal(10, 2)
+  batchNumber         String?
+  expiryDate          DateTime?
+  notes               String?
+  createdAt           DateTime          @default(now())
+
+  @@map("delivery_items")
+}
+
+model InventoryLedger {
+  id         String @id @default(cuid())
+  ledgerCode String @unique // e.g. SL-20240001
+
+  itemId     String
+  item       InventoryItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  locationId String
+  location   Location      @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  // Optional batch link (only for batch-tracked items)
+  batchId String?
+  batch   InventoryBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
+  type StockLedgerType
+
+  // Stock levels at this location (NOT global item quantity)
+  quantityBefore Float // location qty before this entry
+  quantityChange Float // positive = IN, negative = OUT
+  quantityAfter  Float // location qty after this entry
+
+  unitCost   Decimal @default(0) @db.Decimal(10, 2)
+  totalValue Decimal @default(0) @db.Decimal(10, 2) // abs(quantityChange) * unitCost
+
+  // Source document (exactly one will be set)
+  referenceType String? // "DELIVERY" | "ADJUSTMENT" | "WASTE" | "TRANSFER" | "VISIT" | "PHARMACY_SALE" | "PURCHASE_ORDER"
+  referenceId   String? // FK-like to the source document
+
+  notes              String?
+  performedById      String?
+  performedBy        User?   @relation("LedgerPerformedBy", fields: [performedById], references: [id], onDelete: SetNull)
+  performedByStaffId String?
+  performedByStaff   Staff?  @relation("LedgerPerformedByStaff", fields: [performedByStaffId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  // Opposite of Delivery.InventoryLedgers
+  delivery   Delivery? @relation(fields: [deliveryId], references: [id])
+  deliveryId String?
+
+  // Opposite of StockAdjustment.InventoryLedgers
+  stockAdjustment   StockAdjustment? @relation(fields: [stockAdjustmentId], references: [id])
+  stockAdjustmentId String?
+
+  // Opposite of WasteRecord.InventoryLedgers
+  wasteRecord   WasteRecord? @relation(fields: [wasteRecordId], references: [id])
+  wasteRecordId String?
+
+  stockTransfer   StockTransfer? @relation("TransferLedgerEntries", fields: [stockTransferId], references: [id])
+  stockTransferId String?
+
+  stockOut   StockOut? @relation(fields: [stockOutId], references: [id])
+  stockOutId String?
+
+  @@index([itemId])
+  @@index([locationId])
+  @@index([type])
+  @@index([referenceType, referenceId])
+  @@index([createdAt])
+  @@map("inventory_ledger")
+}
+
+model StockAdjustment {
+  id             String                @id @default(cuid())
+  adjustmentCode String                @unique
+  locationId     String
+  location       Location              @relation(fields: [locationId], references: [id])
+  reason         StockAdjustmentReason
+  notes          String?
+  status         String                @default("PENDING")
+  approvedById   String?
+  approvedAt     DateTime?
+  performedById  String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  items            StockAdjustmentItem[]
+  InventoryLedgers InventoryLedger[]
+
+  @@index([status])
+  @@index([locationId])
+  @@map("stock_adjustments")
+}
+
+model StockAdjustmentItem {
+  id                 String          @id @default(cuid())
+  adjustmentId       String
+  adjustment         StockAdjustment @relation(fields: [adjustmentId], references: [id], onDelete: Cascade)
+  itemType           String?
+  inventoryItemId    String
+  inventoryItem      InventoryItem   @relation(fields: [inventoryItemId], references: [id])
+  itemName           String
+  unit               String
+  quantitySystem     Float
+  quantityActual     Float
+  quantityDifference Float
+  unitCost           Decimal         @default(0) @db.Decimal(10, 2)
+  batchNumber        String?
+  notes              String?
+  createdAt          DateTime        @default(now())
+
+  @@map("stock_adjustment_items")
+}
+
+model InventoryBatch {
+  id          String        @id @default(cuid())
+  itemId      String
+  item        InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  locationId  String
+  location    Location      @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  batchNumber String? // null = no batch tracking for this item
+  expiryDate  DateTime?
+  quantity    Float         @default(0) // running balance for this specific batch
+  unitCost    Decimal       @default(0) @db.Decimal(10, 2)
+  receivedAt  DateTime      @default(now())
+  isActive    Boolean       @default(true) // false = fully consumed / written off
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  ledgerEntries InventoryLedger[]
+
+  @@unique([itemId, locationId, batchNumber]) // one row per batch per location
+  @@index([itemId, locationId])
+  @@index([expiryDate])
+  @@index([isActive])
+  @@map("inventory_batches")
+}
+
+model WasteRecord {
+  id             String        @id @default(cuid())
+  wasteCode      String        @unique
+  locationId     String
+  location       Location      @relation(fields: [locationId], references: [id])
+  category       WasteCategory
+  reportedById   String?
+  approvedById   String?
+  approvedAt     DateTime?
+  totalValue     Decimal       @default(0) @db.Decimal(10, 2)
+  notes          String?
+  witnessName    String?
+  disposalMethod String?
+  disposalDate   DateTime?
+  attachments    String[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  items            WasteItem[]
+  InventoryLedgers InventoryLedger[]
+
+  @@index([locationId])
+  @@index([category])
+  @@map("waste_records")
+}
+
+model WasteItem {
+  id              String        @id @default(cuid())
+  wasteId         String
+  waste           WasteRecord   @relation(fields: [wasteId], references: [id], onDelete: Cascade)
+  itemType        String
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  itemName        String
+  unit            String
+  quantity        Float
+  unitCost        Decimal       @default(0) @db.Decimal(10, 2)
+  totalCost       Decimal       @default(0) @db.Decimal(10, 2)
+  batchNumber     String?
+  expiryDate      DateTime?
+  reason          String?
+  createdAt       DateTime      @default(now())
+
+  @@map("waste_items")
+}
+
+model InventoryLocationStock {
+  id          String        @id @default(cuid())
+  itemId      String
+  item        InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  locationId  String
+  location    Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  quantity    Float         @default(0) // sum of all active batches at this location
+  minQuantity Float         @default(0)
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([itemId, locationId]) // ← THE FIX
+  @@map("inventory_location_stocks")
+}
+
+model LabOrder {
+  id            String       @id @default(cuid())
+  orderCode     String       @unique
+  patientId     String
+  patient       Patient      @relation(fields: [patientId], references: [id])
+  appointmentId String?
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  visitId       String?
+  visit         Visit?       @relation(fields: [visitId], references: [id])
+  emrId         String?
+  emr           EMRRecord?   @relation(fields: [emrId], references: [id])
+  dentistId     String?
+  dentist       Staff?       @relation(fields: [dentistId], references: [id])
+  testName      String
+  category      String
+  instructions  String?
+  urgency       String       @default("ROUTINE")
+  status        String       @default("PENDING")
+  resultFileUrl String?
+  resultNotes   String?
+  completedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@map("lab_orders")
+}
+
+model Expense {
+  id          String @id @default(cuid())
+  expenseCode String @unique
+
+  // ── Category (dynamic, user-managed) ─────────────────────────────────
+  // `categoryId` links to the live category; `categoryName` is a permanent
+  // snapshot taken at creation so historical expenses keep their original
+  // category label even if the category is later renamed/disabled/deleted.
+  categoryId   String?
+  category     ExpenseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryName String
+
+  title       String
+  description String?
+  amount      Decimal       @db.Decimal(10, 2)
+  expenseDate DateTime      @default(now())
+  status      ExpenseStatus @default(APPROVED) // lifecycle status — defaults to APPROVED on creation
+
+  // ── Payment progress (independent of lifecycle status) ───────────────
+  paymentStatus ExpensePaymentStatus @default(UNPAID)
+  amountPaid    Decimal              @default(0) @db.Decimal(10, 2)
+  balance       Decimal              @default(0) @db.Decimal(10, 2)
+  amountCredited Decimal             @default(0) @db.Decimal(10, 2) // sum of applied VendorCreditNote
+
+  // ── NEW: optional supplier link ──────────────────────────────────────
+  supplierId String?
+  supplier   Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+
+  // ── NEW: optional branch / location (for multi-clinic reporting) ────
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  // ── NEW: how this expense will be / was settled ──────────────────────
+  // CASH = immediate payment registered; CREDIT = pay later
+  paymentType String @default("CREDIT") // "CASH" | "CREDIT"
+
+  approvedById  String?
+  approvedBy    User?     @relation("ExpenseApprovedBy", fields: [approvedById], references: [id])
+  approvedAt    DateTime?
+  approvalNotes String?
+
+  paidAt DateTime?
+
+  // ── Void tracking ────────────────────────────────────────────────────
+  voidedAt   DateTime?
+  voidedBy   String?
+  voidReason String?
+
+  // ── Soft-delete (defence-in-depth: NEVER hard-delete a financial row).
+  //    A "delete" sets these fields; reports and drill-downs filter
+  //    `deletedAt IS NULL` by default and surface deleted rows in audit.
+  deletedAt     DateTime?
+  deletedById   String?
+  deletedBy     User?     @relation("ExpenseDeletedBy", fields: [deletedById], references: [id])
+  deletedReason String?
+
+  // ── Idempotency: client-supplied Idempotency-Key is also persisted on
+  //    the row so two browser tabs with the same key cannot both create.
+  idempotencyKey String? @unique
+
+  createdById String
+  createdBy   User     @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
+  version     Int      @default(0) // optimistic-lock counter
+  attachments String[]
+  notes       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payments    Payment[]
+  creditNotes VendorCreditNote[]
+
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([categoryId])
+  @@index([expenseDate])
+  @@index([createdAt])
+  @@index([supplierId])
+  @@index([locationId])
+  @@index([deletedAt])
+  @@map("expenses")
+}
+
+/// User-managed expense category. Replaces the former `ExpenseCategory` enum.
+///   • `slug` is a stable UPPER_SNAKE handle (used for seeding & legacy mapping);
+///     `name` is the user-facing label and is freely editable.
+///   • `ledgerAccountId` is OPTIONAL — when set, expenses in this category post a
+///     double-entry journal entry to that account; when null, the expense is
+///     recorded but NOT posted to the general ledger (opt-in accounting).
+///   • `isSystem` rows are seeded defaults: protected from deletion (disable
+///     instead) but still fully editable (rename, re-map, disable).
+model ExpenseCategory {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  slug        String  @unique
+  description String?
+  color       String?
+  icon        String?
+  sortOrder   Int     @default(0)
+  isActive    Boolean @default(true)
+  isSystem    Boolean @default(false)
+
+  // Optional GL link — present == post double-entry for this category.
+  ledgerAccountId String?
+  ledgerAccount   LedgerAccount? @relation(fields: [ledgerAccountId], references: [id], onDelete: SetNull)
+
+  expenses Expense[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([ledgerAccountId])
+  @@map("expense_categories")
+}
+
+/// Generic, append-only audit log. One row per state change.
+///   • action      = CREATE | UPDATE | DELETE | VOID | CANCEL | RESTORE | EXECUTE | …
+///   • module      = high-level area, e.g. "TREATMENT_PLANS", "BILLING"
+///   • entityType  = the model name, e.g. "ProcedureSession", "TreatmentProcedure"
+///   • recordId    = the entity's primary key (kept on UPDATE/DELETE — never FK)
+///   • oldData/newData = full or partial snapshot before/after the change
+///   • reason      = user-supplied free-text justification (required for void/edit)
+///   • userId/userName = who made the change (userName denormalised in case the
+///     user is later deleted)
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  userName   String?
+  action     String
+  module     String
+  entityType String?
+  recordId   String?
+  oldData    Json?
+  newData    Json?
+  reason     String?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, recordId])
+  @@index([module, action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+/// Atomic, gap-free-per-tenant monotonic sequence generator.
+/// Replaces count()+1 number generation. Use SequenceService.next(key).
+/// `tenantId` defaults to "DEFAULT" for single-tenant installs; switch to
+/// real clinic/tenant id when multi-tenancy lands.
+model NumberSequence {
+  id           String   @id @default(cuid())
+  tenantId     String   @default("DEFAULT")
+  key          String // e.g. "INVOICE", "RECEIPT", "PAYMENT"
+  currentValue BigInt   @default(0)
+  prefix       String? // optional override for code formatting; falls back to caller-supplied
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  @@unique([tenantId, key])
+  @@map("number_sequences")
+}
+
+/// Per-(prefix, year) monotonic counter backing the `generate_document_number`
+/// PostgreSQL function. One row per document type per calendar year, so numbering
+/// resets every year (TP-26-9999 → TP-27-0001). The function uses
+/// INSERT ... ON CONFLICT DO UPDATE ... RETURNING, which row-locks the conflicting
+/// row, making increments atomic and concurrency-safe (no COUNT(*), no race).
+/// Numbers are never reused after deletion — the counter only ever increments.
+model DocumentCounter {
+  prefix       String
+  year         Int
+  currentValue BigInt   @default(0) @map("current_value")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@id([prefix, year])
+  @@map("document_counters")
+}
+
+/// Request-deduplication store for idempotent write endpoints. The client sends
+/// an `Idempotency-Key` header; the first request stores its response here and
+/// retries with the same key replay that stored response instead of re-running
+/// the operation. `key` is the PK, so a concurrent duplicate hitting the unique
+/// constraint inside its transaction rolls back (no duplicate side effects).
+/// Rows past `expiresAt` can be pruned by a periodic job.
+model IdempotencyKey {
+  key       String   @id
+  scope     String // e.g. "EXECUTE_SESSION"
+  response  Json?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([expiresAt])
+  @@map("idempotency_keys")
+}
+
+model ClinicSettings {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("clinic_settings")
+}
+
+model SystemConfig {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_config")
+}
+
+model PharmacySale {
+  id             String        @id @default(cuid())
+  saleCode       String        @unique
+  locationId     String
+  location       Location      @relation(fields: [locationId], references: [id])
+  patientId      String?
+  patient        Patient?      @relation(fields: [patientId], references: [id])
+  prescriptionId String?
+  prescription   Prescription? @relation(fields: [prescriptionId], references: [id])
+  saleType       SaleType
+  notes          String?
+  servedBy       String?
+
+  subtotal   Decimal            @default(0) @db.Decimal(10, 2)
+  total      Decimal            @default(0) @db.Decimal(10, 2)
+  amountPaid Decimal            @default(0) @db.Decimal(10, 2)
+  balance    Decimal            @default(0) @db.Decimal(10, 2)
+  status     PharmacySaleStatus @default(PENDING)
+
+  // ── NEW: link to the invoice generated from this sale ─────────────────
+  invoiceId String?  @unique // one-to-one: one sale → one invoice
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items    PharmacySaleItem[]
+  payments PharmacySalePayment[]
+
+  @@map("pharmacy_sales")
+}
+
+model PharmacySaleItem {
+  id        String       @id @default(cuid())
+  saleId    String
+  sale      PharmacySale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  drugId    String
+  drug      Drug         @relation(fields: [drugId], references: [id])
+  quantity  Int
+  unitPrice Decimal      @db.Decimal(10, 2)
+  discount  Decimal      @default(0) @db.Decimal(10, 2)
+  total     Decimal      @db.Decimal(10, 2)
+
+  @@map("pharmacy_sale_items")
+}
+
+model PharmacySalePayment {
+  id        String        @id @default(cuid())
+  saleId    String
+  sale      PharmacySale  @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  amount    Decimal       @db.Decimal(10, 2)
+  method    PaymentMethod
+  reference String?
+  createdAt DateTime      @default(now())
+
+  @@map("pharmacy_sale_payments")
+}
+
+model ProcedureInventoryInput {
+  id              String        @id @default(cuid())
+  procedureId     String
+  procedure       Procedure     @relation(fields: [procedureId], references: [id], onDelete: Cascade)
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  locationId      String?
+  location        Location?     @relation(fields: [locationId], references: [id])
+  quantityUsed    Float         @default(1)
+  unitCost        Decimal       @default(0) @db.Decimal(10, 2)
+  notes           String?
+  isOptional      Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([procedureId, inventoryItemId, locationId])
+  @@map("procedure_inventory_inputs")
+}
+
+model VisitProcedureInventoryUsage {
+  id               String         @id @default(cuid())
+  visitProcedureId String
+  visitProcedure   VisitProcedure @relation(fields: [visitProcedureId], references: [id], onDelete: Cascade)
+  inventoryItemId  String
+  inventoryItem    InventoryItem  @relation(fields: [inventoryItemId], references: [id])
+  locationId       String
+  location         Location       @relation(fields: [locationId], references: [id])
+  quantityUsed     Float
+  unitCost         Decimal        @default(0) @db.Decimal(10, 2)
+  totalCost        Decimal        @default(0) @db.Decimal(10, 2)
+  batchNumber      String?
+  notes            String?
+  createdAt        DateTime       @default(now())
+
+  @@map("visit_procedure_inventory_usage")
+}
+
+model LedgerEntry {
+  id        String  @id @default(cuid())
+  entryCode String  @unique
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  visitId   String?
+  visit     Visit?  @relation(fields: [visitId], references: [id])
+
+  type        LedgerEntryType @default(SERVICE)
+  description String
+
+  // ── Source document reference ─────────────────────────────────────────
+  sourceType String? // "TREATMENT_PROCEDURE" | "PROCEDURE_SESSION" | "VISIT_PROCEDURE"
+  sourceId   String?
+
+  // ── Core financials (Decimal for accounting precision) ────────────────
+  quantity       Int     @default(1)
+  pricePerUnit   Decimal @default(0) @db.Decimal(12, 2)
+  subtotalPrice  Decimal @default(0) @db.Decimal(12, 2) // pricePerUnit × quantity
+  discountAmount Decimal @default(0) @db.Decimal(12, 2)
+  taxAmount      Decimal @default(0) @db.Decimal(12, 2)
+  totalPrice     Decimal @default(0) @db.Decimal(12, 2) // subtotalPrice - discount + tax
+
+  // ── Multi-currency (clean 2-layer system) ─────────────────────────────
+  currency     String   @default("UGX") // transaction currency (what patient sees)
+  exchangeRate Decimal? @db.Decimal(10, 4)
+  baseCurrency String   @default("UGX") // system reporting currency
+  baseAmount   Decimal  @default(0) @db.Decimal(12, 2) // totalPrice converted to baseCurrency
+
+  notes  String?
+  status LedgerEntryStatus @default(PENDING)
+
+  // ── Audit columns (C7) ────────────────────────────────────────────────
+  createdById String?
+  updatedById String?
+
+  // ── Relations ─────────────────────────────────────────────────────────
+  treatmentProcedures TreatmentProcedure[]
+  sessions            ProcedureSession[]
+  invoiceItems        InvoiceItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([patientId, status])
+  @@index([visitId, status])
+  @@index([sourceType, sourceId])
+  @@index([createdAt])
+  @@map("ledger_entries")
+}
+
+model Receipt {
+  id            String   @id @default(cuid())
+  receiptNumber String   @unique
+  invoiceId     String
+  invoice       Invoice  @relation(fields: [invoiceId], references: [id])
+  paymentId     String?
+  payment       Payment? @relation(fields: [paymentId], references: [id])
+
+  // ── Amount in the currency the patient actually paid ───────────────────
+  amountReceived Decimal      @db.Decimal(10, 2)
+  currencyCode   CurrencyCode @default(UGX)
+  currency       String? // plain-string mirror of currencyCode for easier querying
+
+  // ── Exchange-rate snapshot & base-currency equivalent ─────────────────
+  exchangeRate       Decimal? @db.Decimal(10, 2)
+  baseAmountReceived Decimal? @db.Decimal(10, 2)
+
+  // ── Exact amount applied to invoice.amountPaid (invoice currency) ─────
+  // Stored at creation for lossless reversal on void
+  invoiceAmountApplied Decimal? @db.Decimal(10, 2)
+
+  generatedAt DateTime @default(now())
+  generatedBy String? // user id who created the receipt row (audit only)
+  createdById String? // audit (C7) — auth user; mirrors generatedBy for new rows
+  updatedById String? // audit (C7) — last auth user to mutate (e.g. void)
+
+  // ── Who physically received the money (cashier) ──────────────────────
+  receivedById   String?
+  receivedBy     Staff?  @relation("ReceiptReceivedBy", fields: [receivedById], references: [id], onDelete: SetNull)
+  receivedByName String? // denormalized snapshot for printable receipts
+
+  notes    String?
+  metadata Json?
+
+  // ── Account the money was received into + payment mode ───────────────
+  accountId     String?
+  account       Account?       @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  paymentMethod PaymentMethod?
+
+  // ── Void audit trail ─────────────────────────────────────────────────
+  status     ReceiptStatus @default(ACTIVE)
+  voidedAt   DateTime?
+  voidedBy   String?
+  voidReason String?
+
+  cashFlowEntries CashFlowEntry[]
+
+  createdAt DateTime @default(now())
+
+  @@index([invoiceId])
+  @@index([paymentId])
+  @@index([status])
+  @@index([generatedAt])
+  @@index([receivedById])
+  @@map("receipts")
+}
+
+enum ComplaintStatus {
+  IMPROVED
+  SAME
+  WORSE
+}
+
+enum ProgressOutcome {
+  GOOD
+  FAIR
+  POOR
+}
+
+// ADD this model:
+
+model ProgressReport {
+  id              String           @id @default(cuid())
+  reportCode      String           @unique
+  visitId         String
+  visit           Visit            @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  patientId       String
+  patient         Patient          @relation(fields: [patientId], references: [id])
+  dentistId       String?
+  dentist         Staff?           @relation(fields: [dentistId], references: [id])
+  complaint       String?
+  complaintStatus ComplaintStatus?
+  treatmentStatus String?
+  outcome         ProgressOutcome?
+  toothNumber     Int?
+  procedureName   String?
+  findings        String?
+  notes           String?
+  nextPlan        String?
+
+  procedureLinks ProgressReportProcedure[]
+  conditionLinks ProgressReportCondition[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([visitId])
+  @@index([patientId])
+  @@map("progress_reports")
+}
+
+model Account {
+  id             String          @id @default(cuid())
+  accountCode    String          @unique
+  name           String // e.g. "Main Cash (UGX)", "Stanbic Bank USD"
+  type           AccountType
+  currency       AccountCurrency @default(UGX)
+  bankName       String? // For BANK type
+  bankBranch     String?
+  accountNumber  String? // Bank account number / Mobile money number
+  description    String?
+  isActive       Boolean         @default(true)
+  isDefault      Boolean         @default(false) // Default account for a given currency
+  currentBalance Decimal         @default(0) @db.Decimal(10, 2) // Running balance (kept in sync)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  cashFlowEntries CashFlowEntry[]
+  accountPeriods  AccountPeriod[]
+  transfersFrom   AccountTransfer[] @relation("TransferFrom")
+  transfersTo     AccountTransfer[] @relation("TransferTo")
+  receipts        Receipt[]
+  ledgerAccounts  LedgerAccount[] // GL buckets reconciled against this physical account
+  orderNumber     Int               @default(0)
+
+  @@index([type])
+  @@index([currency])
+  @@index([isActive])
+  @@map("accounts")
+}
+
+/// Every money movement — in or out — across all accounts
+model CashFlowEntry {
+  id        String  @id @default(cuid())
+  entryCode String  @unique
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  direction CashFlowDirection
+  source    CashFlowSource
+
+  amount       Decimal @db.Decimal(10, 2) // Always in account's native currency
+  currency     String  @default("UGX")
+  exchangeRate Decimal @default(1) @db.Decimal(10, 4) // Rate used if cross-currency
+  baseAmount   Decimal @default(0) @db.Decimal(10, 2) // Equivalent in UGX (base)
+
+  // Running balance snapshot at time of entry
+  balanceBefore Decimal @default(0) @db.Decimal(10, 2)
+  balanceAfter  Decimal @default(0) @db.Decimal(10, 2)
+
+  // Source document references (only one will be set per entry)
+  receiptId String?
+  receipt   Receipt? @relation(fields: [receiptId], references: [id], onDelete: SetNull)
+
+  paymentId String?
+  payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  transferId String? // Links to AccountTransfer if source is TRANSFER_*
+  transfer   AccountTransfer? @relation(fields: [transferId], references: [id], onDelete: SetNull)
+
+  // Daily balance this entry belongs to
+  accountPeriodId String?
+  accountPeriod   AccountPeriod? @relation(fields: [accountPeriodId], references: [id], onDelete: SetNull)
+
+  description  String
+  reference    String? // e.g. receipt number, PO number
+  notes        String?
+  recordedById String? // User who created this entry
+
+  entryDate DateTime @default(now()) // Effective date of the transaction
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId])
+  @@index([direction])
+  @@index([source])
+  @@index([entryDate])
+  @@index([receiptId])
+  @@index([paymentId])
+  @@map("cash_flow_entries")
+}
+
+/// Internal transfer between two accounts (e.g. cash to bank, bank to mobile money)
+model AccountTransfer {
+  id            String  @id @default(cuid())
+  transferCode  String  @unique
+  fromAccountId String
+  fromAccount   Account @relation("TransferFrom", fields: [fromAccountId], references: [id])
+  toAccountId   String
+  toAccount     Account @relation("TransferTo", fields: [toAccountId], references: [id])
+
+  amount       Decimal @db.Decimal(10, 2) // Amount in fromAccount currency
+  fromCurrency String  @default("UGX")
+  toCurrency   String  @default("UGX")
+  exchangeRate Decimal @default(1) @db.Decimal(10, 4) // fromCurrency → toCurrency
+  toAmount     Decimal @db.Decimal(10, 2) // Amount credited to toAccount (after conversion)
+
+  notes        String?
+  reference    String?
+  recordedById String?
+  transferDate DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  cashFlowEntries CashFlowEntry[] // Two entries: OUT from source, IN to destination
+
+  @@index([fromAccountId])
+  @@index([toAccountId])
+  @@index([transferDate])
+  @@map("account_transfers")
+}
+
+/// Tracks the opening and closing balance for each account per calendar day.
+/// Enables daily cash reconciliation.
+/// Tracks opening/closing balances for an account over a configurable accounting period.
+/// Supports daily, weekly, monthly, or custom periods for flexible reconciliation.
+model AccountPeriod {
+  id        String  @id @default(cuid())
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  // ── Period Definition ───────────────────────────────────────────────
+  startDate   DateTime // Inclusive start of period
+  endDate     DateTime // Inclusive end of period
+  periodType  String // "DAILY" | "WEEKLY" | "MONTHLY" | "CUSTOM"
+  periodLabel String? // Human-readable label, e.g. "May 2024"
+
+  // ── Financial Summary ───────────────────────────────────────────────
+  openingBalance Decimal  @default(0) @db.Decimal(10, 2)
+  closingBalance Decimal? @db.Decimal(10, 2) // Calculated when period is closed
+  totalIn        Decimal  @default(0) @db.Decimal(10, 2) // Sum of IN entries
+  totalOut       Decimal  @default(0) @db.Decimal(10, 2) // Sum of OUT entries
+
+  // ── Reconciliation Metadata ─────────────────────────────────────────
+  status     AccountPeriodStatus @default(OPEN)
+  notes      String?
+  closedById String?
+  closedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  entries CashFlowEntry[]
+
+  // ── Indexes & Constraints ───────────────────────────────────────────
+  @@unique([accountId, startDate, endDate]) // Prevent overlapping periods
+  @@index([accountId, startDate])
+  @@index([status])
+  @@index([periodType])
+  @@map("account_periods") // ← Updated table name
+}
+
+// ── Chart of Accounts ─────────────────────────────────────────────────────────
+/// One accounting bucket (A/R, Treatment Revenue, Patient Deposits, …).
+/// `isSystem` accounts are the canonical ones the posting engine relies on and
+/// must never be deleted. `cashAccountId` optionally links a GL cash/bank bucket
+/// to a physical `Account` so the two can be reconciled.
+model LedgerAccount {
+  id            String            @id @default(cuid())
+  code          String            @unique // "1100" A/R, "4000" Revenue — user-editable
+  // Stable internal handle for canonical accounts (e.g. "ACCOUNTS_RECEIVABLE").
+  // The posting engine resolves system accounts by this, NOT by `code`, so the
+  // code can be renamed freely without breaking automatic postings. Null for
+  // user-created accounts.
+  systemKey     String?           @unique
+  name          String
+  type          LedgerAccountType
+  normalBalance NormalBalance
+  description   String?
+  isActive      Boolean           @default(true)
+  isSystem      Boolean           @default(false) // canonical account — protected from deletion
+
+  // Self-referencing hierarchy (sub-accounts roll up into a parent)
+  parentId String?
+  parent   LedgerAccount?  @relation("LedgerAccountTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children LedgerAccount[] @relation("LedgerAccountTree")
+
+  // Optional reconciliation link to a physical cash/bank Account
+  cashAccountId String?
+  cashAccount   Account? @relation(fields: [cashAccountId], references: [id], onDelete: SetNull)
+
+  lines             JournalLine[]
+  expenseCategories ExpenseCategory[]
+
+  // Procedures / categories that recognise revenue into this account.
+  procedures          Procedure[]         @relation("ProcedureRevenueAccount")
+  procedureCategories ProcedureCategory[] @relation("ProcedureCategoryRevenueAccount")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([isActive])
+  @@index([cashAccountId])
+  @@map("ledger_accounts")
+}
+
+// ── Journal Entry (header) ────────────────────────────────────────────────────
+/// A balanced set of debit/credit lines. Σdebit == Σcredit is enforced by the
+/// posting service. Entries are NEVER edited or deleted; a void posts a separate
+/// reversing entry and links the two via `reversesId` / `reversedBy`.
+model JournalEntry {
+  id          String   @id @default(cuid())
+  entryNumber String   @unique // JE-26-0001
+  date        DateTime @default(now())
+  memo        String
+  currency    String   @default("UGX") // functional/base currency the books are kept in
+
+  // Source document (the business event that triggered the entry)
+  sourceType String? // "INVOICE" | "RECEIPT" | "REFUND" | "EXPENSE" | "MANUAL" | "REVERSAL"
+  sourceId   String?
+
+  status JournalStatus @default(POSTED)
+
+  // ── Immutable reversal linkage (1:1 self relation) ────────────────────────
+  reversesId String?       @unique // set on the reversing entry → points at the original
+  reverses   JournalEntry? @relation("JournalReversal", fields: [reversesId], references: [id])
+  reversedBy JournalEntry? @relation("JournalReversal") // back-ref on the original
+
+  // ── Audit ─────────────────────────────────────────────────────────────────
+  patientId  String? // convenience tag when the entry concerns one patient
+  postedById String?
+  voidReason String?
+
+  lines JournalLine[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sourceType, sourceId])
+  @@index([date])
+  @@index([status])
+  @@index([patientId])
+  @@map("journal_entries")
+}
+
+// ── Journal Line ──────────────────────────────────────────────────────────────
+/// One side of a journal entry. Amounts are stored in the books' base currency;
+/// the original transaction-currency figures are kept on `fxAmount` / `currency`
+/// / `fxRate` for audit only. Exactly one of debit/credit is non-zero per line.
+model JournalLine {
+  id             String       @id @default(cuid())
+  journalEntryId String
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+
+  accountId String
+  account   LedgerAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  debit  Decimal @default(0) @db.Decimal(14, 2) // base currency
+  credit Decimal @default(0) @db.Decimal(14, 2) // base currency
+
+  // Original transaction-currency snapshot (audit only — does NOT affect balance)
+  currency String?
+  fxAmount Decimal? @db.Decimal(14, 2)
+  fxRate   Decimal? @db.Decimal(14, 6)
+
+  patientId String? // subledger tag (e.g. A/R per patient)
+  memo      String?
+
+  createdAt DateTime @default(now())
+
+  @@index([journalEntryId])
+  @@index([accountId])
+  @@index([patientId])
+  @@map("journal_lines")
+}
+
+model BillingService {
+  id          String  @id @default(cuid())
+  serviceCode String  @unique
+  name        String
+  description String?
+
+  // ── Which ledger type this maps to ──────────────────────────────────
+  type     LedgerEntryType        @default(SERVICE)
+  category BillingServiceCategory @default(OTHER)
+
+  // ── Pricing ──────────────────────────────────────────────────────────
+  price        Decimal  @default(0) @db.Decimal(12, 2)
+  currency     String   @default("UGX") // currency the price is defined in
+  exchangeRate Decimal? @db.Decimal(10, 4) // optional pre-set rate to UGX
+
+  // ── Optional tax that is automatically applied ───────────────────────
+  defaultTaxAmount Decimal @default(0) @db.Decimal(12, 2)
+  defaultTaxLabel  String? // e.g. "VAT 18%"
+
+  // ── Price range guardrails (for overriding at add-time) ──────────────
+  priceRangeMin Decimal? @db.Decimal(12, 2)
+  priceRangeMax Decimal? @db.Decimal(12, 2)
+
+  // ── Metadata ─────────────────────────────────────────────────────────
+  isActive   Boolean @default(true)
+  isFavorite Boolean @default(false) // pin to top in UI
+  sortOrder  Int     @default(0)
+  notes      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([category])
+  @@index([isActive])
+  @@index([isFavorite])
+  @@map("billing_services")
+}
+
+model FixedAsset {
+  id          String         @id @default(cuid())
+  assetCode   String         @unique // e.g. DA-001, IE-002
+  name        String
+  description String?
+  category    AssetCategory
+  status      AssetStatus    @default(ACTIVE)
+  condition   AssetCondition @default(GOOD)
+
+  // ── Acquisition ───────────────────────────────────────────────────────
+  purchaseDate   DateTime
+  purchaseCost   Decimal   @db.Decimal(14, 2)
+  currency       String    @default("UGX")
+  supplierId     String?
+  supplier       Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  invoiceNumber  String?
+  warrantyExpiry DateTime?
+  serialNumber   String?
+  modelNumber    String?
+  manufacturer   String?
+  attachments    String[] // File URLs (invoice scans, photos, manuals)
+
+  // ── Location (current) ────────────────────────────────────────────────
+  locationId        String?
+  location          Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  assignedToStaffId String?
+  assignedToStaff   Staff?    @relation("AssetAssignedTo", fields: [assignedToStaffId], references: [id], onDelete: SetNull)
+  assignedAt        DateTime?
+
+  // ── Depreciation config ───────────────────────────────────────────────
+  depreciationMethod    DepreciationMethod @default(STRAIGHT_LINE)
+  usefulLifeYears       Int? // For straight-line
+  salvageValue          Decimal?           @db.Decimal(14, 2)
+  depreciationRate      Decimal?           @db.Decimal(6, 2) // For declining balance (e.g. 0.2 = 20%)
+  depreciationStartDate DateTime?
+  isDepreciable         Boolean            @default(true)
+
+  // ── Running values (updated by depreciation job / manual entry) ───────
+  currentBookValue        Decimal   @default(0) @db.Decimal(14, 2)
+  accumulatedDepreciation Decimal   @default(0) @db.Decimal(14, 2)
+  lastDepreciationDate    DateTime?
+
+  // ── Disposal (populated when disposed) ───────────────────────────────
+  disposedAt     DateTime?
+  disposalMethod DisposalMethod?
+  disposalValue  Decimal?        @db.Decimal(14, 2)
+  disposalNotes  String?
+
+  notes String?
+  tags  String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  depreciationEntries AssetDepreciationEntry[]
+  maintenanceRecords  AssetMaintenance[]
+  movementHistory     AssetMovement[]
+  auditTrail          AssetAuditTrail[]
+
+  @@index([category])
+  @@index([status])
+  @@index([locationId])
+  @@index([supplierId])
+  @@index([purchaseDate])
+  @@map("fixed_assets")
+}
+
+// ── Depreciation ledger ──────────────────────────────────────────────────────
+
+model AssetDepreciationEntry {
+  id      String     @id @default(cuid())
+  assetId String
+  asset   FixedAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  periodStart        DateTime // First day of period
+  periodEnd          DateTime // Last day of period (usually last day of month/year)
+  depreciationAmount Decimal            @db.Decimal(14, 2)
+  bookValueBefore    Decimal            @db.Decimal(14, 2)
+  bookValueAfter     Decimal            @db.Decimal(14, 2)
+  method             DepreciationMethod
+  notes              String?
+  postedById         String? // User who posted this entry
+  createdAt          DateTime           @default(now())
+
+  @@index([assetId, periodStart])
+  @@map("asset_depreciation_entries")
+}
+
+// ── Maintenance records ──────────────────────────────────────────────────────
+
+model AssetMaintenance {
+  id              String     @id @default(cuid())
+  maintenanceCode String     @unique
+  assetId         String
+  asset           FixedAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  type        MaintenanceType
+  status      MaintenanceStatus @default(SCHEDULED)
+  title       String
+  description String?
+
+  scheduledDate DateTime
+  completedDate DateTime?
+  nextDueDate   DateTime? // Auto-scheduled next maintenance
+
+  // ── Cost ─────────────────────────────────────────────────────────────
+  estimatedCost   Decimal? @db.Decimal(12, 2)
+  actualCost      Decimal? @db.Decimal(12, 2)
+  serviceProvider String? // External vendor name
+  technicianName  String?
+
+  // ── Outcome ───────────────────────────────────────────────────────────
+  conditionBefore AssetCondition?
+  conditionAfter  AssetCondition?
+  findings        String?
+  partsReplaced   String?
+  attachments     String[]
+
+  performedById String? // Internal staff
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([assetId])
+  @@index([status])
+  @@index([scheduledDate])
+  @@map("asset_maintenance")
+}
+
+// ── Movement / transfer log ───────────────────────────────────────────────────
+
+model AssetMovement {
+  id      String     @id @default(cuid())
+  assetId String
+  asset   FixedAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  type           AssetMovementType
+  fromLocationId String?
+  toLocationId   String?
+  fromStaffId    String?
+  toStaffId      String?
+
+  reason             String?
+  expectedReturnDate DateTime? // For loans
+  actualReturnDate   DateTime?
+  authorizedById     String?
+  movedAt            DateTime  @default(now())
+  createdAt          DateTime  @default(now())
+
+  @@index([assetId])
+  @@index([movedAt])
+  @@map("asset_movements")
+}
+
+// ── Audit trail ───────────────────────────────────────────────────────────────
+
+model AssetAuditTrail {
+  id           String     @id @default(cuid())
+  assetId      String
+  asset        FixedAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  action       String // e.g. CREATED, UPDATED, DISPOSED, MAINTENANCE_ADDED
+  fieldChanged String?
+  oldValue     String?
+  newValue     String?
+  changedById  String?
+  notes        String?
+  createdAt    DateTime   @default(now())
+
+  @@index([assetId])
+  @@index([createdAt])
+  @@map("asset_audit_trail")
+}
+
+model StockTransfer {
+  id           String @id @default(cuid())
+  transferCode String @unique // e.g., TRF-2024-0001
+
+  fromLocationId String
+  fromLocation   Location @relation("TransferFrom", fields: [fromLocationId], references: [id])
+  toLocationId   String
+  toLocation     Location @relation("TransferTo", fields: [toLocationId], references: [id])
+
+  status        StockTransferStatus @default(DRAFT)
+  transferDate  DateTime            @default(now())
+  completedAt   DateTime?
+  notes         String?
+  internalNotes String?
+
+  performedById String?
+  performedBy   User?   @relation(fields: [performedById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items         StockTransferItem[]
+  ledgerEntries InventoryLedger[]   @relation("TransferLedgerEntries")
+
+  @@index([status])
+  @@index([fromLocationId])
+  @@index([toLocationId])
+  @@index([transferDate])
+  @@map("stock_transfers")
+}
+
+model StockTransferItem {
+  id         String        @id @default(cuid())
+  transferId String
+  transfer   StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  itemName        String
+  unit            String
+  uom             UnitOfMeasure @default(PIECES)
+
+  quantityRequested   Float
+  quantityTransferred Float @default(0) // May be partial
+
+  // Batch selection for batch-tracked items
+  batchNumber          String? // Manual selection
+  expiryDate           DateTime? // For reference
+  distributionStrategy String? // "FEFO" | "FIFO" | "MANUAL"
+
+  unitCost Decimal @default(0) @db.Decimal(10, 2)
+  notes    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([transferId])
+  @@index([inventoryItemId])
+  @@map("stock_transfer_items")
+}
+
+model Condition {
+  id          String  @id @default(cuid())
+  // UN-1: enforced unique in the DB (Postgres unique index) so a racing
+  // concurrent create cannot insert two catalog rows with the same name.
+  // The service-level findFirst duplicate check stays as a friendlier 400
+  // for the common path; the constraint is the hard guarantee.
+  name        String  @unique
+  description String?
+
+  // ── Code triplet (Dentrix shows all three) ────────────────────────────
+  snodentCode  String? // SNODENT code   e.g. "100227D"
+  snomedCtCode String? // SNOMED CT code e.g. "109600001"
+  icd10Code    String? // ICD-10 code    e.g. "K02.9"
+  icd10Term    String? // ICD-10 long terminology
+
+  // ── NEW: drives chart rendering, no magic strings in the frontend ─────
+  chartPresenceEffect ChartPresenceEffect @default(NONE)
+
+  // L2: whether a completed treatment may AUTO-resolve a patient condition of
+  // this type. FALSE for long-term / monitoring / presence-affecting findings
+  // (bruxism, chronic periodontitis, attrition, missing tooth…) that a single
+  // procedure does not "cure". Replaces the hard-coded name-match list in
+  // ConditionsService.evaluateConditionStatus, which broke if a clinic renamed
+  // a condition. Presence-affecting effects are still also guarded by
+  // chartPresenceEffect != NONE.
+  autoResolves Boolean @default(true)
+
+  codingSystem ConditionCodingSystem @default(ICD_10)
+  category     ConditionCategory     @default(OTHER)
+
+  // ── Clinical constraints ──────────────────────────────────────────────
+  affectedArea    String? // "Tooth" | "Root" | "Arch" | "Quadrant" | "Soft Tissue"
+  isToothSpecific Boolean            @default(true)
+  requiresSurface Boolean            @default(false)
+  defaultSeverity ConditionSeverity?
+
+  // ── Catalog control ───────────────────────────────────────────────────
+  isActive    Boolean @default(true)
+  isSystem    Boolean @default(true) // true = shipped default; false = clinic-created
+  isFavourite Boolean @default(false)
+  sortOrder   Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  patientConditions PatientCondition[]
+  chartEntries      ChartEntry[]
+
+  @@index([isActive])
+  @@index([isFavourite])
+  @@index([category])
+  @@index([icd10Code])
+  @@map("conditions")
+}
+
+model PatientCondition {
+  id        String  @id @default(cuid())
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Restrict)
+
+  visitId String?
+  visit   Visit?  @relation(fields: [visitId], references: [id], onDelete: SetNull)
+
+  conditionId String
+  condition   Condition @relation(fields: [conditionId], references: [id], onDelete: Restrict)
+
+  toothNotation ToothNotation @default(FDI) // ← NEW
+
+  // E1: optimistic-lock token. Bumped on every mutation. A guarded update
+  // (updateMany where { id, version }) detects a concurrent edit (lost update)
+  // and the service raises 409 when the caller supplied the version it read.
+  version Int @default(0)
+
+  // ── Clinical specifics ────────────────────────────────────────────────
+  toothNumber Int?
+  surfaces    ToothSurface[]
+  severity    ConditionSeverity?
+  status      PatientConditionStatus @default(ACTIVE)
+  notes       String?
+
+  diagnosedAt DateTime @default(now())
+
+  // ── Condition lifecycle resolution ────────────────────────────────────
+  resolvedAt              DateTime?
+  resolvedByProcedureId   String?
+  resolvedByProcedure     TreatmentProcedure? @relation("ResolvedByProcedure", fields: [resolvedByProcedureId], references: [id], onDelete: SetNull)
+
+  // ── Optional backlink to a treatment procedure ────────────────────────
+  relatedProcedureId String?
+  relatedProcedure   Procedure? @relation(fields: [relatedProcedureId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ── Audit actors (User.id) ────────────────────────────────────────────
+  // Denormalised so the chart can show "who recorded / last edited" at a
+  // glance. Full diff history lives in AuditLog. Stored as plain String?
+  // (no strict FK) so a user delete never blocks a clinical-record write.
+  createdById    String?
+  updatedById    String?
+  lastEditReason String?
+
+  // ── Soft delete (clinical records are never hard-deleted) ────────────
+  deletedAt     DateTime?
+  deletedById   String?
+  deletedReason String?
+
+  // Back-link to chart entry (one-to-one, optional)
+  chartEntries            ChartEntry[]
+  conditionProcedureLinks ConditionProcedureLink[]
+  progressReportLinks     ProgressReportCondition[]
+
+  diagnosedBy String? // keep as free-text fallback
+  providerId  String?
+  provider    Staff?  @relation("PatientConditionProvider", fields: [providerId], references: [id], onDelete: SetNull)
+
+  @@index([patientId, status])
+  @@index([visitId])
+  @@index([conditionId])
+  @@index([deletedAt])
+  @@index([resolvedByProcedureId])
+  @@map("patient_conditions")
+}
+
+model ConditionProcedureLink {
+  id                   String             @id @default(cuid())
+  patientConditionId   String
+  patientCondition     PatientCondition   @relation(fields: [patientConditionId], references: [id], onDelete: Cascade)
+  treatmentProcedureId String
+  treatmentProcedure   TreatmentProcedure @relation(fields: [treatmentProcedureId], references: [id], onDelete: Cascade)
+  createdAt            DateTime           @default(now())
+
+  // ── Audit: who linked it, when ───────────────────────────────────────────
+  linkedAt   DateTime @default(now())
+  linkedById String?
+
+  // ── Snapshot of the condition AT LINK TIME ───────────────────────────────
+  // Frozen so clinical history is preserved even if the underlying
+  // PatientCondition / Condition is later edited or its status changes.
+  conditionNameAtLink   String?
+  conditionCodeAtLink   String?
+  conditionStatusAtLink String?
+
+  // ── Soft delete (audit-preserving unlink) ────────────────────────────────
+  deletedAt     DateTime?
+  unlinkedById  String?
+  deletedReason String?
+
+  // Uniqueness on ACTIVE links is enforced by a PARTIAL UNIQUE INDEX applied
+  // at app boot from prisma/sql/condition_procedure_links_active_unique.sql
+  // (Prisma's @@unique cannot express partial predicates, so this is the
+  // only constraint). A condition can be re-linked to the same procedure
+  // after the prior link is soft-deleted, but never double-linked while both
+  // links have deletedAt IS NULL. The boot hook in PrismaService.onModuleInit
+  // applies the index idempotently. The index is NOT managed by `prisma db
+  // push`; if you ever migrate to prisma migrate, convert the SQL to a
+  // migration file.
+  @@index([treatmentProcedureId])
+  @@index([patientConditionId])
+  @@index([deletedAt])
+  @@map("condition_procedure_links")
+}
+
+model ProgressReportProcedure {
+  id                 String           @id @default(cuid())
+  reportId           String
+  report             ProgressReport   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  procedureSessionId String
+  procedureSession   ProcedureSession @relation(fields: [procedureSessionId], references: [id], onDelete: Cascade)
+  createdAt          DateTime         @default(now())
+
+  @@unique([reportId, procedureSessionId])
+  @@index([reportId])
+  @@index([procedureSessionId])
+  @@map("progress_report_procedures")
+}
+
+model ProgressReportCondition {
+  id                 String           @id @default(cuid())
+  reportId           String
+  report             ProgressReport   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  patientConditionId String
+  patientCondition   PatientCondition @relation(fields: [patientConditionId], references: [id], onDelete: Cascade)
+  createdAt          DateTime         @default(now())
+
+  @@unique([reportId, patientConditionId])
+  @@index([reportId])
+  @@index([patientConditionId])
+  @@map("progress_report_conditions")
+}
+
+// ── New audit table ───────────────────────────────────────────────────────────
+model ProcedureSessionEdit {
+  id       String @id @default(cuid())
+  editCode String @unique
+
+  sessionId String
+  session   ProcedureSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // Surface diff
+  surfacesBefore  String[]
+  surfacesAfter   String[]
+  surfacesAdded   String[]
+  surfacesRemoved String[]
+
+  // Other field diffs
+  notesBefore String?
+  notesAfter  String?
+  phaseBefore String?
+  phaseAfter  String?
+
+  reason       String?
+  editedById   String?
+  editedByName String?
+  createdAt    DateTime @default(now())
+
+  @@index([sessionId])
+  @@map("procedure_session_edits")
+}
+
+model StockOut {
+  id         String   @id @default(cuid())
+  outCode    String   @unique // e.g. SO-2025-0001
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  reason        String? // free-text: "Clinic use", "Training", etc.
+  category      StockOutCategory @default(GENERAL_USE)
+  notes         String?
+  performedById String? // who issued the stock
+
+  totalValue Decimal @default(0) @db.Decimal(10, 2) // Σ (qty × unitCost)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items         StockOutItem[]
+  ledgerEntries InventoryLedger[]
+
+  @@index([locationId])
+  @@index([category])
+  @@index([createdAt])
+  @@map("stock_outs")
+}
+
+model StockOutItem {
+  id         String   @id @default(cuid())
+  stockOutId String
+  stockOut   StockOut @relation(fields: [stockOutId], references: [id], onDelete: Cascade)
+
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+
+  itemName  String
+  unit      String
+  quantity  Float
+  unitCost  Decimal @default(0) @db.Decimal(10, 2)
+  totalCost Decimal @default(0) @db.Decimal(10, 2)
+
+  // Batch context (what was actually deducted — filled after processing)
+  batchNumber          String?
+  distributionStrategy String? @default("FEFO") // FEFO | FIFO | MANUAL
+
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([stockOutId])
+  @@index([inventoryItemId])
+  @@map("stock_out_items")
+}
+
+model Notification {
+  id String @id @default(cuid())
+
+  // ── Targeting ───────────────────────────────────────────────────────
+  userId     String? // Specific user (null = broadcast)
+  user       User?     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  targetRole UserRole? // Role-based targeting (null = all roles)
+
+  // ── Content ─────────────────────────────────────────────────────────
+  title    String
+  message  String
+  type     NotificationType     @default(INFO)
+  category NotificationCategory @default(SYSTEM)
+  priority NotificationPriority @default(MEDIUM)
+
+  // ── State ───────────────────────────────────────────────────────────
+  isRead Boolean   @default(false)
+  readAt DateTime?
+
+  // ── Navigation & context ────────────────────────────────────────────
+  actionUrl  String? // e.g. "/appointments/clu123abc"
+  entityType String? // e.g. "APPOINTMENT", "INVOICE", "VISIT"
+  entityId   String? // FK to the source entity
+
+  // ── Event traceability ──────────────────────────────────────────────
+  eventType String? // e.g. "APPOINTMENT_STATUS_CHANGED"
+  eventData Json? // Snapshot of event payload for audit
+
+  // ── Actor (who triggered this) ──────────────────────────────────────
+  actorId String? // User who caused the event
+  actor   User?   @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@index([targetRole, isRead])
+  @@index([category])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("notifications_v2")
+}
+
+/// Stores per-user notification preferences (opt-out model).
+model NotificationPreference {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation("NotificationPreferences", fields: [userId], references: [id], onDelete: Cascade)
+
+  category  NotificationCategory
+  enabled   Boolean              @default(true) // false = user opted out of this category
+  showToast Boolean              @default(true) // Show toast/popup for this category
+  playSound Boolean              @default(false) // Play notification sound
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, category])
+  @@map("notification_preferences")
+}
