@@ -317,8 +317,11 @@ export class CreateSessionDto {
 }
 
 export class UpdateSessionDto {
+  // COMPLETED is deliberately absent — completion goes through the
+  // execute-session flow so chart entries and condition resolution stay in
+  // sync with the session status.
   @IsOptional()
-  @IsEnum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'SKIPPED', 'CANCELLED'])
+  @IsEnum(['PENDING', 'IN_PROGRESS', 'SKIPPED', 'CANCELLED'])
   status?: SessionStatus;
 
   @IsOptional()

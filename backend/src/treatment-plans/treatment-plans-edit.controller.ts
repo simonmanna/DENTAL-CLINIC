@@ -20,6 +20,15 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 
+// Mirrors CLINICAL_READ_ROLES in treatment-plans.controller.ts — clinical
+// reads exclude front-desk roles.
+const CLINICAL_READ_ROLES = [
+  UserRole.DENTIST,
+  UserRole.NURSE,
+  UserRole.ADMIN,
+  UserRole.SUPER_ADMIN,
+];
+
 // NOTE — the `cancel` and `DELETE` endpoints were intentionally removed from
 // this controller. They live in `TreatmentPlansController` so that there is
 // exactly ONE canonical route per procedure mutation. (NestJS will happily
@@ -47,6 +56,7 @@ export class TreatmentPlansEditController {
     description:
       'Returns canDelete, canCancel, reason, sessionsCount, paymentStatus, status',
   })
+  @Roles(...CLINICAL_READ_ROLES)
   @Get(':planId/procedures/:procedureId/delete-eligibility')
   checkDeleteEligibility(
     @Param('planId') planId: string,
@@ -91,6 +101,7 @@ export class TreatmentPlansEditController {
   @ApiOperation({
     summary: 'Get allowed status transitions from the current procedure status',
   })
+  @Roles(...CLINICAL_READ_ROLES)
   @Get(':planId/procedures/:procedureId/allowed-status-transitions')
   getAllowedStatusTransitions(
     @Param('planId') planId: string,

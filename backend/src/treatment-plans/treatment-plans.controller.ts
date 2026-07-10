@@ -43,6 +43,45 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 
+// Treatment plans, procedures and sessions are confidential clinical data.
+// RECEPTIONIST / PHARMACIST / LAB_TECHNICIAN are EXCLUDED (least privilege) —
+// mirrors CHART_ENTRY_READ_ROLES in chart-entry.controller.ts.
+const CLINICAL_READ_ROLES = [
+  UserRole.DENTIST,
+  UserRole.NURSE,
+  UserRole.ADMIN,
+  UserRole.SUPER_ADMIN,
+];
+
+// Catalog + visit-ledger reads expose pricing/billing data but no diagnoses;
+// front-desk staff need them to bill.
+const BILLING_READ_ROLES = [
+  UserRole.DENTIST,
+  UserRole.NURSE,
+  UserRole.RECEPTIONIST,
+  UserRole.ADMIN,
+  UserRole.SUPER_ADMIN,
+];
+
+// Audit snapshots contain old/new JSON of clinical records — restricted to
+// the roles that can already mutate those records.
+const AUDIT_READ_ROLES = [
+  UserRole.DENTIST,
+  UserRole.ADMIN,
+  UserRole.SUPER_ADMIN,
+];
+
+// Only entity types owned by this module may be read through the generic
+// audit endpoint — an open entityType would let callers dump the audit trail
+// of any table by guessing its model name.
+const AUDITABLE_ENTITY_TYPES = new Set([
+  'TreatmentPlan',
+  'TreatmentProcedure',
+  'ProcedureSession',
+  'PatientCondition',
+  'ChartEntry',
+]);
+
 @ApiTags('Treatment Plans')
 @ApiBearerAuth()
 @Controller('treatment-plans')
@@ -51,12 +90,14 @@ export class TreatmentPlansController {
 
   // ── Catalog (MUST be before :id routes) ───────────────────────────────────
   @ApiOperation({ summary: 'Search procedure catalog' })
+  @Roles(...BILLING_READ_ROLES)
   @Get('catalog/search')
   getCatalog(@Query('q') q?: string, @Query('category') category?: string) {
     return this.svc.getProcedureCatalog(q, category);
   }
 
   @ApiOperation({ summary: 'Get procedure categories' })
+  @Roles(...BILLING_READ_ROLES)
   @Get('catalog/categories')
   getCategories() {
     return this.svc.getProcedureCategories();
@@ -64,6 +105,7 @@ export class TreatmentPlansController {
 
   // ── Ledger view (MUST be before :id routes) ───────────────────────────────
   @ApiOperation({ summary: 'Get ledger entries for a visit' })
+  @Roles(...BILLING_READ_ROLES)
   @Get('ledger/visit/:visitId')
   getVisitLedger(@Param('visitId') visitId: string) {
     return this.svc.getVisitLedger(visitId);
@@ -71,12 +113,14 @@ export class TreatmentPlansController {
 
   // ── Plan CRUD ─────────────────────────────────────────────────────────────
   @ApiOperation({ summary: 'Get all treatment plans for a patient' })
+  @Roles(...CLINICAL_READ_ROLES)
   @Get('patient/:patientId')
   getPatientPlans(@Param('patientId') patientId: string) {
     return this.svc.getPatientTreatmentPlans(patientId);
   }
 
   @ApiOperation({ summary: 'Get single treatment plan' })
+  @Roles(...CLINICAL_READ_ROLES)
   @Get(':id')
   getOne(@Param('id') id: string) {
     return this.svc.getTreatmentPlan(id);
@@ -201,6 +245,7 @@ export class TreatmentPlansController {
 
   // ── Sessions within a Procedure ────────────────────────────────────────────
   @ApiOperation({ summary: 'Get all sessions for a procedure' })
+  @Roles(...CLINICAL_READ_ROLES)
   @Get(':id/procedures/:procedureId/sessions')
   getSessions(
     @Param('id') id: string,
@@ -346,6 +391,7 @@ export class TreatmentPlansController {
 
   // ── Plan utilities ─────────────────────────────────────────────────────────
   @ApiOperation({ summary: 'Get plan summary and statistics' })
+  @Roles(...CLINICAL_READ_ROLES)
   @Get(':id/summary')
   getPlanSummary(@Param('id') planId: string) {
     return this.svc.getPlanSummary(planId);
@@ -362,12 +408,14 @@ export class TreatmentPlansController {
   }
 
   @ApiOperation({ summary: 'Get all treatment procedures for a patient' })
+  @Roles(...CLINICAL_READ_ROLES)
   @Get('patient/:patientId/procedures')
   async getPatientProcedures(@Param('patientId') patientId: string) {
     return this.svc.getPatientProcedures(patientId);
   }
 
   @ApiOperation({ summary: 'Get procedures for a specific tooth' })
+  @Roles(...CLINICAL_READ_ROLES)
   @Get('patient/:patientId/tooth/:toothNumber/procedures')
   async getToothProcedures(
     @Param('patientId') patientId: string,
@@ -381,6 +429,7 @@ export class TreatmentPlansController {
   @ApiOperation({
     summary: 'Get patient conditions linkable to a procedure (filter by teeth)',
   })
+  @Roles(...CLINICAL_READ_ROLES)
   @Get('patient/:patientId/conditions')
   getPatientConditions(
     @Param('patientId') patientId: string,
@@ -393,6 +442,7 @@ export class TreatmentPlansController {
   }
 
   @ApiOperation({ summary: 'Get condition links for a procedure' })
+  @Roles(...CLINICAL_READ_ROLES)
   @Get(':id/procedures/:procedureId/conditions')
   getProcedureConditionLinks(
     @Param('id') planId: string,
@@ -463,6 +513,7 @@ export class TreatmentPlansController {
   }
 
   @ApiOperation({ summary: 'Get audit history for a session' })
+  @Roles(...CLINICAL_READ_ROLES)
   @Get(':id/procedures/:procedureId/sessions/:sessionId/edits')
   getSessionEditHistory(
     @Param('id') planId: string,
@@ -476,26 +527,34 @@ export class TreatmentPlansController {
     summary:
       'Generic audit log for any entity (newest first). entityType is the model name, e.g. "ProcedureSession".',
   })
+  @Roles(...AUDIT_READ_ROLES)
   @Get('audit/:entityType/:entityId')
   getEntityAuditLog(
     @Param('entityType') entityType: string,
     @Param('entityId') entityId: string,
   ) {
+    if (!AUDITABLE_ENTITY_TYPES.has(entityType)) {
+      throw new BadRequestException(
+        `entityType must be one of: ${[...AUDITABLE_ENTITY_TYPES].join(', ')}`,
+      );
+    }
     return this.svc.getEntityAuditLog(entityType, entityId);
   }
 
   @ApiOperation({ summary: 'Get all executed procedure sessions for a visit' })
+  @Roles(...CLINICAL_READ_ROLES)
   @Get('visit/:visitId/sessions')
   getSessionsByVisit(@Param('visitId') visitId: string) {
     return this.svc.getSessionsByVisit(visitId);
   }
 
+  @Roles(...CLINICAL_READ_ROLES)
   @Get('patient/:patientId/sessions')
   getPatientExecutedSessions(@Param('patientId') patientId: string) {
     return this.svc.getPatientExecutedSessions(patientId);
   }
 
-  // src/visits/visits.controller.ts
+  @Roles(...CLINICAL_READ_ROLES)
   @Get('patient/:patientId/patient-visits')
   async getPatientVisits(@Param('patientId') patientId: string) {
     return this.svc.getPatientVisits(patientId);
@@ -506,6 +565,7 @@ export class TreatmentPlansController {
 
   @ApiOperation({ summary: 'Treatment plans report (paginated & filterable)' })
   @ApiResponse({ status: 200, description: 'Report returned successfully' })
+  @Roles(...AUDIT_READ_ROLES)
   @Get('reports/plans')
   getTreatmentPlansReport(@Query() filters: any) {
     return this.svc.getTreatmentPlansReport(filters as ReportFilters);
@@ -513,6 +573,7 @@ export class TreatmentPlansController {
 
   @ApiOperation({ summary: 'Procedures report (paginated & filterable)' })
   @ApiResponse({ status: 200, description: 'Report returned successfully' })
+  @Roles(...AUDIT_READ_ROLES)
   @Get('reports/procedures')
   getProceduresReport(@Query() filters: any) {
     return this.svc.getProceduresReport(filters as ReportFilters);
@@ -520,11 +581,13 @@ export class TreatmentPlansController {
 
   @ApiOperation({ summary: 'Sessions report (paginated & filterable)' })
   @ApiResponse({ status: 200, description: 'Report returned successfully' })
+  @Roles(...AUDIT_READ_ROLES)
   @Get('reports/sessions')
   getSessionsReport(@Query() filters: any) {
     return this.svc.getSessionsReport(filters as ReportFilters);
   }
 
+  @Roles(...BILLING_READ_ROLES)
   @Post('pricing/calculate')
   @ApiOperation({ summary: 'Calculate procedure pricing preview' })
   @ApiBody({ type: PricingCalculationDto })

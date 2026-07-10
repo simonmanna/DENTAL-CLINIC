@@ -1812,18 +1812,32 @@ export class TreatmentPlansService {
         include: {
           treatmentPlan: { select: { patientId: true, title: true } },
           procedure: { select: { name: true } },
-          sessions: {
-            where: { deletedAt: null },
-            orderBy: { sessionNumber: 'desc' },
-            take: 1,
-          },
           targets: true, // Get procedure targets to copy from
         },
       });
       if (!tp) throw new NotFoundException('Treatment procedure not found');
 
+      // Completion has clinical side effects (chart entries, extraction
+      // absence, condition resolution) that only executeSession performs — a
+      // session must not be born COMPLETED/terminal through plain CRUD.
+      if (
+        dto.status &&
+        dto.status !== SessionStatus.PENDING &&
+        dto.status !== SessionStatus.IN_PROGRESS
+      ) {
+        throw new BadRequestException(
+          `A session cannot be created directly in ${dto.status} status. ` +
+            `Use the execute-session flow to complete it.`,
+        );
+      }
+
+      const lastAnySession = await tx.procedureSession.findFirst({
+        where: { treatmentProcedureId: procedureId },
+        orderBy: { sessionNumber: 'desc' },
+        select: { sessionNumber: true },
+      });
       const nextNum =
-        dto.sessionNumber ?? ((tp as any).sessions[0]?.sessionNumber ?? 0) + 1;
+        dto.sessionNumber ?? (lastAnySession?.sessionNumber ?? 0) + 1;
       const label =
         dto.sessionLabel ??
         `${(tp as any).procedure.name} – Session ${nextNum}`;
@@ -1897,6 +1911,33 @@ export class TreatmentPlansService {
 
       const tp = (session as any).treatmentProcedure;
 
+      // Terminal sessions are immutable through plain CRUD — corrections go
+      // through the audited edit-session flow, which diffs and versions them.
+      if (
+        session.status === SessionStatus.COMPLETED ||
+        session.status === SessionStatus.VOIDED ||
+        session.status === SessionStatus.CANCELLED ||
+        session.status === SessionStatus.SKIPPED
+      ) {
+        throw new ConflictException(
+          `Session is ${session.status} — use the edit-session flow to correct it.`,
+        );
+      }
+
+      // Completion has clinical side effects (chart entries, extraction
+      // absence, condition resolution) that only executeSession performs.
+      if (dto.status === SessionStatus.COMPLETED) {
+        throw new BadRequestException(
+          'A session cannot be completed through this endpoint. ' +
+            'Use the execute-session flow so chart entries stay in sync.',
+        );
+      }
+      if (dto.status === SessionStatus.VOIDED) {
+        throw new BadRequestException(
+          'Void a session through the delete-session flow so its side effects are reversed.',
+        );
+      }
+
       // Update surfaces if provided - update procedure targets for this session
       if (dto.surfaces && dto.surfaces.length > 0) {
         await tx.procedureTarget.updateMany({
@@ -1917,16 +1958,13 @@ export class TreatmentPlansService {
       if (dto.sessionPrice !== undefined)
         updateData.sessionPrice = dto.sessionPrice;
       if (dto.visitGroup !== undefined) updateData.visitGroup = dto.visitGroup;
+      updateData.version = { increment: 1 };
 
       const updated = await tx.procedureSession.update({
         where: { id: sessionId },
         data: updateData,
         include: { ledgerEntry: true, targets: true },
       });
-
-      if (dto.status === SessionStatus.COMPLETED) {
-        await this.checkAndCompleteProcedure(tx, procedureId);
-      }
 
       return updated;
     });
@@ -2265,30 +2303,6 @@ export class TreatmentPlansService {
     }
   }
 
-  private async checkAndCompleteProcedure(
-    tx: Prisma.TransactionClient,
-    procedureId: string,
-  ): Promise<void> {
-    const sessions = await tx.procedureSession.findMany({
-      where: { treatmentProcedureId: procedureId, deletedAt: null },
-      select: { status: true },
-    });
-    const allDone =
-      sessions.length > 0 &&
-      sessions.every(
-        (s: any) =>
-          s.status === SessionStatus.COMPLETED ||
-          s.status === SessionStatus.SKIPPED,
-      );
-    if (allDone) {
-      await tx.treatmentProcedure.update({
-        where: { id: procedureId },
-        data: { status: TreatmentStatus.COMPLETED, completedAt: new Date() },
-      });
-      await this.syncConditionsForProcedureTx(tx, procedureId);
-    }
-  }
-
   private async recalculatePlanCostTx(
     tx: Prisma.TransactionClient,
     planId: string,
@@ -2502,6 +2516,12 @@ export class TreatmentPlansService {
       dentistId?: string;
       markProcedureComplete?: boolean;
       status?: string; // legacy
+      // Required to close a MULTI-session procedure before all planned
+      // sessions are completed — recorded in the audit trail.
+      finalOverrideReason?: string;
+      // Optimistic-lock guard for executing an EXISTING session: rejects the
+      // execute when someone edited the session since the client loaded it.
+      expectedVersion?: number;
       toothStatuses?: Array<{
         toothNumber: number;
         chartEntryId?: string;
@@ -2540,6 +2560,35 @@ export class TreatmentPlansService {
         });
         if (!tp) throw new NotFoundException('TreatmentProcedure not found');
 
+        // A CANCELLED/REFERRED procedure is clinically closed — executing a
+        // session against it would resurrect it as IN_PROGRESS/COMPLETED.
+        if (
+          tp.status === TreatmentStatus.CANCELLED ||
+          tp.status === TreatmentStatus.REFERRED
+        ) {
+          throw new ConflictException(
+            `Cannot execute a session on a ${tp.status} procedure. Restore it first.`,
+          );
+        }
+
+        // visitId is client-supplied — verify it belongs to this plan's
+        // patient so a session/chart entry can never be attributed to an
+        // unrelated patient's visit.
+        if (dto.visitId) {
+          const visit = await tx.visit.findUnique({
+            where: { id: dto.visitId },
+            select: { patientId: true },
+          });
+          if (!visit) {
+            throw new BadRequestException('visitId does not exist');
+          }
+          if (visit.patientId !== tp.treatmentPlan.patientId) {
+            throw new BadRequestException(
+              'visitId belongs to a different patient than this treatment plan',
+            );
+          }
+        }
+
         // ── Create-or-reuse the session, ATOMICALLY with execution ────────────
         // If a sessionId is supplied we execute that existing session. If not, we
         // create the PENDING session here, inside the same transaction. That makes
@@ -2557,9 +2606,24 @@ export class TreatmentPlansService {
             include: { targets: true },
           });
           if (!session) throw new NotFoundException('Session not found');
+
+          // Optimistic lock: a concurrent edit bumped version since the
+          // client loaded this session — make it re-read before executing.
+          if (
+            dto.expectedVersion !== undefined &&
+            session.version !== dto.expectedVersion
+          ) {
+            throw new ConflictException(
+              `Session was modified by someone else (expected version ` +
+                `${dto.expectedVersion}, found ${session.version}). Refresh and retry.`,
+            );
+          }
         } else {
+          // Max over ALL rows including soft-deleted ones: numbers stay
+          // monotonic and a re-created session can't collide with a number
+          // still held by a soft-deleted row.
           const lastSession = await tx.procedureSession.findFirst({
-            where: { treatmentProcedureId: procedureId, deletedAt: null },
+            where: { treatmentProcedureId: procedureId },
             orderBy: { sessionNumber: 'desc' },
             select: { sessionNumber: true },
           });
@@ -2607,6 +2671,33 @@ export class TreatmentPlansService {
             `Session ${session.sessionNumber} is already ${session.status}. ` +
               `Use the edit-session flow to correct its details instead of re-executing.`,
           );
+        }
+
+        // Completion is a clinical state change the SERVER validates — the
+        // client's isFinal alone must not close a multi-session procedure
+        // early. Closing before all planned sessions are completed requires
+        // an explicit, audited override reason.
+        if (dto.isFinal && tp.sessionType === SessionType.MULTI) {
+          const completedBefore = await tx.procedureSession.count({
+            where: {
+              treatmentProcedureId: procedureId,
+              deletedAt: null,
+              status: SessionStatus.COMPLETED,
+              id: { not: session.id },
+            },
+          });
+          const completedIncludingThis = completedBefore + 1;
+          const plannedSessions = tp.sessionCount ?? 1;
+          if (
+            completedIncludingThis < plannedSessions &&
+            !dto.finalOverrideReason?.trim()
+          ) {
+            throw new BadRequestException(
+              `Cannot mark this procedure COMPLETED at session ` +
+                `${completedIncludingThis} of ${plannedSessions}. Pass ` +
+                `finalOverrideReason to close it early (it will be audited).`,
+            );
+          }
         }
 
         const patientId = tp.treatmentPlan.patientId;
@@ -2863,6 +2954,7 @@ export class TreatmentPlansService {
             performedDate: dto.performedDate ?? null,
             providerId: dto.providerId ?? dto.dentistId ?? null,
             toothStatuses: dto.toothStatuses ?? [],
+            finalOverrideReason: dto.finalOverrideReason ?? null,
           },
         });
 
@@ -2893,17 +2985,24 @@ export class TreatmentPlansService {
         return result;
       });
     } catch (e) {
-      // A racing duplicate committed first; replay its stored response instead
-      // of surfacing the unique-violation error.
       if (
-        dto.idempotencyKey &&
         e instanceof Prisma.PrismaClientKnownRequestError &&
         e.code === 'P2002'
       ) {
-        const prior = await this.prisma.idempotencyKey.findUnique({
-          where: { key: dto.idempotencyKey },
-        });
-        if (prior?.response) return prior.response as any;
+        // A racing duplicate committed first; replay its stored response
+        // instead of surfacing the unique-violation error.
+        if (dto.idempotencyKey) {
+          const prior = await this.prisma.idempotencyKey.findUnique({
+            where: { key: dto.idempotencyKey },
+          });
+          if (prior?.response) return prior.response as any;
+        }
+        // No idempotency key (or no stored response): the concurrent request
+        // won the (procedureId, sessionNumber) unique race. Surface it as a
+        // conflict rather than a raw DB error.
+        throw new ConflictException(
+          'A concurrent request already executed this session — refresh to see the result.',
+        );
       }
       throw e;
     }

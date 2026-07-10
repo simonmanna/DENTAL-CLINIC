@@ -81,13 +81,20 @@ export class ExecuteSessionDto {
   @IsOptional() @IsString()   visitId?: string;
   @IsOptional() @IsNumber()   sessionPrice?: number;
   @IsOptional() @IsNumber()   sessionPriceOriginal?: number;
-  @IsOptional() @IsBoolean()  autoAddToLedger?: boolean;
 
   // Clinical outcome — replaces raw status
   @IsOptional() @IsString()   outcome?: string;        // 'PARTIAL' | 'COMPLETED'
   @IsOptional() @IsBoolean()  isFinal?: boolean;       // closes the procedure when true
   @IsOptional() @IsString()   phase?: string;          // 'CLEANING' | 'SHAPING' etc.
   @IsOptional() @IsString()   providerId?: string;     // who performed this session
+
+  // Required when isFinal is set on a MULTI-session procedure before all
+  // planned sessions are completed — the early close is audited with it.
+  @IsOptional() @IsString()   finalOverrideReason?: string;
+
+  // Optimistic-lock guard when executing an EXISTING session: the execute is
+  // rejected with 409 if the session was edited since the client loaded it.
+  @IsOptional() @IsNumber()   expectedVersion?: number;
 
   // Create-and-execute (atomic): when no :sessionId is supplied, the service
   // creates the PENDING session inside the execution transaction so a failed
