@@ -815,9 +815,9 @@ model User {
     suppliersCreated Supplier[]        @relation("SupplierCreatedBy")
     suppliersUpdated Supplier[]        @relation("SupplierUpdatedBy")
   ledgerEntries    InventoryLedger[] @relation("LedgerPerformedBy")
-  stockMovements   StockMovement[]   @relation("StockMovementCreatedBy") // <-- ADD THIS
-  stockTransfers   StockTransfer[]
-
+stockMovements      StockMovement[]           @relation("StockMovementCreatedBy")
+  stockTransfers      StockTransfer[]
+  treatmentConsumptions TreatmentConsumption[]
   notifications           Notification[]           @relation("UserNotifications")
   notificationsTriggered  Notification[]           @relation("NotificationActor")
   notificationPreferences NotificationPreference[] @relation("NotificationPreferences")
@@ -1015,7 +1015,8 @@ model Patient {
 
   chartEntries ChartEntry[]
 
-  patientConditions PatientCondition[]
+  patientConditions   PatientCondition[]
+  treatmentConsumptions TreatmentConsumption[]
 
   @@map("patients")
 }
@@ -1287,6 +1288,7 @@ model TreatmentPlan {
   attachments  TreatmentAttachment[]
   chartEntries ChartEntry[]
   invoices     Invoice[]             @relation("TreatmentPlanInvoices")
+  consumptions TreatmentConsumption[]
 
   @@map("treatment_plans")
 }
@@ -1449,6 +1451,11 @@ model ProcedureSession {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // NOTE: uniqueness of (treatmentProcedureId, sessionNumber) over ACTIVE
+  // (deletedAt IS NULL) rows is enforced by the partial unique index
+  // procedure_sessions_active_session_number_unique — see migration
+  // 20260710000001_partial_unique_indexes_and_checks. Prisma's @@unique
+  // cannot express partial predicates.
   @@index([treatmentProcedureId])
   @@index([visitGroup])
   @@index([status])
@@ -3552,15 +3559,13 @@ model ConditionProcedureLink {
   unlinkedById  String?
   deletedReason String?
 
-  // Uniqueness on ACTIVE links is enforced by a PARTIAL UNIQUE INDEX applied
-  // at app boot from prisma/sql/condition_procedure_links_active_unique.sql
-  // (Prisma's @@unique cannot express partial predicates, so this is the
-  // only constraint). A condition can be re-linked to the same procedure
-  // after the prior link is soft-deleted, but never double-linked while both
-  // links have deletedAt IS NULL. The boot hook in PrismaService.onModuleInit
-  // applies the index idempotently. The index is NOT managed by `prisma db
-  // push`; if you ever migrate to prisma migrate, convert the SQL to a
-  // migration file.
+  // Uniqueness on ACTIVE links is enforced by a PARTIAL UNIQUE INDEX
+  // (Prisma's @@unique cannot express partial predicates). Canonical source:
+  // migration 20260710000001_partial_unique_indexes_and_checks. The boot hook
+  // in PrismaService.onModuleInit re-applies it idempotently as a safety net
+  // for dev databases created with `prisma db push`. A condition can be
+  // re-linked to the same procedure after the prior link is soft-deleted, but
+  // never double-linked while both links have deletedAt IS NULL.
   @@index([treatmentProcedureId])
   @@index([patientConditionId])
   @@index([deletedAt])
@@ -3735,4 +3740,28 @@ model NotificationPreference {
 
   @@unique([userId, category])
   @@map("notification_preferences")
+}
+
+model TreatmentConsumption {
+  id              String   @id @default(cuid())
+  consumptionCode String   @unique
+  treatmentPlanId String?
+  treatmentPlan   TreatmentPlan? @relation(fields: [treatmentPlanId], references: [id], onDelete: SetNull)
+  patientId       String?
+  patient         Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  itemType        String   // "DRUG" | "INVENTORY"
+  itemId          String
+  itemName        String
+  quantity        Float
+  unitCost        Decimal  @db.Decimal(10, 2)
+  totalCost       Decimal  @db.Decimal(10, 2)
+  notes           String?
+  performedById   String?
+  performedBy     User?    @relation(fields: [performedById], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+
+  @@index([treatmentPlanId])
+  @@index([patientId])
+  @@index([itemType, itemId])
+  @@map("treatment_consumptions")
 }
