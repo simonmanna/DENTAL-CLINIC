@@ -18,7 +18,7 @@ export interface UploadedFile {
 
 @Injectable()
 export class StorageService {
-  private readonly uploadDir = path.join(process.cwd(), 'uploads');
+  private readonly uploadDir = path.resolve(__dirname, '..', '..', '..', 'uploads');
 
   constructor() {
     this.ensureUploadDirectory();

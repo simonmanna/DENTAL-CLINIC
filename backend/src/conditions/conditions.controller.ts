@@ -27,6 +27,10 @@ import { UpdateConditionDto } from './dto/update-condition.dto';
 import { ConditionQueryDto } from './dto/condition-query.dto';
 import { CreatePatientConditionDto } from './dto/create-patient-condition.dto';
 import { UpdatePatientConditionDto } from './dto/update-patient-condition.dto';
+import {
+  CreatePatientConditionsBatchDto,
+  UpdatePatientConditionsBatchDto,
+} from './dto/batch-patient-condition.dto';
 import { PatientConditionQueryDto } from './dto/patient-condition-query.dto';
 import { ResolvePatientConditionDto } from './dto/resolve-patient-condition.dto';
 import { DeletePatientConditionDto } from './dto/delete-patient-condition.dto';
@@ -215,21 +219,7 @@ async findOnePatientCondition(@Param('id') id: string): Promise<PatientCondition
             'Atomic batch create of patient conditions across multiple teeth (one TX)',
     })
     async createPatientConditionsBatch(
-        @Body()
-        body: {
-            entries: CreatePatientConditionDto[];
-            chartEntries?: Array<{
-                toothNumber: number;
-                surfaces: string[];
-                label: string;
-                conditionCode?: string;
-                conditionId?: string;
-                notes?: string;
-                providerId?: string;
-                patientId: string;
-                visitId?: string;
-            }>;
-        },
+        @Body() body: CreatePatientConditionsBatchDto,
         @CurrentUser('id') currentUserId: string | undefined,
         @Headers('idempotency-key') idempotencyKey?: string,
         @Request() req?: any,
@@ -254,22 +244,7 @@ async findOnePatientCondition(@Param('id') id: string): Promise<PatientCondition
             'Atomic batch update — supersede stale ChartEntries for a patient condition and rewrite per tooth',
     })
     async updatePatientConditionsBatch(
-        @Body()
-        body: {
-            patientConditionId: string;
-            update: UpdatePatientConditionDto;
-            chartEntries: Array<{
-                toothNumber: number;
-                surfaces: string[];
-                label: string;
-                conditionCode?: string;
-                conditionId?: string;
-                notes?: string;
-                providerId?: string;
-                patientId: string;
-                visitId?: string;
-            }>;
-        },
+        @Body() body: UpdatePatientConditionsBatchDto,
         @CurrentUser('id') currentUserId: string | undefined,
         @Headers('idempotency-key') idempotencyKey?: string,
         @Request() req?: any,

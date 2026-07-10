@@ -35,11 +35,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User not found or inactive');
     }
     
-    return { 
-      id: user.id, 
-      email: user.email, 
-      role: user.role, 
-      staff: user.staff 
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      staff: user.staff,
+      // Flat staffId so controllers can attribute clinical work to the
+      // authenticated provider (req.user.staffId) without digging into staff.
+      staffId: user.staff?.id ?? null,
     };
   }
 }

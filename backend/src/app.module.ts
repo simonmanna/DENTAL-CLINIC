@@ -61,8 +61,11 @@ import { ClinicSettingsModule } from './clinic-settings/clinic-settings.module';
 import { SequenceModule } from './common/sequence/sequence.module';
 import { DocumentNumberModule } from './common/document-number/document-number.module';
 import { GeneralLedgerModule } from './general-ledger/general-ledger.module';
+import { SupplierPaymentsModule } from './supplier-payments/supplier-payments.module';
+import { TreatmentConsumptionsModule } from './treatment-consumptions/treatment-consumptions.module';
 
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -71,13 +74,14 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
       serveRoot: '/uploads', // The URL prefix
       serveStaticOptions: {
         setHeaders: (res) => {
-          res.set('Access-Control-Allow-Origin', 'http://localhost:5173');
+          res.set('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || 'http://localhost:5173');
         },
       },
     }),
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     ScheduleModule.forRoot(),
+    HealthModule,
     PrismaModule,
     SequenceModule,
     DocumentNumberModule,
@@ -125,6 +129,8 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     NotificationsModule,
     ClinicSettingsModule,
     GeneralLedgerModule,
+    SupplierPaymentsModule,
+    TreatmentConsumptionsModule,
     EventEmitterModule.forRoot({
       // Global: events are emitted and listened across all modules
       wildcard: true,

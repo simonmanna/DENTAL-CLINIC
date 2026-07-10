@@ -118,10 +118,7 @@ export class AuthService {
     const accessSecret = this.config.get<string>('JWT_ACCESS_SECRET');
     const refreshSecret = this.config.get<string>('JWT_REFRESH_SECRET');
     
-    console.log('🔐 Generating tokens with secrets:', { 
-      accessSecret: accessSecret ? 'Present' : 'MISSING', 
-      refreshSecret: refreshSecret ? 'Present' : 'MISSING' 
-    });
+    this.logger.log('Generating tokens – secrets present: ' + (!!accessSecret && !!refreshSecret));
 
     if (!accessSecret || !refreshSecret) {
       throw new Error('JWT secrets not configured');
@@ -129,16 +126,16 @@ export class AuthService {
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        secret: accessSecret,  // Explicit secret
-        expiresIn: '500m',
+        secret: accessSecret,
+        expiresIn: this.config.get('JWT_ACCESS_EXPIRATION', '500m'),
       }),
       this.jwtService.signAsync(payload, {
-        secret: refreshSecret,  // Explicit secret
-        expiresIn: '7d',
+        secret: refreshSecret,
+        expiresIn: this.config.get('JWT_REFRESH_EXPIRATION', '7d'),
       }),
     ]);
     
-    console.log('✅ Tokens generated successfully for user:', userId);
+    this.logger.log('Tokens generated successfully for user: ' + userId);
     return { accessToken, refreshToken };
   }
 

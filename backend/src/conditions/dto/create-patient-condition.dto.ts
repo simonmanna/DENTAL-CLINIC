@@ -47,6 +47,8 @@ export class CreatePatientConditionDto {
   @IsString()
   providerId?: string;        // ← NEW: staff FK
 
+  @IsOptional()
+  @IsEnum(PatientConditionStatus)
   status?: PatientConditionStatus;
 
   @IsOptional()

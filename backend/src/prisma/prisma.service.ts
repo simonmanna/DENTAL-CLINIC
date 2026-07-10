@@ -19,10 +19,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     this.logger.log('✅ Database connected');
 
     // Apply SQL-only constraints that Prisma cannot express in schema.prisma.
-    // These are idempotent (DROP IF EXISTS + CREATE) so repeated boots are
-    // safe. They are NOT applied by `prisma db push` because Prisma only
-    // manages constraints declared in schema.prisma; this hook is the
-    // single source of truth.
+    // CANONICAL SOURCE is the migration history (`prisma migrate deploy` in
+    // production — see 20260710000001_partial_unique_indexes_and_checks).
+    // This hook is a dev-only safety net for databases created with
+    // `prisma db push`, which skips migrations. All statements are
+    // idempotent, so re-applying over a migrated database is a no-op.
     await this.applyBootSqlConstraints();
   }
 
