@@ -704,7 +704,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                 letterSpacing: "-0.3px",
               }}
             >
-              SmileCare
+              Fshikta Dental
             </span>
             <span
               style={{
@@ -1075,7 +1075,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             <span style={{ fontSize: 11.5, color: "#94a3b8" }}>
               © 2024–2026{" "}
               <span style={{ color: theme.accentText, fontWeight: 600 }}>
-                SmileCare
+                Fshikta Dental
               </span>{" "}
               Dental Management System
             </span>
