@@ -1,6 +1,4 @@
-import axios from 'axios'; // use your configured axios instance
-
-const API_URL = '/api/accounts';
+import { api } from '@/lib/api/client';
 
 export type AccountType = 'CASH' | 'BANK' | 'MOBILE_MONEY' | 'PETTY_CASH';
 export type AccountCurrency = 'UGX' | 'USD' | 'EUR' | 'GBP' | 'KES';
@@ -50,17 +48,17 @@ export interface AccountsResponse {
 
 export const accountsApi = {
   getAll: (params?: Record<string, any>) =>
-    axios.get<AccountsResponse>(API_URL, { params }).then((r) => r.data),
+    api.get<AccountsResponse>('/accounts', { params }).then((r) => r.data),
 
   getById: (id: string) =>
-    axios.get<Account>(`${API_URL}/${id}`).then((r) => r.data),
+    api.get<Account>(`/accounts/${id}`).then((r) => r.data),
 
   create: (input: CreateAccountInput) =>
-    axios.post<Account>(API_URL, input).then((r) => r.data),
+    api.post<Account>('/accounts', input).then((r) => r.data),
 
   update: (id: string, input: UpdateAccountInput) =>
-    axios.patch<Account>(`${API_URL}/${id}`, input).then((r) => r.data),
+    api.patch<Account>(`/accounts/${id}`, input).then((r) => r.data),
 
   delete: (id: string) =>
-    axios.delete<Account>(`${API_URL}/${id}`).then((r) => r.data),
+    api.delete<Account>(`/accounts/${id}`).then((r) => r.data),
 };

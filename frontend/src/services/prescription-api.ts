@@ -1,31 +1,7 @@
-// src/services/prescription-api.ts
+import { api } from '@/lib/api/client';
 import { Prescription, PrescriptionListResponse, PrescriptionFilters } from '@/types/prescription';
 
-// const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-const API_BASE = (import.meta as any).env?.VITE_API_URL || "http://localhost:3001";
-
-async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const token = localStorage.getItem('access_token'); // or use your auth context
-  
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options?.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || `API Error: ${response.status}`);
-  }
-
-  return response.json();
-}
-
 export const prescriptionApi = {
-  // List prescriptions with filters & pagination
   list: (filters: PrescriptionFilters = {}) => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
@@ -33,38 +9,24 @@ export const prescriptionApi = {
         params.append(key, String(value));
       }
     });
-    return fetchAPI<PrescriptionListResponse>(`/prescriptions?${params}`);
+    return api.get<PrescriptionListResponse>(`/prescriptions?${params}`).then(r => r.data);
   },
 
-  // Get single prescription
-  getById: (id: string) => 
-    fetchAPI<Prescription>(`/prescriptions/${id}`),
+  getById: (id: string) =>
+    api.get<Prescription>(`/prescriptions/${id}`).then(r => r.data),
 
-  // Get by visit
-  getByVisit: (visitId: string) => 
-    fetchAPI<Prescription[]>(`/prescriptions/by-visit/${visitId}`),
+  getByVisit: (visitId: string) =>
+    api.get<Prescription[]>(`/prescriptions/by-visit/${visitId}`).then(r => r.data),
 
-  // Get by patient
-  getByPatient: (patientId: string) => 
-    fetchAPI<Prescription[]>(`/prescriptions/patient/${patientId}`),
+  getByPatient: (patientId: string) =>
+    api.get<Prescription[]>(`/prescriptions/patient/${patientId}`).then(r => r.data),
 
-  // Update prescription (status/notes)
-  update: (id: string, data: { status?: string; notes?: string; dispensedBy?: string }) => 
-    fetchAPI<Prescription>(`/prescriptions/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    }),
+  update: (id: string, data: { status?: string; notes?: string; dispensedBy?: string }) =>
+    api.patch<Prescription>(`/prescriptions/${id}`, data).then(r => r.data),
 
-  // Dispense prescription
-  dispense: (id: string, dispensedBy: string) => 
-    fetchAPI<Prescription>(`/prescriptions/${id}/dispense`, {
-      method: 'POST',
-      body: JSON.stringify({ dispensedBy }),
-    }),
+  dispense: (id: string, dispensedBy: string) =>
+    api.post<Prescription>(`/prescriptions/${id}/dispense`, { dispensedBy }).then(r => r.data),
 
-  // Delete prescription
-  delete: (id: string) => 
-    fetchAPI<{ message: string }>(`/prescriptions/${id}`, {
-      method: 'DELETE',
-    }),
+  delete: (id: string) =>
+    api.delete<{ message: string }>(`/prescriptions/${id}`).then(r => r.data),
 };

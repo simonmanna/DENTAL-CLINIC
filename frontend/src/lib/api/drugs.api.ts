@@ -1,5 +1,4 @@
-import axios from 'axios';
-import type {
+﻿import type {
   Drug,
   DrugFormValues,
   DrugQueryParams,
@@ -22,7 +21,7 @@ import { api } from './client';
 //   return config;
 // });
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function buildParams(query: DrugQueryParams): Record<string, string | number | boolean> {
   const params: Record<string, string | number | boolean> = {};
@@ -38,7 +37,7 @@ function buildParams(query: DrugQueryParams): Record<string, string | number | b
   return params;
 }
 
-// ─── API Functions ────────────────────────────────────────────────────────────
+// â”€â”€â”€ API Functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const drugsApi = {
   getAll: async (query: DrugQueryParams = {}): Promise<PaginatedDrugs> => {
@@ -81,3 +80,4 @@ export const drugsApi = {
     return data;
   },
 };
+

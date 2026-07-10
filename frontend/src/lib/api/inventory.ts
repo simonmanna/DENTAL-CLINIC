@@ -1,39 +1,4 @@
-// src/lib/api/inventory.ts
-// Shared API client — all DHMS inventory, pharmacy, expenses, locations, consumptions
-
-// const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
-// const BASE = import.meta.env?.VITE_API_URL || 'http://localhost:3001';
-const BASE = (import.meta as any).env?.VITE_API_URL || "http://localhost:3001";
-
-
-async function req<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = localStorage.getItem('access_token');
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...init?.headers,
-    },
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(err.message ?? 'Request failed');
-  }
-  return res.json();
-}
-
-function qs(params?: Record<string, string | undefined>): string {
-  if (!params) return '';
-  const p = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== '') p.set(k, v);
-  }
-  const s = p.toString();
-  return s ? `?${s}` : '';
-}
-
-// ── Types ────────────────────────────────────────────────────
+import { api } from '@/lib/api/client';
 
 export interface Location {
   id: string; name: string; type: string; description?: string; isActive: boolean;
@@ -157,127 +122,134 @@ export interface SupplierBalance {
   purchaseOrders: Array<{ id: string; orderNumber: string; totalCost: number; amountPaid: number; status: string }>;
 }
 
-// ── Inventory API ─────────────────────────────────────────────
+function qs(params?: Record<string, string | undefined>): Record<string, string | number | boolean> {
+  if (!params) return {};
+  const result: Record<string, string | number | boolean> = {};
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== '') result[k] = v;
+  }
+  return result;
+}
+
 export const inventoryApi = {
-  // Items — supports (search?, category?) for convenience
   getItems: (search?: string, category?: string) =>
-    req<InventoryItem[]>(`/inventory/items${qs({ search, category })}`),
-  getItem: (id: string) => req<InventoryItem>(`/inventory/items/${id}`),
+    api.get<InventoryItem[]>('/inventory/items', { params: { search, category } }).then(r => r.data),
+  getItem: (id: string) =>
+    api.get<InventoryItem>(`/inventory/items/${id}`).then(r => r.data),
   createItem: (data: Partial<InventoryItem> & Record<string, unknown>) =>
-    req<InventoryItem>('/inventory/items', { method: 'POST', body: JSON.stringify(data) }),
+    api.post<InventoryItem>('/inventory/items', data).then(r => r.data),
   updateItem: (id: string, data: Partial<InventoryItem> & Record<string, unknown>) =>
-    req<InventoryItem>(`/inventory/items/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    api.patch<InventoryItem>(`/inventory/items/${id}`, data).then(r => r.data),
   recordTransaction: (id: string, data: object) =>
-    req(`/inventory/items/${id}/transaction`, { method: 'POST', body: JSON.stringify(data) }),
-  getStats: () => req<InventoryStats>('/inventory/items/stats'),
+    api.post(`/inventory/items/${id}/transaction`, data).then(r => r.data),
+  getStats: () =>
+    api.get<InventoryStats>('/inventory/items/stats').then(r => r.data),
 
-  // Suppliers
   getSuppliers: (search?: string) =>
-    req<Supplier[]>(`/inventory/suppliers${qs({ search })}`),
+    api.get<Supplier[]>('/inventory/suppliers', { params: { search } }).then(r => r.data),
   createSupplier: (data: Partial<Supplier> & Record<string, unknown>) =>
-    req<Supplier>('/inventory/suppliers', { method: 'POST', body: JSON.stringify(data) }),
+    api.post<Supplier>('/inventory/suppliers', data).then(r => r.data),
   updateSupplier: (id: string, data: Partial<Supplier> & Record<string, unknown>) =>
-    req<Supplier>(`/inventory/suppliers/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    api.patch<Supplier>(`/inventory/suppliers/${id}`, data).then(r => r.data),
 
-  // Purchase Orders — aliased for page compatibility
   getPOs: (status?: string) =>
-    req<PurchaseOrder[]>(`/inventory/purchase-orders${qs({ status })}`),
+    api.get<PurchaseOrder[]>('/inventory/purchase-orders', { params: qs({ status }) }).then(r => r.data),
   getPurchaseOrders: (status?: string) =>
-    req<PurchaseOrder[]>(`/inventory/purchase-orders${qs({ status })}`),
+    api.get<PurchaseOrder[]>('/inventory/purchase-orders', { params: qs({ status }) }).then(r => r.data),
   createPO: (data: object) =>
-    req<PurchaseOrder>('/inventory/purchase-orders', { method: 'POST', body: JSON.stringify(data) }),
+    api.post<PurchaseOrder>('/inventory/purchase-orders', data).then(r => r.data),
   createPurchaseOrder: (data: object) =>
-    req<PurchaseOrder>('/inventory/purchase-orders', { method: 'POST', body: JSON.stringify(data) }),
+    api.post<PurchaseOrder>('/inventory/purchase-orders', data).then(r => r.data),
   receivePO: (id: string, items: object[]) =>
-    req(`/inventory/purchase-orders/${id}/receive`, { method: 'POST', body: JSON.stringify({ items }) }),
+    api.post(`/inventory/purchase-orders/${id}/receive`, { items }).then(r => r.data),
   receivePurchaseOrder: (id: string, items: object[]) =>
-    req(`/inventory/purchase-orders/${id}/receive`, { method: 'POST', body: JSON.stringify({ items }) }),
+    api.post(`/inventory/purchase-orders/${id}/receive`, { items }).then(r => r.data),
 };
 
-// ── Pharmacy API ──────────────────────────────────────────────
 export const pharmacyApi = {
-  // Drugs — supports (search?, category?) convenience overload
   getDrugs: (search?: string, category?: string) =>
-    req<Drug[]>(`/pharmacy/drugs${qs({ search, category })}`),
-  getDrug: (id: string) => req<Drug>(`/pharmacy/drugs/${id}`),
+    api.get<Drug[]>('/pharmacy/drugs', { params: { search, category } }).then(r => r.data),
+  getDrug: (id: string) =>
+    api.get<Drug>(`/pharmacy/drugs/${id}`).then(r => r.data),
   createDrug: (data: Partial<Drug> & Record<string, unknown>) =>
-    req<Drug>('/pharmacy/drugs', { method: 'POST', body: JSON.stringify(data) }),
+    api.post<Drug>('/pharmacy/drugs', data).then(r => r.data),
   updateDrug: (id: string, data: Partial<Drug> & Record<string, unknown>) =>
-    req<Drug>(`/pharmacy/drugs/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    api.patch<Drug>(`/pharmacy/drugs/${id}`, data).then(r => r.data),
   adjustStock: (id: string, data: object) =>
-    req(`/pharmacy/drugs/${id}/stock`, { method: 'POST', body: JSON.stringify(data) }),
-  getLowStock: () => req<Drug[]>('/pharmacy/drugs/low-stock'),
-  getCategories: () => req<Array<{ category: string; count: number }>>('/pharmacy/drugs/categories'),
+    api.post(`/pharmacy/drugs/${id}/stock`, data).then(r => r.data),
+  getLowStock: () =>
+    api.get<Drug[]>('/pharmacy/drugs/low-stock').then(r => r.data),
+  getCategories: () =>
+    api.get<Array<{ category: string; count: number }>>('/pharmacy/drugs/categories').then(r => r.data),
 
-  // Sales
   getSales: (params?: { locationId?: string; patientId?: string; saleType?: string; status?: string; from?: string; to?: string; page?: string; limit?: string }) =>
-    req<PaginatedResponse<PharmacySale>>(`/pharmacy/sales${qs(params as Record<string, string>)}`),
-  getSale: (id: string) => req<PharmacySale>(`/pharmacy/sales/${id}`),
+    api.get<PaginatedResponse<PharmacySale>>('/pharmacy/sales', { params: params as Record<string, string> }).then(r => r.data),
+  getSale: (id: string) =>
+    api.get<PharmacySale>(`/pharmacy/sales/${id}`).then(r => r.data),
   createSale: (data: object) =>
-    req<PharmacySale>('/pharmacy/sales', { method: 'POST', body: JSON.stringify(data) }),
+    api.post<PharmacySale>('/pharmacy/sales', data).then(r => r.data),
   addPayment: (id: string, data: object) =>
-    req<SalePayment>(`/pharmacy/sales/${id}/payments`, { method: 'POST', body: JSON.stringify(data) }),
+    api.post<SalePayment>(`/pharmacy/sales/${id}/payments`, data).then(r => r.data),
   refundSale: (id: string, reason?: string) =>
-    req<PharmacySale>(`/pharmacy/sales/${id}/refund`, { method: 'POST', body: JSON.stringify({ reason }) }),
+    api.post<PharmacySale>(`/pharmacy/sales/${id}/refund`, { reason }).then(r => r.data),
   getSalesStats: (params?: { locationId?: string; from?: string; to?: string }) =>
-    req<PharmacySalesStats>(`/pharmacy/sales/stats${qs(params as Record<string, string>)}`),
+    api.get<PharmacySalesStats>('/pharmacy/sales/stats', { params: params as Record<string, string> }).then(r => r.data),
 };
 
-// ── Expenses API ──────────────────────────────────────────────
 export const expensesApi = {
   getAll: (params?: { category?: string; status?: string; from?: string; to?: string; page?: string }) =>
-    req<PaginatedResponse<Expense>>(`/expenses${qs(params as Record<string, string>)}`),
+    api.get<PaginatedResponse<Expense>>('/expenses', { params: params as Record<string, string> }).then(r => r.data),
   create: (data: object) =>
-    req<Expense>('/expenses', { method: 'POST', body: JSON.stringify(data) }),
+    api.post<Expense>('/expenses', data).then(r => r.data),
   update: (id: string, data: object) =>
-    req<Expense>(`/expenses/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    api.patch<Expense>(`/expenses/${id}`, data).then(r => r.data),
   approve: (id: string, approvedBy: string) =>
-    req<Expense>(`/expenses/${id}/approve`, { method: 'POST', body: JSON.stringify({ approvedBy }) }),
+    api.post<Expense>(`/expenses/${id}/approve`, { approvedBy }).then(r => r.data),
   pay: (id: string, data: object) =>
-    req<Expense>(`/expenses/${id}/pay`, { method: 'POST', body: JSON.stringify(data) }),
+    api.post<Expense>(`/expenses/${id}/pay`, data).then(r => r.data),
   reject: (id: string) =>
-    req<Expense>(`/expenses/${id}/reject`, { method: 'POST' }),
+    api.post<Expense>(`/expenses/${id}/reject`).then(r => r.data),
   getStats: (params?: { from?: string; to?: string }) =>
-    req<ExpenseStats>(`/expenses/stats${qs(params as Record<string, string>)}`),
+    api.get<ExpenseStats>('/expenses/stats', { params: params as Record<string, string> }).then(r => r.data),
 };
 
-// ── Supplier Payments API ─────────────────────────────────────
 export const supplierPaymentsApi = {
   getAll: (params?: { supplierId?: string; purchaseOrderId?: string; page?: string }) =>
-    req<PaginatedResponse<SupplierPayment>>(`/supplier-payments${qs(params as Record<string, string>)}`),
+    api.get<PaginatedResponse<SupplierPayment>>('/supplier-payments', { params: params as Record<string, string> }).then(r => r.data),
   create: (data: object) =>
-    req<SupplierPayment>('/supplier-payments', { method: 'POST', body: JSON.stringify(data) }),
+    api.post<SupplierPayment>('/supplier-payments', data).then(r => r.data),
   getBalance: (supplierId: string) =>
-    req<SupplierBalance>(`/supplier-payments/supplier/${supplierId}/balance`),
-  getStats: () => req<{ totalPaid: number; byMethod: Record<string, number> }>('/supplier-payments/stats'),
+    api.get<SupplierBalance>(`/supplier-payments/supplier/${supplierId}/balance`).then(r => r.data),
+  getStats: () =>
+    api.get<{ totalPaid: number; byMethod: Record<string, number> }>('/supplier-payments/stats').then(r => r.data),
 };
 
-// ── Locations API ─────────────────────────────────────────────
 export const locationsApi = {
-  getAll: () => req<Location[]>('/locations'),
+  getAll: () =>
+    api.get<Location[]>('/locations').then(r => r.data),
   create: (data: object) =>
-    req<Location>('/locations', { method: 'POST', body: JSON.stringify(data) }),
+    api.post<Location>('/locations', data).then(r => r.data),
   update: (id: string, data: object) =>
-    req<Location>(`/locations/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    api.patch<Location>(`/locations/${id}`, data).then(r => r.data),
   getStock: (id: string) =>
-    req<{ drugs: Array<{ drug: Drug; quantity: number }>; items: Array<{ item: InventoryItem; quantity: number }> }>(`/locations/${id}/stock`),
+    api.get<{ drugs: Array<{ drug: Drug; quantity: number }>; items: Array<{ item: InventoryItem; quantity: number }> }>(`/locations/${id}/stock`).then(r => r.data),
   transfer: (data: object) =>
-    req<StockMovement>('/locations/transfer', { method: 'POST', body: JSON.stringify(data) }),
+    api.post<StockMovement>('/locations/transfer', data).then(r => r.data),
   getMovements: (params?: { fromLocationId?: string; toLocationId?: string; type?: string; page?: string }) =>
-    req<PaginatedResponse<StockMovement>>(`/locations/movements${qs(params as Record<string, string>)}`),
+    api.get<PaginatedResponse<StockMovement>>('/locations/movements', { params: params as Record<string, string> }).then(r => r.data),
 };
 
-// ── Treatment Consumptions API ────────────────────────────────
 export const consumptionsApi = {
   getAll: (params?: { treatmentPlanId?: string; patientId?: string; from?: string; to?: string; page?: string }) =>
-    req<PaginatedResponse<TreatmentConsumption>>(`/treatment-consumptions${qs(params as Record<string, string>)}`),
-  getById: (id: string) => req<TreatmentConsumption>(`/treatment-consumptions/${id}`),
+    api.get<PaginatedResponse<TreatmentConsumption>>('/treatment-consumptions', { params: params as Record<string, string> }).then(r => r.data),
+  getById: (id: string) =>
+    api.get<TreatmentConsumption>(`/treatment-consumptions/${id}`).then(r => r.data),
   create: (data: object) =>
-    req<TreatmentConsumption>('/treatment-consumptions', { method: 'POST', body: JSON.stringify(data) }),
+    api.post<TreatmentConsumption>('/treatment-consumptions', data).then(r => r.data),
   getStats: (params?: { from?: string; to?: string }) =>
-    req<{
+    api.get<{
       topDrugs: Array<{ drugId: string; name: string; totalQty: number; totalCost: number }>;
       topItems: Array<{ itemId: string; name: string; totalQty: number; totalCost: number }>;
       totalCost: number; totalRecords: number;
-    }>(`/treatment-consumptions/stats${qs(params as Record<string, string>)}`),
+    }>('/treatment-consumptions/stats', { params: params as Record<string, string> }).then(r => r.data),
 };

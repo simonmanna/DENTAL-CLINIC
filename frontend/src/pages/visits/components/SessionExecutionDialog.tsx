@@ -16,7 +16,7 @@
 // FIX-6: Removed dead/unused inputTotal computation that was never displayed.
 // FIX-7: toothStatuses now correctly preserves chartEntryId if available.
 // FIX-8: Surface model aligned with canonical notation.ts — BUCCAL, LABIAL,
-//        PALATAL all display correctly via CANONICAL_SURFACE_META lookup.
+//        PALATAL all display correctly via shared SURFACE_DISPLAY lookup.
 // FIX-9: Removed duplicate state-setter calls, duplicate JSX, dead code.
 // FIX-10: useEffect dependency array includes dentistId.
 // ───────────────────────────────────────────────────────────────────────────
@@ -41,9 +41,12 @@ import { useQuery } from "@tanstack/react-query";
 import { SessionImagingSection } from "./SessionImagingSection";
 import { staffApi } from "../../../lib/api/staff-api";
 import { CompactSurfacePicker } from "./SurfacePicker";
+import { toLocalISODate } from "./dentalChartLogic";
 import {
   uiToCanonical,
   canonicalToUi,
+  surfaceShort,
+  surfaceLabel,
   type UiSurface,
   type CanonicalSurface,
 } from "../../../lib/dental/notation";
@@ -67,32 +70,8 @@ const SESSION_PHASES = [
   { value: "OTHER", label: "Other" },
 ];
 
-// FIX-8: Canonical surface metadata — covers ALL 9 canonical values.
-// Used for display in ToothStatusCard instead of the old SURFACES constant.
-const CANONICAL_SURFACE_META: Record<
-  string,
-  { short: string; label: string }
-> = {
-  MESIAL: { short: "M", label: "Mesial" },
-  DISTAL: { short: "D", label: "Distal" },
-  OCCLUSAL: { short: "O", label: "Occlusal (biting surface)" },
-  INCISAL: { short: "I", label: "Incisal (cutting edge)" },
-  BUCCAL: { short: "B", label: "Buccal (cheek-side)" },
-  LABIAL: { short: "B", label: "Labial (lip-side)" },
-  FACIAL: { short: "B", label: "Facial (Buccal / Labial)" },
-  LINGUAL: { short: "L", label: "Lingual (tongue-side)" },
-  PALATAL: { short: "L", label: "Palatal (palate-side)" },
-};
-
-/** Look up the 1-letter abbreviation for any canonical surface string. */
-function surfaceShort(s: string): string {
-  return CANONICAL_SURFACE_META[s]?.short ?? s[0] ?? "?";
-}
-
-/** Look up the full label for any canonical surface string. */
-function surfaceLabel(s: string): string {
-  return CANONICAL_SURFACE_META[s]?.label ?? s;
-}
+// FIX-8: Surface display metadata now lives in lib/dental/notation.ts
+// (SURFACE_DISPLAY + surfaceShort/surfaceLabel) — shared by all render sites.
 
 // ── Tooth status → procedure status mapping (explicit, not regex) ─────────
 const STATUS_TO_BACKEND: Record<string, string> = {
@@ -238,7 +217,7 @@ function ToothStatusCard({
                 {cfg.label}
               </span>
             </div>
-            {/* FIX-8: Use CANONICAL_SURFACE_META for display */}
+            {/* FIX-8: Use shared SURFACE_DISPLAY for display */}
             {tooth.surfaces.length > 0 && (
               <div className="flex gap-0.5 mt-0.5">
                 {tooth.surfaces.map((s) => (
@@ -382,13 +361,13 @@ interface SessionExecutionDialogProps {
     sessionPrice?: number;
     sessionPriceOriginal?: number;
     actualInputsUsed: ActualInput[];
-    autoAddToLedger: boolean;
     visitId: string;
     toothStatuses: Array<
       Omit<ToothExecutionStatus, "status"> & { status: string }
     >;
     sessionNumber?: number;
     sessionCount?: number;
+    finalOverrideReason?: string;
     imagingLinks?: SessionImageLink[];
     imagingGroupId?: string;
   }) => void;
@@ -409,7 +388,9 @@ export function SessionExecutionDialog({
   executing,
   patientId,
 }: SessionExecutionDialogProps) {
-  const today = new Date().toISOString().split("T")[0];
+  // Local-time "today" — a UTC split('T')[0] rolls to yesterday during
+  // early-morning hours in zones ahead of UTC (e.g. UTC+3 Kampala).
+  const today = toLocalISODate();
 
   // Procedure context
   const isPayPerSession = procedure?.billingType === "PAY_PARTIALLY";
@@ -434,6 +415,7 @@ export function SessionExecutionDialog({
   );
   const [outcome, setOutcome] = useState<"PARTIAL" | "COMPLETED">("COMPLETED");
   const [isFinal, setIsFinal] = useState(false);
+  const [finalOverrideReason, setFinalOverrideReason] = useState("");
   const [notes, setNotes] = useState("");
   const [inputs, setInputs] = useState<ActualInput[]>([]);
   const [imagingLinks, setImagingLinks] = useState<SessionImageLink[]>([]);
@@ -450,6 +432,7 @@ export function SessionExecutionDialog({
     setPhase(session?.phase ?? "");
     setOutcome((session?.outcome as any) ?? "COMPLETED");
     setIsFinal(session?.isFinal ?? procedure.sessionType === "SINGLE");
+    setFinalOverrideReason("");
     setNotes("");
     setImagingLinks([]);
     setImagingGroupId("");
@@ -522,7 +505,20 @@ export function SessionExecutionDialog({
   const isMissingProvider = !resolvedProviderId;
   const isMissingDate = !date;
 
-  const canSubmit = !executing && !isMissingProvider && !isMissingDate;
+  // Closing a MULTI-session procedure before all planned sessions are done
+  // requires an audited override reason (enforced server-side too).
+  const completedSoFar = (procedure?.sessions ?? []).filter(
+    (s: any) => s.status === "COMPLETED",
+  ).length;
+  const plannedSessions = procedure?.sessionCount ?? 1;
+  const isEarlyFinal =
+    isFinal &&
+    procedure?.sessionType === "MULTI" &&
+    completedSoFar + 1 < plannedSessions;
+  const isMissingOverrideReason = isEarlyFinal && !finalOverrideReason.trim();
+
+  const canSubmit =
+    !executing && !isMissingProvider && !isMissingDate && !isMissingOverrideReason;
 
   const handleSubmit = () => {
     if (!procedure) return;
@@ -539,12 +535,14 @@ export function SessionExecutionDialog({
       performedDate: date,
       outcome,
       isFinal,
+      finalOverrideReason: isEarlyFinal
+        ? finalOverrideReason.trim()
+        : undefined,
       phase: phase || undefined,
       surfaces: canonicalSurfaces,
       providerId: resolvedProviderId,
       performedNotes: notes,
       actualInputsUsed: inputs.filter((i) => i.inventoryItemId || i.name),
-      autoAddToLedger: true,
       visitId,
       // FIX-8: Explicit status mapping instead of regex
       toothStatuses: toothStatuses.map((t) => ({
@@ -925,6 +923,27 @@ export function SessionExecutionDialog({
                       )}
                     </div>
                   </label>
+
+                  {isEarlyFinal && (
+                    <div className="px-1">
+                      <p className="text-[11px] text-amber-700 font-medium mb-1">
+                        Closing early — {completedSoFar + 1} of {plannedSessions}{" "}
+                        planned sessions completed. A reason is required and
+                        will be audited.
+                      </p>
+                      <textarea
+                        value={finalOverrideReason}
+                        onChange={(e) => setFinalOverrideReason(e.target.value)}
+                        rows={2}
+                        placeholder="Reason for closing the procedure early…"
+                        className={`w-full text-xs rounded-lg border p-2 ${
+                          isMissingOverrideReason
+                            ? "border-amber-400 bg-amber-50"
+                            : "border-slate-200"
+                        }`}
+                      />
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-2 text-[11px] text-slate-500 px-1">
                     <span>After saving, Procedure will be: </span>

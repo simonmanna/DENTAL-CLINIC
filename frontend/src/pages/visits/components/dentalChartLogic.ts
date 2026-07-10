@@ -296,10 +296,11 @@ export function pickRestoration(entries: ChartEntry[]): RestorationKind | null {
  * timeline, not as an active mark on the chart, so the tooth colour must revert.
  *
  * This is deliberately distinct from {@link ChartEntry.status} (ACTIVE /
- * SUPERSEDED / VOIDED), which is the *chart-row* lifecycle. A resolved
- * condition's chart row stays ACTIVE in the DB (resolution does not supersede
- * it), so without consulting `conditionStatus` the chart never reflected the
- * clinical change — that was the sync gap this closes.
+ * SUPERSEDED / RESOLVED / VOIDED), which is the *chart-row* lifecycle. The
+ * backend sets BOTH on resolution (conditions.service resolvePatientCondition
+ * flips the row to status=RESOLVED and conditionStatus=RESOLVED), but this
+ * helper keys off `conditionStatus` because MONITORED/IN_TREATMENT/RULED_OUT
+ * only exist there.
  *
  * Non-condition entries (procedures, existing work) and legacy condition rows
  * that carry no `conditionStatus` default to live, so this never hides

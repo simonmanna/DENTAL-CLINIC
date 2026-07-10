@@ -7,18 +7,15 @@ import {
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { staffApi } from '../../../lib/api/staff-api';
+import { SURFACE_META } from './SurfacePicker';
+import {
+  canonicalToUi,
+  uiToCanonical,
+  surfaceLabel,
+  type UiSurface,
+} from '../../../lib/dental/notation';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const ALL_SURFACES = [
-  { value: 'FACIAL',   short: 'F', label: 'Facial' },
-  { value: 'LINGUAL',  short: 'L', label: 'Lingual' },
-  { value: 'PALATAL',  short: 'P', label: 'Palatal' },
-  { value: 'MESIAL',   short: 'M', label: 'Mesial' },
-  { value: 'DISTAL',   short: 'D', label: 'Distal' },
-  { value: 'OCCLUSAL', short: 'O', label: 'Occlusal' },
-  { value: 'INCISAL',  short: 'I', label: 'Incisal' },
-];
 
 const EDIT_REASONS = [
   { value: 'DOCUMENTATION_CORRECTION', label: 'Documentation correction' },
@@ -88,7 +85,7 @@ interface SessionEditDialogProps {
 function SurfaceChip({
   surface, state, onClick, disabled,
 }: {
-  surface: typeof ALL_SURFACES[0];
+  surface: typeof SURFACE_META[0];
   state: 'keeping' | 'adding' | 'removing' | 'available';
   onClick: () => void;
   disabled?: boolean;
@@ -112,7 +109,7 @@ function SurfaceChip({
         ${styles[state]}
       `}
     >
-      {surface.short}
+      {surface.shortLabel}
     </button>
   );
 }
@@ -124,14 +121,27 @@ export function SessionEditDialog({
   planId, procedureId, onSave, saving,
 }: SessionEditDialogProps) {
 
-  // Current (saved) surfaces
+  // Current (saved) surfaces — canonical enum values as stored on the targets
   const originalSurfaces = useMemo(
     () => [...new Set(session?.targets?.flatMap((t) => t.surfaces) ?? [])],
     [session],
   );
 
+  // The same surfaces collapsed to the 6 UI codes (M/D/O/I/B/L) — the grid,
+  // diff and toggle logic all operate on UI codes so BUCCAL/LABIAL records
+  // show up as the "B" the clinician originally pressed.
+  const originalUi = useMemo<UiSurface[]>(
+    () => [...new Set(originalSurfaces.map(canonicalToUi))],
+    [originalSurfaces],
+  );
+
+  // Reference tooth for converting UI codes back to canonical on save
+  // (same pattern as AddTreatmentDialog). Mixed anterior/posterior sessions
+  // convert against the first tooth — display-equivalent either way.
+  const refTooth = session?.targets?.[0]?.toothNumber ?? 11;
+
   // Editing state — surfaces / notes / reason (existing)
-  const [editSurfaces, setEditSurfaces] = useState<string[]>([]);
+  const [editSurfaces, setEditSurfaces] = useState<UiSurface[]>([]);
   const [notes, setNotes] = useState('');
   const [reason, setReason] = useState('DOCUMENTATION_CORRECTION');
   const [customReason, setCustomReason] = useState('');
@@ -176,9 +186,9 @@ export function SessionEditDialog({
   const isoToDate = (s?: string | null) =>
     s ? new Date(s).toISOString().split('T')[0] : '';
 
-  // ── Diff computation ────────────────────────────────────────────────────
-  const surfacesAdded   = editSurfaces.filter((s) => !originalSurfaces.includes(s));
-  const surfacesRemoved = originalSurfaces.filter((s) => !editSurfaces.includes(s));
+  // ── Diff computation (UI codes) ─────────────────────────────────────────
+  const surfacesAdded   = editSurfaces.filter((s) => !originalUi.includes(s));
+  const surfacesRemoved = originalUi.filter((s) => !editSurfaces.includes(s));
 
   const dateChanged =
     !!performedDate && performedDate !== isoToDate(session?.performedDate);
@@ -211,7 +221,7 @@ export function SessionEditDialog({
   // ── Initialise on open ──────────────────────────────────────────────────
   useEffect(() => {
     if (!session || !open) return;
-    setEditSurfaces([...originalSurfaces]);
+    setEditSurfaces([...originalUi]);
     setNotes(session.performedNotes ?? '');
     setReason('DOCUMENTATION_CORRECTION');
     setCustomReason('');
@@ -231,15 +241,15 @@ export function SessionEditDialog({
   }, [session, open]);
 
   // ── Handlers ────────────────────────────────────────────────────────────
-  const toggleSurface = (value: string) => {
-    if (isBilled && originalSurfaces.includes(value)) return; // block removal when billed
+  const toggleSurface = (value: UiSurface) => {
+    if (isBilled && originalUi.includes(value)) return; // block removal when billed
     setEditSurfaces((prev) =>
       prev.includes(value) ? prev.filter((s) => s !== value) : [...prev, value],
     );
   };
 
-  const getSurfaceState = (value: string): 'keeping' | 'adding' | 'removing' | 'available' => {
-    const inOriginal = originalSurfaces.includes(value);
+  const getSurfaceState = (value: UiSurface): 'keeping' | 'adding' | 'removing' | 'available' => {
+    const inOriginal = originalUi.includes(value);
     const inEdit     = editSurfaces.includes(value);
     if (inOriginal && inEdit)  return 'keeping';
     if (!inOriginal && inEdit) return 'adding';
@@ -250,7 +260,11 @@ export function SessionEditDialog({
   const handleSave = async () => {
     const finalReason = reason === 'OTHER' ? customReason || 'Other' : EDIT_REASONS.find((r) => r.value === reason)?.label ?? reason;
     await onSave({
-      surfaces: editSurfaces,
+      // Only send surfaces when the set actually changed — a notes-only edit
+      // must not silently rewrite stored values (e.g. legacy FACIAL → LABIAL).
+      ...(surfacesAdded.length || surfacesRemoved.length
+        ? { surfaces: editSurfaces.map((s) => uiToCanonical(s, refTooth)) }
+        : {}),
       notes,
       reason: finalReason,
       // New fields — only sent if the user actually changed them, so we don't
@@ -338,15 +352,15 @@ export function SessionEditDialog({
             </div>
 
             <div className="flex flex-wrap gap-2 mb-3">
-              {ALL_SURFACES.map((s) => {
-                const state = getSurfaceState(s.value);
-                const disabledByBilling = isBilled && originalSurfaces.includes(s.value);
+              {SURFACE_META.map((s) => {
+                const state = getSurfaceState(s.key);
+                const disabledByBilling = isBilled && originalUi.includes(s.key);
                 return (
                   <SurfaceChip
-                    key={s.value}
+                    key={s.key}
                     surface={s}
                     state={state}
-                    onClick={() => toggleSurface(s.value)}
+                    onClick={() => toggleSurface(s.key)}
                     disabled={disabledByBilling}
                   />
                 );
@@ -377,7 +391,7 @@ export function SessionEditDialog({
                   <div className="flex gap-1">
                     {surfacesAdded.map((s) => (
                       <span key={s} className="text-[10px] font-mono bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">
-                        {ALL_SURFACES.find((x) => x.value === s)?.short ?? s}
+                        {s}
                       </span>
                     ))}
                   </div>
@@ -393,7 +407,7 @@ export function SessionEditDialog({
                   <div className="flex gap-1">
                     {surfacesRemoved.map((s) => (
                       <span key={s} className="text-[10px] font-mono bg-red-100 text-red-800 px-1.5 py-0.5 rounded">
-                        {ALL_SURFACES.find((x) => x.value === s)?.short ?? s}
+                        {s}
                       </span>
                     ))}
                   </div>
@@ -417,7 +431,7 @@ export function SessionEditDialog({
               <div className="text-xs text-red-800">
                 <span className="font-semibold">I confirm this removal.</span>
                 {' '}Removing surfaces will void the corresponding chart entry for{' '}
-                {surfacesRemoved.map((s) => ALL_SURFACES.find((x) => x.value === s)?.label ?? s).join(', ')}.
+                {surfacesRemoved.map((s) => surfaceLabel(uiToCanonical(s, refTooth))).join(', ')}.
                 This is recorded in the audit log and cannot be silently undone.
               </div>
             </label>

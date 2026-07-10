@@ -11,37 +11,17 @@ import {
   Microscope, Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-// ─── API ─────────────────────────────────────────────────────────────────────
-// const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
-const API = (import.meta as any).env?.VITE_API_URL || "http://localhost:3001";
-
-async function apiFetch(path: string, options?: RequestInit) {
-  const token = localStorage.getItem("access_token");
-  const res = await fetch(`${API}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options?.headers,
-    },
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `HTTP ${res.status}`);
-  }
-  return res.json();
-}
+import { api } from "@/lib/api/client";
 
 const progressApi = {
-  getVisitReports : (visitId: string) => apiFetch(`/visits/${visitId}/progress-reports`),
-  getFormContext  : (visitId: string) => apiFetch(`/visits/${visitId}/progress-reports/context`),
+  getVisitReports : (visitId: string) => api.get(`/visits/${visitId}/progress-reports`).then(r => r.data),
+  getFormContext  : (visitId: string) => api.get(`/visits/${visitId}/progress-reports/context`).then(r => r.data),
   create : (visitId: string, data: any) =>
-    apiFetch(`/visits/${visitId}/progress-reports`, { method: "POST", body: JSON.stringify(data) }),
+    api.post(`/visits/${visitId}/progress-reports`, data).then(r => r.data),
   update : (reportId: string, data: any) =>
-    apiFetch(`/visits/progress-reports/${reportId}`, { method: "PATCH", body: JSON.stringify(data) }),
+    api.patch(`/visits/progress-reports/${reportId}`, data).then(r => r.data),
   delete : (reportId: string) =>
-    apiFetch(`/visits/progress-reports/${reportId}`, { method: "DELETE" }),
+    api.delete(`/visits/progress-reports/${reportId}`).then(r => r.data),
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -985,7 +965,7 @@ function TreatmentPlanCard({ plan }: { plan: any }) {
 function TreatmentPlansSection({ patientId }: { patientId: string }) {
   const { data: plans = [], isLoading, error } = useQuery({
     queryKey: ["treatment-plans", patientId],
-    queryFn:  () => apiFetch(`/treatment-plans/patient/${patientId}`),
+    queryFn:  () => api.get(`/treatment-plans/patient/${patientId}`).then((r) => r.data),
     enabled:  !!patientId,
   });
 

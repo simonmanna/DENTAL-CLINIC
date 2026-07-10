@@ -127,6 +127,42 @@ export function canonicalToUi(s: string): UiSurface {
   }
 }
 
+// Display metadata — the ONE map covering all 9 canonical values.
+// Every surface render site must go through this (or the helpers below);
+// do not redefine local surface tables in components.
+export const SURFACE_DISPLAY: Record<CanonicalSurface, { short: UiSurface; label: string }> = {
+  MESIAL:   { short: 'M', label: 'Mesial' },
+  DISTAL:   { short: 'D', label: 'Distal' },
+  OCCLUSAL: { short: 'O', label: 'Occlusal (biting surface)' },
+  INCISAL:  { short: 'I', label: 'Incisal (cutting edge)' },
+  BUCCAL:   { short: 'B', label: 'Buccal (cheek-side)' },
+  LABIAL:   { short: 'B', label: 'Labial (lip-side)' },
+  FACIAL:   { short: 'B', label: 'Facial (Buccal / Labial)' },
+  LINGUAL:  { short: 'L', label: 'Lingual (tongue-side)' },
+  PALATAL:  { short: 'L', label: 'Palatal (palate-side)' },
+};
+
+/** 1-letter code for any canonical surface string; tolerant of unknowns. */
+export function surfaceShort(s: string): string {
+  return SURFACE_DISPLAY[s as CanonicalSurface]?.short ?? s?.[0] ?? '?';
+}
+
+/** Friendly label for any canonical surface string. */
+export function surfaceLabel(s: string): string {
+  return SURFACE_DISPLAY[s as CanonicalSurface]?.label ?? s;
+}
+
+/** "BD" — as-entered order, deduped by display letter (BUCCAL+LABIAL → one "B"). */
+export function formatSurfaces(surfaces?: readonly string[] | null): string {
+  if (!surfaces?.length) return '';
+  return [...new Set(surfaces.map(surfaceShort))].join('');
+}
+
+/** "Labial (lip-side), Distal" — tooltip/long-form text, as-entered order. */
+export function formatSurfacesLong(surfaces?: readonly string[] | null): string {
+  return surfaces?.map(surfaceLabel).join(', ') ?? '';
+}
+
 // The natural biting surface code per tooth (O for posteriors, I for anteriors)
 export function biteCode(fdi: number): UiSurface {
   const k = toothKind(fdi);

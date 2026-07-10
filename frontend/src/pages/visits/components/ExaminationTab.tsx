@@ -26,40 +26,7 @@ import {
   X,
 } from "lucide-react";
 import { patientsApi } from "../../../lib/api/patients";
-
-// ─── API ─────────────────────────────────────────────────────────────────────
-// const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
-const API = (import.meta as any).env?.VITE_API_URL || "http://localhost:3001";
-
-async function apiFetch(path: string, options?: RequestInit) {
-  const token = localStorage.getItem("access_token");
-  const res = await fetch(`${API}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options?.headers,
-    },
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `HTTP ${res.status}`);
-  }
-  return res.json();
-}
-
-const visitsApi = {
-  updateSOAP: (id: string, data: any) =>
-    apiFetch(`/visits/${id}/soap`, {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    }),
-  updateVitals: (id: string, data: any) =>
-    apiFetch(`/visits/${id}/vitals`, {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    }),
-};
+import { visitsApi } from "@/lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ExaminationTabProps {

@@ -27,6 +27,7 @@ import {
 import { staffApi } from '@/lib/api/staff-api';
 import { RadialSurfacePicker } from './SurfacePicker';
 import type { UiSurface } from '../../../lib/dental/notation';
+import { toLocalISODate } from './dentalChartLogic';
 import { toast } from '@/components/ui/sonner';
 import { extractApiError } from '@/hooks/useApiMutation';
 
@@ -76,9 +77,9 @@ export function AddConditionDialog({
     useState<Condition | null>(null);
   const [surfaces, setSurfaces] = useState<UiSurface[]>([]);
   const [status, setStatus] = useState<PatientConditionStatus>('ACTIVE');
-  const [diagnosedAt, setDiagnosedAt] = useState(
-    new Date().toISOString().split('T')[0],
-  );
+  // Local-time default: a UTC split('T')[0] gives yesterday's date during the
+  // early-morning hours in any zone ahead of UTC (e.g. UTC+3 Kampala).
+  const [diagnosedAt, setDiagnosedAt] = useState(toLocalISODate());
   const [diagnosedBy, setDiagnosedBy] = useState(defaultDentistId);
   const [severity, setSeverity] = useState<ConditionSeverity | ''>('');
   const [notes, setNotes] = useState('');
@@ -116,7 +117,7 @@ export function AddConditionDialog({
     setSelectedCondition(null);
     setSurfaces([]);
     setStatus('ACTIVE');
-    setDiagnosedAt(new Date().toISOString().split('T')[0]);
+    setDiagnosedAt(toLocalISODate());
     setDiagnosedBy(defaultDentistId);
     setSeverity('');
     setNotes('');

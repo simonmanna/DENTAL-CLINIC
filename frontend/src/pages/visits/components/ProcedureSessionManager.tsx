@@ -4,40 +4,18 @@ import React, { useState, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
-  Plus,
-  BookOpen,
   Loader2,
   ChevronDown,
   ChevronUp,
   Calendar,
   FileText,
-  AlertCircle,
 } from "lucide-react";
 import type {
   ProcedureSession,
   SessionStatus,
   LedgerStatus,
 } from "./../../../types/treatmentPlan";
-
-const API_BASE =
-  (import.meta as any).env?.VITE_API_URL ?? "http://localhost:3001";
-
-async function apiFetch(path: string, opts?: RequestInit): Promise<any> {
-  const token = localStorage.getItem("access_token") ?? "";
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...opts,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(opts?.headers ?? {}),
-    },
-  });
-  if (!res.ok) {
-    const e = await res.json().catch(() => ({}));
-    throw new Error((e as any).message ?? `HTTP ${res.status}`);
-  }
-  return res.json();
-}
+import { api } from "@/lib/api/client";
 
 // FIXED: Handle undefined/null values safely
 function fmtUGX(n: number | undefined | null) {
@@ -142,30 +120,15 @@ export function ProcedureSessionManager({
   // ── Update session (status, notes, date) ──────────────────────────────────
   const updateMut = useMutation({
     mutationFn: ({ sessionId, data }: { sessionId: string; data: any }) =>
-      apiFetch(
+      api.patch(
         `/treatment-plans/${planId}/procedures/${procedureId}/sessions/${sessionId}`,
-        { method: "PATCH", body: JSON.stringify(data) },
-      ),
+        data,
+      ).then(r => r.data),
     onSuccess: (updated) => {
       setSessions((prev) =>
         prev.map((s) => (s.id === updated.id ? { ...s, ...updated } : s)),
       );
       setEditingId(null);
-      invalidate();
-    },
-  });
-
-  // ── Add session to ledger manually ────────────────────────────────────────
-  const addToLedgerMut = useMutation({
-    mutationFn: (sessionId: string) =>
-      apiFetch(
-        `/treatment-plans/${planId}/procedures/${procedureId}/sessions/${sessionId}/ledger`,
-        { method: "POST" },
-      ),
-    onSuccess: (updated) => {
-      setSessions((prev) =>
-        prev.map((s) => (s.id === updated.id ? { ...s, ...updated } : s)),
-      );
       invalidate();
     },
   });
@@ -238,8 +201,13 @@ export function ProcedureSessionManager({
           const lm = session.ledgerStatus
             ? LEDGER_META[session.ledgerStatus]
             : null;
-          const isPending =
-            addToLedgerMut.isPending && addToLedgerMut.variables === session.id;
+          // Terminal sessions are immutable through this quick-edit form —
+          // corrections go through the audited edit-session flow.
+          const isTerminal =
+            session.status === "COMPLETED" ||
+            session.status === "SKIPPED" ||
+            session.status === "CANCELLED" ||
+            session.status === "VOIDED";
           const isSaving =
             updateMut.isPending &&
             updateMut.variables?.sessionId === session.id;
@@ -316,35 +284,20 @@ export function ProcedureSessionManager({
                 {/* Actions */}
                 {!readOnly && (
                   <div className="flex items-center gap-1 shrink-0">
-                    {/* Add to Ledger button — only when not already in ledger */}
-                    {!inLedger && (
+                    {/* Edit / record session — terminal sessions are corrected
+                        through the audited edit-session flow instead */}
+                    {!isTerminal && (
                       <button
                         type="button"
-                        onClick={() => addToLedgerMut.mutate(session.id)}
-                        disabled={isPending}
-                        title="Add this session's cost to the ledger"
-                        className="flex items-center gap-1 px-2 py-1 rounded border border-blue-300 bg-blue-50 text-blue-700 text-[10px] font-medium hover:bg-blue-100 hover:border-blue-400 transition-colors disabled:opacity-50"
+                        onClick={() =>
+                          isEditing ? setEditingId(null) : startEdit(session)
+                        }
+                        className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+                        title="Record session details"
                       >
-                        {isPending ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <BookOpen className="w-3 h-3" />
-                        )}
-                        {isPending ? "Adding…" : "Add to Ledger"}
+                        <FileText className="w-3.5 h-3.5" />
                       </button>
                     )}
-
-                    {/* Edit / record session */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        isEditing ? setEditingId(null) : startEdit(session)
-                      }
-                      className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600"
-                      title="Record session details"
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                    </button>
 
                     {/* Expand notes */}
                     {session.performedNotes && (
@@ -384,12 +337,17 @@ export function ProcedureSessionManager({
                         }
                         className="w-full text-xs rounded border border-slate-200 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
+                        {/* COMPLETED is deliberately absent — completion goes
+                            through Execute Session so chart entries stay in
+                            sync with the session status. */}
                         <option value="PENDING">Pending</option>
                         <option value="IN_PROGRESS">In Progress</option>
-                        <option value="COMPLETED">Completed</option>
                         <option value="SKIPPED">Skipped</option>
                         <option value="CANCELLED">Cancelled</option>
                       </select>
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        To complete this session, use Execute Session.
+                      </p>
                     </div>
                     <div>
                       <label className="text-[10px] font-medium text-slate-500 block mb-1">
@@ -465,22 +423,6 @@ export function ProcedureSessionManager({
                       className="w-full text-xs rounded border border-slate-200 px-2 py-1.5 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
-
-                  {/* Ledger notice when marking complete */}
-                  {editForm.status === "COMPLETED" && !inLedger && (
-                    <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded p-2">
-                      <AlertCircle className="w-3.5 h-3.5 text-blue-600 mt-0.5 shrink-0" />
-                      <p className="text-[10px] text-blue-700">
-                        Marking as completed will automatically add{" "}
-                        <strong>
-                          {fmtUGX(
-                            editForm.sessionPrice ?? session.sessionPrice ?? 0,
-                          )}
-                        </strong>{" "}
-                        to the ledger.
-                      </p>
-                    </div>
-                  )}
 
                   <div className="flex gap-2 pt-1">
                     <button

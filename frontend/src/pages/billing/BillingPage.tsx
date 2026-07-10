@@ -150,11 +150,11 @@ function derivePaymentStatus(
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 
-const API = (import.meta as any).env?.VITE_API_URL || "http://localhost:3001";
+import { api } from "@/lib/api/client";
 
 async function apiFetch(path: string, opts?: RequestInit) {
   const token = localStorage.getItem("access_token");
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(`${api.defaults.baseURL}${path}`, {
     ...opts,
     headers: {
       "Content-Type": "application/json",

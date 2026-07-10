@@ -38,7 +38,7 @@ export interface WasteListResponse {
 export const wasteApi = {
   // List all records
   list: (params: WasteQueryParams = {}): Promise<WasteListResponse> =>
-    api.get('api/waste', { params }).then((r) => r.data),
+    api.get('/waste', { params }).then((r) => r.data),
 
   // Create a new waste record
   create: (payload: {
@@ -60,27 +60,27 @@ export const wasteApi = {
       expiryDate?: string;
       reason?: string;
     }>;
-  }): Promise<WasteRecord> => api.post('/api/waste', payload).then((r) => r.data),
+  }): Promise<WasteRecord> => api.post('/waste', payload).then((r) => r.data),
 
   // Get single record
   get: (id: string): Promise<WasteRecord> =>
-    api.get(`/api/waste/${id}`).then((r) => r.data),
+    api.get(`/waste/${id}`).then((r) => r.data),
 
   // Approve record
   approve: (id: string, notes?: string): Promise<WasteRecord> =>
-    api.patch(`/api/waste/${id}/approve`, { notes }).then((r) => r.data),
+    api.patch(`/waste/${id}/approve`, { notes }).then((r) => r.data),
 
   // Reject record
   reject: (id: string, reason: string): Promise<WasteRecord> =>
-    api.patch(`/api/waste/${id}/reject`, { reason }).then((r) => r.data),
+    api.patch(`/waste/${id}/reject`, { reason }).then((r) => r.data),
 
   // Get stats
   stats: (locationId?: string): Promise<WasteStats> =>
-    api.get('/api/waste/stats', { params: { locationId } }).then((r) => r.data),
+    api.get('/waste/stats', { params: { locationId } }).then((r) => r.data),
 
   // Get location stock
   locationStock: (locationId: string): Promise<LocationStock> =>
-    api.get(`/api/waste/location-stock/${locationId}`).then((r) => r.data),
+    api.get(`/waste/location-stock/${locationId}`).then((r) => r.data),
 
   getAvailableBatches: (itemId: string, locationId: string) =>
     api.get<{ batchTracking: boolean; batches: Array<{
@@ -89,7 +89,7 @@ export const wasteApi = {
       quantity: number;
       expiryDate?: string;
       receivedAt?: string;
-    }> }>(`/api/waste/items/${itemId}/batches?locationId=${locationId}`)
+    }> }>(`/waste/items/${itemId}/batches?locationId=${locationId}`)
       .then((r) => r.data),
 };
 

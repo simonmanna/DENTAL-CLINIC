@@ -10,6 +10,13 @@ import {
   getQuadrant,
   isToothAbsent,
   toothName,
+  SURFACE_DISPLAY,
+  surfaceShort,
+  surfaceLabel,
+  formatSurfaces,
+  formatSurfacesLong,
+  type CanonicalSurface,
+  type UiSurface,
 } from "./notation";
 
 // Representative teeth spanning every (arch × anterior/posterior) combination.
@@ -192,5 +199,62 @@ describe("toothName (FDI canonical — regression for drawer mislabeling bug)", 
       const label = toothName(fdi);
       expect(label, `toothName(${fdi}) should not be the generic fallback`).not.toBe(`Tooth ${fdi}`);
     }
+  });
+});
+
+// ── Regression: the plan-tab procedures list, the procedure detail dialog,
+//    the session edit dialog and the session void dialog each held a local
+//    7-value surface table missing BUCCAL/LABIAL — the two values the entry
+//    path actually stores for the outer surface. "BD" rendered as "DL" in
+//    the plan tab (first-char fallback + unknowns sorted last) and as "D"
+//    in the detail dialog (whitelist filter dropped LABIAL). All render
+//    sites now share SURFACE_DISPLAY / formatSurfaces from this module.
+describe("surface display formatters (regression for BD → DL/D bug)", () => {
+  const ALL_CANONICAL = Object.keys(SURFACE_DISPLAY) as CanonicalSurface[];
+
+  it("formatSurfaces renders LABIAL+DISTAL as BD (the reported bug)", () => {
+    expect(formatSurfaces(["LABIAL", "DISTAL"])).toBe("BD");
+    expect(formatSurfaces(["BUCCAL", "DISTAL"])).toBe("BD");
+  });
+
+  it("preserves as-entered order (no canonical re-sort)", () => {
+    expect(formatSurfaces(["DISTAL", "LABIAL"])).toBe("DB");
+    expect(formatSurfaces(["OCCLUSAL", "MESIAL"])).toBe("OM");
+  });
+
+  it("dedupes by display letter across merged multi-tooth targets", () => {
+    expect(formatSurfaces(["BUCCAL", "LABIAL", "DISTAL"])).toBe("BD");
+    expect(formatSurfaces(["LINGUAL", "PALATAL"])).toBe("L");
+  });
+
+  it("handles empty and nullish input", () => {
+    expect(formatSurfaces([])).toBe("");
+    expect(formatSurfaces(undefined)).toBe("");
+    expect(formatSurfaces(null)).toBe("");
+  });
+
+  it("covers all 9 canonical values — none fall through to '?' or first-char", () => {
+    const validShorts: UiSurface[] = ["M", "D", "O", "I", "B", "L"];
+    for (const s of ALL_CANONICAL) {
+      expect(validShorts, `surfaceShort(${s})`).toContain(surfaceShort(s));
+    }
+  });
+
+  it("SURFACE_DISPLAY shorts agree with canonicalToUi for every value", () => {
+    for (const s of ALL_CANONICAL) {
+      expect(SURFACE_DISPLAY[s].short, s).toBe(canonicalToUi(s));
+    }
+  });
+
+  it("surfaceShort/surfaceLabel tolerate unknown strings", () => {
+    expect(surfaceShort("ROOT")).toBe("R");
+    expect(surfaceLabel("ROOT")).toBe("ROOT");
+    expect(surfaceShort("")).toBe("?");
+  });
+
+  it("formatSurfacesLong joins friendly labels in entered order", () => {
+    expect(formatSurfacesLong(["LABIAL", "DISTAL"])).toBe("Labial (lip-side), Distal");
+    expect(formatSurfacesLong(undefined)).toBe("");
+    expect(formatSurfacesLong(null)).toBe("");
   });
 });

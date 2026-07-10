@@ -25,21 +25,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { staffApi } from '../../../lib/api/staff-api';
 import { treatmentProceduresEditApi } from '../../../lib/api/treatment-procedures-edit';
 import api from '@/lib/api/client';
+import { SURFACE_META } from './SurfacePicker';
+import {
+  canonicalToUi,
+  uiToCanonical,
+  type UiSurface,
+} from '../../../lib/dental/notation';
 
 type Currency = 'USD' | 'UGX';
 
 const DEFAULT_EXCHANGE_RATE = 3600;
-
-type ToothSurface = 'M' | 'O' | 'I' | 'D' | 'B' | 'L';
-
-const SURFACE_DEFS: { key: ToothSurface; label: string; value: string }[] = [
-  { key: 'M', label: 'Mesial',   value: 'MESIAL'   },
-  { key: 'O', label: 'Occlusal', value: 'OCCLUSAL' },
-  { key: 'I', label: 'Incisal',  value: 'INCISAL'  },
-  { key: 'D', label: 'Distal',   value: 'DISTAL'   },
-  { key: 'B', label: 'Buccal',   value: 'FACIAL'   },
-  { key: 'L', label: 'Lingual',  value: 'LINGUAL'  },
-];
 
 export interface EditProcedureInitialData {
   treatmentProcedureId: string;
@@ -143,14 +138,14 @@ interface EditProcedureDialogProps {
 function SurfacePicker({
   value, onChange, disabled,
 }: {
-  value: string[];
-  onChange: (v: string[]) => void;
+  value: UiSurface[];
+  onChange: (v: UiSurface[]) => void;
   disabled?: boolean;
 }) {
   return (
     <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-      {SURFACE_DEFS.map(s => {
-        const on = value.includes(s.value);
+      {SURFACE_META.map(s => {
+        const on = value.includes(s.key);
         return (
           <button
             key={s.key}
@@ -158,7 +153,7 @@ function SurfacePicker({
             disabled={disabled}
             onClick={() => {
               if (disabled) return;
-              onChange(on ? value.filter(x => x !== s.value) : [...value, s.value]);
+              onChange(on ? value.filter(x => x !== s.key) : [...value, s.key]);
             }}
             style={{
               width: 32, height: 32, borderRadius: 6,
@@ -290,16 +285,20 @@ export function EditProcedureDialog({
   const toothLocked = hasSessions;
 
   // ── Form state ────────────────────────────────────────────────────────────
-  const initialSurfaces = useMemo(() =>
-    initialData.surfaces.map(s => {
-      const upper = s.toUpperCase();
-      const validApiSurfaces = ['MESIAL','DISTAL','OCCLUSAL','FACIAL','BUCCAL','LINGUAL','PALATAL','INCISAL'];
-      return validApiSurfaces.includes(upper) ? upper : 'OCCLUSAL';
-    }),
-  [initialData.surfaces]);
+  // Stored canonical values (MESIAL, LABIAL, BUCCAL, …) collapsed to the six
+  // UI codes the picker shows — canonicalToUi covers all 9 enum values, so
+  // LABIAL/BUCCAL light up "B" instead of falling back to OCCLUSAL.
+  const initialSurfaces = useMemo<UiSurface[]>(
+    () => [...new Set(initialData.surfaces.map(s => canonicalToUi(s.toUpperCase())))],
+    [initialData.surfaces],
+  );
+
+  // Reference tooth for converting UI codes back to canonical on save
+  // (same pattern as AddTreatmentDialog / SessionEditDialog).
+  const refTooth = initialData.toothNumbers?.[0] ?? 11;
 
   const [notes,                setNotes]                = useState(initialData.notes ?? '');
-  const [surfaces,             setSurfaces]             = useState<string[]>(initialSurfaces);
+  const [surfaces,             setSurfaces]             = useState<UiSurface[]>(initialSurfaces);
   const [providerId,           setProviderId]           = useState(initialData.providerId ?? dentistId ?? '');
   const [scheduledDate,        setScheduledDate]        = useState<string>(
     initialData.scheduledDate ? initialData.scheduledDate.slice(0, 10) : '',
@@ -593,10 +592,12 @@ export function EditProcedureDialog({
         treatmentProcedureId:   initialData.treatmentProcedureId,
         treatmentPlanId:        initialData.treatmentPlanId,
         notes:                  notes || undefined,
-        // In COMPLETED mode the surfaces picker is hidden, so this is null.
-        surfaces:               isCompleted
+        // Surfaces: sent only when the set actually changed, converted back
+        // to canonical enum values. An unchanged form must not rewrite stored
+        // values (e.g. legacy FACIAL silently becoming LABIAL/BUCCAL).
+        surfaces:               isCompleted || !surfaceChanged
           ? undefined
-          : (surfaces.length ? surfaces : undefined),
+          : surfaces.map((s) => uiToCanonical(s, refTooth)),
         providerId:             isCompleted ? undefined : (providerId || undefined),
         scheduledDate:          isCompleted ? undefined : newScheduledDate,
         sequence:               initialData.sequence,

@@ -8,9 +8,11 @@ export type ToothSurface =
   | 'BUCCAL' | 'LABIAL' | 'FACIAL' | 'LINGUAL' | 'PALATAL';
 
 export type ChartEntryType = 'CONDITION' | 'EXISTING' | 'PLANNED' | 'COMPLETED';
-// Backend may emit VOIDED too; the dental chart filter strips it, but the
-// type stays accurate so the rest of the app can pattern-match safely.
-export type ChartEntryStatus = 'ACTIVE' | 'SUPERSEDED' | 'VOIDED';
+// Mirrors the backend ChartEntryStatus enum. RESOLVED is written when a
+// condition's PatientCondition resolves (conditions.service sets both
+// conditionStatus and the chart-row status); the ledger's Resolved filter and
+// the grey resolved baseline depend on it.
+export type ChartEntryStatus = 'ACTIVE' | 'SUPERSEDED' | 'RESOLVED' | 'VOIDED';
 export type QuickAction = 'ADD_CONDITION' | 'PLAN_TREATMENT' | 'PERFORM_NOW';
 
 /**

@@ -3723,6 +3723,8 @@ function DentalChartInner({
         entries={entries}
         onClose={() => setDrawerTooth(null)}
         defaultDentistId={dentistId}
+        patientId={patientId}
+        visitId={visitId}
         onEditConditionSubmit={handleEditCondition}
         onDeleteConditionClick={handleDeleteConditionClick}
         resolveProvider={resolveProvider}

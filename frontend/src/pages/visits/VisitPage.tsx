@@ -23,6 +23,7 @@ import { PatientAppointmentsTab } from "./components/PatientAppointmentsTab";
 import { ProgressTab } from "./components/ProgressTab";
 import { VisitImagingTab } from "./components/VisitImagingTab";
 import { VisitProcedureSessionsTab } from "./components/VisitProcedureSessionsTab";
+import { visitsApi } from "@/lib/api";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 type VisitStatus =
@@ -31,38 +32,6 @@ type VisitStatus =
   | "COMPLETED"
   | "CANCELLED"
   | "ARRIVED";
-
-// ─── API ─────────────────────────────────────────────────────────────────────
-// const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
-const API = (import.meta as any).env?.VITE_API_URL || "http://localhost:3001";
-
-async function apiFetch(path: string, options?: RequestInit) {
-  const token = localStorage.getItem("access_token");
-  const res = await fetch(`${API}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options?.headers,
-    },
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `HTTP ${res.status}`);
-  }
-  return res.json();
-}
-
-const visitsApi = {
-  getOne: (id: string) => apiFetch(`/visits/${id}`),
-  startExamination: (id: string) =>
-    apiFetch(`/visits/${id}/start`, { method: "POST" }),
-  complete: (id: string, data: any) =>
-    apiFetch(`/visits/${id}/complete`, {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-};
 
 function cn(...classes: (string | boolean | undefined | null)[]) {
   return classes.filter(Boolean).join(" ");

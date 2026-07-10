@@ -95,7 +95,10 @@ export interface ExecuteSessionPayload {
   // Legacy / backward compat
   markProcedureComplete?: boolean;
   status?: string;
-  autoAddToLedger?: boolean;
+
+  // Required when isFinal closes a MULTI-session procedure before all
+  // planned sessions are completed — recorded in the audit trail.
+  finalOverrideReason?: string;
 }
 
 export interface UpdateSessionPayload {
@@ -249,11 +252,15 @@ export const treatmentPlansApi = {
     planId: string,
     procedureId: string,
     sessionId: string,
-    data: ExecuteSessionPayload
+    data: ExecuteSessionPayload,
+    idempotencyKey?: string
   ): Promise<any> => {
     const res = await api.post(
       `/treatment-plans/${planId}/procedures/${procedureId}/sessions/${sessionId}/execute`,
-      data
+      data,
+      idempotencyKey
+        ? { headers: { "Idempotency-Key": idempotencyKey } }
+        : undefined
     );
     return res.data;
   },
@@ -261,17 +268,23 @@ export const treatmentPlansApi = {
   // Atomic create-and-execute: the backend creates the PENDING session inside
   // the execution transaction, so a failed execute can't leave an orphan
   // PENDING session behind (and retries don't accumulate empty sessions).
+  // The Idempotency-Key makes a double-submit replay the first response
+  // instead of creating a second session with duplicate chart entries.
   createAndExecuteSession: async (
     planId: string,
     procedureId: string,
     data: ExecuteSessionPayload & {
       sessionLabel?: string;
       visitGroup?: number;
-    }
+    },
+    idempotencyKey?: string
   ): Promise<any> => {
     const res = await api.post(
       `/treatment-plans/${planId}/procedures/${procedureId}/sessions/execute`,
-      data
+      data,
+      idempotencyKey
+        ? { headers: { "Idempotency-Key": idempotencyKey } }
+        : undefined
     );
     return res.data;
   },

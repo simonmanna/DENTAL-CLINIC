@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { formatDate, formatCurrency } from '../../../lib/utils';
 import { patientsApi } from '../../../lib/api';
+import { formatSurfaces } from '../../../lib/dental/notation';
 
 // Types
 export type TxStatus = 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
@@ -359,7 +360,7 @@ export default function TreatmentsTab({ patientId, patient }: TreatmentsTabProps
                               <p className="text-[11px] text-slate-400">
                                 {proc.procedure.code && <span className="font-mono text-blue-600 mr-2">{proc.procedure.code}</span>}
                                 {proc.toothNumbers.length > 0 && `Teeth: ${proc.toothNumbers.join(', ')}`}
-                                {proc.surfaces.length > 0 && ` [${proc.surfaces.join('')}]`}
+                                {(proc.surfaces?.length ?? 0) > 0 && ` [${formatSurfaces(proc.surfaces)}]`}
                               </p>
                             </div>
                           </div>
@@ -424,8 +425,8 @@ export default function TreatmentsTab({ patientId, patient }: TreatmentsTabProps
                       {proc.toothNumbers.length > 0 && (
                         <span>Teeth: {proc.toothNumbers.join(', ')}</span>
                       )}
-                      {proc.surfaces.length > 0 && (
-                        <span>Surfaces: [{proc.surfaces.join('')}]</span>
+                      {(proc.surfaces?.length ?? 0) > 0 && (
+                        <span>Surfaces: [{formatSurfaces(proc.surfaces)}]</span>
                       )}
                       <span className="ml-auto font-semibold text-slate-700">{formatCurrency(proc.cost)}</span>
                     </div>

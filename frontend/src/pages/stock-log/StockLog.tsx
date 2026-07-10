@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
@@ -51,31 +51,15 @@ import {
 
 import type { StockLog, StockLogResponse } from "@/types/stock-log";
 
-const API_BASE = "http://localhost:3001/stock-logs";
-
-const getAuthHeaders = () => {
-  const token =
-    localStorage.getItem("accessToken") || localStorage.getItem("token");
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-};
+import { api as sharedApi } from '@/lib/api/client';
 
 const api = {
   list: (params: Record<string, any> = {}): Promise<StockLogResponse> => {
-    const qs = new URLSearchParams(
+    const cleanParams = Object.fromEntries(
       Object.entries(params)
-        .filter(([, v]) => v !== undefined && v !== "" && v !== null)
-        .map(([k, v]) => [k, String(v)]),
-    ).toString();
-
-    return fetch(`${API_BASE}?${qs}`, {
-      headers: getAuthHeaders(),
-    }).then((r) => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json();
-    });
+        .filter(([, v]) => v !== undefined && v !== '' && v !== null)
+    );
+    return sharedApi.get('/stock-logs', { params: cleanParams }).then(r => r.data);
   },
 };
 
@@ -163,7 +147,7 @@ if (transactionType) {
 
   useEffect(() => {
   if (logs.length > 0) {
-    console.log('📋 First log entry:', {
+    console.log('ðŸ“‹ First log entry:', {
       hasType: 'type' in logs[0],
       hasTransactionType: 'transactionType' in logs[0],
       type: logs[0].type,
@@ -243,18 +227,18 @@ if (transactionType) {
       ),
     },
     {
-      accessorKey: "type", // ✅ Changed from "transactionType"
+      accessorKey: "type", // âœ… Changed from "transactionType"
       header: "Type",
       cell: ({ row }) => {
         const log = row.original;
-        const type = log.type; // ✅ Use 'type' instead of 'transactionType'
+        const type = log.type; // âœ… Use 'type' instead of 'transactionType'
 
-        // ✅ Safe fallback if type is undefined
+        // âœ… Safe fallback if type is undefined
         if (!type) {
-          return <span className="text-slate-400 italic">—</span>;
+          return <span className="text-slate-400 italic">â€”</span>;
         }
 
-        // ✅ Format for display: "PURCHASE_RECEIPT" → "Purchase Receipt"
+        // âœ… Format for display: "PURCHASE_RECEIPT" â†’ "Purchase Receipt"
         const displayType = type
           .split("_")
           .map((word, i) =>
@@ -443,7 +427,7 @@ if (transactionType) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">All Transactions</SelectItem>
-                  {/* ✅ Updated options to match StockLedgerType enum */}
+                  {/* âœ… Updated options to match StockLedgerType enum */}
                   {[
                     "PURCHASE_RECEIPT",
                     "USAGE",
@@ -656,3 +640,4 @@ if (transactionType) {
     </div>
   );
 }
+

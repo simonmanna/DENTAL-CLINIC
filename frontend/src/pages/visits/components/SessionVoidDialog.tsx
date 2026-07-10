@@ -9,6 +9,7 @@ import {
   X, AlertTriangle, Loader2, Trash2, FileText,
   ClipboardX, DollarSign, Image as ImageIcon, ChevronDown,
 } from 'lucide-react';
+import { surfaceShort, surfaceLabel } from '../../../lib/dental/notation';
 
 const DELETE_REASONS = [
   { value: 'WRONG_ENTRY',         label: 'Wrong entry — recorded for wrong patient or visit' },
@@ -49,11 +50,6 @@ interface SessionDeleteDialogProps {
 
 // Legacy export for any callers still importing the old type name.
 export type SessionVoidDialogProps = SessionDeleteDialogProps;
-
-const ALL_SURFACES: Record<string, string> = {
-  FACIAL: 'F', LINGUAL: 'L', PALATAL: 'P',
-  MESIAL: 'M', DISTAL: 'D', OCCLUSAL: 'O', INCISAL: 'I',
-};
 
 export function SessionDeleteDialog({
   open, onClose, session, procedureName, onVoid, voiding,
@@ -143,8 +139,12 @@ export function SessionDeleteDialog({
                 {surfaces.length > 0 && (
                   <div className="flex gap-1">
                     {surfaces.map((s) => (
-                      <span key={s} className="text-[10px] font-mono bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">
-                        {ALL_SURFACES[s] ?? s[0]}
+                      <span
+                        key={s}
+                        title={surfaceLabel(s)}
+                        className="text-[10px] font-mono bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded"
+                      >
+                        {surfaceShort(s)}
                       </span>
                     ))}
                   </div>

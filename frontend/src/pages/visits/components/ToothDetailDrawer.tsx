@@ -23,7 +23,7 @@ import {
   treatmentProceduresEditApi,
   type ProcedureDeleteEligibility,
 } from '../../../lib/api/treatment-procedures-edit';
-import { toothName } from '../../../lib/dental/notation';
+import { toothName, uiToCanonical } from '../../../lib/dental/notation';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -481,7 +481,7 @@ export function ToothDetailDrawer({
   entries,
   onClose,
   defaultDentistId,
-  patientId = 'demo',
+  patientId,
   visitId,
   onEditConditionSubmit,
   onDeleteConditionClick,
@@ -541,9 +541,10 @@ export function ToothDetailDrawer({
   const buildProcedureInitialData = (entry: ChartEntry): EditProcedureInitialData | null => {
     if (!entry.treatmentProcedureId || !entry.treatmentPlanId) return null;
 
-    const surfaceApiMap: Record<ToothSurface, string> = {
-      M: 'MESIAL', O: 'OCCLUSAL', D: 'DISTAL', B: 'FACIAL', L: 'LINGUAL', I: 'INCISAL',
-    };
+    // Context-aware UI→canonical mapping: B is LABIAL on anteriors / BUCCAL on
+    // posteriors, L is PALATAL on uppers / LINGUAL on lowers. A fixed map here
+    // used to rewrite an upper PALATAL surface as LINGUAL on every edit.
+    const refTooth = entry.toothNumbers[0] ?? toothNumber ?? 11;
 
     return {
       treatmentProcedureId: entry.treatmentProcedureId,
@@ -551,7 +552,7 @@ export function ToothDetailDrawer({
       procedureName:        entry.label,
       procedureCode:        entry.procedureCode ?? entry.code,
       toothNumbers:         entry.toothNumbers,
-      surfaces:             entry.surfaces.map(s => surfaceApiMap[s] ?? 'OCCLUSAL'),
+      surfaces:             entry.surfaces.map(s => uiToCanonical(s, refTooth)),
       notes:                entry.notes,
       totalPrice:           entry.totalPrice ?? 0,
       currency:             entry.currency ?? 'UGX',
@@ -602,7 +603,10 @@ export function ToothDetailDrawer({
   );
 
   // ── Invalidate relevant query caches ──────────────────────────────────────
+  // Prefix-matched against the chart's ["chart-entries", patientId, visitId]
+  // key. No patientId means demo mode — nothing is cached under real keys.
   const invalidate = () => {
+    if (!patientId) return;
     queryClient.invalidateQueries({ queryKey: ['chart-entries', patientId] });
     queryClient.invalidateQueries({ queryKey: ['treatment-procedures', patientId] });
     queryClient.invalidateQueries({ queryKey: ['tx-plans', patientId] });
@@ -813,7 +817,7 @@ export function ToothDetailDrawer({
         />
       )}
 
-      {editingProcedure && buildProcedureInitialData(editingProcedure) && (
+      {editingProcedure && patientId && buildProcedureInitialData(editingProcedure) && (
         <EditProcedureDialog
           isOpen
           onClose={() => setEditingProcedure(null)}

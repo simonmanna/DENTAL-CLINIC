@@ -1,10 +1,4 @@
-import axios from "axios";
-
-const DEBUG = true; // Toggle this to false to disable logs
-
-// const API_BASE = import.meta.env?.VITE_API_URL || "http://localhost:3001";
-
-import api from '@/lib/api/client';
+﻿import api from '@/lib/api/client';
 
 
 import { InventoryCategory } from '../../types/inventory';

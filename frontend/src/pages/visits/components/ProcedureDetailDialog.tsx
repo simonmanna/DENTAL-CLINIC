@@ -10,31 +10,19 @@ import { SessionVoidDialog } from './SessionVoidDialog';
 import { treatmentProceduresEditApi } from '../../../lib/api/treatment-procedures-edit';
 // src/pages/visits/components/ProcedureDetailDialog.tsx
 import { TxStatus } from "./TreatmentPlanTab";
+import { formatSurfaces, formatSurfacesLong } from "../../../lib/dental/notation";
+import type { ToothSurface } from "../../../types/dental";
 
 // ══════════════════════════════════════════════════════════════════════════════
 // TYPES (Updated for new schema with ProcedureTarget)
 // ══════════════════════════════════════════════════════════════════════════════
 
-export type ToothSurface =
-  | "FACIAL"
-  | "LINGUAL"
-  | "PALATAL"
-  | "MESIAL"
-  | "DISTAL"
-  | "OCCLUSAL"
-  | "INCISAL";
+// Full 9-value canonical surface type — re-exported from the single source
+// of truth so downstream imports of `ToothSurface` from this file keep working.
+export type { ToothSurface } from "../../../types/dental";
 
 export type SessionType = 'SINGLE' | 'MULTI';
 export type BillingType = 'PAY_FULL' | 'PAY_PARTIALLY';
-
-export interface SurfaceDef {
-  value: ToothSurface;
-  label: string;
-  short: string;
-  desc: string;
-  anteriorOnly?: boolean;
-  posteriorOnly?: boolean;
-}
 
 export interface InventoryInput {
   id: string;
@@ -134,16 +122,6 @@ export interface TreatmentProcedure {
 const UPPER_TEETH = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
 const LOWER_TEETH = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
 
-const ALL_SURFACES: SurfaceDef[] = [
-  { value: "FACIAL", label: "Facial", short: "F", desc: "Buccal/Labial — outer surface" },
-  { value: "LINGUAL", label: "Lingual", short: "L", desc: "Tongue-side — lower jaw" },
-  { value: "PALATAL", label: "Palatal", short: "P", desc: "Palate-side — upper jaw" },
-  { value: "MESIAL", label: "Mesial", short: "M", desc: "Towards midline" },
-  { value: "DISTAL", label: "Distal", short: "D", desc: "Away from midline" },
-  { value: "OCCLUSAL", label: "Occlusal", short: "O", desc: "Biting surface — posteriors", posteriorOnly: true },
-  { value: "INCISAL", label: "Incisal", short: "I", desc: "Cutting edge — anteriors", anteriorOnly: true },
-];
-
 const STATUS_META: Record<TxStatus, { label: string; color: string; bg: string; border: string; dot: string; btnClass: string }> = {
   PLANNED: { label: "Planned", color: "text-slate-600", bg: "bg-slate-50", border: "border-slate-200", dot: "bg-slate-400", btnClass: "bg-slate-600 hover:bg-slate-700" },
   IN_PROGRESS: { label: "In Progress", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200", dot: "bg-blue-500", btnClass: "bg-blue-600 hover:bg-blue-700" },
@@ -187,98 +165,18 @@ function getToothNumbersFromTargets(targets?: ProcedureTarget[]): number[] {
   return targets.map(t => t.toothNumber).sort((a, b) => a - b);
 }
 
-// Helper to get surfaces from targets (assuming all targets have same surfaces)
+// Helper to get surfaces from targets — aggregates across ALL targets, deduped
 function getSurfacesFromTargets(targets?: ProcedureTarget[]): ToothSurface[] {
   if (!targets || targets.length === 0) return [];
-  return targets[0]?.surfaces || [];
-}
-
-function isAnteriorTooth(n: number): boolean {
-  const p = n % 10;
-  return p >= 1 && p <= 3;
-}
-
-function isPosteriorTooth(n: number): boolean {
-  const p = n % 10;
-  return p >= 4 && p <= 8;
-}
-
-function isUpperTooth(n: number): boolean {
-  return n >= 11 && n <= 28;
-}
-
-function getContextualSurfaces(teeth: number[]): SurfaceDef[] {
-  if (teeth.length === 0) return ALL_SURFACES;
-  const hasAnt = teeth.some(isAnteriorTooth);
-  const hasPost = teeth.some(isPosteriorTooth);
-  const hasUpper = teeth.some(isUpperTooth);
-  const hasLower = teeth.some((n) => !isUpperTooth(n));
-  return ALL_SURFACES.filter((s) => {
-    if (s.value === "OCCLUSAL" && !hasPost) return false;
-    if (s.value === "INCISAL" && !hasAnt) return false;
-    if (s.value === "PALATAL" && !hasUpper) return false;
-    if (s.value === "LINGUAL" && !hasLower) return false;
+  const seen = new Set<ToothSurface>();
+  return targets.flatMap(t => t.surfaces || []).filter(s => {
+    if (seen.has(s)) return false;
+    seen.add(s);
     return true;
   });
 }
 
-function surfaceAbbrev(surfaces: ToothSurface[]): string {
-  const order: ToothSurface[] = ["FACIAL", "LINGUAL", "PALATAL", "MESIAL", "DISTAL", "OCCLUSAL", "INCISAL"];
-  return order
-    .filter((s) => surfaces.includes(s))
-    .map((s) => ALL_SURFACES.find((x) => x.value === s)?.short ?? s[0])
-    .join("");
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// API
-// ══════════════════════════════════════════════════════════════════════════════
-
-const API_BASE = (import.meta as any).env?.VITE_API_URL ?? "http://localhost:3001";
-
-async function apiFetch(path: string, opts?: RequestInit): Promise<any> {
-  const token = typeof localStorage !== "undefined" ? localStorage.getItem("access_token") : "";
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...opts,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(opts?.headers ?? {}),
-    },
-  });
-  if (!res.ok) {
-    const e = await res.json().catch(() => ({}));
-    throw new Error((e as any).message ?? `HTTP ${res.status}`);
-  }
-  return res.json();
-}
-
-// Add to your txApi object (around line ~180)
-const txApi = {
-  updateSession: (planId: string, procId: string, sessionId: string, data: any) =>
-    apiFetch(`/treatment-plans/${planId}/procedures/${procId}/sessions/${sessionId}`, {
-      method: "PATCH",
-      body: JSON.stringify(data)
-    }),
-    editSession: (planId: string, procId: string, sessionId: string, data: any) =>
-    apiFetch(`/treatment-plans/${planId}/procedures/${procId}/sessions/${sessionId}/edit`, {
-      method: "PATCH",
-      body: JSON.stringify(data)
-    }),
-  // Soft-delete a session and reverse every side effect created at execution
-  // time. Kept under the legacy `voidSession` name so all existing call sites
-  // keep working, but now hits the new REST DELETE endpoint.
-  voidSession: (planId: string, procId: string, sessionId: string, data: { reason: string }) =>
-    apiFetch(`/treatment-plans/${planId}/procedures/${procId}/sessions/${sessionId}`, {
-      method: "DELETE",
-      body: JSON.stringify(data)
-    }),
-  deleteSession: (planId: string, procId: string, sessionId: string, data: { reason: string }) =>
-    apiFetch(`/treatment-plans/${planId}/procedures/${procId}/sessions/${sessionId}`, {
-      method: "DELETE",
-      body: JSON.stringify(data)
-    }),
-};
+import { api } from "@/lib/api/client";
 
 
 function StatusBadge({ status }: { status: TxStatus }) {
@@ -382,7 +280,7 @@ export function ProcedureDetailDialog({
         notes?: string;
       }>;
     }) =>
-      txApi.editSession(activePlanId!, proc!.id, editTarget!.id, data),
+      api.patch(`/treatment-plans/${activePlanId!}/procedures/${proc!.id}/sessions/${editTarget!.id}/edit`, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['tx-plan', activePlanId] });
       setEditTarget(null);
@@ -392,7 +290,7 @@ export function ProcedureDetailDialog({
 
   const voidMut = useMutation({
     mutationFn: (reason: string) =>
-      txApi.voidSession(activePlanId!, proc!.id, voidTarget!.id, { reason }),
+      api.delete(`/treatment-plans/${activePlanId!}/procedures/${proc!.id}/sessions/${voidTarget!.id}`, { data: { reason } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['tx-plan', activePlanId] });
       setVoidTarget(null);
@@ -421,7 +319,7 @@ export function ProcedureDetailDialog({
   const totalSessions = proc.sessions?.length || 0;
   const nextSessionNumber = totalSessions + 1;
   const isMultiSession = proc.sessionType === 'MULTI';
-  const abbrev = surfaceAbbrev(currentSurfaces);
+  const abbrev = formatSurfaces(currentSurfaces);
 
   const spentSoFar = proc.sessions?.reduce((total, session) => {
     if (session.status === 'COMPLETED') {
@@ -495,7 +393,7 @@ export function ProcedureDetailDialog({
   const saveSessionChanges = async (sessionId: string) => {
     if (!activePlanId || !proc) return;
     try {
-      await txApi.updateSession(activePlanId, proc.id, sessionId, {
+      await api.patch(`/treatment-plans/${activePlanId}/procedures/${proc.id}/sessions/${sessionId}`, {
         status: sessionFormData.status,
         performedDate: sessionFormData.performedDate || undefined,
         performedNotes: sessionFormData.performedNotes,
@@ -519,14 +417,6 @@ export function ProcedureDetailDialog({
   const cancelSessionEdit = () => {
     setEditingSession(null);
     setSessionFormData({});
-  };
-
-  // Helper to get session surfaces from session targets
-  const getSessionSurfaces = (session: ProcedureSession): ToothSurface[] => {
-    if (session.targets && session.targets.length > 0) {
-      return session.targets[0]?.surfaces || [];
-    }
-    return [];
   };
 
   return (
@@ -662,7 +552,10 @@ export function ProcedureDetailDialog({
                         </div>
                         <div className="flex justify-between items-center py-2 border-b border-slate-100">
                           <span className="text-sm text-slate-500">Surfaces</span>
-                          <span className="text-sm font-mono font-medium text-slate-800">
+                          <span
+                            className="text-sm font-mono font-medium text-slate-800"
+                            title={formatSurfacesLong(currentSurfaces)}
+                          >
                             {abbrev || '—'}
                           </span>
                         </div>

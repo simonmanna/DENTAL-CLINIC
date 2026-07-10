@@ -9,7 +9,7 @@ if (!API_BASE && (import.meta as any).env?.PROD) {
 }
 
 // Single resolved base URL – used by the instance AND the raw refresh call
-const BASE_URL = API_BASE || "http://localhost:3001";
+const BASE_URL = (API_BASE || "http://localhost:3001") + "/api";
 
 export const api = axios.create({
   baseURL: BASE_URL,

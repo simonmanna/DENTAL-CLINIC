@@ -29,12 +29,15 @@ import { ProcedureDetailDialog } from "./ProcedureDetailDialog";
 import { toast } from "react-hot-toast";
 
 import { treatmentPlansApi } from "../../../lib/api/treatment-plans";
+import { newIdempotencyKey } from "../../../lib/api/conditions";
 import { treatmentProceduresEditApi } from "../../../lib/api/treatment-procedures-edit";
 import { ProcedureActionMenu } from "./ProcedureActionMenu";
 import { EditProcedureDialog } from "./EditProcedureDialog";
 import { DeleteProcedureDialog } from "./DeleteProcedureDialog";
 import { CancelProcedureDialog } from "./CancelProcedureDialog";
 import type { ProcedureDeleteEligibility } from "../../../lib/api/treatment-procedures-edit";
+import { formatSurfaces, formatSurfacesLong } from "../../../lib/dental/notation";
+import type { ToothSurface } from "../../../types/dental";
 const txApi = treatmentPlansApi;
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -56,26 +59,12 @@ export type TxStatus =
   | "CANCELLED"
   | "REFERRED";
 
-export type ToothSurface =
-  | "FACIAL"
-  | "LINGUAL"
-  | "PALATAL"
-  | "MESIAL"
-  | "DISTAL"
-  | "OCCLUSAL"
-  | "INCISAL";
+// Full 9-value canonical surface type — re-exported from the single source
+// of truth so downstream imports of `ToothSurface` from this file keep working.
+export type { ToothSurface } from "../../../types/dental";
 
 export type SessionType = "SINGLE" | "MULTI";
 export type BillingType = "PAY_FULL" | "PAY_PARTIALLY";
-
-export interface SurfaceDef {
-  value: ToothSurface;
-  label: string;
-  short: string;
-  desc: string;
-  anteriorOnly?: boolean;
-  posteriorOnly?: boolean;
-}
 
 export interface InventoryInput {
   id: string;
@@ -218,16 +207,6 @@ const LOWER_TEETH = [
   48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38,
 ];
 
-const ALL_SURFACES: SurfaceDef[] = [
-  { value: "FACIAL", label: "Facial", short: "F", desc: "Buccal/Labial — outer surface" },
-  { value: "LINGUAL", label: "Lingual", short: "L", desc: "Tongue-side — lower jaw" },
-  { value: "PALATAL", label: "Palatal", short: "P", desc: "Palate-side — upper jaw" },
-  { value: "MESIAL", label: "Mesial", short: "M", desc: "Towards midline" },
-  { value: "DISTAL", label: "Distal", short: "D", desc: "Away from midline" },
-  { value: "OCCLUSAL", label: "Occlusal", short: "O", desc: "Biting surface — posteriors", posteriorOnly: true },
-  { value: "INCISAL", label: "Incisal", short: "I", desc: "Cutting edge — anteriors", anteriorOnly: true },
-];
-
 /**
  * STATUS_META — only the 5 allowed plan/procedure statuses.
  */
@@ -295,49 +274,6 @@ function fmt(n: number | string | undefined | null) {
   if (isNaN(num)) return "0";
   return num.toLocaleString("en-US");
 }
-
-function isAnteriorTooth(n: number): boolean {
-  const p = n % 10;
-  return p >= 1 && p <= 3;
-}
-
-function isPosteriorTooth(n: number): boolean {
-  const p = n % 10;
-  return p >= 4 && p <= 8;
-}
-
-function isUpperTooth(n: number): boolean {
-  return n >= 11 && n <= 28;
-}
-
-function getContextualSurfaces(teeth: number[]): SurfaceDef[] {
-  if (teeth.length === 0) return ALL_SURFACES;
-  const hasAnt = teeth.some(isAnteriorTooth);
-  const hasPost = teeth.some(isPosteriorTooth);
-  const hasUpper = teeth.some(isUpperTooth);
-  const hasLower = teeth.some((n) => !isUpperTooth(n));
-  return ALL_SURFACES.filter((s) => {
-    if (s.value === "OCCLUSAL" && !hasPost) return false;
-    if (s.value === "INCISAL" && !hasAnt) return false;
-    if (s.value === "PALATAL" && !hasUpper) return false;
-    if (s.value === "LINGUAL" && !hasLower) return false;
-    return true;
-  });
-}
-
-function surfaceAbbrev(surfaces: ToothSurface[]): string {
-  const order: ToothSurface[] = [
-    "FACIAL", "LINGUAL", "PALATAL", "MESIAL", "DISTAL", "OCCLUSAL", "INCISAL",
-  ];
-  const indexMap = new Map(order.map((v, i) => [v, i]));
-
-  return surfaces
-    .slice()
-    .sort((a, b) => (indexMap.get(a) ?? 99) - (indexMap.get(b) ?? 99))
-    .map((s) => ALL_SURFACES.find((x) => x.value === s)?.short ?? s[0])
-    .join("");
-}
-
 
 function getToothNumbersFromTargets(targets?: ProcedureTarget[]): number[] {
   if (!targets || targets.length === 0) return [];
@@ -683,7 +619,7 @@ function ProcedureRow({
   const [expanded, setExpanded] = useState(false);
   const toothNumbers = getToothNumbersFromTargets(proc.targets);
   const surfaces = getSurfacesFromTargets(proc.targets);
-  const abbrev = surfaceAbbrev(surfaces);
+  const abbrev = formatSurfaces(surfaces);
   const rowRef = useRef<HTMLTableRowElement>(null);
 
   const handleDragStart = (e: React.DragEvent) => {
@@ -803,7 +739,7 @@ function ProcedureRow({
           {abbrev ? (
             <span
               className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded tracking-wider"
-              title={surfaces.join(", ")}
+              title={formatSurfacesLong(surfaces)}
             >
               {abbrev}
             </span>
@@ -1468,6 +1404,7 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
       procedureId,
       data,
       sessionId,
+      idempotencyKey,
     }: {
       planId: string;
       procedureId: string;
@@ -1475,12 +1412,15 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
       visitId: string;
       status: string;
       data: any;
+      idempotencyKey?: string;
     }) =>
       // No sessionId → atomic create-and-execute on the backend (one tx), so a
-      // failed execute can't leave an orphan PENDING session behind.
+      // failed execute can't leave an orphan PENDING session behind. The
+      // idempotency key makes a double-submit replay the first response
+      // instead of creating a duplicate session.
       sessionId
-        ? txApi.executeSession(planId, procedureId, sessionId, data)
-        : txApi.createAndExecuteSession(planId, procedureId, data),
+        ? txApi.executeSession(planId, procedureId, sessionId, data, idempotencyKey)
+        : txApi.createAndExecuteSession(planId, procedureId, data, idempotencyKey),
     onSuccess: () => {
       toast.success("Session recorded successfully");
       inv();
@@ -1532,6 +1472,7 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
           sessionId,
           visitId,
           status: sessionData.isFinal ? "COMPLETED" : "IN_PROGRESS",
+          idempotencyKey: newIdempotencyKey(),
           data: {
             // Only consumed by the backend when creating the session (no sessionId).
             sessionLabel,
@@ -1541,6 +1482,7 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
             actualInputsUsed: sessionData.actualInputsUsed,
             outcome: sessionData.outcome,
             isFinal: sessionData.isFinal,
+            finalOverrideReason: sessionData.finalOverrideReason,
             phase: sessionData.phase,
             surfaces: sessionData.surfaces,
             providerId: resolvedDentistId,

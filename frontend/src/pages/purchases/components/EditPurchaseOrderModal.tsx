@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
@@ -18,17 +18,9 @@ import { useUpdatePurchaseOrder, useSuppliers, useLocations, useInventoryItems }
 import type { PurchaseOrder } from "@/types/purchase.types";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
 
 // const API_BASE = import.meta.env?.VITE_API_URL || "http://localhost:3001";
-const API_BASE = (import.meta as any).env?.VITE_API_URL || "http://localhost:3001";
-const api = axios.create({ baseURL: API_BASE });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
 
 const itemSchema = z.object({
   id: z.string().optional(),
@@ -44,8 +36,8 @@ const itemSchema = z.object({
   batchNumber: z.string().optional(),
   expiryDate: z.string().optional(),
   notes: z.string().optional(),
-  supplierRef: z.string().optional(),      // ← Add this
-  invoiceNumber: z.string().optional(),    // ← Add this  
+  supplierRef: z.string().optional(),      // â† Add this
+  invoiceNumber: z.string().optional(),    // â† Add this  
 });
 
 const schema = z.object({
@@ -53,8 +45,8 @@ const schema = z.object({
   locationId: z.string().min(1, "Location is required"),
   orderType: z.enum(["INVENTORY", "DRUG"]),
   paymentTerms: z.enum(["CASH_ON_DELIVERY", 
-  "NET_7",    // ← Add missing values
-  "NET_14",   // ← if used
+  "NET_7",    // â† Add missing values
+  "NET_14",   // â† if used
   "NET_15", 
   "NET_30", 
   "NET_60", 
@@ -68,8 +60,8 @@ const schema = z.object({
   notes: z.string().optional(),
   internalNotes: z.string().optional(),
   items: z.array(itemSchema).min(1, "At least one item is required"),
-  supplierRef: z.string().optional(),      // ← ADD THIS
-  invoiceNumber: z.string().optional(),    // ← ADD THIS
+  supplierRef: z.string().optional(),      // â† ADD THIS
+  invoiceNumber: z.string().optional(),    // â† ADD THIS
 });
 
 type FormData = z.infer<typeof schema>;

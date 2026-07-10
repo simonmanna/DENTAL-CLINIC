@@ -20,6 +20,7 @@ import {
 import { staffApi } from "@/lib/api/staff-api";
 import { RadialSurfacePicker } from './SurfacePicker';
 import type { UiSurface } from '../../../lib/dental/notation';
+import { toLocalISODate } from './dentalChartLogic';
 type ConditionSeverity = "MILD" | "MODERATE" | "SEVERE";
 
 interface Dentist {
@@ -88,8 +89,10 @@ export function EditConditionDialog({
   const [status, setStatus] = useState<PatientConditionStatus>(
     initialData.status ?? "ACTIVE",
   );
+  // Local-time default — a UTC split('T')[0] gives yesterday's date during
+  // early-morning hours in zones ahead of UTC (e.g. UTC+3 Kampala).
   const [diagnosedAt, setDiagnosedAt] = useState(
-    initialData.diagnosedAt ?? new Date().toISOString().split("T")[0],
+    initialData.diagnosedAt ?? toLocalISODate(),
   );
   const [selectedProviderId, setSelectedProviderId] = useState(
     initialData.providerId ?? initialData.diagnosedBy ?? defaultDentistId,
@@ -165,9 +168,7 @@ export function EditConditionDialog({
     setSearch(initialData.label);
     setSurfaces(initialData.surfaces);
     setStatus(initialData.status ?? "ACTIVE");
-    setDiagnosedAt(
-      initialData.diagnosedAt ?? new Date().toISOString().split("T")[0],
-    );
+    setDiagnosedAt(initialData.diagnosedAt ?? toLocalISODate());
     setSeverity(initialData.severity ?? "");
     setNotes(initialData.notes ?? "");
     setEditReason("");

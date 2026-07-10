@@ -1,4 +1,4 @@
-// src/pages/fixed-assets/FixedAssetsPage.tsx
+﻿// src/pages/fixed-assets/FixedAssetsPage.tsx
 // Drop into your router: <Route path="/fixed-assets" element={<FixedAssetsPage />} />
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -42,143 +42,51 @@ import {
   DepreciationMethod, MaintenanceType, DisposalMethod,
 } from './types';
 
+// â”€â”€ API layer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // ── API layer ─────────────────────────────────────────────────────────────────
-// const API_BASE = '/api/fixed-assets';
-const API_BASE = 'http://localhost:3001/fixed-assets';
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-  };
-};
+import { api as sharedApi } from '@/lib/api/client';
 
 const api = {
   getSummary: (): Promise<AssetSummary> =>
-    fetch(`${API_BASE}/summary`, { headers: getAuthHeaders() }).then(r => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json();
-    }),
+    sharedApi.get('/fixed-assets/summary').then(r => r.data),
 
   list: (params: Record<string, any> = {}): Promise<{ data: FixedAsset[]; meta: any }> => {
-    const qs = new URLSearchParams(
+    const cleanParams = Object.fromEntries(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '' && v !== null)
-        .map(([k, v]) => [k, String(v)])
-    ).toString();
-    return fetch(`${API_BASE}?${qs}`, { headers: getAuthHeaders() }).then(r => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json();
-    });
+    );
+    return sharedApi.get('/fixed-assets', { params: cleanParams }).then(r => r.data);
   },
 
   get: (id: string): Promise<FixedAsset> =>
-    fetch(`${API_BASE}/${id}`, { headers: getAuthHeaders() }).then(r => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json();
-    }),
+    sharedApi.get(`/fixed-assets/${id}`).then(r => r.data),
 
   create: (data: any): Promise<FixedAsset> =>
-    fetch(API_BASE, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    }).then(r => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json();
-    }),
+    sharedApi.post('/fixed-assets', data).then(r => r.data),
 
   update: (id: string, data: any): Promise<FixedAsset> =>
-    fetch(`${API_BASE}/${id}`, {
-      method: 'PATCH',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    }).then(r => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json();
-    }),
+    sharedApi.patch(`/fixed-assets/${id}`, data).then(r => r.data),
 
   dispose: (id: string, data: any): Promise<FixedAsset> =>
-    fetch(`${API_BASE}/${id}/dispose`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    }).then(r => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json();
-    }),
+    sharedApi.post(`/fixed-assets/${id}/dispose`, data).then(r => r.data),
 
   createMaintenance: (data: any): Promise<AssetMaintenance> =>
-    fetch(`${API_BASE}/maintenance`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    }).then(r => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json();
-    }),
+    sharedApi.post('/fixed-assets/maintenance', data).then(r => r.data),
 
   completeMaintenance: (id: string, data: any): Promise<AssetMaintenance> =>
-    fetch(`${API_BASE}/maintenance/${id}/complete`, {
-      method: 'PATCH',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    }).then(r => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json();
-    }),
+    sharedApi.patch(`/fixed-assets/maintenance/${id}/complete`, data).then(r => r.data),
 
   postDepreciation: (data: any) =>
-    fetch(`${API_BASE}/depreciation/post`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    }).then(r => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json();
-    }),
+    sharedApi.post('/fixed-assets/depreciation/post', data).then(r => r.data),
 };
-// const api = {
-//   getSummary: (): Promise<AssetSummary> =>
-//     fetch(`${API_BASE}/summary`).then(r => r.json()),
 
-//   list: (params: Record<string, any> = {}): Promise<{ data: FixedAsset[]; meta: any }> => {
-//     const qs = new URLSearchParams(
-//       Object.entries(params).filter(([, v]) => v !== undefined && v !== '' && v !== null)
-//         .map(([k, v]) => [k, String(v)])
-//     ).toString();
-//     return fetch(`${API_BASE}?${qs}`).then(r => r.json());
-//   },
-
-//   get: (id: string): Promise<FixedAsset> =>
-//     fetch(`${API_BASE}/${id}`).then(r => r.json()),
-
-//   create: (data: any): Promise<FixedAsset> =>
-//     fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
-
-//   update: (id: string, data: any): Promise<FixedAsset> =>
-//     fetch(`${API_BASE}/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
-
-//   dispose: (id: string, data: any): Promise<FixedAsset> =>
-//     fetch(`${API_BASE}/${id}/dispose`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
-
-//   createMaintenance: (data: any): Promise<AssetMaintenance> =>
-//     fetch(`${API_BASE}/maintenance`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
-
-//   completeMaintenance: (id: string, data: any): Promise<AssetMaintenance> =>
-//     fetch(`${API_BASE}/maintenance/${id}/complete`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
-
-//   postDepreciation: (data: any) =>
-//     fetch(`${API_BASE}/depreciation/post`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
-// };
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const fmt = (n: string | number | undefined, currency = 'UGX') => {
-  if (n === undefined || n === null) return '—';
+  if (n === undefined || n === null) return 'â€”';
   return new Intl.NumberFormat('en-UG', { style: 'currency', currency, maximumFractionDigits: 0 }).format(Number(n));
 };
 
-const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'â€”';
 
 const CATEGORY_ICONS: Record<AssetCategory, React.ReactNode> = {
   DENTAL_EQUIPMENT: <Syringe className="w-4 h-4" />,
@@ -194,7 +102,7 @@ const CATEGORY_ICONS: Record<AssetCategory, React.ReactNode> = {
   OTHER: <HelpCircle className="w-4 h-4" />,
 };
 
-// ── Stat Card ─────────────────────────────────────────────────────────────────
+// â”€â”€ Stat Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function StatCard({ label, value, sub, icon, accent = false, alert = false }: {
   label: string; value: string | number; sub?: string;
@@ -218,7 +126,7 @@ function StatCard({ label, value, sub, icon, accent = false, alert = false }: {
   );
 }
 
-// ── Asset Form Dialog ─────────────────────────────────────────────────────────
+// â”€â”€ Asset Form Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function AssetFormDialog({
   open, onClose, asset, onSaved,
@@ -415,7 +323,7 @@ function AssetFormDialog({
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={handleSave} disabled={saving || !form.name || !form.purchaseCost || !form.purchaseDate}>
-            {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Register Asset'}
+            {saving ? 'Savingâ€¦' : isEdit ? 'Save Changes' : 'Register Asset'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -423,7 +331,7 @@ function AssetFormDialog({
   );
 }
 
-// ── Maintenance Dialog ────────────────────────────────────────────────────────
+// â”€â”€ Maintenance Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function MaintenanceDialog({
   open, onClose, assetId, onSaved,
@@ -502,7 +410,7 @@ function MaintenanceDialog({
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={handleSave} disabled={saving || !form.title}>
-            {saving ? 'Scheduling…' : 'Schedule'}
+            {saving ? 'Schedulingâ€¦' : 'Schedule'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -510,7 +418,7 @@ function MaintenanceDialog({
   );
 }
 
-// ── Dispose Dialog ─────────────────────────────────────────────────────────────
+// â”€â”€ Dispose Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function DisposeDialog({
   open, onClose, asset, onDisposed,
@@ -581,7 +489,7 @@ function DisposeDialog({
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={handleDispose} disabled={saving} className="bg-destructive hover:bg-destructive/90">
-            {saving ? 'Disposing…' : 'Confirm Disposal'}
+            {saving ? 'Disposingâ€¦' : 'Confirm Disposal'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -589,7 +497,7 @@ function DisposeDialog({
   );
 }
 
-// ── Asset Detail Drawer ────────────────────────────────────────────────────────
+// â”€â”€ Asset Detail Drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function AssetDetailDialog({
   open, onClose, assetId, onScheduleMaintenance, onEdit, onDispose,
@@ -621,14 +529,14 @@ function AssetDetailDialog({
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
       <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
         {loading || !asset ? (
-          <div className="flex items-center justify-center h-48 text-muted-foreground">Loading…</div>
+          <div className="flex items-center justify-center h-48 text-muted-foreground">Loadingâ€¦</div>
         ) : (
           <>
             <DialogHeader>
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <DialogTitle className="text-xl">{asset.name}</DialogTitle>
-                  <p className="text-sm text-muted-foreground mt-0.5">{asset.assetCode} · {CATEGORY_LABELS[asset.category]}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">{asset.assetCode} Â· {CATEGORY_LABELS[asset.category]}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <Badge variant="outline" className={`${statusCfg?.bg} ${statusCfg?.color} border font-medium`}>
@@ -653,10 +561,10 @@ function AssetDetailDialog({
                     { label: 'Purchase Cost', value: fmt(asset.purchaseCost) },
                     { label: 'Current Book Value', value: fmt(asset.currentBookValue) },
                     { label: 'Warranty Expiry', value: fmtDate(asset.warrantyExpiry) },
-                    { label: 'Serial Number', value: asset.serialNumber || '—' },
-                    { label: 'Manufacturer', value: asset.manufacturer || '—' },
-                    { label: 'Location', value: asset.location?.name || '—' },
-                    { label: 'Assigned To', value: asset.assignedToStaff ? `${asset.assignedToStaff.firstName} ${asset.assignedToStaff.lastName}` : '—' },
+                    { label: 'Serial Number', value: asset.serialNumber || 'â€”' },
+                    { label: 'Manufacturer', value: asset.manufacturer || 'â€”' },
+                    { label: 'Location', value: asset.location?.name || 'â€”' },
+                    { label: 'Assigned To', value: asset.assignedToStaff ? `${asset.assignedToStaff.firstName} ${asset.assignedToStaff.lastName}` : 'â€”' },
                   ].map(({ label, value }) => (
                     <div key={label} className="bg-muted/40 rounded-lg p-3">
                       <p className="text-xs text-muted-foreground">{label}</p>
@@ -721,11 +629,11 @@ function AssetDetailDialog({
                   </div>
                   <div className="bg-muted/40 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground">Useful Life</p>
-                    <p className="font-medium mt-0.5">{asset.usefulLifeYears ? `${asset.usefulLifeYears} years` : '—'}</p>
+                    <p className="font-medium mt-0.5">{asset.usefulLifeYears ? `${asset.usefulLifeYears} years` : 'â€”'}</p>
                   </div>
                   <div className="bg-muted/40 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground">Salvage Value</p>
-                    <p className="font-medium mt-0.5">{asset.salvageValue ? fmt(asset.salvageValue) : '—'}</p>
+                    <p className="font-medium mt-0.5">{asset.salvageValue ? fmt(asset.salvageValue) : 'â€”'}</p>
                   </div>
                   <div className="bg-muted/40 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground">Last Depreciation</p>
@@ -750,8 +658,8 @@ function AssetDetailDialog({
                             <Badge variant="outline" className="text-xs shrink-0">{m.type}</Badge>
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {fmtDate(m.scheduledDate)} · {m.serviceProvider ?? 'Internal'}
-                            {m.actualCost && ` · ${fmt(m.actualCost)}`}
+                            {fmtDate(m.scheduledDate)} Â· {m.serviceProvider ?? 'Internal'}
+                            {m.actualCost && ` Â· ${fmt(m.actualCost)}`}
                           </p>
                         </div>
                         <Badge variant="outline" className={`text-xs ${m.status === 'COMPLETED' ? 'text-emerald-700' : m.status === 'OVERDUE' ? 'text-red-700' : 'text-amber-700'}`}>
@@ -770,7 +678,7 @@ function AssetDetailDialog({
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function FixedAssetsPage() {
   const [summary, setSummary] = useState<AssetSummary | null>(null);
@@ -820,7 +728,7 @@ export default function FixedAssetsPage() {
         assetIds: [],
         periodStart: firstOfMonth.toISOString(),
         periodEnd: lastOfMonth.toISOString(),
-        notes: `Monthly depreciation run — ${now.toLocaleDateString()}`,
+        notes: `Monthly depreciation run â€” ${now.toLocaleDateString()}`,
       });
       await loadAll();
     } finally {
@@ -837,7 +745,7 @@ export default function FixedAssetsPage() {
           <div>
             <h1 className="text-xl font-bold tracking-tight">Fixed Assets</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {summary ? `${summary.counts.total} assets · Book value ${fmt(summary.financials.totalBookValue)}` : 'Asset register'}
+              {summary ? `${summary.counts.total} assets Â· Book value ${fmt(summary.financials.totalBookValue)}` : 'Asset register'}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -867,7 +775,7 @@ export default function FixedAssetsPage() {
           <div className="relative flex-1 min-w-48">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name, code, serial…"
+              placeholder="Search by name, code, serialâ€¦"
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
               className="pl-9"
@@ -966,14 +874,14 @@ export default function FixedAssetsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {asset.location?.name ?? (asset.assignedToStaff ? `${asset.assignedToStaff.firstName} ${asset.assignedToStaff.lastName}` : '—')}
+                        {asset.location?.name ?? (asset.assignedToStaff ? `${asset.assignedToStaff.firstName} ${asset.assignedToStaff.lastName}` : 'â€”')}
                       </TableCell>
                       <TableCell>
                         {warrantyDate ? (
                           <span className={`text-xs ${warrantyExpiringSoon ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
-                            {warrantyExpiringSoon && '⚠ '}{fmtDate(asset.warrantyExpiry)}
+                            {warrantyExpiringSoon && 'âš  '}{fmtDate(asset.warrantyExpiry)}
                           </span>
-                        ) : <span className="text-xs text-muted-foreground">—</span>}
+                        ) : <span className="text-xs text-muted-foreground">â€”</span>}
                       </TableCell>
                       <TableCell onClick={e => e.stopPropagation()}>
                         <DropdownMenu>
@@ -1012,7 +920,7 @@ export default function FixedAssetsPage() {
           {meta.totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t">
               <p className="text-sm text-muted-foreground">
-                {meta.total} assets · Page {meta.page} of {meta.totalPages}
+                {meta.total} assets Â· Page {meta.page} of {meta.totalPages}
               </p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
@@ -1040,7 +948,7 @@ export default function FixedAssetsPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleRunDepreciation} disabled={depreciationRunning}>
-              {depreciationRunning ? 'Running…' : 'Run Depreciation'}
+              {depreciationRunning ? 'Runningâ€¦' : 'Run Depreciation'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1084,3 +992,5 @@ export default function FixedAssetsPage() {
     </div>
   );
 }
+
+
