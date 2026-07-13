@@ -751,121 +751,245 @@ function ReceiptModal({
 
 function InvoiceDocument({ data }: { data: ReceiptData }) {
   const { clinic, invoice, patient, dentist, receipts } = data;
-  const latestReceipt = receipts?.[0];
+  const items = invoice?.items ?? [];
+  const computedSubtotal = items.reduce(
+    (s, i) => s + Number(i.quantity) * Number(i.unitPrice),
+    0,
+  );
+  const computedDiscount = items.reduce(
+    (s, i) => s + (Number(i.discount) || 0),
+    0,
+  );
+  const displaySubtotal = computedSubtotal || Number(invoice?.subtotal) || 0;
+  const displayDiscount =
+    computedDiscount || Number(invoice?.discountAmount) || 0;
+
   return (
-    <div className="space-y-5 text-sm">
-      <div className="text-center border-b pb-4">
-        <h1 className="text-xl font-bold text-slate-800">
-          {clinic?.name || "Dental Clinic"}
-        </h1>
-        {clinic?.address && (
-          <p className="text-xs text-slate-500">{clinic.address}</p>
-        )}
-        {clinic?.phone && (
-          <p className="text-xs text-slate-500">Tel: {clinic.phone}</p>
-        )}
-      </div>
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-base font-bold text-slate-800">
-           INVOICE
-          </h2>
-          {/* <h2 className="text-base font-bold text-slate-800">
-            {invoice?.paymentStatus === "PAID" ? "RECEIPT" : "INVOICE"}
-          </h2> */}
-          {latestReceipt && (
-            <p className="text-xs text-slate-500">
-              Receipt #: {latestReceipt.receiptNumber}
+    <div className="text-sm text-slate-800">
+      {/* Header */}
+      <div className="flex items-start justify-between border-b-2 border-slate-800 pb-4">
+        <div className="flex items-center gap-3">
+          <svg width="44" height="44" viewBox="0 0 60 80" fill="none">
+            <path
+              d="M30 3C17 3 6 12 6 23c0 9 3 16 7 23 4 8 5 18 7 27 1 4 4 6 7 4 2-2 2-8 3-8s1 6 3 8c3 2 6 0 7-4 2-9 3-19 7-27 4-7 7-14 7-23C54 12 43 3 30 3z"
+              fill="#0ea5e9"
+            />
+          </svg>
+          <div>
+            <h1 className="text-base font-bold text-slate-900 leading-tight">
+              {clinic?.name || "Bright Smile Dental Clinic"}
+            </h1>
+            <p className="text-[11px] text-slate-500 font-semibold tracking-wide">
+              DENTAL CLINIC
             </p>
-          )}
-          <p className="text-xs text-slate-500">
-            Invoice #: {invoice?.invoiceNumber}
+            <p className="text-[10px] text-slate-500">
+              Healthy Smile, Healthy Life
+            </p>
+          </div>
+        </div>
+        <div className="text-right">
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+            INVOICE
+          </h2>
+          <div className="mt-1 space-y-0.5 text-[11px] text-slate-600">
+            <p>
+              <span className="font-semibold">Invoice No.</span> :{" "}
+              <span className="font-mono">{invoice?.invoiceNumber}</span>
+            </p>
+            <p>
+              <span className="font-semibold">Invoice Date</span> :{" "}
+              {invoice?.createdAt
+                ? new Date(invoice.createdAt).toLocaleDateString(
+                    "en-UG",
+                    {
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                    },
+                  )
+                : "--"}
+            </p>
+            <p>
+              <span className="font-semibold">Due Date</span> :{" "}
+              {invoice?.dueDate
+                ? new Date(invoice.dueDate).toLocaleDateString("en-UG", {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  })
+                : "--"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* BILL TO / PATIENT */}
+      <div className="grid grid-cols-2 gap-0 border-b border-slate-200">
+        <div className="pr-6 border-r border-slate-200 py-3">
+          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+            BILL TO
+          </h3>
+          <p className="font-bold text-slate-800 text-sm">
+            {patient
+              ? `${patient.firstName ?? ""} ${patient.lastName ?? ""}`.trim() ||
+                "John Doe"
+              : "John Doe"}
           </p>
-          <p className="text-xs text-slate-500">
-            Date:{" "}
-            {invoice?.createdAt
-              ? new Date(invoice.createdAt).toLocaleDateString("en-UG", {
-                  day: "2-digit",
-                  month: "long",
-                  year: "numeric",
-                })
-              : "--"}
+          {patient?.phone && (
+            <p className="text-[11px] text-slate-500">{patient.phone}</p>
+          )}
+          <p className="text-[11px] text-slate-500">Kampala, Uganda</p>
+        </div>
+        <div className="pl-6 py-3">
+          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+            PATIENT
+          </h3>
+          <p className="font-bold text-slate-800 text-sm">
+            {patient
+              ? `${patient.firstName ?? ""} ${patient.lastName ?? ""}`.trim() ||
+                "John Doe"
+              : "John Doe"}
+          </p>
+          <p className="text-[11px] text-slate-500 mt-1">
+            Patient ID: {patient?.patientCode ?? "--"}
           </p>
         </div>
-        <span className="px-2.5 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-600">
-          {getDisplayStatus(invoice?.status ?? "")}
-        </span>
       </div>
-      <div className="bg-slate-50 rounded-lg p-3">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
-          Patient
-        </p>
-        <p className="font-semibold text-slate-800">
-          {patient?.firstName} {patient?.lastName}
-        </p>
-        <p className="text-xs text-slate-500">ID: {patient?.patientCode}</p>
-        {dentist && (
-          <p className="text-xs text-slate-500 mt-1">
-            Attending: Dr. {dentist.firstName} {dentist.lastName}
-          </p>
-        )}
-      </div>
+
+      {/* Line Items Table */}
       <table className="w-full text-xs">
         <thead>
           <tr className="border-b-2 border-slate-200">
+            <th className="text-center py-1.5 text-slate-500 font-semibold w-8">
+              #
+            </th>
             <th className="text-left py-1.5 text-slate-500 font-semibold">
-              Description
+              DESCRIPTION
             </th>
-            <th className="text-center py-1.5 text-slate-500 font-semibold">
-              Qty
+            <th className="text-center py-1.5 text-slate-500 font-semibold w-16">
+              QTY
             </th>
-            <th className="text-right py-1.5 text-slate-500 font-semibold">
-              Price
+            <th className="text-right py-1.5 text-slate-500 font-semibold w-28">
+              UNIT PRICE (UGX)
             </th>
-            <th className="text-right py-1.5 text-slate-500 font-semibold">
-              Total
+            <th className="text-right py-1.5 text-slate-500 font-semibold w-24">
+              DISCOUNT (UGX)
+            </th>
+            <th className="text-right py-1.5 text-slate-500 font-semibold w-28">
+              AMOUNT (UGX)
             </th>
           </tr>
         </thead>
         <tbody>
-          {invoice?.items?.map((item: InvoiceItem) => (
-            <tr key={item.id} className="border-b border-slate-100">
-              <td className="py-1.5 text-slate-800">{item.description}</td>
-              <td className="py-1.5 text-center text-slate-600">
-                {item.quantity}
-              </td>
-              <td className="py-1.5 text-right text-slate-600">
-                {formatCurrency(item.unitPrice, invoice?.currency)}
-              </td>
-              <td className="py-1.5 text-right font-semibold text-slate-800">
-                {formatCurrency(item.total, invoice?.currency)}
-              </td>
-            </tr>
-          ))}
+          {items.map((item: any, idx: number) => {
+            const lineSubtotal =
+              Number(item.quantity) * Number(item.unitPrice);
+            const lineDiscount = Number(item.discount) || 0;
+            return (
+              <tr key={item.id} className="border-b border-slate-100">
+                <td className="py-1.5 text-slate-600 text-center">
+                  {idx + 1}
+                </td>
+                <td className="py-1.5">
+                  <p className="text-slate-800 font-medium">
+                    {item.description}
+                  </p>
+                  {item.notes && (
+                    <p className="text-[10px] text-slate-500">{item.notes}</p>
+                  )}
+                </td>
+                <td className="py-1.5 text-center text-slate-600">
+                  {item.quantity}
+                </td>
+                <td className="py-1.5 text-right text-slate-600">
+                  {fmt(lineSubtotal, invoice?.currency)}
+                </td>
+                <td className="py-1.5 text-right text-slate-600">
+                  {lineDiscount > 0 ? fmt(lineDiscount, invoice?.currency) : "0"}
+                </td>
+                <td className="py-1.5 text-right font-semibold text-slate-800">
+                  {fmt(item.total, invoice?.currency)}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
-      <div className="space-y-1 border-t border-slate-200 pt-3">
-        <div className="flex justify-between font-bold text-base border-t border-slate-300 pt-2">
-          <span>Total ({invoice?.currency})</span>
-          <span className="text-blue-700">
-            {formatCurrency(invoice?.total || 0, invoice?.currency)}
-          </span>
-        </div>
-        <div className="flex justify-between font-semibold text-green-700">
-          <span>Amount Paid</span>
-          <span>
-            {formatCurrency(invoice?.amountPaid || 0, invoice?.currency)}
-          </span>
-        </div>
-        {(invoice?.balance || 0) > 0 && (
-          <div className="flex justify-between font-bold text-amber-700">
-            <span>Balance Due</span>
-            <span>{formatCurrency(invoice.balance, invoice.currency)}</span>
+
+      {/* Bottom: Notes + Summary */}
+      <div className="grid grid-cols-2 gap-0 border-t border-slate-200 mt-0">
+        <div className="pr-6 border-r border-slate-200 py-3">
+          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+            Notes
+          </h3>
+          <div>
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              {invoice?.notes ||
+                "Thank you for trusting Bright Smile Dental Clinic. Please make payments to our clinic."}
+            </p>
           </div>
-        )}
+        </div>
+        <div className="pl-6 py-3 space-y-1.5">
+          <div className="flex justify-between text-xs text-slate-600">
+            <span>Subtotal</span>
+            <span>{fmt(displaySubtotal, invoice?.currency)}</span>
+          </div>
+          <div className="flex justify-between text-xs text-slate-600">
+            <span>Discount</span>
+            <span>
+              {displayDiscount
+                ? `− ${fmt(displayDiscount, invoice?.currency)}`
+                : "0"}
+            </span>
+          </div>
+          <div className="flex justify-between text-sm font-bold text-slate-900 border-t border-slate-300 pt-2">
+            <span>TOTAL</span>
+            <span className="text-red-600">
+              {fmt(invoice?.total ?? 0, invoice?.currency)}
+            </span>
+          </div>
+          <div className="flex justify-between text-xs font-bold text-emerald-700">
+            <span>Paid so far</span>
+            <span>{fmt(invoice?.amountPaid ?? 0, invoice?.currency)}</span>
+          </div>
+          {(invoice?.balance ?? 0) > 0 && (
+            <div className="flex justify-between text-sm font-bold text-red-600 bg-red-50 rounded px-2 py-1.5">
+              <span>Balance due</span>
+              <span>{fmt(invoice.balance, invoice.currency)}</span>
+            </div>
+          )}
+        </div>
       </div>
-      <div className="text-center text-xs text-slate-400 border-t pt-4">
-        Thank you for choosing {clinic?.name || "our clinic"}
+
+      {/* Clinic Details + Payment Information */}
+      <div className="grid grid-cols-2 gap-0 border-t border-slate-200 mt-0">
+        <div className="pr-6 border-r border-slate-200 py-3">
+          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+            Clinic Details
+          </h3>
+          <div className="space-y-0.5 text-[10px] text-slate-500">
+            <p>Plot 12, Kisementi Road,</p>
+            <p>Kampala, Uganda</p>
+            <p>Tel: +256 393 123456</p>
+            <p>info@brightsmile.ug</p>
+            <p>www.brightsmile.ug</p>
+          </div>
+        </div>
+        <div className="pl-6 py-3">
+          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+            Payment Information
+          </h3>
+          <div className="space-y-0.5 text-[10px] text-slate-500">
+            <p>Bank: Stanbic Bank Uganda</p>
+            <p>Account Name: Bright Smile Dental Clinic</p>
+            <p>Account No: 903001234567</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="text-center border-t border-slate-200 pt-4 mt-0">
+        <p className="text-sm text-slate-600">Thank you for your visit!</p>
       </div>
     </div>
   );
@@ -1562,15 +1686,15 @@ export function VisitBillingPage() {
                         )}
                       </button>
                     )}
-                  {selectedInvoice.status !== "VOID" &&
-                    selectedInvoice.paymentStatus === "PAID" && (
-                      <button
-                        onClick={() => setShowReceipt(true)}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700"
-                      >
-                        <Printer className="w-3.5 h-3.5" /> Print Invoice
-                      </button>
-                    )}
+                  {selectedInvoice.status !== "VOID" && (
+                    <button
+                      onClick={() => setShowReceipt(true)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700"
+                    >
+                      <Printer className="w-3.5 h-3.5" /> Print Invoice
+                    </button>
+                  )}
+                  <div className="flex items-center gap-2">
                   {["DRAFT", "POSTED", "CLOSED"].includes(
                     selectedInvoice.status,
                   ) && (
@@ -1583,6 +1707,8 @@ export function VisitBillingPage() {
                   )}
                 </div>
               </div>
+              </div>
+            </div>
 
               {selectedInvoice.status === "VOID" && (
                 <div className="mt-4 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
@@ -1778,10 +1904,9 @@ export function VisitBillingPage() {
                       </p>
                     </div>
                     {/* )} */}
-                  </div>
                 </div>
               </div>
-            </div>
+              </div>
 
             {/* ── INVOICE ITEMS TABLE ─────────────────────────────────── */}
             <div className="px-4 pt-2">
@@ -1810,20 +1935,23 @@ export function VisitBillingPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 border-b border-slate-200">
                     <tr>
-                      <th className="text-left text-xs font-semibold text-slate-500 p-3 w-[40%]">
+                      <th className="text-left text-xs font-semibold text-slate-500 p-3 w-[30%]">
                         Product
+                      </th>
+                      <th className="text-center text-xs font-semibold text-slate-500 p-3 w-[14%]">
+                        Type
                       </th>
                       <th className="text-right text-xs font-semibold text-slate-500 p-3 w-[10%]">
                         Qty
                       </th>
                       <th className="text-right text-xs font-semibold text-slate-500 p-3 w-[18%]">
-                        Unit Price
+                        Unit Price({selectedInvoice.currency})
                       </th>
                       <th className="text-right text-xs font-semibold text-slate-500 p-3 w-[10%]">
-                        Disc.%
+                        Discount({selectedInvoice.currency})
                       </th>
                       <th className="text-right text-xs font-semibold text-slate-500">
-                        Amount
+                        Amount({selectedInvoice.currency})
                       </th>
                       {isEditable && <th className="w-[4%]"></th>}
                     </tr>
@@ -1832,40 +1960,31 @@ export function VisitBillingPage() {
                     {/* Existing invoice items */}
                     {((selectedInvoice as any).items ?? []).map((item: any) => {
                       const canRemove = isEditable;
-                      const discPct =
-                        item.discount && item.unitPrice && item.quantity
-                          ? (
-                              (Number(item.discount) /
-                                (Number(item.unitPrice) *
-                                  Number(item.quantity))) *
-                              100
-                            ).toFixed(0)
-                          : null;
                       return (
                         <tr
                           key={item.id}
                           className="hover:bg-slate-50/60 group"
                         >
                           <td className="p-3">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-slate-800">
-                                {item.description}
+                            <span className="text-slate-800">
+                              {item.description}
+                            </span>
+                          </td>
+                          <td className="p-3 text-center">
+                            {item.itemType && (
+                              <span
+                                className={cn(
+                                  "text-[10px] px-1.5 py-0.5 rounded border inline-flex items-center",
+                                  item.itemType === "PRESCRIPTION"
+                                    ? "bg-green-50 text-green-600 border-green-200"
+                                    : item.itemType === "TREATMENT_PROCEDURE"
+                                      ? "bg-purple-50 text-purple-600 border-purple-200"
+                                      : "bg-slate-100 text-slate-400 border-slate-200",
+                                )}
+                              >
+                                {item.itemType}
                               </span>
-                              {item.itemType && (
-                                <span
-                                  className={cn(
-                                    "text-[10px] px-1 py-0.5 rounded border shrink-0 flex items-right",
-                                    item.itemType === "PRESCRIPTION"
-                                      ? "bg-green-50 text-green-600 border-green-200"
-                                      : item.itemType === "TREATMENT_PROCEDURE"
-                                        ? "bg-purple-50 text-purple-600 border-purple-200"
-                                        : "bg-slate-100 text-slate-400 border-slate-200",
-                                  )}
-                                >
-                                  {item.itemType}
-                                </span>
-                              )}
-                            </div>
+                            )}
                           </td>
                           <td className="p-3 text-right text-slate-600">
                             {item.quantity}
@@ -1877,9 +1996,12 @@ export function VisitBillingPage() {
                             )}
                           </td>
                           <td className="p-3 text-right text-slate-500">
-                            {discPct && Number(discPct) > 0
-                              ? `${discPct}%`
-                              : "--"}
+                            {Number(item.discount) > 0
+                              ? formatCurrency(
+                                  Number(item.discount),
+                                  selectedInvoice.currency,
+                                )
+                              : "0"}
                           </td>
                           <td className="p-3 text-right font-semibold text-slate-800">
                             {formatCurrency(
@@ -2116,13 +2238,13 @@ export function VisitBillingPage() {
                           Qty
                         </th>
                         <th className="text-right text-xs font-semibold text-slate-500 p-3 w-[18%]">
-                          Unit Price
+                          Unit Price(UGX)
                         </th>
                         <th className="text-right text-xs font-semibold text-slate-500 p-3 w-[10%]">
-                          Disc.%
+                          Discount(UGX)
                         </th>
                         <th className="text-right text-xs font-semibold text-slate-500 p-3 w-[18%]">
-                          Amount
+                          Amount(UGX)
                         </th>
                       </tr>
                     </thead>
@@ -2137,10 +2259,12 @@ export function VisitBillingPage() {
                         <tr>
                           <td
                             colSpan={6}
-                            className="py-6 text-center text-slate-400 text-sm"
+                            className="py-2 text-center text-slate-400 text-sm"
                           >
-                            <Pill className="w-5 h-5 mx-auto mb-1 opacity-20" />{" "}
-                            No active prescriptions for this visit
+                            <span className="inline-flex items-center gap-1.5">
+                              <Pill className="w-4 h-4 text-slate-400" />
+                              No active prescriptions for this visit
+                            </span>
                           </td>
                         </tr>
                       ) : (
@@ -2301,21 +2425,30 @@ export function VisitBillingPage() {
 
             {/* ── Receipts list ────────────────────────────────────────── */}
             {/* ── PAYMENT HISTORY / RECEIPTS SECTION ─────────────────── */}
-{((selectedInvoice as any).receipts ?? []).length > 0 && (
-  <div className="px-7 py-5 border-t border-slate-200 bg-slate-50/30">
-    <div className="flex items-center justify-between mb-4">
-      <div className="flex items-center gap-2">
-        <Receipt className="w-4 h-4 text-slate-500" />
-        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">
-          Payment History
-        </h3>
-        <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-600 text-[10px] font-semibold">
-          {((selectedInvoice as any).receipts ?? []).length}
-        </span>
-      </div>
-    </div>
+            <div className="px-7 py-5 border-t border-slate-200 bg-slate-50/30">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-slate-500" />
+                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">
+                    Receipts History
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-600 text-[10px] font-semibold">
+                    {((selectedInvoice as any).receipts ?? []).length}
+                  </span>
+                </div>
+              </div>
 
-    <div className="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+              {((selectedInvoice as any).receipts ?? []).length === 0 && (
+                <div className="py-3 text-center text-slate-400 text-sm">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Receipt className="w-4 h-4 text-slate-400" />
+                    No Receipts Available
+                  </span>
+                </div>
+              )}
+
+              {((selectedInvoice as any).receipts ?? []).length > 0 && (
+                <div className="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
       <table className="w-full text-sm">
         <thead className="bg-slate-100 border-b border-slate-200">
           <tr>
@@ -2444,77 +2577,35 @@ export function VisitBillingPage() {
           })}
         </tbody>
       </table>
-    </div>
+                </div>
+              )}
 
-    {/* Payment Summary Footer */}
-    <div className="mt-4 flex flex-col items-end justify-end gap-6 text-sm">
-      <div className="flex items-center gap-2">
-        <span className="text-slate-500">Total Paid:</span>
-        <span className="text-base font-bold text-green-600">
-          {formatCurrency(
-            ((selectedInvoice as any).receipts ?? [])
-              .filter((r: any) => r.status !== "VOID")
-              .reduce((sum: number, r: any) => sum + Number(r.amountReceived), 0),
-            selectedInvoice.currency,
-          )}
-        </span>
-      </div>
-      {Number(selectedInvoice.balance ?? 0) > 0 && (
-        <div className="flex items-center gap-2">
-          <span className="text-slate-500">Remaining Balance:</span>
-          <span className="text-base font-bold text-amber-600">
-            {formatCurrency(
-              Number(selectedInvoice.balance),
-              selectedInvoice.currency,
-            )}
-          </span>
-        </div>
-      )}
-    </div>
-  </div>
-)}
-            {/* {((selectedInvoice as any).receipts ?? []).length > 0 && (
-              <div className="px-7 py-3 border-t border-slate-100 bg-slate-50/50">
-                <p className="text-[13px] font-bold text-slate-700 uppercase tracking-wide mb-2">
-                  Payment Receipts
-                </p>
-                {((selectedInvoice as any).receipts ?? []).map((r: any) => {
-                  const receivedByLabel = r.receivedBy
-                    ? `${r.receivedBy.firstName} ${r.receivedBy.lastName}`
-                    : (r.receivedByName ?? null);
-                  return (
-                    <div
-                      key={r.id}
-                      className="flex items-center justify-between text-sm py-1 gap-3"
-                    >
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-slate-600 font-mono truncate">
-                          {r.receiptNumber}
-                        </span>
-                        {receivedByLabel && (
-                          <span className="text-[12px] text-slate-400 truncate">
-                            by {receivedByLabel}
-                          </span>
-                        )}
-                      </div>
-                      <span
-                        className={cn(
-                          "font-medium shrink-0",
-                          r.status === "VOID"
-                            ? "text-slate-400 line-through"
-                            : "text-green-600",
-                        )}
-                      >
-                        {formatCurrency(
-                          Number(r.amountReceived),
-                          r.currencyCode ?? selectedInvoice.currency,
-                        )}
-                      </span>
-                    </div>
-                  );
-                })}
+              {/* Payment Summary Footer */}
+              <div className="mt-4 flex flex-col items-end justify-end gap-6 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-500">Total Paid:</span>
+                  <span className="text-base font-bold text-green-600">
+                    {formatCurrency(
+                      ((selectedInvoice as any).receipts ?? [])
+                        .filter((r: any) => r.status !== "VOID")
+                        .reduce((sum: number, r: any) => sum + Number(r.amountReceived), 0),
+                      selectedInvoice.currency,
+                    )}
+                  </span>
+                </div>
+                {Number(selectedInvoice.balance ?? 0) > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-500">Remaining Balance:</span>
+                    <span className="text-base font-bold text-amber-600">
+                      {formatCurrency(
+                        Number(selectedInvoice.balance),
+                        selectedInvoice.currency,
+                      )}
+                    </span>
+                  </div>
+                )}
               </div>
-            )} */}
+            </div>
           </div>
         ) : (
           <div className="max-w-5xl mx-auto bg-white rounded-xl border border-slate-200 flex flex-col items-center justify-center py-16 text-slate-400">
@@ -2543,9 +2634,8 @@ export function VisitBillingPage() {
                 </button>
               </>
             )}
-          </div>
-        )}
-      </div>
+           </div>
+            )}
 
       {/* ── Modals ─────────────────────────────────────────────────────── */}
       {selectedInvoice && (
@@ -2576,6 +2666,7 @@ export function VisitBillingPage() {
           )}
         </>
       )}
+    </div>
     </div>
   );
 }

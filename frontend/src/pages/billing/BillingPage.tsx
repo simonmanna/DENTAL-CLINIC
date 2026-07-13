@@ -862,7 +862,7 @@ function InvoiceDetailDialog({
             onClick={onReceipt}
             className="flex items-center gap-1.5 px-1 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors"
           >
-            <Printer className="w-3.5 h-3.5" /> Receipt
+            <Printer className="w-3.5 h-3.5" /> Print Invoice
           </button>
           <button
             onClick={onClose}

@@ -69,7 +69,7 @@
 @media print {
   @page {
     size: A4;
-    margin: 14mm;
+    margin: 12mm;
   }
 
   /* Preserve colours so totals, badges and the balance-due highlight survive */

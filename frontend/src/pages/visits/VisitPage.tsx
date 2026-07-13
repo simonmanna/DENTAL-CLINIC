@@ -20,6 +20,7 @@ import { DentalChart } from "./components/DentalChart";
 import { PrescriptionTab } from "./components/PrescriptionTab";
 import { ExaminationTab } from "./components/ExaminationTab";
 import { PatientAppointmentsTab } from "./components/PatientAppointmentsTab";
+import { PatientReportTab } from "../patients/components/PatientReportTab";
 import { ProgressTab } from "./components/ProgressTab";
 import { VisitImagingTab } from "./components/VisitImagingTab";
 import { VisitProcedureSessionsTab } from "./components/VisitProcedureSessionsTab";
@@ -86,6 +87,7 @@ const TABS = [
   { id: "imaging", label: "Imaging", icon: Activity },
   { id: "tx-progress", label: "Progress Report", icon: FileText },
   { id: "sessions", label: "Procedure Sessions", icon: Activity },
+  { id: "patient-report", label: "Patient Report", icon: FileText },
 ];
 
 // ─── Main VisitPage ───────────────────────────────────────────────────────────
@@ -361,6 +363,9 @@ export function VisitPage() {
             )}
             {activeTab === "sessions" && (
               <VisitProcedureSessionsTab visitId={id} />
+            )}
+            {activeTab === "patient-report" && (
+              <PatientReportTab patientId={patientId} visit={visit} />
             )}
           </div>
         </div>

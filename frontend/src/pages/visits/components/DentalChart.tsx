@@ -33,6 +33,7 @@ import {
   ClipboardList,
   Trash2,
   X,
+  Eye,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -56,7 +57,15 @@ import {
 } from "./AddConditionDialog";
 import { AddTreatmentDialog } from "./AddTreatmentDialog";
 import { ToothDetailDrawer } from "./ToothDetailDrawer";
-import type { EditConditionSubmitData } from "./EditConditionDialog";
+import {
+  EditConditionDialog,
+  type EditConditionInitialData,
+  type EditConditionSubmitData,
+} from "./EditConditionDialog";
+import {
+  EditProcedureDialog,
+  type EditProcedureInitialData,
+} from "./EditProcedureDialog";
 import { staffApi } from "../../../lib/api/staff-api";
 import { toast } from "sonner";
 import {
@@ -1561,12 +1570,16 @@ function SplitLedger({
   entries,
   selectedTeeth,
   onRowClick,
+  onViewCondition,
+  onViewProcedure,
 }: {
   entries: ChartEntry[];
   selectedTeeth: number[];
   onRowClick: (teeth: number[]) => void;
+  onViewCondition?: (entry: ChartEntry) => void;
+  onViewProcedure?: (entry: ChartEntry) => void;
 }) {
-  const [condFilter, setCondFilter] = useState<"ALL" | "ACTIVE" | "RESOLVED">("ACTIVE");
+  const [condFilter, setCondFilter] = useState<"ALL" | "ACTIVE" | "RESOLVED">("ALL");
   const [procFilter, setProcFilter] = useState<
     "ALL" | "EXISTING" | "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "INACTIVE"
   >("ALL");
@@ -1579,7 +1592,7 @@ function SplitLedger({
           if (condFilter === "ALL") return true;
           if (condFilter === "ACTIVE")
             return e.status === "ACTIVE" && isLiveConditionEntry(e);
-          if (condFilter === "RESOLVED") return e.status === "RESOLVED";
+          if (condFilter === "RESOLVED") return e.conditionStatus === "RESOLVED" || e.conditionStatus === "RULED_OUT";
           return false;
         })
         .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? "")),
@@ -1874,6 +1887,52 @@ function SplitLedger({
                         );
                       })()}
                     </td>
+                    {entry.type === "CONDITION" && onViewCondition && (
+                      <td style={{ padding: "5px 4px", width: 30 }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onViewCondition(entry);
+                          }}
+                          title="View condition details"
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            color: "#64748b",
+                            padding: 4,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Eye size={14} />
+                        </button>
+                      </td>
+                    )}
+                    {entry.type !== "CONDITION" && onViewProcedure && (
+                      <td style={{ padding: "5px 4px", width: 30 }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onViewProcedure(entry);
+                          }}
+                          title="View procedure details"
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            color: "#64748b",
+                            padding: 4,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Eye size={14} />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 );
               })}
@@ -1911,6 +1970,12 @@ function SplitLedger({
           conditions,
           <>
             <Pill
+              active={condFilter === "ALL"}
+              color="#64748b"
+              onClick={() => setCondFilter("ALL")}
+              label="All"
+            />
+            <Pill
               active={condFilter === "ACTIVE"}
               color={LAYER_COLOR.CONDITION.c}
               onClick={() => setCondFilter("ACTIVE")}
@@ -1921,12 +1986,6 @@ function SplitLedger({
               color={LAYER_COLOR.RESOLVED.c}
               onClick={() => setCondFilter("RESOLVED")}
               label="Resolved"
-            />
-            <Pill
-              active={condFilter === "ALL"}
-              color="#64748b"
-              onClick={() => setCondFilter("ALL")}
-              label="All"
             />
           </>,
         )}
@@ -2486,6 +2545,7 @@ function DentalChartInner({
     "permanent",
   );
   const [drawerTooth, setDrawerTooth] = useState<number | null>(null);
+  const [viewingCondition, setViewingCondition] = useState<ChartEntry | null>(null);
   const [showCond, setShowCond] = useState(false);
   const [showTx, setShowTx] = useState(false);
   const [deleteEntry, setDeleteEntry] = useState<ChartEntry | null>(null);
@@ -2994,6 +3054,78 @@ function DentalChartInner({
     ],
   );
 
+  // ── View condition detail (eye button in SplitLedger) ──────────────────────
+  const conditionViewData = useMemo<EditConditionInitialData | null>(() => {
+    if (!viewingCondition) return null;
+    const rawProvider = viewingCondition.provider as unknown;
+    const provId =
+      rawProvider && typeof rawProvider === "object"
+        ? (rawProvider as { id?: string }).id ?? ""
+        : typeof rawProvider === "string"
+          ? rawProvider
+          : "";
+    return {
+      chartEntryId: viewingCondition.id,
+      patientConditionId: viewingCondition.patientConditionId,
+      toothNumbers: viewingCondition.toothNumbers,
+      surfaces: viewingCondition.surfaces,
+      label: viewingCondition.label,
+      code: viewingCondition.code ?? "",
+      notes: viewingCondition.notes,
+      conditionId: viewingCondition.conditionId,
+      diagnosedAt: viewingCondition.diagnosedAt ?? viewingCondition.date,
+      diagnosedBy: provId,
+      providerId: provId,
+      severity: viewingCondition.severity ?? "",
+      status: viewingCondition.conditionStatus ?? "ACTIVE",
+    };
+  }, [viewingCondition]);
+
+  const handleViewConditionSubmit = useCallback(
+    async (data: EditConditionSubmitData) => {
+      await handleEditCondition(data);
+      setViewingCondition(null);
+    },
+    [handleEditCondition],
+  );
+
+  // ── View procedure detail (eye button in SplitLedger) ─────────────────────
+  const [viewingProcedure, setViewingProcedure] = useState<ChartEntry | null>(null);
+
+  const procedureViewData = useMemo<EditProcedureInitialData | null>(() => {
+    if (!viewingProcedure) return null;
+    const tpId = viewingProcedure.treatmentProcedureId;
+    const tPlanId = viewingProcedure.treatmentPlanId;
+    if (!tpId || !tPlanId) return null;
+    const refTooth = viewingProcedure.toothNumbers[0] ?? 11;
+    return {
+      treatmentProcedureId: tpId,
+      treatmentPlanId: tPlanId,
+      procedureName: viewingProcedure.label,
+      procedureCode: (viewingProcedure as any).procedureCode ?? viewingProcedure.code,
+      toothNumbers: viewingProcedure.toothNumbers,
+      surfaces: viewingProcedure.surfaces.map((s) => uiToCanonical(s, refTooth)),
+      notes: viewingProcedure.notes,
+      totalPrice: viewingProcedure.totalPrice ?? 0,
+      currency: viewingProcedure.currency ?? "UGX",
+      sessionType: (viewingProcedure as any).sessionType ?? "SINGLE",
+      sessionCount: (viewingProcedure as any).sessionCount ?? 1,
+      billingType: (viewingProcedure as any).billingType ?? "PAY_FULL",
+      providerId: (viewingProcedure as any).providerId ?? "",
+      status: viewingProcedure.procedureStatus ?? viewingProcedure.type,
+      sessionsCount: viewingProcedure.sessionsCount ?? 0,
+    };
+  }, [viewingProcedure]);
+
+  const handleViewProcedureSuccess = useCallback(() => {
+    if (patientId) {
+      qc.invalidateQueries({ queryKey: ["chart-entries", patientId] });
+      qc.invalidateQueries({ queryKey: ["treatment-procedures", patientId] });
+      qc.invalidateQueries({ queryKey: ["tx-plans", patientId] });
+    }
+    setViewingProcedure(null);
+  }, [patientId, qc]);
+
   // ── Delete condition — uses modal, not window.prompt ──────────────────────
   const handleDeleteConditionClick = useCallback(
     async (entry: ChartEntry) => {
@@ -3055,12 +3187,16 @@ function DentalChartInner({
       RESOLVED: 0,
     };
     for (const e of entries) {
-      // Resolved conditions have status=RESOLVED, others have status=ACTIVE
+      if (e.type === "CONDITION") {
+        const cs = e.conditionStatus;
+        if (cs === "RESOLVED" || cs === "RULED_OUT") {
+          counts.RESOLVED++;
+          continue;
+        }
+      }
       if (e.status === "ACTIVE") {
         if (!isLiveConditionEntry(e)) continue;
         counts[layerForEntry(e)]++;
-      } else if (e.status === "RESOLVED" && e.type === "CONDITION") {
-        counts.RESOLVED++;
       }
     }
     return counts;
@@ -3715,6 +3851,8 @@ function DentalChartInner({
           setSelected(teeth);
           setAnchor(teeth[0] ?? null);
         }}
+        onViewCondition={setViewingCondition}
+        onViewProcedure={setViewingProcedure}
       />
 
       {/* ── Dialogs & drawers ── */}
@@ -3769,6 +3907,28 @@ function DentalChartInner({
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteEntry(null)}
       />
+
+      {conditionViewData && (
+        <EditConditionDialog
+          isOpen
+          onClose={() => setViewingCondition(null)}
+          initialData={conditionViewData}
+          defaultDentistId={dentistId}
+          onSubmit={handleViewConditionSubmit}
+        />
+      )}
+
+      {procedureViewData && patientId && (
+        <EditProcedureDialog
+          isOpen
+          onClose={() => setViewingProcedure(null)}
+          initialData={procedureViewData}
+          patientId={patientId}
+          visitId={visitId}
+          dentistId={dentistId}
+          onSuccess={handleViewProcedureSuccess}
+        />
+      )}
 
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
     </div>

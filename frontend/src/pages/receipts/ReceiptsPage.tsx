@@ -13,9 +13,6 @@ import {
   Calendar,
   DollarSign,
   User,
-  Building2,
-  Phone,
-  Mail,
   CheckCircle,
   ChevronLeft,
   TrendingUp,
@@ -438,54 +435,291 @@ const STYLES = `
     padding: 40px;
     box-shadow: var(--shadow-sm);
   }
-  .pur-detail-doc .clinic-header {
-    text-align: center;
+  .pur-detail-doc .rd-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
     border-bottom: 2px solid #1e293b;
-    padding-bottom: 16px;
+    padding-bottom: 18px;
+    margin-bottom: 24px;
+    gap: 20px;
+  }
+  .pur-detail-doc .rd-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .pur-detail-doc .rd-brand-icon {
+    width: 48px;
+    height: 48px;
+    background: #eff6ff;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .pur-detail-doc .rd-brand-text h1 {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+    line-height: 1.2;
+  }
+  .pur-detail-doc .rd-brand-text .rd-tagline {
+    font-size: .72rem;
+    font-weight: 700;
+    color: #2563eb;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 2px 0 0;
+  }
+  .pur-detail-doc .rd-brand-text .rd-slogan {
+    font-size: .75rem;
+    color: #94a3b8;
+    margin: 1px 0 0;
+  }
+  .pur-detail-doc .rd-meta {
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .pur-detail-doc .rd-meta h2 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+    letter-spacing: -.3px;
+  }
+  .pur-detail-doc .rd-meta p {
+    margin: 2px 0;
+    font-size: .78rem;
+    color: #64748b;
+  }
+  .pur-detail-doc .rd-meta .rd-receipt-label {
+    font-size: .65rem;
+    font-weight: 700;
+    color: #2563eb;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    margin-bottom: 4px;
+  }
+  .pur-detail-doc .rd-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed #e2e8f0;
+  }
+  .pur-detail-doc .rd-title-row h2 {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+  }
+  .pur-detail-doc .rd-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
     margin-bottom: 24px;
   }
-  .pur-detail-doc .clinic-header h1 { font-size: 1.75rem; font-weight: 800; color: #0f172a; margin: 0; }
-  .pur-detail-doc .clinic-header p { color: #475569; margin: 4px 0 0; font-size: .875rem; }
-  .pur-detail-doc .doc-title { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-  .pur-detail-doc .doc-title h2 { font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 0; }
-  .pur-detail-doc .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
-  @media (max-width: 600px) { .pur-detail-doc .info-grid { grid-template-columns: 1fr; } }
-  .pur-detail-doc .info-box {
+  @media (max-width: 600px) { .pur-detail-doc .rd-grid { grid-template-columns: 1fr; } }
+  .pur-detail-doc .rd-block {
+    border-radius: 8px;
+    padding: 16px 18px;
+  }
+  .pur-detail-doc .rd-block-light {
+    background: #f8fafc;
+  }
+  .pur-detail-doc .rd-block-green {
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+  }
+  .pur-detail-doc .rd-block-label {
+    font-size: .65rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    margin-bottom: 8px;
+  }
+  .pur-detail-doc .rd-patient-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+  }
+  .pur-detail-doc .rd-patient-detail {
+    font-size: .82rem;
+    color: #64748b;
+    margin: 2px 0;
+  }
+  .pur-detail-doc .rd-invoice-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    font-size: .85rem;
+  }
+  .pur-detail-doc .rd-invoice-row .rd-lbl {
+    color: #64748b;
+  }
+  .pur-detail-doc .rd-invoice-row .rd-val {
+    font-weight: 600;
+    color: #0f172a;
+  }
+  .pur-detail-doc .rd-invoice-row .rd-val-lg {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #059669;
+  }
+  .pur-detail-doc .rd-items-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .82rem;
+    margin-bottom: 24px;
+  }
+  .pur-detail-doc .rd-items-table thead th {
+    background: #f8fafc;
+    padding: 10px 12px;
+    text-align: left;
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: #64748b;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  .pur-detail-doc .rd-items-table thead th:last-child { text-align: right; }
+  .pur-detail-doc .rd-items-table thead th:nth-child(3),
+  .pur-detail-doc .rd-items-table thead th:nth-child(4) { text-align: center; }
+  .pur-detail-doc .rd-items-table tbody td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+  }
+  .pur-detail-doc .rd-items-table tbody td:last-child {
+    text-align: right;
+    font-weight: 600;
+  }
+  .pur-detail-doc .rd-items-table tbody td:nth-child(3),
+  .pur-detail-doc .rd-items-table tbody td:nth-child(4) {
+    text-align: center;
+  }
+  .pur-detail-doc .rd-totals {
+    margin-bottom: 24px;
+    padding: 16px 20px;
     background: #f8fafc;
     border-radius: 8px;
-    padding: 16px;
+    border: 1px solid #e2e8f0;
   }
-  .pur-detail-doc .info-box .label {
-    font-size: .72rem; font-weight: 700; color: var(--clr-muted);
-    text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px;
+  .pur-detail-doc .rd-totals .rd-total-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    font-size: .85rem;
   }
-  .pur-detail-doc .payment-box {
+  .pur-detail-doc .rd-totals .rd-total-row .rd-lbl { color: #64748b; }
+  .pur-detail-doc .rd-totals .rd-total-row .rd-val { font-weight: 600; color: #0f172a; }
+  .pur-detail-doc .rd-totals .rd-total-row.rd-divider {
+    border-top: 1.5px solid #cbd5e1;
+    padding-top: 8px;
+    margin-top: 4px;
+  }
+  .pur-detail-doc .rd-totals .rd-total-row.rd-total-final .rd-lbl,
+  .pur-detail-doc .rd-totals .rd-total-row.rd-total-final .rd-val {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #0f172a;
+  }
+  .pur-detail-doc .rd-totals .rd-total-row.rd-green .rd-lbl,
+  .pur-detail-doc .rd-totals .rd-total-row.rd-green .rd-val {
+    color: #059669;
+  }
+  .pur-detail-doc .rd-totals .rd-total-row.rd-amber .rd-lbl,
+  .pur-detail-doc .rd-totals .rd-total-row.rd-amber .rd-val {
+    color: #d97706;
+  }
+  .pur-detail-doc .rd-payment-section {
+    margin-bottom: 24px;
+  }
+  .pur-detail-doc .rd-payment-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
     background: #ecfdf5;
     border: 1px solid #a7f3d0;
     border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 24px;
+    gap: 16px;
   }
-  .pur-detail-doc .history-item {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 16px;
+  .pur-detail-doc .rd-payment-info .rd-pay-amount {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #059669;
+    margin: 0;
+  }
+  .pur-detail-doc .rd-payment-info .rd-pay-details {
+    text-align: right;
+    font-size: .82rem;
+    color: #065f46;
+  }
+  .pur-detail-doc .rd-payment-info .rd-pay-details p { margin: 2px 0; }
+  .pur-detail-doc .rd-history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
     background: #f8fafc;
     border-radius: 8px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
+    gap: 12px;
   }
-  .pur-detail-doc .footer {
+  .pur-detail-doc .rd-section-title {
+    font-size: .82rem;
+    font-weight: 700;
+    color: #0f172a;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin: 0 0 10px;
+  }
+  .pur-detail-doc .rd-footer {
     text-align: center;
-    border-top: 1px solid var(--clr-border);
-    padding-top: 16px;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 18px;
     margin-top: 32px;
-    font-size: .875rem;
+  }
+  .pur-detail-doc .rd-footer p {
+    margin: 0;
+    font-size: .85rem;
     color: #64748b;
+  }
+  .pur-detail-doc .rd-footer .rd-footer-thanks {
+    font-size: .95rem;
+    font-weight: 700;
+    color: #334155;
+  }
+  .pur-detail-doc .rd-footer .rd-footer-divider {
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, #2563eb, #06b6d4);
+    margin: 10px auto;
+    border-radius: 2px;
   }
 
   @media print {
     .pur-root { padding: 0; background: white; }
     .print-hidden { display: none !important; }
     .pur-detail-doc { border: none; box-shadow: none; padding: 0; border-radius: 0; }
+    .pur-detail-doc .rd-brand-icon { background: #eff6ff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .pur-detail-doc .rd-block-light { background: #f8fafc !important; }
+    .pur-detail-doc .rd-block-green { background: #ecfdf5 !important; }
+    .pur-detail-doc .rd-totals { background: #f8fafc !important; }
+    .pur-detail-doc .rd-payment-info { background: #ecfdf5 !important; }
+    .pur-detail-doc .rd-history-item { background: #f8fafc !important; }
+    .pur-detail-doc .rd-items-table thead th { background: #f8fafc !important; }
   }
 `;
 
@@ -1656,48 +1890,34 @@ function ReceiptDetailView({
 
         {/* Document */}
         <div className="pur-detail-doc print-area">
-          {/* Clinic Header */}
-          <div className="clinic-header">
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 10,
-                marginBottom: 8,
-              }}
-            >
-              <Building2 size={28} color="#2563eb" />
-              <h1>Fshikta Dental Clinic</h1>
+          {/* Header */}
+          <div className="rd-header">
+            <div className="rd-brand">
+              <div className="rd-brand-icon">
+                <svg width="26" height="34" viewBox="0 0 60 80" fill="none">
+                  <path
+                    d="M30 3C17 3 6 12 6 23c0 9 3 16 7 23 4 8 5 18 7 27 1 4 4 6 7 4 2-2 2-8 3-8s1 6 3 8c3 2 6 0 7-4 2-9 3-19 7-27 4-7 7-14 7-23C54 12 43 3 30 3z"
+                    fill="#2563eb"
+                  />
+                </svg>
+              </div>
+              <div className="rd-brand-text">
+                <h1>{clinic?.name || "Fshikta Dental Clinic"}</h1>
+                <p className="rd-tagline">Dental Clinic</p>
+                <p className="rd-slogan">Healthy Smile, Healthy Life</p>
+              </div>
             </div>
-            {clinic?.address && <p>{clinic.address}</p>}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 16,
-                marginTop: 6,
-                fontSize: ".8rem",
-                color: "#64748b",
-              }}
-            >
-              {clinic?.phone && (
-                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <Phone size={12} /> {clinic.phone}
-                </span>
-              )}
-              {clinic?.email && (
-                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <Mail size={12} /> {clinic.email}
-                </span>
-              )}
-            </div>
-            {clinic?.licenseNo && (
-              <p style={{ fontSize: ".75rem", color: "#94a3b8", marginTop: 4 }}>
-                License: {clinic.licenseNo}
+            <div className="rd-meta">
+              <p className="rd-receipt-label">Receipt</p>
+              <h2>{receipt.receiptNumber}</h2>
+              <p>
+                {new Date(receipt.generatedAt).toLocaleDateString("en-UG", {
+                  day: "2-digit",
+                  month: "long",
+                  year: "numeric",
+                })}
               </p>
-            )}
+            </div>
           </div>
 
           {/* Voided banner */}
@@ -1754,10 +1974,10 @@ function ReceiptDetailView({
             </div>
           )}
 
-          {/* Title */}
-          <div className="doc-title">
+          {/* Title row */}
+          <div className="rd-title-row">
             <h2 style={{ color: isVoided ? "#94a3b8" : undefined }}>
-              OFFICIAL RECEIPT
+              {isVoided ? "VOIDED RECEIPT" : "OFFICIAL RECEIPT"}
             </h2>
             {isVoided ? (
               <span className="pur-badge pur-badge-void">VOID</span>
@@ -1768,192 +1988,152 @@ function ReceiptDetailView({
             ) : null}
           </div>
 
-          {/* Meta & Patient */}
-          <div className="info-grid">
-            <div>
-              <div style={{ fontSize: ".875rem", lineHeight: 1.6 }}>
-                <p>
-                  <strong>Receipt #:</strong> {receipt.receiptNumber}
-                </p>
-                <p>
-                  <strong>Invoice #:</strong> {invoice.invoiceNumber}
-                </p>
-                <p>
-                  <strong>Date:</strong>{" "}
-                  {new Date(receipt.generatedAt).toLocaleDateString("en-UG", {
-                    day: "2-digit",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </p>
-                {(receipt.receivedBy || receipt.receivedByName) && (
-                  <p>
-                    <strong>Received By:</strong>{" "}
-                    {receipt.receivedBy
-                      ? `${receipt.receivedBy.firstName} ${receipt.receivedBy.lastName}`
-                      : receipt.receivedByName}
-                  </p>
-                )}
-              </div>
+          {/* Bill To + Invoice Info */}
+          <div className="rd-grid">
+            <div className="rd-block rd-block-light">
+              <div className="rd-block-label">Bill To</div>
+              <p className="rd-patient-name">
+                {patient.firstName} {patient.lastName}
+              </p>
+              <p className="rd-patient-detail">
+                Patient ID: {patient.patientCode}
+              </p>
+              {patient.phone && (
+                <p className="rd-patient-detail">Tel: {patient.phone}</p>
+              )}
+              {patient.email && (
+                <p className="rd-patient-detail">{patient.email}</p>
+              )}
             </div>
 
-            <div className="info-box">
-              <div className="label">Bill To</div>
-              <div
-                style={{ display: "flex", alignItems: "flex-start", gap: 10 }}
-              >
-                <User size={18} color="#94a3b8" style={{ marginTop: 2 }} />
-                <div style={{ fontSize: ".875rem" }}>
-                  <p
-                    style={{
-                      fontWeight: 700,
-                      color: "#0f172a",
-                      margin: "0 0 2px",
-                    }}
-                  >
-                    {patient.firstName} {patient.lastName}
-                  </p>
-                  <p style={{ color: "#475569", margin: 0 }}>
-                    Patient ID: {patient.patientCode}
-                  </p>
-                  {patient.phone && (
-                    <p style={{ color: "#64748b", margin: "2px 0 0" }}>
-                      Tel: {patient.phone}
-                    </p>
-                  )}
-                  {patient.email && (
-                    <p style={{ color: "#64748b", margin: 0 }}>
-                      {patient.email}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Invoice Summary */}
-          <div style={{ marginBottom: 24 }}>
-            <h3
-              style={{
-                fontSize: ".9rem",
-                fontWeight: 700,
-                color: "#0f172a",
-                marginBottom: 10,
-                textTransform: "uppercase",
-                letterSpacing: ".5px",
-              }}
-            >
-              Invoice Summary
-            </h3>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "8px 24px",
-                fontSize: ".875rem",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "#475569" }}>Subtotal:</span>
-                <span>{formatCurrency(invoice.subtotal)}</span>
+            <div className="rd-block rd-block-light">
+              <div className="rd-block-label">Invoice</div>
+              <div className="rd-invoice-row">
+                <span className="rd-lbl">Invoice #</span>
+                <span className="rd-val">{invoice.invoiceNumber}</span>
               </div>
               {invoice.discountAmount > 0 && (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    color: "#059669",
-                  }}
-                >
-                  <span>Discount:</span>
-                  <span>−{formatCurrency(invoice.discountAmount)}</span>
+                <div className="rd-invoice-row">
+                  <span className="rd-lbl">Discount</span>
+                  <span className="rd-val">
+                    -{formatCurrency(invoice.discountAmount)}
+                  </span>
                 </div>
               )}
               {invoice.taxAmount > 0 && (
-                <div
-                  style={{ display: "flex", justifyContent: "space-between" }}
-                >
-                  <span style={{ color: "#475569" }}>
-                    Tax ({invoice.taxPercent}%):
+                <div className="rd-invoice-row">
+                  <span className="rd-lbl">Tax ({invoice.taxPercent}%)</span>
+                  <span className="rd-val">
+                    {formatCurrency(invoice.taxAmount)}
                   </span>
-                  <span>{formatCurrency(invoice.taxAmount)}</span>
                 </div>
               )}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontWeight: 700,
-                  fontSize: "1rem",
-                  borderTop: "2px solid #e2e8f0",
-                  paddingTop: 8,
-                  marginTop: 4,
-                }}
-              >
-                <span>Total Amount:</span>
-                <span>{formatCurrency(invoice.total)}</span>
+              <div className="rd-invoice-row">
+                <span className="rd-lbl">Total</span>
+                <span className="rd-val">
+                  {formatCurrency(invoice.total)}
+                </span>
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontWeight: 600,
-                  color: "#059669",
-                }}
-              >
-                <span>Total Paid:</span>
-                <span>{formatCurrency(invoice.amountPaid)}</span>
+              <div className="rd-invoice-row">
+                <span className="rd-lbl">Paid</span>
+                <span className="rd-val" style={{ color: "#059669" }}>
+                  {formatCurrency(invoice.amountPaid)}
+                </span>
               </div>
               {invoice.balance > 0 && (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontWeight: 700,
-                    color: "#d97706",
-                  }}
-                >
-                  <span>Balance Due:</span>
-                  <span>{formatCurrency(invoice.balance)}</span>
+                <div className="rd-invoice-row">
+                  <span className="rd-lbl">Balance</span>
+                  <span className="rd-val" style={{ color: "#d97706" }}>
+                    {formatCurrency(invoice.balance)}
+                  </span>
                 </div>
               )}
             </div>
           </div>
 
+          {/* Invoice Items Table */}
+          {(invoice.items ?? []).length > 0 && (
+            <div style={{ marginBottom: 24 }}>
+              <p className="rd-section-title">Invoice Items</p>
+              <table className="rd-items-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: 48 }}>#</th>
+                    <th>Description</th>
+                    <th style={{ width: 56 }}>Qty</th>
+                    <th style={{ width: 100 }}>Unit Price (UGX)</th>
+                    <th style={{ width: 120 }}>Total (UGX)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoice.items.map((item: any, idx: number) => (
+                    <tr key={item.id || idx}>
+                      <td style={{ color: "#94a3b8" }}>{idx + 1}</td>
+                      <td>{item.description || item.name}</td>
+                      <td>{item.quantity}</td>
+                      <td>{Number(item.unitPrice).toLocaleString("en-UG")}</td>
+                      <td>{Number(item.total || item.quantity * item.unitPrice).toLocaleString("en-UG")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Totals */}
+          <div className="rd-totals">
+            <div className="rd-total-row">
+              <span className="rd-lbl">Subtotal</span>
+              <span className="rd-val">{formatCurrency(invoice.subtotal)}</span>
+            </div>
+            {invoice.discountAmount > 0 && (
+              <div className="rd-total-row">
+                <span className="rd-lbl">Discount</span>
+                <span className="rd-val" style={{ color: "#059669" }}>
+                  -{formatCurrency(invoice.discountAmount)}
+                </span>
+              </div>
+            )}
+            {invoice.taxAmount > 0 && (
+              <div className="rd-total-row">
+                <span className="rd-lbl">Tax ({invoice.taxPercent}%)</span>
+                <span className="rd-val">
+                  {formatCurrency(invoice.taxAmount)}
+                </span>
+              </div>
+            )}
+            <div className="rd-total-row rd-divider rd-total-final">
+              <span className="rd-lbl">Total</span>
+              <span className="rd-val">{formatCurrency(invoice.total)}</span>
+            </div>
+            <div className="rd-total-row rd-green">
+              <span className="rd-lbl">Amount Paid</span>
+              <span className="rd-val">
+                {formatCurrency(invoice.amountPaid)}
+              </span>
+            </div>
+            {invoice.balance > 0 && (
+              <div className="rd-total-row rd-amber">
+                <span className="rd-lbl">Balance Due</span>
+                <span className="rd-val">
+                  {formatCurrency(invoice.balance)}
+                </span>
+              </div>
+            )}
+          </div>
+
           {/* This Payment */}
-          <div className="payment-box">
-            <h3
-              style={{
-                margin: "0 0 10px",
-                fontSize: ".9rem",
-                fontWeight: 700,
-                color: "#064e3b",
-              }}
-            >
-              This Payment
-            </h3>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
+          <div className="rd-payment-section">
+            <p className="rd-section-title">This Payment</p>
+            <div className="rd-payment-info">
               <div>
-                <p
-                  style={{
-                    fontSize: "1.75rem",
-                    fontWeight: 800,
-                    color: "#059669",
-                    margin: 0,
-                  }}
-                >
+                <p className="rd-pay-amount">
                   {formatCurrency(receipt.amountReceived, receipt.currency)}
                 </p>
                 {receipt.notes && (
                   <p
                     style={{
-                      fontSize: ".875rem",
+                      fontSize: ".82rem",
                       color: "#065f46",
                       margin: "4px 0 0",
                     }}
@@ -1962,23 +2142,18 @@ function ReceiptDetailView({
                   </p>
                 )}
               </div>
-              <div
-                style={{
-                  textAlign: "left",
-                  fontSize: ".875rem",
-                  color: "#065f46",
-                }}
-              >
-                <p>Received on: {formatDate(receipt.generatedAt)}</p>
+              <div className="rd-pay-details">
+                <p>
+                  Date: {formatDate(receipt.generatedAt)}
+                </p>
                 {(receipt.payment?.method || receipt.paymentMethod) && (
                   <p>
-                    Payment Mode:{" "}
+                    Method:{" "}
                     {String(
                       receipt.payment?.method ?? receipt.paymentMethod,
                     ).replace(/_/g, " ")}
                   </p>
                 )}
-                {/* {receipt.account && <p>Account: {receipt.account.name}</p>} */}
                 {(receipt.receivedBy || receipt.receivedByName) && (
                   <p>
                     Received By:{" "}
@@ -1993,22 +2168,11 @@ function ReceiptDetailView({
 
           {/* Payment History */}
           {payments?.length > 0 && (
-            <div style={{ marginBottom: 24 }}>
-              <h3
-                style={{
-                  fontSize: ".9rem",
-                  fontWeight: 700,
-                  color: "#0f172a",
-                  marginBottom: 10,
-                  textTransform: "uppercase",
-                  letterSpacing: ".5px",
-                }}
-              >
-                Payment History
-              </h3>
+            <div className="rd-payment-section">
+              <p className="rd-section-title">Payment History</p>
               <div>
                 {payments.map((payment: any) => (
-                  <div key={payment.id} className="history-item">
+                  <div key={payment.id} className="rd-history-item">
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 8 }}
                     >
@@ -2028,9 +2192,9 @@ function ReceiptDetailView({
                       </p>
                       <p
                         style={{
-                          fontSize: ".75rem",
+                          fontSize: ".72rem",
                           color: "#64748b",
-                          margin: 0,
+                          margin: "2px 0 0",
                         }}
                       >
                         {formatDate(payment.paidAt)}
@@ -2043,17 +2207,26 @@ function ReceiptDetailView({
           )}
 
           {/* Footer */}
-          <div className="footer">
-            <p style={{ fontWeight: 700, color: "#334155", margin: "0 0 4px" }}>
-              Thank you for choosing Fshikta Dental Clinic
+          <div className="rd-footer">
+            <p className="rd-footer-thanks">
+              Thank you for choosing{" "}
+              {clinic?.name || "Fshikta Dental Clinic"}
             </p>
-            <p style={{ fontSize: ".8rem", margin: 0 }}>
+            <div className="rd-footer-divider" />
+            <p>
               This is an official receipt. Please keep it for your records.
             </p>
-            <p style={{ fontSize: ".75rem", margin: "4px 0 0" }}>
-              For inquiries, please contact us at{" "}
-              {clinic?.phone || clinic?.email}
-            </p>
+            {clinic?.phone && (
+              <p style={{ marginTop: 4 }}>
+                For inquiries, contact us at {clinic.phone}
+                {clinic?.email ? ` | ${clinic.email}` : ""}
+              </p>
+            )}
+            {clinic?.licenseNo && (
+              <p style={{ fontSize: ".72rem", marginTop: 4, color: "#94a3b8" }}>
+                License: {clinic.licenseNo}
+              </p>
+            )}
           </div>
         </div>
       </div>

@@ -54,6 +54,7 @@ import { PatientAppointmentsTab } from "./components/PatientAppointmentsTab";
 import { PatientVisitsTab } from './components/PatientVisitsTab';
 import { PatientProceduresTab } from './components/PatientProceduresTab';
 
+import { PatientReportTab } from './components/PatientReportTab';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -163,6 +164,7 @@ const TABS = [
   { id: "progress", label: "Progress Report", icon: ShieldCheck },
   { id: "timeline", label: "Timeline", icon: Activity },
   { id: 'procedures', label: 'Procedures', icon: Activity },
+  { id: 'patient-report', label: 'Patient Report', icon: FileText },
 ];
 
 // ─── Sub-tabs/content ─────────────────────────────────────────────────────────
@@ -876,6 +878,7 @@ export function PatientDetailPage() {
               />
             )}
             {activeTab === "timeline" && <TimelineTab patientId={patient.id} />}
+            {activeTab === "patient-report" && <PatientReportTab patientId={patient.id} />}
           </div>
         </div>
       </div>
