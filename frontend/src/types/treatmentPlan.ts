@@ -3,7 +3,7 @@
 export type PricingUnit   = 'FIXED' | 'PER_TOOTH' | 'PER_ARCH' | 'PER_BRACKET' | 'PER_UNIT';
 export type SessionType   = 'SINGLE' | 'MULTI';
 export type BillingType   = 'PAY_FULL' | 'PAY_PARTIALLY';
-export type SessionStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED';
+export type SessionStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED' | 'CANCELLED' | 'VOIDED';
 export type LedgerStatus  = 'PENDING' | 'INVOICED' | 'VOID';
 export type TxStatus      = 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
 

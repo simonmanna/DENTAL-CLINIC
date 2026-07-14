@@ -221,9 +221,10 @@ export class TreatmentPlansController {
   markComplete(
     @Param('id') id: string,
     @Param('procedureId') procedureId: string,
+    @Body('visitId') visitId: string | undefined,
     @CurrentUser('id') currentUserId: string | undefined,
   ) {
-    return this.svc.markProcedureComplete(id, procedureId, currentUserId);
+    return this.svc.markProcedureComplete(id, procedureId, visitId, currentUserId);
   }
 
   @ApiOperation({ summary: 'Cancel a procedure' })
@@ -304,6 +305,8 @@ export class TreatmentPlansController {
       sessionCost: number;
       notes?: string;
       autoBill?: boolean;
+      visitId?: string;
+      providerId?: string;
     },
   ) {
     return this.svc.addExtraSession(planId, procedureId, dto);

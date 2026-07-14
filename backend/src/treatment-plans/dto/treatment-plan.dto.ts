@@ -314,6 +314,14 @@ export class CreateSessionDto {
   @IsNumber()
   @Min(0)
   sessionPrice?: number;
+
+  @IsOptional()
+  @IsString()
+  visitId?: string;
+
+  @IsOptional()
+  @IsString()
+  providerId?: string;
 }
 
 export class UpdateSessionDto {

@@ -32,7 +32,7 @@ import {
   AddInvoicePaymentDto,
   RefundInvoicePaymentDto,
 } from './dto/billing.dto';
-import { InvoiceStatus, InvoicePaymentStatus, Prisma, Receipt } from '@prisma/client';
+import { CashFlowDirection, InvoiceStatus, InvoicePaymentStatus, PaymentType, Prisma, Receipt } from '@prisma/client';
 import { PaymentAccountResolverService } from './payment-account-resolver.service';
 import { M, type Money } from '../common/money/money';
 import { DocumentNumberService } from '../common/document-number/document-number.service';
@@ -807,7 +807,30 @@ export class InvoicesService {
       const fresh = updatedRows[0];
       const rateUsed = M.of(resolvedRate);
 
-      // ── 8a. Receipt ──────────────────────────────────────────────────────
+      // ── 8a. Payment (financial record) ───────────────────────────────────
+      const paymentCode = await this.docNum.next('PAY', tx);
+      const payment = await tx.payment.create({
+        data: {
+          paymentCode,
+          type: PaymentType.INVOICE_RECEIPT,
+          direction: CashFlowDirection.IN,
+          invoiceId,
+          amount: M.money(dto.amount).toString(),
+          method: dto.method as any,
+          status: 'COMPLETED',
+          currency: paymentCurrency,
+          exchangeRate: rateUsed.toString(),
+          baseAmount: M.money(paymentInBaseCurrency).toString(),
+          reference: dto.reference ?? null,
+          transactionId: dto.transactionId ?? null,
+          notes: dto.notes ?? null,
+          createdById: currentUserId ?? null,
+          updatedById: currentUserId ?? null,
+          paidAt: new Date(),
+        },
+      });
+
+      // ── 8b. Receipt ──────────────────────────────────────────────────────
       let receipt: Receipt | null = null;
       if (dto.generateReceipt !== false) {
         const receiptNumber = await this.generateReceiptNumber(tx);
@@ -815,6 +838,7 @@ export class InvoicesService {
           data: {
             receiptNumber,
             invoiceId,
+            paymentId: payment.id,
             amountReceived: M.money(dto.amount).toString(),
             currencyCode: paymentCurrency as any,
             currency: paymentCurrency,
@@ -2098,7 +2122,7 @@ export class InvoicesService {
 
       // 3) Convert FLAT discount value (PERCENT is currency-neutral)
       let newDiscountValue: Money = M.of(invoice.discountValue);
-      if (invoice.discountType === 'FLAT' && M.isPositive(oldRate)) {
+      if (invoice.discountType === 'FIXED' && M.isPositive(oldRate)) {
         const baseDiscountValue = M.div(M.of(invoice.discountValue), oldRate);
         newDiscountValue = M.money(M.mul(baseDiscountValue, newRate));
       }

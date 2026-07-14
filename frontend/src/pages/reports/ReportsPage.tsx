@@ -53,7 +53,7 @@ export function ReportsPage() {
   const d = dashboard || {};
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       <PageHeader title="Reports & Analytics" subtitle="Business intelligence and clinic performance insights" />
 
       {/* Section tabs */}
@@ -69,7 +69,7 @@ export function ReportsPage() {
 
       {/* OVERVIEW */}
       {activeSection === 'overview' && (
-        <div className="space-y-6">
+        <div className="space-y-2">
           {dashLoading ? <LoadingSpinner /> : (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -138,7 +138,7 @@ export function ReportsPage() {
 
       {/* REVENUE */}
       {activeSection === 'revenue' && (
-        <div className="space-y-4">
+        <div className="space-y-2">
           <div className="flex items-center gap-3">
             <label className="text-sm font-medium text-slate-600">From:</label>
             <input type="date" defaultValue={startOfMonth.split('T')[0]}
@@ -189,7 +189,7 @@ export function ReportsPage() {
                           contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0' }} />
                       </PieChart>
                     </ResponsiveContainer>
-                    <div className="space-y-2 mt-2">
+                    <div className="space-y-1 mt-1">
                       {revenue.byMethod.map((m: any, i: number) => (
                         <div key={i} className="flex items-center justify-between text-xs">
                           <div className="flex items-center gap-2">
@@ -210,7 +210,7 @@ export function ReportsPage() {
 
       {/* APPOINTMENTS */}
       {activeSection === 'appointments' && (
-        <div className="space-y-4">
+        <div className="space-y-2">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card title="By Appointment Type">
               <div className="p-4">
@@ -257,7 +257,7 @@ export function ReportsPage() {
             {!dentistPerf ? <LoadingSpinner /> : dentistPerf.length === 0 ? (
               <p className="text-center text-slate-400 py-8">No performance data available</p>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {dentistPerf.map((staff: any, i: number) => (
                   <div key={staff.id} className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 hover:border-blue-200 transition-colors">
                     <div className={cn('w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm',

@@ -1483,7 +1483,7 @@ async findOnePatientCondition(id: string, opts: { includeDeleted?: boolean } = {
               conditionId: ce.conditionId,
               patientConditionId: patientConditionId,
               notes: ce.notes,
-              providerId: ce.providerId,
+              providerId: ce.providerId ?? null,
               diagnosedAt: editDiagnosedAt ?? null,
             },
           });

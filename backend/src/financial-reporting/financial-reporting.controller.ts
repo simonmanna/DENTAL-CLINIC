@@ -19,28 +19,28 @@ export class FinancialReportingController {
    * receptionists. SUPER_ADMIN bypass applies.
    */
   @Get('invoices')
-  @Roles(UserRole.ADMIN, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DENTIST, UserRole.RECEPTIONIST)
   @ApiOperation({ summary: 'Invoice register + KPIs (revenue, collection rate, by doctor)' })
   getInvoicesReport(@Query() query: FinancialReportQueryDto) {
     return this.service.getInvoicesReport(query);
   }
 
   @Get('receipts')
-  @Roles(UserRole.ADMIN, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DENTIST, UserRole.RECEPTIONIST)
   @ApiOperation({ summary: 'Receipt register with payment method breakdown' })
   getReceiptsReport(@Query() query: FinancialReportQueryDto) {
     return this.service.getReceiptsReport(query);
   }
 
   @Get('payments')
-  @Roles(UserRole.ADMIN, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DENTIST, UserRole.RECEPTIONIST)
   @ApiOperation({ summary: 'Payment register with reconciliation status' })
   getPaymentsReport(@Query() query: FinancialReportQueryDto) {
     return this.service.getPaymentsReport(query);
   }
 
   @Get('expenses')
-  @Roles(UserRole.ADMIN, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DENTIST, UserRole.RECEPTIONIST)
   @ApiOperation({ summary: 'Expense report grouped by category' })
   getExpensesReport(@Query() query: FinancialReportQueryDto) {
     return this.service.getExpensesReport(query);

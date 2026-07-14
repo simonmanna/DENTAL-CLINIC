@@ -328,7 +328,7 @@ function FilterBar({
       setFilters((f) => ({ ...f, [key]: e.target.value }));
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-wrap gap-3 items-end shadow-sm">
+    <div className="bg-white border border-slate-200 rounded-xl p-1 flex flex-wrap gap-3 items-end shadow-sm">
       <div className="flex-1 min-w-48">
         <label className="block text-xs font-medium text-slate-500 mb-1">
           Search
@@ -736,13 +736,13 @@ const RECEIPT_COLUMNS: ColDef<ReceiptRow>[] = [
     csv: (r) => r.reference ?? "",
   },
   {
-    key: "generatedBy",
+    key: "receivedBy",
     label: "Cashier",
     sortable: false,
     render: (r) => (
-      <span className="text-xs text-slate-500">{r.generatedBy ?? "—"}</span>
+      <span className="text-xs text-slate-500">{fullName(r.receivedBy)}</span>
     ),
-    csv: (r) => r.generatedBy ?? "",
+    csv: (r) => fullName(r.receivedBy),
   },
   {
     key: "doctor",
@@ -1445,7 +1445,7 @@ const fetchReport = useCallback(async () => {
       // ── Invoices ──────────────────────────────────────────────────────────
       case "invoices":
         return (
-          <div className="space-y-4">
+          <div className="space-y-1">
             {/* KPI Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               <StatCard
@@ -1492,7 +1492,7 @@ const fetchReport = useCallback(async () => {
             </div>
 
             {showCharts && (
-              <div className="space-y-4">
+              <div className="space-y-1">
                 {/* Row 1: Status + Payment status + Payment methods */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {/* Invoice status breakdown */}
@@ -1630,7 +1630,7 @@ const fetchReport = useCallback(async () => {
                           </div>
                         ))}
                       {!summary.revenueByDoctor?.length && (
-                        <p className="text-xs text-slate-400 text-center py-4">
+                        <p className="text-xs text-slate-400 text-center py-1">
                           No data
                         </p>
                       )}
@@ -1672,7 +1672,7 @@ const fetchReport = useCallback(async () => {
           )?.total ?? 0;
 
         return (
-          <div className="space-y-4">
+          <div className="space-y-1">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <StatCard
                 label="Active Receipts"
@@ -1845,7 +1845,7 @@ const fetchReport = useCallback(async () => {
       // ── Payments ──────────────────────────────────────────────────────────
       case "payments":
         return (
-          <div className="space-y-4">
+          <div className="space-y-1">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               <StatCard
                 label="Total"
@@ -1899,7 +1899,7 @@ const fetchReport = useCallback(async () => {
           total: m.total,
         }));
         return (
-          <div className="space-y-4">
+          <div className="space-y-1">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               <StatCard
                 label="Total Expenses"
@@ -2028,19 +2028,18 @@ const fetchReport = useCallback(async () => {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-10">
+      <div className="bg-white border-b border-slate-200 px-1 py-2 sticky top-0 z-10">
         <div className="max-w-screen-2xl mx-auto">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold text-slate-900 tracking-tight">
                 {title}
               </h1>
-              <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowCharts((v) => !v)}
-                className="px-3 py-2 text-sm rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center gap-1.5 transition-colors"
+                className="px-1 py-2 text-sm rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center gap-1.5 transition-colors"
               >
                 {showCharts ? "🙈 Hide Charts" : "📊 Show Charts"}
               </button>
@@ -2060,7 +2059,7 @@ const fetchReport = useCallback(async () => {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-0 mt-5 -mb-px">
+          <div className="flex gap-0 mt-1 -mb-px">
             {visibleTabs.map((t) => (
               <button
                 key={t.id}
@@ -2085,7 +2084,7 @@ const fetchReport = useCallback(async () => {
       </div>
 
       {/* ── Body ────────────────────────────────────────────────────────── */}
-      <div className="max-w-screen-2xl mx-auto px-6 py-5 space-y-4">
+      <div className="max-w-screen-2xl mx-auto px-1 py-2 space-y-1">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
             <span>⚠️</span> {error}
@@ -2179,7 +2178,7 @@ export function SalesReports(): JSX.Element {
   return (
     <FinancialReportsView
       tabs={SALES_TABS}
-      title="Sales & Receipts"
+      title="Sales/Invoices & Receipts"
       subtitle="Invoices · Sales · Receipts"
     />
   );

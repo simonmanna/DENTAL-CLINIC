@@ -321,13 +321,6 @@ export function ProcedureDetailDialog({
   const isMultiSession = proc.sessionType === 'MULTI';
   const abbrev = formatSurfaces(currentSurfaces);
 
-  const spentSoFar = proc.sessions?.reduce((total, session) => {
-    if (session.status === 'COMPLETED') {
-      return total + (session.sessionCost ?? session.cost ?? 0);
-    }
-    return total;
-  }, 0) || 0;
-
   const handleSaveChart = async () => {
     if (!activePlanId || !proc) return;
     setSavingChart(true);
@@ -565,12 +558,6 @@ export function ProcedureDetailDialog({
                             {fmt(totalCost)}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                          <span className="text-sm text-slate-500">Spent So Far</span>
-                          <span className="text-sm font-mono font-bold text-emerald-600">
-                            {fmt(spentSoFar)}
-                          </span>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -617,14 +604,7 @@ export function ProcedureDetailDialog({
                         <span className="text-xs text-slate-500">Estimated</span>
                         <span className="text-sm font-mono font-medium text-slate-700">{fmt(totalCost)}</span>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs text-slate-500">Spent</span>
-                        <span className="text-sm font-mono font-medium text-emerald-600">{fmt(spentSoFar)}</span>
-                      </div>
-                      <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-                        <span className="text-xs text-slate-500">Remaining</span>
-                        <span className="text-sm font-mono font-bold text-blue-600">{fmt(Math.max(0, totalCost - spentSoFar))}</span>
-                      </div>
+
                     </div>
                   </div>
                 </div>
@@ -752,17 +732,7 @@ export function ProcedureDetailDialog({
                                           {new Date(session.performedDate).toLocaleDateString()}
                                         </span>
                                       )}
-                                      <span className="text-xs text-slate-400">|</span>
-                                      <span className="text-xs text-slate-500">{fmt(session.sessionCost ?? session.cost ?? 0)}</span>
-                                      <span className="text-xs text-slate-400">|</span>
-                                      <span className={cn(
-                                        "text-xs font-medium",
-                                        session.ledgerStatus === 'INVOICED' ? "text-purple-600" :
-                                          session.ledgerStatus === 'PAID' ? "text-green-600" :
-                                            "text-amber-600"
-                                      )}>
-                                        {session.ledgerStatus || 'PENDING'} In Ledger
-                                      </span>
+
                                     </div>
                                     {session.performedNotes && (
                                       <p className="mt-2 text-sm text-slate-600 bg-slate-50 p-2 rounded">{session.performedNotes}</p>

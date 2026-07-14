@@ -357,14 +357,14 @@ const navItems = [
     label: "Reports",
     path: "#",
     children: [
-      { label: "Sales & Receipts", path: "/SalesReports", icon: "🧾" },
-      { label: "Expenses & Payments", path: "/ExpensePaymentsReports", icon: "💸" },
-      { label: "Dental Report", path: "/TreatmentReports", icon: "🗒️" },
+      { label: "Medical Report", path: "/TreatmentReports", icon: "🗒️" },
       {
         label: "Patients Report",
         path: "/PatientListReportPage",
         icon: "📊",
       },
+      { label: "Sales & Receipts", path: "/SalesReports", icon: "🧾" },
+      { label: "Expenses & Payments", path: "/ExpensePaymentsReports", icon: "💸" },
       { label: "Inventory Report", path: "/InventoryReports", icon: "🗒️" },
       { label: "General Ledger", path: "/general-ledger", icon: "📒" },
       { label: "Audit Log", path: "/audit-log", icon: "🛡️" },

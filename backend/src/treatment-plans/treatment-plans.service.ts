@@ -838,7 +838,7 @@ export class TreatmentPlansService {
                   procedureCode: procedure.code,
                   treatmentProcedureId: tp.id,
                   notes: dto.notes,
-                  providerId: dto.providerId,
+                  providerId: dto.providerId ?? null,
                 },
               }),
             );
@@ -857,7 +857,7 @@ export class TreatmentPlansService {
                 procedureCode: procedure.code,
                 treatmentProcedureId: tp.id,
                 notes: dto.notes,
-                providerId: dto.providerId,
+                providerId: dto.providerId ?? null,
               },
             }),
           );
@@ -1393,6 +1393,11 @@ export class TreatmentPlansService {
     ];
     if (teeth.length === 0) return;
 
+    const condition = await tx.condition.findFirst({
+      where: { icd10Code: 'K08.1', isActive: true },
+      select: { id: true },
+    });
+
     for (const toothNumber of teeth) {
       const existing = await tx.chartEntry.findFirst({
         where: {
@@ -1415,6 +1420,7 @@ export class TreatmentPlansService {
           status: 'ACTIVE',
           label: 'Tooth absent (extracted)',
           conditionCode: 'K08.1',
+          conditionId: condition?.id ?? null,
           notes: 'Auto-recorded on completion of extraction procedure.',
           providerId: args.providerId ?? null,
         },
@@ -1434,6 +1440,7 @@ export class TreatmentPlansService {
   async markProcedureComplete(
     planId: string,
     procedureId: string,
+    visitId?: string | null,
     actorUserId?: string,
   ) {
     return this.prisma.$transaction(async (tx) => {
@@ -1475,6 +1482,7 @@ export class TreatmentPlansService {
           await tx.chartEntry.create({
             data: {
               patientId,
+              visitId: visitId ?? null,
               toothNumber: target.toothNumber,
               surfaces: target.surfaces,
               type: 'COMPLETED',
@@ -1501,6 +1509,7 @@ export class TreatmentPlansService {
         await tx.chartEntry.create({
           data: {
             patientId,
+            visitId: visitId ?? null,
             toothNumber: null,
             surfaces: [],
             type: 'COMPLETED',
@@ -1517,6 +1526,7 @@ export class TreatmentPlansService {
       // (C4) Extraction completion renders the tooth absent.
       await this.markTeethAbsentIfExtractionTx(tx, {
         patientId,
+        visitId: visitId ?? null,
         procedure: tp.procedure,
         toothNumbers: tp.targets
           .map((t) => t.toothNumber)
@@ -1857,6 +1867,8 @@ export class TreatmentPlansService {
           // surfaces REMOVED - using ProcedureTarget
           sessionPrice: sessionPrice || null,
           ledgerStatus: SessionLedgerStatus.UNPOSTED,
+          visitId: dto.visitId ?? null,
+          providerId: dto.providerId ?? null,
         },
         include: { ledgerEntry: true, targets: true },
       });
@@ -2420,6 +2432,8 @@ export class TreatmentPlansService {
       visitGroup?: number;
       surfaces?: ToothSurface[];
       toothNumbers?: number[];
+      visitId?: string;
+      providerId?: string;
     },
   ) {
     const tp = await this.prisma.treatmentProcedure.findFirst({
@@ -2458,6 +2472,8 @@ export class TreatmentPlansService {
           status: 'PENDING',
           sessionPrice: sessionPrice,
           ledgerStatus: 'PENDING',
+          visitId: dto.visitId ?? null,
+          providerId: dto.providerId ?? null,
         },
         include: { targets: true },
       });
@@ -2640,6 +2656,8 @@ export class TreatmentPlansService {
               status: SessionStatus.PENDING,
               sessionPrice: dto.sessionPrice ?? null,
               ledgerStatus: SessionLedgerStatus.UNPOSTED,
+              visitId: dto.visitId ?? null,
+              providerId: dto.providerId ?? dto.dentistId ?? null,
             },
             include: { targets: true },
           });
@@ -2778,6 +2796,7 @@ export class TreatmentPlansService {
                   procedureCode: tp.procedure.code,
                   treatmentProcedureId: procedureId,
                   procedureSessionId: session.id,
+                  providerId: dto.providerId ?? dto.dentistId ?? null,
                   notes:
                     ts.notes ||
                     dto.performedNotes ||
@@ -2830,6 +2849,7 @@ export class TreatmentPlansService {
                 procedureCode: tp.procedure.code,
                 treatmentProcedureId: procedureId,
                 procedureSessionId: session.id,
+                providerId: dto.providerId ?? dto.dentistId ?? null,
                 notes:
                   dto.performedNotes ??
                   `Completed – session ${session.sessionNumber}`,
@@ -2860,6 +2880,7 @@ export class TreatmentPlansService {
                 procedureCode: tp.procedure.code,
                 treatmentProcedureId: procedureId,
                 procedureSessionId: session.id,
+                providerId: dto.providerId ?? dto.dentistId ?? null,
                 notes:
                   dto.performedNotes ??
                   `Completed – session ${session.sessionNumber}`,
@@ -3254,6 +3275,7 @@ export class TreatmentPlansService {
                   procedureCode,
                   treatmentProcedureId: procedureId,
                   procedureSessionId: sessionId,
+                  providerId: dto.providerId ?? null,
                   notes:
                     ts.notes ??
                     `[EDIT ${new Date().toISOString().slice(0, 10)}] Marked COMPLETED. Reason: ${dto.reason ?? 'correction'}`,

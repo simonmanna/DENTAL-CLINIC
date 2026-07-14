@@ -52,6 +52,14 @@ export class CreateSessionDto {
   dentistId?: string;
 
   @IsOptional()
+  @IsString()
+  visitId?: string;
+
+  @IsOptional()
+  @IsString()
+  providerId?: string;
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ActualInputDto)

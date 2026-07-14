@@ -503,7 +503,7 @@ function FilterBar({
   onReset: () => void;
 }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-wrap gap-3 items-end shadow-sm">
+    <div className="bg-white border border-slate-200 rounded-xl p-2 flex flex-wrap gap-3 items-end shadow-sm">
       <div className="flex-1 min-w-48">
         <label className="block text-xs font-medium text-slate-500 mb-1">
           Search
@@ -1440,16 +1440,13 @@ export default function TreatmentReports(): JSX.Element {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4">
+      <div className="bg-white border-b border-slate-200 px-2 py-1">
         <div className="max-w-screen-2xl mx-auto">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-                Treatment Reports
+                Medical Reports
               </h1>
-              <p className="text-sm text-slate-500 mt-0.5">
-                Clinical analytics · plans, procedures, sessions &amp; visits
-              </p>
             </div>
             {/* The plans/procedures/sessions tabs share these export/print/chart
                 controls. The Visits tab is self-contained and carries its own
@@ -1517,7 +1514,7 @@ export default function TreatmentReports(): JSX.Element {
       </div>
 
       {/* ── Body ────────────────────────────────────────────────────────── */}
-      <div className="max-w-screen-2xl mx-auto px-6 py-5 space-y-4">
+      <div className="max-w-screen-2xl mx-auto px-1 py-2 space-y-1">
         {isVisits ? (
           <VisitsReportTab />
         ) : (

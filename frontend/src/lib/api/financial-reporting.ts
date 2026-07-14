@@ -153,6 +153,7 @@ export interface ReceiptRow {
   voidReason?: string;
   generatedAt: string;
   generatedBy?: string;
+  receivedBy?: { id: string; firstName: string; lastName: string; specialization?: string } | null;
   paymentMethod?: string;
   reference?: string;
   notes?: string;

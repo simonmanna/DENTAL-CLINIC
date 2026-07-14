@@ -78,6 +78,7 @@ export class InvoiceLifecycleService {
     visitId?: string | null,
     treatmentPlanId?: string | null,
     options?: { currency?: string; exchangeRate?: number },
+    createdById?: string | null,
   ) {
     const where: any = {
       patientId,
@@ -135,6 +136,8 @@ export class InvoiceLifecycleService {
           // (The spec calls these `initialCurrency` + `initialReceipt`; the
           //  schema uses the more verbose `initialPaymentCurrency` +
           //  `initialPaymentAmount`. See invoices.service.ts for the same.)
+          createdById: createdById ?? null,
+          updatedById: createdById ?? null,
           ...(isBase ? {} : {}),
           },
         });
@@ -952,7 +955,7 @@ export class InvoiceLifecycleService {
 
     // ACTIVE / PARTIALLY_PAID — create item + post CHARGE ledger entry
     await this.prisma.$transaction(async (tx) => {
-      await tx.invoiceItem.create({
+      const invoiceItem = await tx.invoiceItem.create({
         data: {
           invoiceId,
           description: dto.description,
@@ -980,6 +983,7 @@ export class InvoiceLifecycleService {
               type: LedgerEntryType.CHARGE,
               description: dto.description,
               sourceType: dto.itemType,
+              sourceId: invoiceItem.id,
               quantity: dto.quantity,
               pricePerUnit: dto.unitPrice,
               subtotalPrice: dto.quantity * dto.unitPrice,

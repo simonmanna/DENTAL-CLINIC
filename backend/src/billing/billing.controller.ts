@@ -45,6 +45,7 @@ const ADMIN_ONLY = [UserRole.SUPER_ADMIN, UserRole.ADMIN];
 const CAN_RECORD_PAYMENT = [
   UserRole.SUPER_ADMIN,
   UserRole.ADMIN,
+  UserRole.DENTIST,
   UserRole.RECEPTIONIST,
 ];
 const CAN_CREATE_INVOICE = [
@@ -374,11 +375,16 @@ export class BillingController {
   // open one during a visit, receptionist finalises it.
   @Post('invoices/draft')
   @Roles(...CAN_CREATE_INVOICE, UserRole.DENTIST)
-  createDraftInvoice(@Body() dto: CreateDraftInvoiceDto) {
+  createDraftInvoice(
+    @Body() dto: CreateDraftInvoiceDto,
+    @CurrentUser('id') currentUserId: string | undefined,
+  ) {
     return this.lifecycle.getOrCreateDraft(
       dto.patientId,
       dto.visitId,
       dto.treatmentPlanId,
+      undefined,
+      currentUserId,
     );
   }
 

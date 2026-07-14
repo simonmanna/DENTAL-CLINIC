@@ -17,10 +17,6 @@ import type {
 } from "./../../../types/treatmentPlan";
 import { api } from "@/lib/api/client";
 
-// FIXED: Handle undefined/null values safely
-function fmtUGX(n: number | undefined | null) {
-  return `UGX ${Math.round(n ?? 0).toLocaleString()}`;
-}
 function cn(...c: (string | boolean | undefined | null)[]) {
   return c.filter(Boolean).join(" ");
 }
@@ -158,14 +154,7 @@ export function ProcedureSessionManager({
     updateMut.mutate({ sessionId, data: payload });
   };
 
-  // FIXED: Safe calculation with null coalescing
-  const totalCost = sessions.reduce((s, x) => s + (x.sessionPrice ?? 0), 0);
-
   const doneCount = sessions.filter((s) => s.status === "COMPLETED").length;
-  const inLedger = sessions.filter(
-    (s) => s.ledgerStatus === "PENDING" || s.ledgerStatus === "INVOICED",
-  ).length;
-
   return (
     <div className="mt-1">
       {/* Summary bar */}
@@ -181,12 +170,6 @@ export function ProcedureSessionManager({
             billed per visit
           </span>
         )}
-        <span className="text-[10px] text-slate-400">
-          {inLedger}/{sessions.length} in ledger
-        </span>
-        <span className="text-[10px] font-semibold text-slate-700 ml-auto">
-          {fmtUGX(totalCost)}
-        </span>
       </div>
 
       {/* Session rows */}
@@ -252,13 +235,6 @@ export function ProcedureSessionManager({
                   )}
                 </div>
 
-                <span className="text-xs font-semibold text-slate-700 shrink-0">
-                  {fmtUGX(session.sessionPrice ?? 0)}
-                </span>
-                {/* Cost - FIXED: Use sessionCost with fallback to cost */}
-                {/* <span className="text-xs font-semibold text-slate-700 shrink-0">
-                  {fmtUGX(session.sessionCost ?? 0)}
-                </span> */}
                 {/* Status badge */}
                 <span
                   className={cn(
