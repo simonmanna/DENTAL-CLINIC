@@ -49,10 +49,13 @@ const staffList = [
     specialization: 'Dental Laboratory Technology',
   },
   {
-    firstName: 'Mikal',
+    firstName: 'Milka',
     lastName: 'Solomon',
     role: UserRole.RECEPTIONIST,
     specialization: 'Front Desk',
+    email: 'milka863@fshiktadental.com',
+    password: 'milka123!',
+    isPredefined: true,
   },
   {
     firstName: 'Diana',
@@ -69,6 +72,15 @@ const staffList = [
     email: 'admin@dental.com',            // Exact as requested
     password: 'Admin123!',                // Exact as requested
     isPredefined: true,                  // flag to skip generation
+  },
+  {
+    firstName: 'Samuel',
+    lastName: 'Semere',
+    role: UserRole.ADMIN,
+    specialization: 'System Administration',
+    email: 'samuel184@fshiktadental.com',
+    password: 'Samuel123!',
+    isPredefined: true,
   },
 ];
 
