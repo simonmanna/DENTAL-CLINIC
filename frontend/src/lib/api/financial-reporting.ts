@@ -39,6 +39,7 @@ export interface InvoicePatient {
   patientCode?: string;
   phone?: string;
   email?: string;
+  previousCardNumber?: string;
 }
 
 export interface InvoiceDoctorRef {

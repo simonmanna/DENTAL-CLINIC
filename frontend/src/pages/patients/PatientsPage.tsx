@@ -1188,14 +1188,14 @@ export function PatientsPage() {
   const addMutation = useMutation({
     mutationFn: (d: any) => patientsApi.create(preparePayload(d)),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["patients"] });
+      refetch();
       qc.invalidateQueries({ queryKey: ["patient-stats"] });
       setShowAdd(false);
     },
     onError: (error: any) => {
       if (error.response?.status === 400 && error.response?.data?.message) {
         const errors = error.response.data.message;
-        alert(`Validation error:\n${errors.join("\n")}`);
+        alert(`Validation error:\n${Array.isArray(errors) ? errors.join("\n") : errors}`);
       } else {
         alert("Failed to create patient. Please try again.");
       }
@@ -1209,13 +1209,13 @@ export function PatientsPage() {
         preparePayload(d, editPatient.dateOfBirth), // ← Pass original DOB for edit
       ),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["patients"] });
+      refetch();
       setEditPatient(null);
     },
     onError: (error: any) => {
       if (error.response?.status === 400 && error.response?.data?.message) {
         const errors = error.response.data.message;
-        alert(`Validation error:\n${errors.join("\n")}`);
+        alert(`Validation error:\n${Array.isArray(errors) ? errors.join("\n") : errors}`);
       } else {
         alert("Failed to update patient. Please try again.");
       }

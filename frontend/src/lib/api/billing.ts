@@ -229,6 +229,7 @@ export const billingApi = {
       currency?: string;
       exchangeRate?: number;
       notes?: string;
+      prescriptionItemId?: string;
     }
   ) => api.post<Invoice>(`/billing/invoices/${invoiceId}/encounter-items`, data).then(r => r.data),
 

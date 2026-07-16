@@ -369,6 +369,7 @@ const navItems = [
       { label: "Inventory Report", path: "/InventoryReports", icon: "🗒️" },
       { label: "General Ledger", path: "/general-ledger", icon: "📒" },
       { label: "Audit Log", path: "/audit-log", icon: "🛡️" },
+      { label: "Backups", path: "/admin/backups", icon: "💾" },
     ],
   },
 ];

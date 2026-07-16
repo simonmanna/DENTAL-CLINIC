@@ -55,6 +55,7 @@ export interface Patient {
   lastName: string;
   patientCode: string;
   dateOfBirth?: string;
+  previousCardNumber?: string;
 }
 
 export interface Dentist {

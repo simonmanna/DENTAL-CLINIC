@@ -84,7 +84,7 @@ function StatCard({
   icon: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 flex gap-3 items-start shadow-sm">
+    <div className="bg-white rounded-xl border border-slate-200 px-4 py-1 flex gap-3 items-start shadow-sm">
       <div
         className="mt-0.5 size-8 rounded-lg flex items-center justify-center flex-shrink-0"
         style={{ background: accent + "18" }}
@@ -205,11 +205,12 @@ export default function AppointmentsReportTab(): JSX.Element {
         all.push(...(next.data ?? []));
       }
       const header =
-        '"Appointment Code","Patient","Doctor","Type","Status","Scheduled At","Duration (min)","Visit Status"';
+        '"Appointment Code","Patient","Prev Card","Doctor","Type","Status","Scheduled At","Duration (min)","Visit Status"';
       const body = all.map((r: any) =>
         [
           `"${r.appointmentCode}"`,
           `"${fullName(r.patient)}"`,
+          `"${r.patient?.previousCardNumber ?? ""}"`,
           `"${fullName(r.dentist)}"`,
           `"${r.type}"`,
           `"${r.status}"`,
@@ -416,6 +417,7 @@ export default function AppointmentsReportTab(): JSX.Element {
                     {[
                       "Code",
                       "Patient",
+                      "Prev Card",
                       "Doctor",
                       "Type",
                       "Status",
@@ -447,6 +449,9 @@ export default function AppointmentsReportTab(): JSX.Element {
                             {a.patient?.patientCode}
                           </p>
                         </div>
+                      </td>
+                      <td className="px-3 py-2.5 text-xs text-slate-500 whitespace-nowrap">
+                        {(a as any).patient?.previousCardNumber ?? "—"}
                       </td>
                       <td className="px-3 py-2.5 text-slate-600 whitespace-nowrap">
                         {fullName(a.dentist)}

@@ -48,7 +48,7 @@ interface FinancialReportViewProps {
     }>;
     outstandingInvoices: Array<{
       visitCode: string;
-      patient: { firstName: string; lastName: string };
+      patient: { firstName: string; lastName: string; previousCardNumber?: string };
       dentist: { firstName: string; lastName: string };
       totalCost: number;
       amountPaid: number;
@@ -178,6 +178,7 @@ export const FinancialReportView: React.FC<FinancialReportViewProps> = ({ data }
               <TableRow>
                 <TableHead>Visit Code</TableHead>
                 <TableHead>Patient</TableHead>
+                <TableHead>Prev Card</TableHead>
                 <TableHead>Dentist</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Total</TableHead>
@@ -187,11 +188,12 @@ export const FinancialReportView: React.FC<FinancialReportViewProps> = ({ data }
             </TableHeader>
             <TableBody>
               {data.outstandingInvoices.map((invoice) => (
-                <TableRow key={invoice.visitCode}>
-                  <TableCell className="font-medium">{invoice.visitCode}</TableCell>
-                  <TableCell>{`${invoice.patient.firstName} ${invoice.patient.lastName}`}</TableCell>
-                  <TableCell>{`${invoice.dentist.firstName} ${invoice.dentist.lastName}`}</TableCell>
-                  <TableCell>{new Date(invoice.createdAt).toLocaleDateString()}</TableCell>
+              <TableRow key={invoice.visitCode}>
+                <TableCell className="font-medium">{invoice.visitCode}</TableCell>
+                <TableCell>{`${invoice.patient.firstName} ${invoice.patient.lastName}`}</TableCell>
+                <TableCell>{invoice.patient.previousCardNumber ?? "—"}</TableCell>
+                <TableCell>{`${invoice.dentist.firstName} ${invoice.dentist.lastName}`}</TableCell>
+                <TableCell>{new Date(invoice.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>{formatCurrency(invoice.totalCost)}</TableCell>
                   <TableCell>{formatCurrency(invoice.amountPaid)}</TableCell>
                   <TableCell>

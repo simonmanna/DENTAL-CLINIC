@@ -21,6 +21,7 @@ import { staffApi } from "@/lib/api/staff-api";
 import VisitsReportTab from "./VisitsReportTab";
 import PrescriptionsReportTab from "./PrescriptionsReportTab";
 import AppointmentsReportTab from "./AppointmentsReportTab";
+import ConditionsReportTab from "./ConditionsReportTab";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -30,6 +31,7 @@ interface Patient {
   lastName: string;
   patientCode?: string;
   phone?: string;
+  previousCardNumber?: string;
 }
 
 interface Dentist {
@@ -371,7 +373,7 @@ function StatCard({
   icon?: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 flex gap-3 items-start shadow-sm">
+    <div className="bg-white rounded-xl border border-slate-200 px-4 py-1 flex gap-3 items-start shadow-sm">
       {icon && (
         <div
           className="mt-0.5 size-8 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -767,6 +769,17 @@ const PLAN_COLUMNS: ColumnDef<PlanRow>[] = [
     csv: (r) => `${fullName(r.patient)} (${r.patient?.patientCode ?? ""})`,
   },
   {
+    key: "prevCard",
+    label: "Prev Card",
+    sortable: false,
+    render: (r) => (
+      <span className="text-xs font-mono text-slate-500">
+        {r.patient?.previousCardNumber ?? "—"}
+      </span>
+    ),
+    csv: (r) => r.patient?.previousCardNumber ?? "",
+  },
+  {
     key: "planCode",
     label: "Plan Code",
     render: (r) => (
@@ -878,6 +891,17 @@ const PROCEDURE_COLUMNS: ColumnDef<ProcedureRow>[] = [
       </div>
     ),
     csv: (r) => `${fullName(r.patient)} (${r.patient?.patientCode ?? ""})`,
+  },
+  {
+    key: "prevCard",
+    label: "Prev Card",
+    sortable: false,
+    render: (r) => (
+      <span className="text-xs font-mono text-slate-500">
+        {r.patient?.previousCardNumber ?? "—"}
+      </span>
+    ),
+    csv: (r) => r.patient?.previousCardNumber ?? "",
   },
   {
     key: "dentist",
@@ -1024,6 +1048,17 @@ const SESSION_COLUMNS: ColumnDef<SessionRow>[] = [
       </div>
     ),
     csv: (r) => `${fullName(r.patient)} (${r.patient?.patientCode ?? ""})`,
+  },
+  {
+    key: "prevCard",
+    label: "Prev Card",
+    sortable: false,
+    render: (r) => (
+      <span className="text-xs font-mono text-slate-500">
+        {r.patient?.previousCardNumber ?? "—"}
+      </span>
+    ),
+    csv: (r) => r.patient?.previousCardNumber ?? "",
   },
   {
     key: "procedure",
@@ -1198,7 +1233,7 @@ const DEFAULT_FILTERS: FilterState = {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function TreatmentReports(): JSX.Element {
-  const [activeTab, setActiveTab] = useState<"plans" | "procedures" | "sessions" | "visits" | "prescriptions" | "appointments">("plans");
+  const [activeTab, setActiveTab] = useState<"plans" | "procedures" | "sessions" | "visits" | "prescriptions" | "appointments" | "conditions">("plans");
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [result, setResult] = useState<ApiResponse>({
@@ -1230,7 +1265,8 @@ export default function TreatmentReports(): JSX.Element {
   const isVisits = activeTab === "visits";
   const isPrescriptions = activeTab === "prescriptions";
   const isAppointments = activeTab === "appointments";
-  const isSelfContained = isVisits || isPrescriptions || isAppointments;
+  const isConditions = activeTab === "conditions";
+  const isSelfContained = isVisits || isPrescriptions || isAppointments || isConditions;
   const tab = useMemo<TabConfig>(
     () => TABS.find((t) => t.id === activeTab) ?? TABS[0],
     [activeTab]
@@ -1308,7 +1344,7 @@ export default function TreatmentReports(): JSX.Element {
     [sortBy]
   );
 
-  const handleTabChange = (id: "plans" | "procedures" | "sessions" | "visits" | "prescriptions" | "appointments") => {
+  const handleTabChange = (id: "plans" | "procedures" | "sessions" | "visits" | "prescriptions" | "appointments" | "conditions") => {
     setActiveTab(id);
     setFilters(DEFAULT_FILTERS);
     setPage(1);
@@ -1488,7 +1524,7 @@ export default function TreatmentReports(): JSX.Element {
             <button
               key="visits"
               onClick={() => handleTabChange("visits")}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === "visits"
+              className={`flex items-center gap-2 px-1 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === "visits"
                 ? "border-emerald-600 text-emerald-700"
                 : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
                 }`}
@@ -1520,6 +1556,18 @@ export default function TreatmentReports(): JSX.Element {
               <span>📆</span>
               Appointments Report
             </button>
+            {/* Conditions — rendered by the self-contained ConditionsReportTab */}
+            <button
+              key="conditions"
+              onClick={() => handleTabChange("conditions")}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === "conditions"
+                ? "border-emerald-600 text-emerald-700"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                }`}
+            >
+              <span>🔍</span>
+              Diagnoses Report
+            </button>
 
             {TABS.map((t) => (
               <button
@@ -1530,10 +1578,9 @@ export default function TreatmentReports(): JSX.Element {
                   : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
                   }`}
               >
-                <span>{t.icon}</span>
                 {t.label}
                 {result.pagination.total > 0 && activeTab === t.id && (
-                  <span className="bg-emerald-100 text-emerald-700 text-xs rounded-full px-1.5 py-0.5 font-semibold tabular-nums">
+                  <span className="bg-emerald-100 text-emerald-700 text-xs rounded-full px-0.5 py-0.5 font-semibold tabular-nums">
                     {result.pagination.total}
                   </span>
                 )}
@@ -1551,6 +1598,8 @@ export default function TreatmentReports(): JSX.Element {
           <PrescriptionsReportTab />
         ) : isAppointments ? (
           <AppointmentsReportTab />
+        ) : isConditions ? (
+          <ConditionsReportTab />
         ) : (
         <>
         {error && (

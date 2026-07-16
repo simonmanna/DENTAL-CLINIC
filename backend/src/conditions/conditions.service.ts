@@ -21,7 +21,7 @@ import { UpdateConditionDto } from './dto/update-condition.dto';
 import { ConditionQueryDto } from './dto/condition-query.dto';
 import { CreatePatientConditionDto } from './dto/create-patient-condition.dto';
 import { UpdatePatientConditionDto } from './dto/update-patient-condition.dto';
-import { PatientConditionQueryDto } from './dto/patient-condition-query.dto';
+import { ConditionsReportQueryDto, PatientConditionStatusEnum, ConditionCategoryEnum, ConditionSeverityEnum } from './dto/conditions-report-query.dto';
 
 import { ConditionCategory, ConditionSeverity, ToothSurface, Prisma, PatientConditionStatus, TreatmentStatus, ChartEntryType, ChartEntryStatus } from '@prisma/client';
 
@@ -967,6 +967,89 @@ async findPatientConditions(
     },
     orderBy: [{ diagnosedAt: 'desc' }, { createdAt: 'desc' }],
   });
+}
+
+async getPatientConditionsReport(query: ConditionsReportQueryDto) {
+  const page = query.page ?? 1;
+  const limit = query.limit ?? 50;
+  const skip = (page - 1) * limit;
+
+  const startDate = query.startDate ? new Date(query.startDate) : new Date(0);
+  const endDate = query.endDate ? new Date(query.endDate) : new Date('2100-01-01');
+
+  const where: any = {
+    deletedAt: null,
+    diagnosedAt: { gte: startDate, lte: endDate },
+  };
+
+  if (query.status) where.status = query.status;
+  if (query.severity) where.severity = query.severity;
+  if (query.dentistId) where.providerId = query.dentistId;
+  if (query.category) where.condition = { category: query.category };
+  if (query.search) {
+    where.OR = [
+      { patient: { firstName: { contains: query.search, mode: 'insensitive' } } },
+      { patient: { lastName: { contains: query.search, mode: 'insensitive' } } },
+      { condition: { name: { contains: query.search, mode: 'insensitive' } } },
+    ];
+  }
+
+  const [rows, total] = await Promise.all([
+    this.prisma.patientCondition.findMany({
+      where,
+      include: {
+        patient: { select: { id: true, firstName: true, lastName: true, patientCode: true, phone: true } },
+        condition: { select: { id: true, name: true, icd10Code: true, category: true } },
+        provider: { select: { id: true, firstName: true, lastName: true } },
+        visit: { select: { id: true, visitCode: true } },
+      },
+      orderBy: [{ diagnosedAt: 'desc' }, { createdAt: 'desc' }],
+      skip,
+      take: limit,
+    }),
+    this.prisma.patientCondition.count({ where }),
+  ]);
+
+  const byStatus: Record<string, number> = {};
+  const byCategory: Record<string, number> = {};
+  for (const row of rows) {
+    byStatus[row.status] = (byStatus[row.status] || 0) + 1;
+    const cat = row.condition.category;
+    byCategory[cat] = (byCategory[cat] || 0) + 1;
+  }
+
+  const data = rows.map((r) => ({
+    id: r.id,
+    patientId: r.patient.id,
+    patientCode: r.patient.patientCode,
+    patientName: `${r.patient.firstName} ${r.patient.lastName}`,
+    patientPhone: r.patient.phone ?? undefined,
+    conditionId: r.condition.id,
+    conditionName: r.condition.name,
+    icd10Code: r.condition.icd10Code ?? undefined,
+    conditionCategory: r.condition.category,
+    toothNumber: r.toothNumber ?? undefined,
+    surfaces: r.surfaces as string[] ?? [],
+    severity: r.severity ?? undefined,
+    status: r.status,
+    diagnosedAt: r.diagnosedAt.toISOString(),
+    resolvedAt: r.resolvedAt?.toISOString() ?? undefined,
+    providerId: r.provider?.id ?? undefined,
+    providerName: r.provider ? `${r.provider.firstName} ${r.provider.lastName}` : undefined,
+    visitCode: r.visit?.visitCode ?? undefined,
+    notes: r.notes ?? undefined,
+  }));
+
+  return {
+    data,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+    summary: { total, byStatus, byCategory },
+  };
 }
 
 async findOnePatientCondition(id: string, opts: { includeDeleted?: boolean } = {}) {

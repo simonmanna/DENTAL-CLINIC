@@ -2796,6 +2796,7 @@ function DentalChartInner({
       }
       setSelected([n]);
       setAnchor(n);
+      setDrawerTooth(n);
     },
     [anchor, orderedTeeth],
   );

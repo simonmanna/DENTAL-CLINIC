@@ -153,7 +153,7 @@ export interface DiagnosisTrendsReport {
 // Patient Visits
 export interface PatientVisitRow {
   visitId: string; visitCode: string;
-  patientId: string; patientCode: string; patientName: string; patientPhone?: string;
+  patientId: string; patientCode: string; patientName: string; patientPhone?: string; previousCardNumber?: string;
   dentistId: string; dentistName: string; dentistSpecialization?: string;
   status: string; paymentStatus: string;
   totalCost: number; amountPaid: number; balance: number;

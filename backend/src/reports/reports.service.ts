@@ -1027,7 +1027,7 @@ export class ReportsService {
           visitCode: true,
           totalCost: true,
           amountPaid: true,
-          patient: { select: { firstName: true, lastName: true } },
+          patient: { select: { id: true, firstName: true, lastName: true, patientCode: true, previousCardNumber: true } },
           dentist: { select: { firstName: true, lastName: true } },
           createdAt: true,
         },
@@ -1351,6 +1351,7 @@ export class ReportsService {
               patientCode: true,
               phone: true,
               email: true,
+              previousCardNumber: true,
             },
           },
           dentist: {
@@ -1612,7 +1613,7 @@ async getPatientVisitsReport(query: VisitReportQueryDto): Promise<PatientVisitsR
     const visits = await this.prisma.visit.findMany({
       where,
       include: {
-        patient: { select: { id: true, firstName: true, lastName: true, patientCode: true, phone: true } },
+        patient: { select: { id: true, firstName: true, lastName: true, patientCode: true, phone: true, previousCardNumber: true } },
         dentist: { select: { id: true, firstName: true, lastName: true, specialization: true } },
         procedures: { include: { procedure: true } },
         procedureSessions: {
@@ -1719,6 +1720,7 @@ async getPatientVisitsReport(query: VisitReportQueryDto): Promise<PatientVisitsR
         patientCode: visit.patient.patientCode,
         patientName: `${visit.patient.firstName} ${visit.patient.lastName}`,
         patientPhone: visit.patient.phone ?? undefined,
+        previousCardNumber: visit.patient.previousCardNumber ?? undefined,
         dentistId: visit.dentist.id,
         dentistName: `${visit.dentist.firstName} ${visit.dentist.lastName}`,
         dentistSpecialization: visit.dentist.specialization ?? undefined,
@@ -1911,6 +1913,7 @@ async getPatientVisitsReport(query: VisitReportQueryDto): Promise<PatientVisitsR
             lastName: true,
             patientCode: true,
             phone: true,
+            previousCardNumber: true,
           },
         },
         issuedAt: true,

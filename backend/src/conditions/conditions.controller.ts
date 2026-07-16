@@ -31,6 +31,7 @@ import {
   CreatePatientConditionsBatchDto,
   UpdatePatientConditionsBatchDto,
 } from './dto/batch-patient-condition.dto';
+import { ConditionsReportQueryDto } from './dto/conditions-report-query.dto';
 import { PatientConditionQueryDto } from './dto/patient-condition-query.dto';
 import { ResolvePatientConditionDto } from './dto/resolve-patient-condition.dto';
 import { DeletePatientConditionDto } from './dto/delete-patient-condition.dto';
@@ -161,6 +162,16 @@ export class ConditionsController {
     }
 
     // ==================== Patient Condition Endpoints ====================
+
+@Get('report')
+@Roles(...PATIENT_CONDITION_READ_ROLES)
+@ApiOperation({ summary: 'Get patient conditions report (paginated, aggregated)' })
+@ApiResponse({ status: 200, description: 'Returns paginated patient conditions report' })
+async getPatientConditionsReport(
+    @Query() query: ConditionsReportQueryDto,
+) {
+    return this.conditionsService.getPatientConditionsReport(query);
+}
 
 @Get('patient')
 @Roles(...PATIENT_CONDITION_READ_ROLES)

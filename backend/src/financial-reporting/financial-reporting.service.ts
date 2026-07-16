@@ -153,6 +153,7 @@ export class FinancialReportingService {
               patientCode: true,
               phone: true,
               email: true,
+              previousCardNumber: true,
             },
           },
           visit: {
@@ -536,6 +537,7 @@ export class FinancialReportingService {
                   lastName: true,
                   patientCode: true,
                   phone: true,
+                  previousCardNumber: true,
                 },
               },
               visit: {
@@ -779,6 +781,7 @@ export class FinancialReportingService {
                   firstName: true,
                   lastName: true,
                   patientCode: true,
+                  previousCardNumber: true,
                 },
               },
             },

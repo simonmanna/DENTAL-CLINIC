@@ -131,6 +131,9 @@ function VisitRow({ visit }: { visit: PatientVisitsReport["data"][number] }) {
           <p className="font-medium text-slate-900">{visit.patientName}</p>
           <p className="text-xs text-slate-400">{visit.patientCode}</p>
         </td>
+        <td className="px-3 py-2.5 text-xs text-slate-500 whitespace-nowrap">
+          {visit.previousCardNumber ?? "—"}
+        </td>
         <td className="px-3 py-2.5 text-slate-600 whitespace-nowrap">{visit.dentistName}</td>
         <td className="px-3 py-2.5 text-center tabular-nums">{visit.procedureCount}</td>
         <td className="px-3 py-2.5 text-center tabular-nums">
@@ -441,6 +444,7 @@ export default function VisitsReportTab(): JSX.Element {
                       "Visit",
                       "Date",
                       "Patient",
+                      "Prev Card",
                       "Doctor",
                       "Procs",
                       "Sessions",

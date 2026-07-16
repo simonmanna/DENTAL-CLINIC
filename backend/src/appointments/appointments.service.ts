@@ -714,6 +714,7 @@ export class AppointmentsService {
           phone: true,
           avatar: true,
           dateOfBirth: true,
+          previousCardNumber: true,
         },
       },
       dentist: {

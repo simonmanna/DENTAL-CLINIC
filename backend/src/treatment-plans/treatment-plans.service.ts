@@ -233,6 +233,7 @@ export class TreatmentPlansService {
             firstName: true,
             lastName: true,
             patientCode: true,
+            previousCardNumber: true,
           },
         },
         dentist: { select: { id: true, firstName: true, lastName: true } },

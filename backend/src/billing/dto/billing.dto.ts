@@ -297,6 +297,10 @@ export class AddEncounterItemDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  prescriptionItemId?: string;
 }
 
 export class ActivateInvoiceDto {

@@ -22,6 +22,7 @@ import {
   InvoicePaymentStatus,
   InvoiceItemType,
   LedgerEntryType,
+  StockLedgerType,
   Prisma,
 } from '@prisma/client';
 import { withUniqueCodeRetry } from './utils/unique-code';
@@ -37,6 +38,12 @@ function toNum(v: unknown): number {
   return isNaN(n) ? 0 : n;
 }
 
+function genLedgerCode(): string {
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+  return `ILG-${new Date().getFullYear()}-${timestamp}${random}`;
+}
+
 export interface AddEncounterItemDto {
   description: string;
   itemType: InvoiceItemType;
@@ -46,6 +53,7 @@ export interface AddEncounterItemDto {
   currency?: string;
   exchangeRate?: number;
   notes?: string;
+  prescriptionItemId?: string;
 }
 
 @Injectable()
@@ -838,6 +846,33 @@ export class InvoiceLifecycleService {
         }
       }
 
+      // ── Deduct stock for PRESCRIPTION items ────────────────────────────
+      const rxItems = activeItems.filter(
+        (i) => i.itemType === 'PRESCRIPTION' && !!(i as any).prescriptionItemId,
+      );
+      if (rxItems.length > 0) {
+        let locId = await this.resolvePharmacyLocation(tx);
+        if (!locId) {
+          const defaultLoc = await tx.location.findFirst({
+            where: { isDefault: true, isActive: true },
+            select: { id: true },
+          });
+          locId = defaultLoc?.id ?? null;
+        }
+        if (locId) {
+          for (const item of rxItems) {
+            await this.deductRxStock(tx, {
+              prescriptionItemId: (item as any).prescriptionItemId,
+              quantity: item.quantity,
+              referenceId: invoiceId,
+              referenceCode: invoice.invoiceNumber,
+              locationId: locId,
+              performedByStaffId: activatedBy ?? null,
+            });
+          }
+        }
+      }
+
       await tx.invoice.update({
         where: { id: invoiceId },
         data: {
@@ -868,6 +903,190 @@ export class InvoiceLifecycleService {
     // Sync stored invoice totals (discount/tax/balance) so the invoice row
     // reconciles with the GL entry we just posted.
     return this.recalcActive(invoiceId);
+  }
+
+  // ── Stock deduction helpers for PRESCRIPTION items ─────────────────────────
+
+  private async resolvePharmacyLocation(
+    tx: Prisma.TransactionClient,
+  ): Promise<string | null> {
+    const setting = await tx.clinicSettings.findUnique({
+      where: { key: 'PHARMACY_LOCATION' },
+    });
+    if (setting?.value) {
+      const loc = await tx.location.findUnique({
+        where: { id: setting.value },
+        select: { id: true, isActive: true },
+      });
+      if (loc?.isActive) return loc.id;
+    }
+    const defaultLoc = await tx.location.findFirst({
+      where: { isDefault: true, isActive: true },
+      select: { id: true },
+    });
+    return defaultLoc?.id ?? null;
+  }
+
+  private async upsertLocationStock(
+    tx: Prisma.TransactionClient,
+    inventoryItemId: string,
+    locationId: string,
+    quantityChange: number,
+  ): Promise<void> {
+    const existing = await tx.inventoryLocationStock.findFirst({
+      where: { itemId: inventoryItemId, locationId },
+    });
+    if (existing) {
+      const newQty = existing.quantity + quantityChange;
+      await tx.inventoryLocationStock.update({
+        where: { id: existing.id },
+        data: { quantity: newQty },
+      });
+    } else {
+      const qty = Math.max(0, quantityChange);
+      await tx.inventoryLocationStock.create({
+        data: { itemId: inventoryItemId, locationId, quantity: qty },
+      });
+    }
+  }
+
+  private async createInventoryLedgerEntry(
+    tx: Prisma.TransactionClient,
+    params: {
+      inventoryItemId: string;
+      locationId: string;
+      batchId?: string | null;
+      type: StockLedgerType;
+      quantityBefore: number;
+      quantityChange: number;
+      quantityAfter: number;
+      unitCost: number;
+      referenceType: string;
+      referenceId: string;
+      notes: string;
+      performedByStaffId?: string | null;
+    },
+  ): Promise<void> {
+    const {
+      inventoryItemId,
+      locationId,
+      batchId,
+      type,
+      quantityBefore,
+      quantityChange,
+      quantityAfter,
+      unitCost,
+      referenceType,
+      referenceId,
+      notes,
+      performedByStaffId,
+    } = params;
+
+    await tx.inventoryLedger.create({
+      data: {
+        ledgerCode: genLedgerCode(),
+        itemId: inventoryItemId,
+        locationId,
+        batchId: batchId ?? null,
+        type,
+        quantityBefore,
+        quantityChange,
+        quantityAfter,
+        unitCost,
+        totalValue: Math.abs(quantityChange) * unitCost,
+        referenceType,
+        referenceId,
+        notes,
+        performedById: null,
+        performedByStaffId: performedByStaffId ?? null,
+      },
+    });
+  }
+
+  private async deductRxStock(
+    tx: Prisma.TransactionClient,
+    params: {
+      prescriptionItemId: string;
+      quantity: number;
+      referenceId: string;
+      referenceCode: string;
+      locationId: string;
+      performedByStaffId?: string | null;
+    },
+  ): Promise<void> {
+    const {
+      prescriptionItemId,
+      quantity,
+      referenceId,
+      referenceCode,
+      locationId,
+      performedByStaffId,
+    } = params;
+
+    const rxItem = await tx.prescriptionItem.findUnique({
+      where: { id: prescriptionItemId },
+      include: {
+        drug: {
+          include: {
+            inventoryItem: {
+              include: {
+                locationStocks: { where: { locationId } },
+                batches: {
+                  where: { locationId, isActive: true, quantity: { gt: 0 } },
+                  orderBy: [{ expiryDate: 'asc' }, { receivedAt: 'asc' }],
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!rxItem?.drug?.inventoryItem) return;
+
+    const inventoryItemId = rxItem.drug.inventoryItem.id;
+    const unitCost = toNum(rxItem.drug.inventoryItem.unitCost);
+
+    const locationStock = await tx.inventoryLocationStock.findFirst({
+      where: { itemId: inventoryItemId, locationId },
+      select: { quantity: true },
+    });
+    const qtyBefore = locationStock?.quantity ?? 0;
+
+    // Decrement location stock (allow negative)
+    await this.upsertLocationStock(tx, inventoryItemId, locationId, -quantity);
+
+    // If batch-tracked, deduct from oldest batch (FEFO)
+    let batchId: string | null = null;
+    if (rxItem.drug.inventoryItem.batches?.[0]) {
+      const oldestBatch = rxItem.drug.inventoryItem.batches[0];
+      const newBatchQty = oldestBatch.quantity - quantity;
+      await tx.inventoryBatch.update({
+        where: { id: oldestBatch.id },
+        data: {
+          quantity: { decrement: quantity },
+          isActive: newBatchQty > 0,
+        },
+      });
+      batchId = oldestBatch.id;
+    }
+
+    // Write InventoryLedger entry
+    await this.createInventoryLedgerEntry(tx, {
+      inventoryItemId,
+      locationId,
+      batchId,
+      type: StockLedgerType.SALE,
+      quantityBefore: qtyBefore,
+      quantityChange: -quantity,
+      quantityAfter: qtyBefore - quantity,
+      unitCost,
+      referenceType: 'INVOICE',
+      referenceId,
+      notes: `Invoice ${referenceCode} — prescription item auto-deducted${performedByStaffId ? ` | Staff: ${performedByStaffId}` : ''}`,
+      performedByStaffId,
+    });
   }
 
   // ── Add an encounter item to a DRAFT or POSTED invoice ─────────────────────
@@ -964,6 +1183,7 @@ export class InvoiceLifecycleService {
           originalUnitPrice: dto.unitPrice,
           originalTotal,
           exchangeRate: rate,
+          prescriptionItemId: dto.prescriptionItemId ?? null,
         },
       });
       await this.prisma.auditLog.create({
@@ -1002,6 +1222,7 @@ export class InvoiceLifecycleService {
           originalUnitPrice: dto.unitPrice,
           originalTotal,
           exchangeRate: rate,
+          prescriptionItemId: dto.prescriptionItemId ?? null,
         },
       });
 

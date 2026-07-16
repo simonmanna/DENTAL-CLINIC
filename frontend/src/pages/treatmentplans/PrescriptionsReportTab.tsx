@@ -66,7 +66,7 @@ function StatCard({
   icon: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 flex gap-3 items-start shadow-sm">
+    <div className="bg-white rounded-xl border border-slate-200 px-4 py-1 flex gap-3 items-start shadow-sm">
       <div
         className="mt-0.5 size-8 rounded-lg flex items-center justify-center flex-shrink-0"
         style={{ background: accent + "18" }}
@@ -189,11 +189,12 @@ export default function PrescriptionsReportTab(): JSX.Element {
         all.push(...next.data);
       }
       const header =
-        '"Prescription Code","Patient","Doctor","Status","Items","Valid Until","Created At"';
+        '"Prescription Code","Patient","Prev Card","Doctor","Status","Items","Valid Until","Created At"';
       const body = all.map((r) =>
         [
           `"${r.prescriptionCode}"`,
           `"${fullName(r.patient)}"`,
+          `"${r.patient?.previousCardNumber ?? ""}"`,
           `"${fullName(r.dentist)}"`,
           `"${r.status}"`,
           `"${r.items.length}"`,
@@ -399,6 +400,7 @@ export default function PrescriptionsReportTab(): JSX.Element {
                     {[
                       "Code",
                       "Patient",
+                      "Prev Card",
                       "Doctor",
                       "Status",
                       "Items",
@@ -429,6 +431,9 @@ export default function PrescriptionsReportTab(): JSX.Element {
                             {p.patient?.patientCode}
                           </p>
                         </div>
+                      </td>
+                      <td className="px-3 py-2.5 text-xs text-slate-500 whitespace-nowrap">
+                        {p.patient?.previousCardNumber ?? "—"}
                       </td>
                       <td className="px-3 py-2.5 text-slate-600 whitespace-nowrap">
                         {fullName(p.dentist)}

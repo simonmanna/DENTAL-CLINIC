@@ -88,6 +88,7 @@ import { DraftAppointmentsPage } from "./pages/appointments/AppointmentsDraftPag
 import NotificationsPage from "./pages/notifications/NotificationsPage";
 import ClinicSettingsPage from "./pages/clinic-settings/ClinicSettingsPage";
 import AuditLogPage from "./pages/audit-log/AuditLogPage";
+import BackupStatusPage from "./pages/backups/BackupStatusPage";
 
 
 // Role-based route protection
@@ -810,6 +811,14 @@ export default function App() {
               <ProtectedRoute>
                 <AuditLogPage />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/backups"
+            element={
+              <AdminRoute>
+                <BackupStatusPage />
+              </AdminRoute>
             }
           />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

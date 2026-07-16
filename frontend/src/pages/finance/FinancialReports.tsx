@@ -582,6 +582,17 @@ const INVOICE_COLUMNS: ColDef<InvoiceRow>[] = [
     csv: (r) => `${fullName(r.patient)} (${r.patient?.patientCode ?? ""})`,
   },
   {
+    key: "prevCard",
+    label: "Prev Card",
+    sortable: false,
+    render: (r) => (
+      <span className="text-xs font-mono text-slate-500">
+        {r.patient?.previousCardNumber ?? "—"}
+      </span>
+    ),
+    csv: (r) => r.patient?.previousCardNumber ?? "",
+  },
+  {
     key: "dentist",
     label: "Doctor",
     sortable: false,
@@ -681,6 +692,17 @@ const RECEIPT_COLUMNS: ColDef<ReceiptRow>[] = [
       </div>
     ),
     csv: (r) => fullName(r.invoice?.patient),
+  },
+  {
+    key: "prevCard",
+    label: "Prev Card",
+    sortable: false,
+    render: (r) => (
+      <span className="text-xs font-mono text-slate-500">
+        {r.invoice?.patient?.previousCardNumber ?? "—"}
+      </span>
+    ),
+    csv: (r) => r.invoice?.patient?.previousCardNumber ?? "",
   },
   {
     key: "invoiceNumber",

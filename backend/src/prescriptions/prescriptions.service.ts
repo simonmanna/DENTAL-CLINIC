@@ -49,6 +49,7 @@ const PRESCRIPTION_SELECT = {
       lastName: true,
       patientCode: true,
       dateOfBirth: true,
+      previousCardNumber: true,
     },
   },
   dentist: {

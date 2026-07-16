@@ -127,7 +127,7 @@ export class ClinicalReportsService {
                 where,
                 include: {
                     patient: {
-                        select: { id: true, patientCode: true, firstName: true, lastName: true, phone: true },
+                        select: { id: true, patientCode: true, firstName: true, lastName: true, phone: true, previousCardNumber: true },
                     },
                     dentist: {
                         select: { id: true, firstName: true, lastName: true, specialization: true },
@@ -257,7 +257,7 @@ export class ClinicalReportsService {
                 treatmentPlan: {
                     select: {
                         planCode: true,
-                        patient: { select: { patientCode: true, firstName: true, lastName: true } },
+                        patient: { select: { patientCode: true, firstName: true, lastName: true, previousCardNumber: true } },
                         dentist: { select: { firstName: true, lastName: true } },
                     },
                 },
@@ -392,7 +392,7 @@ export class ClinicalReportsService {
                             treatmentPlan: {
                                 select: {
                                     planCode: true,
-                                    patient: { select: { patientCode: true, firstName: true, lastName: true } },
+                        patient: { select: { patientCode: true, firstName: true, lastName: true, previousCardNumber: true } },
                                     dentist: { select: { firstName: true, lastName: true, specialization: true } },
                                 },
                             },
@@ -518,7 +518,7 @@ export class ClinicalReportsService {
                 treatmentPlan: {
                     select: {
                         planCode: true,
-                        patient: { select: { patientCode: true, firstName: true, lastName: true } },
+                        patient: { select: { patientCode: true, firstName: true, lastName: true, previousCardNumber: true } },
                         dentist: { select: { firstName: true, lastName: true } },
                     },
                 },

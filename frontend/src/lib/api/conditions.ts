@@ -287,4 +287,48 @@ export const conditionsApi = {
 
   getPatientConditionAuditLog: (id: string) =>
     api.get<AuditLogEntry[]>(`/conditions/patient/${id}/audit-log`).then(r => r.data),
+
+  // ── Report ───────────────────────────────────────────────────────────
+  getReport: (params: ConditionsReportQuery) =>
+    api.get<PatientConditionsReport>("/conditions/report", { params }).then(r => r.data),
 };
+
+export interface ConditionsReportQuery {
+  page?: number;
+  limit?: number;
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+  category?: string;
+  severity?: string;
+  dentistId?: string;
+  search?: string;
+}
+
+export interface PatientConditionRow {
+  id: string;
+  patientId: string;
+  patientCode: string;
+  patientName: string;
+  patientPhone?: string;
+  conditionId: string;
+  conditionName: string;
+  icd10Code?: string;
+  conditionCategory: string;
+  toothNumber?: number;
+  surfaces: string[];
+  severity?: string;
+  status: string;
+  diagnosedAt: string;
+  resolvedAt?: string;
+  providerId?: string;
+  providerName?: string;
+  visitCode?: string;
+  notes?: string;
+}
+
+export interface PatientConditionsReport {
+  data: PatientConditionRow[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+  summary: { total: number; byStatus: Record<string, number>; byCategory: Record<string, number> };
+}

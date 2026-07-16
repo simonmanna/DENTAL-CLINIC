@@ -1320,9 +1320,9 @@ export function VisitBillingPage() {
     IMAGING: "XRAY",
     DRUG: "PRESCRIPTION",
     PHARMACY_SALE: "PRESCRIPTION",
-    PROCEDURE: "MANUAL",
-    SERVICE: "MANUAL",
-    OTHER: "MANUAL",
+    PROCEDURE: "OTHER",
+    SERVICE: "OTHER",
+    OTHER: "OTHER",
     TREATMENT_PROCEDURE: "TREATMENT_PROCEDURE",
     TREATMENT_PROCEDURE_SESSION: "TREATMENT_PROCEDURE_SESSION",
   };
@@ -1467,6 +1467,7 @@ export function VisitBillingPage() {
           currency: BASE_CURRENCY,
           notes:
             `${rx.prescriptionCode} ${rxItem.dosage ?? ""} ${rxItem.frequency ?? ""}`.trim(),
+          prescriptionItemId: rxItem.id,
         });
         // Refetch to get the new item ID so we can map it for unchecking
         const freshInvoices = await qc.fetchQuery<InvoiceListResponse>({
@@ -1732,7 +1733,7 @@ export function VisitBillingPage() {
                 {/* Left — Customer */}
 
                 {/* Left — Customer & Statuses */}
-                <div className="pr-8 border-r border-slate-100 space-y-2">
+                <div className="pl-3 pr-8 border-r border-slate-100 space-y-2">
                   {/* Customer (inline label + value) */}
                   <div className="flex items-baseline gap-2">
                     <p className="text-sm text-slate-600 font-semibold tracking-wide w-32 shrink-0">

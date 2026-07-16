@@ -749,3 +749,10 @@ export const procedureCategoriesApi = {
   reorder: (categories: { id: string; sortOrder: number; parentId?: string | null }[]) =>
     api.post('/procedure-categories/reorder', categories),
 };
+
+export const backupsApi = {
+  getStatus: () => api.get("/admin/backups/status").then((r) => r.data),
+  triggerFull: () => api.post("/admin/backups/full").then((r) => r.data),
+  triggerBase: () => api.post("/admin/backups/base").then((r) => r.data),
+  triggerFiles: () => api.post("/admin/backups/files").then((r) => r.data),
+};

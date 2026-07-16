@@ -3,7 +3,7 @@
 // Drop-in replacement. Adjust imports to match your project structure.
 
 import { useQuery } from "@tanstack/react-query";
-import { reportsApi, appointmentsApi } from "../../lib/api";
+import { reportsApi, appointmentsApi, backupsApi } from "../../lib/api";
 import { formatCurrency, formatTime } from "../../lib/utils";
 import { LoadingSpinner, StatusBadge } from "../../components/shared";
 import { useNavigate } from "react-router-dom";
@@ -28,6 +28,8 @@ import {
   ArrowUpRight,
   Star,
   Zap,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
@@ -212,6 +214,13 @@ export function DashboardPage() {
     refetchInterval: 60_000,
   });
 
+  const { data: backupStatus } = useQuery({
+    queryKey: ["backups", "status"],
+    queryFn: () => backupsApi.getStatus(),
+    refetchInterval: 60_000,
+  });
+  const lastFull = backupStatus?.lastByKind?.full;
+
   const { data: todayApts } = useQuery({
     queryKey: ["appointments", "today"],
     queryFn: () =>
@@ -268,6 +277,21 @@ export function DashboardPage() {
             Quick Access Dashboard
           </span>
         </div>
+        {lastFull && (
+          <a
+            href="/admin/backups"
+            className="flex items-center gap-1.5 bg-white rounded-2xl px-3 py-2 shadow-sm border border-slate-100 hover:shadow-md transition-shadow"
+          >
+            {lastFull.status === "success" ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+            ) : (
+              <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+            )}
+            <span className="text-xs text-slate-500">
+              Backup: {new Date(lastFull.finishedAt).toLocaleTimeString("en-UG", { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          </a>
+        )}
       </div>
 
       {/* ── Stat Cards (ExpensesPage style) ── */}
