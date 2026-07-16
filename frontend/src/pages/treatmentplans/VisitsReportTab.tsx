@@ -146,12 +146,9 @@ function VisitRow({ visit, navigate }: { visit: PatientVisitsReport["data"][numb
           <StatusBadge status={visit.status} />
         </td>
         <td className="px-3 py-2.5 tabular-nums font-medium whitespace-nowrap">
-          {formatCurrency(visit.amountPaid ?? 0)}
-          {visit.balance > 0 && (
-            <span className="ml-1 text-[10px] text-red-500">
-              bal {formatCurrency(visit.balance)}
-            </span>
-          )}
+          {(visit.amountPaid ?? 0) > 0 && formatCurrency(visit.amountPaid)}
+          {(visit.amountPaid ?? 0) > 0 && visit.balance > 0 && <span className="ml-1 text-[10px] text-red-500">bal {formatCurrency(visit.balance)}</span>}
+          {(visit.amountPaid ?? 0) === 0 && visit.balance > 0 && <span className="text-[10px] text-red-500">bal {formatCurrency(visit.balance)}</span>}
         </td>
         <td className="px-3 py-2.5 text-slate-400">
           {hasDetail ? (
