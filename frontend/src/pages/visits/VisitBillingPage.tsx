@@ -256,7 +256,8 @@ function PaymentDialog({
   const [receivedById, setReceivedById] = useState("");
   const [useCustomRate, setUseCustomRate] = useState(false);
   const [customRate, setCustomRate] = useState("");
-  const amountInInvCurrRef = useRef(Number(invoice.balance ?? 0)); // ← add this
+  const amountInInvCurrRef = useRef(Number(invoice.balance ?? 0));
+  const fromInitialPayment = useRef(false);
   // C1: one stable idempotency key per dialog-open. A double-click or retry
   // reuses it so the backend replays the first payment instead of charging
   // twice. Regenerated whenever the dialog re-opens (see the open effect).
@@ -282,17 +283,21 @@ function PaymentDialog({
   // When user switches currency, immediately convert the displayed amount
   useEffect(() => {
     if (!open) return;
+    if (fromInitialPayment.current) return;
     if (paymentCurrency === invoice.currency) {
       setAmount(Math.round(amountInInvCurrRef.current).toString());
     }
-    setUseCustomRate(false);
-    setCustomRate("");
+    if (!fromInitialPayment.current) {
+      setUseCustomRate(false);
+      setCustomRate("");
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentCurrency]);
 
   // When the live rate finishes loading, convert the amount into the foreign currency
   useEffect(() => {
     if (!open || paymentCurrency === invoice.currency || liveRate <= 0) return;
+    if (fromInitialPayment.current) return;
     setAmount((amountInInvCurrRef.current / liveRate).toFixed(2));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveRate]);
@@ -315,6 +320,7 @@ function PaymentDialog({
       amountInInvCurrRef.current = useInitial && initialAmt != null
         ? Number(initialAmt)
         : Number(invoice.balance ?? 0);
+      fromInitialPayment.current = useInitial && initialAmt != null;
       setMethod("CASH");
       setReference("");
       setReceivedById("");
@@ -445,6 +451,7 @@ function PaymentDialog({
                   value={amount}
                   // onChange={(e) => setAmount(e.target.value)}
                   onChange={(e) => {
+                    fromInitialPayment.current = false;
                     setAmount(e.target.value);
                     const num = parseFloat(e.target.value || "0");
                     const rate =
@@ -473,7 +480,10 @@ function PaymentDialog({
               </label>
               <select
                 value={paymentCurrency}
-                onChange={(e) => setPaymentCurrency(e.target.value)}
+                onChange={(e) => {
+                  fromInitialPayment.current = false;
+                  setPaymentCurrency(e.target.value);
+                }}
                 className="w-full border border-slate-300 rounded-xl px-4 py-3 text-base focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none bg-white transition-shadow"
               >
                 <option value={invoice.currency}>{invoice.currency}</option>
