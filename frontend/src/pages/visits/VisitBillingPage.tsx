@@ -299,9 +299,22 @@ function PaymentDialog({
 
   React.useEffect(() => {
     if (open) {
-      setPaymentCurrency(invoice.currency);
-      setAmount(Number(invoice.balance ?? 0).toFixed(0));
-      amountInInvCurrRef.current = Number(invoice.balance ?? 0);
+      const noReceipts = (invoice as any).receipts?.length === 0;
+      const nothingPaid = Number(invoice.amountPaid ?? 0) === 0;
+      const useInitial = noReceipts || nothingPaid;
+      const initialAmt = (invoice as any).initialPaymentAmount;
+      const initialCurr = (invoice as any).initialPaymentCurrency;
+      setPaymentCurrency(
+        useInitial && initialCurr ? initialCurr : invoice.currency
+      );
+      setAmount(
+        useInitial && initialAmt != null
+          ? Number(initialAmt).toFixed(0)
+          : Number(invoice.balance ?? 0).toFixed(0)
+      );
+      amountInInvCurrRef.current = useInitial && initialAmt != null
+        ? Number(initialAmt)
+        : Number(invoice.balance ?? 0);
       setMethod("CASH");
       setReference("");
       setReceivedById("");
