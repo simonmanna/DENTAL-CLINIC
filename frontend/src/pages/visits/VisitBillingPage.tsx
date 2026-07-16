@@ -30,6 +30,7 @@ import {
   ClipboardCheck,
   Trash2,
   Save,
+  Eye,
 } from "lucide-react";
 import { billingApi } from "@/lib/api/billing";
 import { useAuthStore } from "@/store/auth.store";
@@ -2198,11 +2199,11 @@ export function VisitBillingPage() {
                                   title="Discard row"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
+                                 </button>
+                               </div>
+                             </td>
+                           </tr>
+                         );
                       })}
 
                     {/* Empty state */}
@@ -2491,6 +2492,9 @@ export function VisitBillingPage() {
             <th className="text-right text-xs font-semibold text-slate-600 px-4 py-3 w-[20%]">
               Amount
             </th>
+            <th className="text-right text-xs font-semibold text-slate-600 px-4 py-3 w-[10%]">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -2596,6 +2600,17 @@ export function VisitBillingPage() {
                     )}
                   </div>
                 </td>
+                <td className="px-4 py-3 text-right">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/receipts/${r.id}`)}
+                    title="View receipt detail"
+                    className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                </td>
+
               </tr>
             );
           })}
