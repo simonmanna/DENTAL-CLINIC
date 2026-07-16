@@ -16,7 +16,9 @@ import {
   ChevronDown,
   ChevronUp,
   RefreshCw,
+  Eye,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "../../lib/utils";
 import {
   clinicalReportsApi,
@@ -107,7 +109,7 @@ function StatCard({
 }
 
 // Collapsible visit row — expands to show diagnoses / procedures / sessions.
-function VisitRow({ visit }: { visit: PatientVisitsReport["data"][number] }) {
+function VisitRow({ visit, navigate }: { visit: PatientVisitsReport["data"][number]; navigate: (to: string) => void }) {
   const [open, setOpen] = useState(false);
   const hasDetail =
     visit.diagnosis.length > 0 ||
@@ -156,10 +158,20 @@ function VisitRow({ visit }: { visit: PatientVisitsReport["data"][number] }) {
             open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
           ) : null}
         </td>
+        <td className="px-3 py-2.5 text-right">
+          <button
+            type="button"
+            onClick={() => navigate(`/visits/${visit.visitId}`)}
+            title="View visit detail"
+            className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+        </td>
       </tr>
       {open && hasDetail && (
         <tr>
-          <td colSpan={9} className="bg-slate-50 px-5 py-3 border-b border-slate-100">
+          <td colSpan={10} className="bg-slate-50 px-5 py-3 border-b border-slate-100">
             <div className="space-y-2">
               {visit.diagnosis.length > 0 && (
                 <div>
@@ -276,6 +288,8 @@ export default function VisitsReportTab(): JSX.Element {
     }),
     [filters],
   );
+
+  const navigate = useNavigate();
 
   const { data: report, isLoading, isError, refetch, isFetching } =
     useQuery<PatientVisitsReport>({
@@ -450,6 +464,7 @@ export default function VisitsReportTab(): JSX.Element {
                       "Sessions",
                       "Status",
                       "",
+                      "View",
                     ].map((h, i) => (
                       <th
                         key={i}
@@ -462,7 +477,7 @@ export default function VisitsReportTab(): JSX.Element {
                 </thead>
                 <tbody>
                   {report.data.map((v) => (
-                    <VisitRow key={v.visitId} visit={v} />
+                    <VisitRow key={v.visitId} visit={v} navigate={navigate} />
                   ))}
                 </tbody>
               </table>
