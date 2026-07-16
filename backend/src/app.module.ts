@@ -1,7 +1,7 @@
 // src/app.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { PrismaModule } from './prisma/prisma.module';
@@ -66,6 +66,7 @@ import { TreatmentConsumptionsModule } from './treatment-consumptions/treatment-
 
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { HealthModule } from './health/health.module';
+import { BackupModule } from './backup/backup.module';
 
 @Module({
   imports: [
@@ -131,6 +132,7 @@ import { HealthModule } from './health/health.module';
     GeneralLedgerModule,
     SupplierPaymentsModule,
     TreatmentConsumptionsModule,
+    BackupModule,
     EventEmitterModule.forRoot({
       // Global: events are emitted and listened across all modules
       wildcard: true,
@@ -140,6 +142,9 @@ import { HealthModule } from './health/health.module';
     }),
   ],
   providers: [
+    // Order matters: ThrottlerGuard first so brute-force attempts are rejected
+    // before JWT validation does any DB work.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     // RolesGuard reads @Roles(...) metadata; routes without the decorator
     // are still allowed (JwtAuthGuard above already enforces authentication).

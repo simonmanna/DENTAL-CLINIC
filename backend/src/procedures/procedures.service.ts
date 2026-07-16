@@ -382,12 +382,30 @@ export class ProceduresService {
   async deleteProcedure(id: string) {
     const proc = await this.prisma.procedure.findUnique({
       where: { id },
-      include: { _count: { select: { visitProcedures: true } } },
+      include: {
+        _count: {
+          select: {
+            visitProcedures: true,
+            treatmentProcedures: true,
+            invoiceItems: true,
+            patientConditions: true,
+            imagingRecords: true,
+          },
+        },
+      },
     });
     if (!proc) throw new NotFoundException(`Procedure ${id} not found`);
-    if (proc._count.visitProcedures > 0) {
+    const refs = proc._count;
+    const usedBy = [
+      refs.visitProcedures && 'visits',
+      refs.treatmentProcedures && 'treatment plans',
+      refs.invoiceItems && 'invoices',
+      refs.patientConditions && 'patient conditions',
+      refs.imagingRecords && 'imaging records',
+    ].filter(Boolean);
+    if (usedBy.length > 0) {
       throw new BadRequestException(
-        'Cannot delete a procedure that has been used in visits. Deactivate it instead.',
+        `Cannot delete a procedure that is referenced by ${usedBy.join(', ')}. Deactivate it instead.`,
       );
     }
     await this.prisma.procedure.delete({ where: { id } });

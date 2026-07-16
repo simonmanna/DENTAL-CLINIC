@@ -1,10 +1,13 @@
 // src/auth/auth.controller.ts
 import { Controller, Post, Body, Get, UseGuards, Req, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
+import { UserRole } from '@prisma/client';
 import { AuthService } from './auth.service';
 import { LoginDto, RegisterDto, ChangePasswordDto, RefreshTokenDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Public } from './decorators/public.decorator';
+import { Roles } from './decorators/roles.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 
 @ApiTags('Authentication')
@@ -12,14 +15,18 @@ import { CurrentUser } from './decorators/current-user.decorator';
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @Public()
+  // Admin-only: dto.role is caller-controlled, so an unauthenticated register
+  // endpoint would let anyone mint a SUPER_ADMIN account.
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @Post('register')
-  @ApiOperation({ summary: 'Register a new staff user' })
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Register a new staff user (admin only)' })
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login' })
@@ -35,6 +42,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   refresh(@Body() dto: RefreshTokenDto, @Req() req: any) {

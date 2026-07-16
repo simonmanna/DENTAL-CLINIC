@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import helmet from 'helmet';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 
@@ -10,6 +11,9 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.set('trust proxy', true);
+  // crossOriginResourcePolicy relaxed so the SPA on another origin can load
+  // API-served assets (e.g. uploaded imaging) — everything else at defaults.
+  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
   const ioAdapter = new IoAdapter(app);
   app.useWebSocketAdapter(ioAdapter);

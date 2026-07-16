@@ -273,6 +273,7 @@ enum InvoiceItemType {
   MATERIAL
   LAB
   MANUAL
+  OTHER
 }
 
 enum InvoiceItemStatus {
@@ -1205,12 +1206,10 @@ model VisitProcedure {
   @@map("visit_procedures")
 }
 
-/// DEPRECATED — legacy parallel tooth-state system. The source of truth for the
-/// dental chart is the ChartEntry model (+ TreatmentProcedure / PatientCondition).
-/// This model is still written by visit.service (legacy tooth-status update) and
-/// read by clinical-report (tooth-status distribution); migrate those to ChartEntry
-/// before dropping these tables. The orphaned /dental-chart API was removed
-/// 2026-06-12. Do not add new readers/writers.
+/// Procedure catalog — the clinic's billable/clinical procedure definitions.
+/// (A stale DEPRECATED comment about the removed ToothRecord/ToothStatus system
+/// used to sit here; that system is gone — ChartEntry is the dental-chart
+/// source of truth.)
 model Procedure {
   id   String  @id @default(cuid())
   code String? @unique
@@ -1401,7 +1400,10 @@ model TreatmentProcedure {
 model ProcedureSession {
   id                   String             @id @default(cuid())
   treatmentProcedureId String
-  treatmentProcedure   TreatmentProcedure @relation(fields: [treatmentProcedureId], references: [id], onDelete: SetNull)
+  // Restrict (not SetNull/Cascade): sessions are immutable clinical history —
+  // a TreatmentProcedure with executed sessions must never be hard-deleted
+  // out from under them. TP deletion is soft (deletedAt) anyway.
+  treatmentProcedure   TreatmentProcedure @relation(fields: [treatmentProcedureId], references: [id], onDelete: Restrict)
 
   // Add these fields
   visitId String?
@@ -1617,6 +1619,9 @@ model InvoiceItem {
   treatmentProcedureId String?
   treatmentProcedure   TreatmentProcedure? @relation("InvoiceItemTP", fields: [treatmentProcedureId], references: [id], onDelete: SetNull)
   status               InvoiceItemStatus   @default(ACTIVE)
+
+  prescriptionItemId String?
+  prescriptionItem   PrescriptionItem? @relation(fields: [prescriptionItemId], references: [id], onDelete: SetNull)
 
   @@index([invoiceId])
   @@index([treatmentProcedureId])
@@ -1977,6 +1982,8 @@ model PrescriptionItem {
   refills      Int     @default(0)
 
   createdAt DateTime @default(now())
+
+  invoiceItems InvoiceItem[]
 
   @@map("prescription_items")
 }
