@@ -105,8 +105,10 @@ export function uiToCanonical(
   switch (code) {
     case 'M': return 'MESIAL';
     case 'D': return 'DISTAL';
-    case 'O': return 'OCCLUSAL';
-    case 'I': return 'INCISAL';
+    // O and I are one anatomical concept (the biting surface); which enum
+    // value is correct depends on the tooth, not on which button was pressed.
+    case 'O':
+    case 'I': return anterior ? 'INCISAL' : 'OCCLUSAL';
     case 'B': return anterior ? 'LABIAL' : 'BUCCAL';
     case 'L': return upper ? 'PALATAL' : 'LINGUAL';
   }
@@ -125,6 +127,17 @@ export function canonicalToUi(s: string): UiSurface {
     case 'PALATAL': return 'L';
     default: return 'O';
   }
+}
+
+/**
+ * Tooth-aware variant of canonicalToUi: legacy rows may hold the wrong bite
+ * enum for the tooth (e.g. INCISAL persisted on a molar before save-time
+ * resolution existed). Fold O/I onto the tooth's real bite surface so every
+ * display agrees with the chart SVG.
+ */
+export function canonicalToUiForTooth(s: string, fdi: number): UiSurface {
+  const ui = canonicalToUi(s);
+  return ui === 'I' || ui === 'O' ? biteCode(fdi) : ui;
 }
 
 // Display metadata — the ONE map covering all 9 canonical values.
@@ -152,10 +165,31 @@ export function surfaceLabel(s: string): string {
   return SURFACE_DISPLAY[s as CanonicalSurface]?.label ?? s;
 }
 
-/** "BD" — as-entered order, deduped by display letter (BUCCAL+LABIAL → one "B"). */
+// Standard charting order: M, O/I, D, B, L (matches how combos are written —
+// "MO", "DO", "MOD"). O and I share a slot; a tooth never has both.
+const SURFACE_ORDER: Record<UiSurface, number> = { M: 0, O: 1, I: 1, D: 2, B: 3, L: 4 };
+
+/** Stable sort of 1-letter codes into standard charting order. */
+export function sortUiSurfaces(s: readonly UiSurface[]): UiSurface[] {
+  // ?? 9 keeps unknown letters (tolerated by surfaceShort) at the end.
+  return [...s].sort((a, b) => (SURFACE_ORDER[a] ?? 9) - (SURFACE_ORDER[b] ?? 9));
+}
+
+/** Stable sort of canonical surface strings into standard charting order. */
+export function sortSurfaces(s: readonly string[]): string[] {
+  return [...s].sort(
+    (a, b) =>
+      (SURFACE_ORDER[surfaceShort(a) as UiSurface] ?? 9) -
+      (SURFACE_ORDER[surfaceShort(b) as UiSurface] ?? 9),
+  );
+}
+
+/** "MD" — standard charting order, deduped by display letter (BUCCAL+LABIAL → one "B"). */
 export function formatSurfaces(surfaces?: readonly string[] | null): string {
   if (!surfaces?.length) return '';
-  return [...new Set(surfaces.map(surfaceShort))].join('');
+  return sortUiSurfaces(
+    [...new Set(surfaces.map(surfaceShort))] as UiSurface[],
+  ).join('');
 }
 
 /** "Labial (lip-side), Distal" — tooltip/long-form text, as-entered order. */

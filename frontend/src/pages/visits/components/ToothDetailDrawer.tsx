@@ -23,7 +23,7 @@ import {
   treatmentProceduresEditApi,
   type ProcedureDeleteEligibility,
 } from '../../../lib/api/treatment-procedures-edit';
-import { toothName, uiToCanonical } from '../../../lib/dental/notation';
+import { toothName, uiToCanonical, sortUiSurfaces } from '../../../lib/dental/notation';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -222,7 +222,7 @@ function EntryCard({
                 <span style={{ fontSize: 11, color: '#64748b' }}>
                   {'Surfaces: '}
                   <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#334155' }}>
-                    {entry.surfaces.join('')}
+                    {sortUiSurfaces(entry.surfaces).join('')}
                   </span>
                 </span>
               )}
@@ -631,7 +631,7 @@ export function ToothDetailDrawer({
   };
 
   // ── Delete procedure ──────────────────────────────────────────────────────
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = async (reason: string) => {
     if (!deletingProcedure) return;
     const { entry } = deletingProcedure;
     if (!entry.treatmentPlanId || !entry.treatmentProcedureId) return;
@@ -639,6 +639,7 @@ export function ToothDetailDrawer({
       await treatmentProceduresEditApi.deleteProcedure(
         entry.treatmentPlanId,
         entry.treatmentProcedureId,
+        { reason },
       );
       toast.success('Procedure deleted successfully');
       invalidate();
@@ -845,16 +846,20 @@ export function ToothDetailDrawer({
 
       {deletingProcedure && (
         <DeleteProcedureDialog
-          isOpen
-          onClose={() => setDeletingProcedure(null)}
-          procedureName={deletingProcedure.entry.label}
-          canDelete={deletingProcedure.eligibility.canDelete}
-          canCancel={deletingProcedure.eligibility.canCancel}
-          reason={deletingProcedure.eligibility.reason}
-          sessionsCount={deletingProcedure.eligibility.sessionsCount}
-          onConfirmDelete={handleDeleteConfirm}
-          onGoToCancel={() => setCancellingProcedure(deletingProcedure.entry)}
-        />
+            isOpen
+            onClose={() => setDeletingProcedure(null)}
+            procedureName={deletingProcedure.entry.label}
+            canDelete={deletingProcedure.eligibility.canDelete}
+            canCancel={deletingProcedure.eligibility.canCancel}
+            reason={deletingProcedure.eligibility.reason}
+            sessionsCount={deletingProcedure.eligibility.sessionsCount}
+            status={deletingProcedure.eligibility.status}
+            paymentStatus={deletingProcedure.eligibility.paymentStatus}
+            invoiceStatus={deletingProcedure.eligibility.invoiceStatus ?? null}
+            invoiceAmountPaid={deletingProcedure.eligibility.invoiceAmountPaid ?? 0}
+            onConfirmDelete={handleDeleteConfirm}
+            onGoToCancel={() => setCancellingProcedure(deletingProcedure.entry)}
+          />
       )}
     </>
   );

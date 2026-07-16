@@ -301,10 +301,22 @@ export const financialReportingApi = {
       .get<{
         data: ExpenseRow[];
         pagination: PaginationMeta;
-        summary: any;
+        summary: ExpenseSummary;
       }>(`${BASE}/expenses`, { params: cleanParams(filters) })
       .then((r) => r.data),
 };
+
+export interface ExpenseSummary {
+  total: number;
+  totalAmount: number;
+  totalPaid: number;
+  paidCount: number;
+  totalPending: number;
+  pendingCount: number;
+  byStatus: { status: string; total: number; count: number }[];
+  byCategory: { category: string; total: number; count: number }[];
+  monthlyTrend: { month: string; total: number; count: number }[];
+}
 
 export interface ExpenseRow {
   id: string;

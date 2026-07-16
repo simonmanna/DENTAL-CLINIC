@@ -2,9 +2,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { ChevronLeft, Save, X, Clock, Calendar } from 'lucide-react';
+import { ChevronLeft, Save, X, Clock, Calendar, Key } from 'lucide-react';
 import { staffApi } from '../../services/staffApi';
-import { DAYS_OF_WEEK } from '../../types/staff';
+import { DAYS_OF_WEEK, UserRole, ROLE_LABELS } from '../../types/staff';
 import { toast } from 'react-hot-toast';
 
 interface ScheduleInput {
@@ -21,6 +21,8 @@ export function StaffEditPage() {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
+    email: '',
+    role: UserRole.RECEPTIONIST,
     phone: '',
     specialization: '',
     qualification: '',
@@ -28,6 +30,9 @@ export function StaffEditPage() {
     bio: '',
     isAvailable: true,
   });
+
+  const [newPassword, setNewPassword] = useState('');
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
 
   const [schedules, setSchedules] = useState<ScheduleInput[]>([]);
 
@@ -44,6 +49,8 @@ export function StaffEditPage() {
       setFormData({
         firstName: staff.firstName || '',
         lastName: staff.lastName || '',
+        email: staff.email || '',
+        role: staff.role || UserRole.RECEPTIONIST,
         phone: staff.phone || '',
         specialization: staff.specialization || '',
         qualification: staff.qualification || '',
@@ -85,7 +92,9 @@ export function StaffEditPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateMutation.mutate(formData);
+    const payload = { ...formData };
+    if (newPassword) payload['password'] = newPassword;
+    updateMutation.mutate(payload);
   };
 
   const handleScheduleChange = (index: number, field: keyof ScheduleInput, value: any) => {
@@ -188,6 +197,16 @@ export function StaffEditPage() {
                   placeholder="+256..."
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="email@example.com"
+                />
+              </div>
             </div>
           </div>
 
@@ -267,6 +286,19 @@ export function StaffEditPage() {
                 </div>
               </label>
 
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Role</label>
+                <select
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+                >
+                  {Object.entries(ROLE_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </div>
+
               <div className="p-3 bg-slate-50 rounded-lg">
                 <div className="text-xs text-slate-500 mb-1">Staff Code</div>
                 <div className="font-mono text-sm font-medium text-slate-800">{staff?.staffCode}</div>
@@ -292,6 +324,41 @@ export function StaffEditPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Reset Password Section */}
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+                  <Key className="w-4 h-4 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-800">Reset Password</h3>
+                  <p className="text-xs text-slate-500">Leave blank to keep current password</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPasswordSection(!showPasswordSection)}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                {showPasswordSection ? 'Cancel' : 'Change Password'}
+              </button>
+            </div>
+            {showPasswordSection && (
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">New Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password (min 6 characters)"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  minLength={6}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

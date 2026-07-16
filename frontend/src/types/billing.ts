@@ -105,6 +105,7 @@ export interface InvoiceItem {
   description: string;
   itemType?: string;
   treatmentProcedureId?: string;
+  status?: 'ACTIVE' | 'VOID';
   quantity: number;
   unitPrice: number;
   discount: number;

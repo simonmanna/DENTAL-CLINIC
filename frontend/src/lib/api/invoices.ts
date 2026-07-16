@@ -15,6 +15,7 @@ export interface InvoiceItem {
   originalUnitPrice?: number;
   originalTotal?: number;
   exchangeRate?: number;
+  status?: 'ACTIVE' | 'VOID';
 }
 
 export interface InvoiceFormData {

@@ -171,6 +171,7 @@ export class ChartEntryService {
       // Pull the fields the dental-chart drawer needs to render the
       // Edit / Cancel / Delete buttons on a PLANNED / COMPLETED entry.
       treatmentProcedure: {
+        where: { deletedAt: null },
         select: {
           id: true,
           treatmentPlanId: true,

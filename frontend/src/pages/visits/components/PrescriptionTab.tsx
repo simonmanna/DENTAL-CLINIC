@@ -1910,9 +1910,7 @@ function NewPrescriptionDialog({
   const { data: drugsResponse, isLoading: drugsLoading } = useQuery({
     queryKey: ["drugs", "active"],
     queryFn: async () => {
-      const result = await drugsApi.getAll({ isActive: true, limit: 1000 });
-      console.log("Drugs fetched:", result);
-      return result;
+      return drugsApi.getAll({ isActive: true, limit: 1000 });
     },
     enabled: isOpen,
     staleTime: 60000,
@@ -1924,8 +1922,6 @@ function NewPrescriptionDialog({
     if (drugsResponse?.data) return drugsResponse.data;
     return [];
   }, [drugsResponse]);
-
-  console.log("Processed drugs:", drugs.length, drugs);
 
   const createMutation = useMutation({
     mutationFn: () => {
@@ -2025,8 +2021,6 @@ function NewPrescriptionDialog({
       return;
     }
 
-    console.log("Selected drug:", drug.id, drug.name);
-
     updateItem(index, "drugId", drug.id);
     updateItem(index, "drugName", drug.name);
 
@@ -2119,15 +2113,6 @@ function NewPrescriptionDialog({
 
   const validItemsCount = validationResults.filter((r) => r.isValid).length;
   const isValid = validItemsCount > 0;
-
-  console.log(
-    "Validation:",
-    validationResults,
-    "Valid count:",
-    validItemsCount,
-    "isValid:",
-    isValid,
-  );
 
   if (!isOpen) return null;
 

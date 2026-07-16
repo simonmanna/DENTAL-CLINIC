@@ -89,7 +89,7 @@ function StatCard({
   icon: React.ElementType;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 flex gap-3 items-start shadow-sm">
+    <div className="bg-white rounded-xl border border-slate-200 px-2 py-1 flex gap-3 items-start shadow-sm">
       <div
         className="mt-0.5 size-8 rounded-lg flex items-center justify-center flex-shrink-0"
         style={{ background: accent + "18" }}
@@ -210,11 +210,6 @@ function VisitRow({ visit }: { visit: PatientVisitsReport["data"][number] }) {
                         {ps.surfaces?.[0] && ` • ${ps.surfaces[0]}`}
                         <span className="text-indigo-400 mx-1">|</span>
                         {ps.status}
-                        {ps.sessionPrice != null && (
-                          <span className="ml-1 text-indigo-600">
-                            • {formatCurrency(ps.sessionPrice)}
-                          </span>
-                        )}
                       </span>
                     ))}
                   </div>
@@ -413,34 +408,6 @@ export default function VisitsReportTab(): JSX.Element {
         </div>
       </div>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard
-          label="Total Visits"
-          value={(summary?.total ?? 0).toLocaleString()}
-          accent="#3b82f6"
-          icon={Calendar}
-        />
-        <StatCard
-          label="Revenue"
-          value={formatCurrency(summary?.totalRevenue ?? 0)}
-          accent="#8b5cf6"
-          icon={DollarSign}
-        />
-        <StatCard
-          label="Collected"
-          value={formatCurrency(summary?.totalCollected ?? 0)}
-          accent="#10b981"
-          icon={Activity}
-        />
-        <StatCard
-          label="Avg Procs / Visit"
-          value={Number(summary?.avgProceduresPerVisit ?? 0).toLocaleString()}
-          accent="#f59e0b"
-          icon={Layers}
-        />
-      </div>
-
       {/* Table */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         {isError ? (
@@ -478,7 +445,6 @@ export default function VisitsReportTab(): JSX.Element {
                       "Procs",
                       "Sessions",
                       "Status",
-                      "Paid",
                       "",
                     ].map((h, i) => (
                       <th

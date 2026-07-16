@@ -1,18 +1,3 @@
-// src/pages/visits/components/DeleteProcedureDialog.tsx
-// Delete-procedure dialog. Two-mode:
-//   canDelete === true   → confirm hard delete with context (status,
-//                          sessions, payments, invoice must all be clean).
-//   canDelete === false  → show spec-aligned reason and, when possible,
-//                          offer the Cancel flow as the alternative path.
-//
-// Spec rules enforced by the server (and surfaced via the eligibility
-// endpoint):
-//   • status must be PLANNED
-//   • no session executions
-//   • no payments attached
-//   • linked invoice (if any) must not be POSTED
-//   • linked invoice (if any) must have no recorded payments
-
 import React, { useState } from 'react';
 import { X, Trash2, AlertTriangle, Loader2, Ban, ChevronRight } from 'lucide-react';
 
@@ -28,7 +13,7 @@ export interface DeleteProcedureDialogProps {
   paymentStatus?:  string;
   invoiceStatus?:  string | null;
   invoiceAmountPaid?: number;
-  onConfirmDelete: () => Promise<void>;
+  onConfirmDelete: (reason: string) => Promise<void>;
   onGoToCancel:    () => void;
 }
 
@@ -47,16 +32,24 @@ export function DeleteProcedureDialog({
   onConfirmDelete,
   onGoToCancel,
 }: DeleteProcedureDialogProps) {
-  const [submitting,  setSubmitting]  = useState(false);
-  const [confirmed,   setConfirmed]   = useState(false);   // checkbox gate
-  const [error,        setError]       = useState<string | null>(null);
+  const [submitting,   setSubmitting]   = useState(false);
+  const [confirmed,    setConfirmed]    = useState(false);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [error,        setError]        = useState<string | null>(null);
+
+  const hasPayments =
+    paymentStatus === 'PAID' ||
+    paymentStatus === 'PARTIALLY_PAID' ||
+    Number(invoiceAmountPaid ?? 0) > 0;
+
+  const canSubmit = confirmed && deleteReason.trim().length > 0;
 
   const handleDelete = async () => {
-    if (!confirmed) return;
+    if (!canSubmit) return;
     setSubmitting(true);
     setError(null);
     try {
-      await onConfirmDelete();
+      await onConfirmDelete(deleteReason.trim());
     } catch (e: any) {
       setError(e?.response?.data?.message || e?.message || 'Delete failed.');
     } finally {
@@ -65,11 +58,6 @@ export function DeleteProcedureDialog({
   };
 
   if (!isOpen) return null;
-
-  const hasPayments =
-    paymentStatus === 'PAID' ||
-    paymentStatus === 'PARTIALLY_PAID' ||
-    Number(invoiceAmountPaid ?? 0) > 0;
 
   return (
     <div
@@ -83,7 +71,7 @@ export function DeleteProcedureDialog({
     >
       <div
         style={{
-          width: 500, maxWidth: '94vw',
+          width: 600, maxWidth: '94vw',
           backgroundColor: '#fff', borderRadius: 12,
           boxShadow: '0 24px 48px rgba(0,0,0,0.24)',
           overflow: 'hidden',
@@ -114,7 +102,7 @@ export function DeleteProcedureDialog({
           </button>
         </div>
 
-        <div style={{ padding: '16px 18px' }}>
+        <div style={{ padding: '16px 18px', maxHeight: '70vh', overflowY: 'auto' }}>
 
           {/* ── Spec rule strip — shows every gate + its current status ── */}
           <div style={{
@@ -125,7 +113,7 @@ export function DeleteProcedureDialog({
             <p style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 6 }}>
               Delete rules (all must pass)
             </p>
-            <RuleRow label="Status is PLANNED"   pass={status === 'PLANNED' || status === 'PENDING'} value={status ?? '—'} />
+            <RuleRow label="Status is PLANNED"   pass={status?.toUpperCase() === 'PLANNED' || status?.toUpperCase() === 'PENDING'} value={status ?? '—'} />
             <RuleRow label="No session executions" pass={sessionsCount === 0} value={sessionsCount === 0 ? '0 sessions' : `${sessionsCount} session${sessionsCount !== 1 ? 's' : ''}`} />
             <RuleRow label="No payments"          pass={!hasPayments} value={
               hasPayments ? `${paymentStatus} · paid ${invoiceAmountPaid}` : (paymentStatus ?? 'OPEN')
@@ -200,14 +188,47 @@ export function DeleteProcedureDialog({
                 borderRadius: 8, padding: '10px 14px', marginBottom: 14,
               }}>
                 <p style={{ fontSize: 11, fontWeight: 700, color: '#991b1b', margin: '0 0 4px' }}>
-                  This action is permanent.
+                  This action cannot be undone.
                 </p>
                 <p style={{ fontSize: 10, color: '#b91c1c', margin: 0, lineHeight: 1.5 }}>
-                  The procedure, its targets, and the linked draft invoice line
-                  will be permanently removed. Condition links are soft-deleted
-                  and preserved for audit. The dental chart's planned view will
-                  hide the superseded entries on refresh.
+                  The procedure will be soft-deleted (preserved in audit trail).
+                  Chart entries are superseded. Condition links are preserved.
+                  The dental chart's planned view will hide the entry on refresh.
                 </p>
+              </div>
+
+              {invoiceStatus && (
+                <div style={{
+                  background: '#fffbeb', border: '1px solid #fde68a',
+                  borderRadius: 8, padding: '10px 14px', marginBottom: 14,
+                }}>
+                  <p style={{ fontSize: 10, color: '#92400e', margin: 0, lineHeight: 1.5 }}>
+                    ⚠ This procedure is linked to a <b>{invoiceStatus}</b> invoice.
+                    The invoice item will be <b>voided</b> but kept on the invoice
+                    record for audit.
+                  </p>
+                </div>
+              )}
+
+              {/* ── Deletion Reason (text input) ── */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 6 }}>
+                  Deletion Reason <span style={{ color: '#dc2626' }}>*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={deleteReason}
+                  onChange={e => setDeleteReason(e.target.value)}
+                  placeholder="Explain why this procedure is being deleted..."
+                  style={{
+                    width: '100%', padding: '8px 10px', fontSize: 12,
+                    border: '1px solid #e5e7eb', borderRadius: 6,
+                    outline: 'none', resize: 'vertical', fontFamily: 'inherit',
+                    boxSizing: 'border-box',
+                    borderColor: deleteReason.trim() ? '#e5e7eb' : '#fcd34d',
+                    borderWidth: deleteReason.trim() ? 1 : 2,
+                  }}
+                />
               </div>
 
               {/* Confirmation checkbox */}
@@ -242,12 +263,12 @@ export function DeleteProcedureDialog({
                 </button>
                 <button
                   onClick={handleDelete}
-                  disabled={!confirmed || submitting}
+                  disabled={!canSubmit || submitting}
                   style={{
                     flex: 2, padding: '9px', fontSize: 12, fontWeight: 700,
-                    background: !confirmed || submitting ? '#fca5a5' : '#dc2626',
+                    background: !canSubmit || submitting ? '#fca5a5' : '#dc2626',
                     color: '#fff', border: 'none', borderRadius: 8,
-                    cursor: !confirmed || submitting ? 'not-allowed' : 'pointer',
+                    cursor: !canSubmit || submitting ? 'not-allowed' : 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     transition: 'background .15s',
                   }}

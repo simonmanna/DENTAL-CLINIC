@@ -19,11 +19,12 @@ import {
   X, AlertTriangle, CheckCircle, Lock, Unlock, Loader2,
   Stethoscope, DollarSign, FileText, Info, ShieldAlert,
   Repeat, CalendarDays, Banknote, Wallet, CreditCard, Hash,
-  Plus, Minus,
+  Plus, Minus, Sparkles, Receipt, Pencil, RotateCcw, Tag, AlertCircle,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { staffApi } from '../../../lib/api/staff-api';
 import { treatmentProceduresEditApi } from '../../../lib/api/treatment-procedures-edit';
+import { treatmentPlansApi } from '../../../lib/api/treatment-plans';
 import api from '@/lib/api/client';
 import { SURFACE_META } from './SurfacePicker';
 import {
@@ -367,6 +368,11 @@ export function EditProcedureDialog({
     (initialData.initialPaymentCurrency as Currency) ?? 'UGX',
   );
 
+  // ── Linked conditions state (mirrors AddTreatmentDialog) ───────────────
+  const [linkedConditionIds, setLinkedConditionIds] = useState<string[]>(
+    initialData.linkedConditionIds ?? [],
+  );
+
   // ── Live USD/UGX rate (same pattern as AddTreatmentDialog) ──────────────
   const { data: liveRateData } = useQuery({
     queryKey: ['exchange-rate', 'USD', 'UGX'],
@@ -381,6 +387,13 @@ export function EditProcedureDialog({
     typeof liveRateData?.rate === 'number' && liveRateData.rate > 0
       ? liveRateData.rate
       : DEFAULT_EXCHANGE_RATE;
+
+  // ── Patient conditions for tooth-based condition linking (mirrors Add) ──
+  const { data: patientConditions = [] } = useQuery({
+    queryKey: ['patient-conditions-for-teeth', patientId, initialData.toothNumbers],
+    queryFn: () => treatmentPlansApi.getPatientConditionsForTeeth(patientId, initialData.toothNumbers),
+    enabled: isOpen && !!patientId && patientId !== 'demo' && initialData.toothNumbers.length > 0,
+  });
 
   // ── Reset on open ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -401,6 +414,7 @@ export function EditProcedureDialog({
       setBillingType((initialData.billingType as 'PAY_FULL' | 'PAY_PARTIALLY') ?? 'PAY_FULL');
       setPartialAmount(initialData.initialPaymentAmount ?? null);
       setPartialAmountCurrency((initialData.initialPaymentCurrency as Currency) ?? 'UGX');
+      setLinkedConditionIds(initialData.linkedConditionIds ?? []);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialData.treatmentProcedureId]);
@@ -436,6 +450,7 @@ export function EditProcedureDialog({
   const fmtUSD = (n: number) =>
     `USD ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const fmtPrice = (n: number) => (isUSD ? fmtUSD(n) : fmtUGX(n));
+  const fmtDepositCur = (n: number) => (partialAmountCurrency === 'USD' ? fmtUSD(n) : fmtUGX(n));
 
   // ── Fetch dentists ──────────────────────────────────────────────────────
   const { data: dentists = [] } = useQuery({
@@ -852,33 +867,7 @@ export function EditProcedureDialog({
             </FieldCell>
           </div>
 
-          {/* ── Row 1b: Planned date picker (only when status allows scheduling) ── */}
-          {!isCompleted && !isCancelled && (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 2fr',
-              gap: 10,
-              marginBottom: 14,
-              padding: '8px 12px',
-              background: '#fff',
-              border: '1px solid #e2e8f0',
-              borderRadius: 8,
-            }}>
-              <FieldCell label="Planned Date">
-                <input
-                  type="date"
-                  value={scheduledDate}
-                  onChange={e => setScheduledDate(e.target.value)}
-                  style={{ ...inp, maxWidth: 180 }}
-                />
-              </FieldCell>
-              <FieldCell label="Status Help">
-                <p style={{ fontSize: 10, color: '#64748b', margin: 0 }}>
-                  {statusHelpText || `Transitions from ${initialData.status} are restricted by clinical state.`}
-                </p>
-              </FieldCell>
-            </div>
-          )}
+
 
           {/* ── Row 2: Tooth Assignment · Surfaces (side by side) ── */}
           <div style={{
@@ -929,289 +918,291 @@ export function EditProcedureDialog({
             </FieldCell>
           </div>
 
-          {/* ── PRICING — mirrors AddTreatmentDialog's "edit price" UI ────────────
-              User sees the current total + an "Edit price" button. Clicking it
-              reveals a single input for the override total. The server records
-              the difference as a discount on the existing price snapshot. */}
-          <FieldRow
-            label="Pricing"
-            locked={invoiceLocked}
-            lockedReason={
-              initialData.invoiceStatus === 'POSTED'
-                ? 'Cannot change price — invoice is POSTED (already billed to GL). Void the invoice or create a credit note to change the price.'
-                : initialData.invoiceStatus === 'VOID'
-                  ? 'Cannot change price — linked invoice is VOIDED.'
-                  : tpPaid
-                    ? 'Cannot change price — procedure has been fully paid.'
-                    : tpPartiallyPaid
-                      ? 'Cannot change price — invoice has recorded payments. Void or refund first.'
-                      : undefined
-            }
-          >
-            <div style={{
-              background: '#f8fafc', borderRadius: 8, padding: '2px 14px',
-              border: '1px solid #e2e8f0',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showPriceEdit ? 10 : 0 }}>
+          {/* ── Condition links (mirrors AddTreatmentDialog) ── */}
+          {patientConditions.length > 0 && (
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '12px 14px', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: '#374151' }}>
+                  Link Condition
+                  <span style={{ marginLeft: 5, fontSize: 10, fontWeight: 400, color: '#94a3b8', background: '#f1f5f9', padding: '1px 6px', borderRadius: 8 }}>Optional</span>
+                </label>
+                {linkedConditionIds.length > 0 && (
+                  <button onClick={() => setLinkedConditionIds([])} style={{ fontSize: 10, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer' }}>Clear all</button>
+                )}
+              </div>
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: 6, overflow: 'hidden', maxHeight: 120, overflowY: 'auto' }}>
+                {patientConditions.map((pc: any) => {
+                  const isLinked = linkedConditionIds.includes(pc.id);
+                  return (
+                    <button
+                      key={pc.id} type="button"
+                      onClick={() => setLinkedConditionIds((prev: string[]) => isLinked ? prev.filter((id: string) => id !== pc.id) : [...prev, pc.id])}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderBottom: '1px solid #f3f4f6', background: isLinked ? '#fef2f2' : '#fff', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                    >
+                      <div style={{ width: 14, height: 14, borderRadius: 3, flexShrink: 0, border: `1.5px solid ${isLinked ? '#dc2626' : '#d1d5db'}`, background: isLinked ? '#dc2626' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {isLinked && <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" /></svg>}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: '#1e293b' }}>{pc.condition?.name ?? 'Unknown'}</div>
+                        <div style={{ display: 'flex', gap: 5, marginTop: 2 }}>
+                          {pc.toothNumber && <span style={{ fontSize: 10, background: '#dbeafe', color: '#1d4ed8', padding: '0 5px', borderRadius: 3 }}>Tooth {pc.toothNumber}</span>}
+                          {pc.condition?.icd10Code && <span style={{ fontSize: 10, fontFamily: 'monospace', color: '#94a3b8' }}>{pc.condition.icd10Code}</span>}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ════════════════════════════════════════════════════════════════════════
+              CONDENSED: Visit Sessions + Pricing — side by side 2-col
+              (mirrors AddTreatmentDialog layout)
+          ════════════════════════════════════════════════════════════════════════ */}
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+
+            {/* ── LEFT COLUMN: Sessions (top) + Payment (bottom) ── */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+              {/* ── Card 1: Visit Sessions (Single / Multi) ── */}
+              <div style={{ background: 'linear-gradient(135deg,#f0f9ff,#e0f2fe)', borderRadius: 8, border: `1px solid ${sessionConfigLocked ? '#e2e8f0' : '#bae6fd'}`, padding: '12px 12px', opacity: sessionConfigLocked ? 0.7 : 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <div style={{ width: 24, height: 24, borderRadius: 6, background: sessionConfigLocked ? '#94a3b8' : '#0369a1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Sparkles size={13} color="#fff" />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: sessionConfigLocked ? '#94a3b8' : '#0369a1', margin: 0 }}>
+                      Sessions <span style={{ fontWeight: 400, fontSize: 10, color: '#64748b' }}>(Treatment visits scheduled?)</span>
+                    </p>
+                  </div>
+                  {sessionConfigLocked && <Lock size={12} color="#94a3b8" />}
+                </div>
+
+                {sessionConfigLocked ? (
+                  <div style={{ fontSize: 11, color: '#94a3b8', padding: '6px 0' }}>
+                    {initialData.sessionsCount} session{initialData.sessionsCount !== 1 ? 's' : ''} recorded — type locked.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {[
+                      { key: 'SINGLE' as const, label: 'Single', Icon: CalendarDays },
+                      { key: 'MULTI' as const, label: 'Multi',  Icon: Repeat },
+                    ].map((opt) => {
+                      const isActive = sessionType === opt.key;
+                      return (
+                        <button
+                          key={opt.key} type="button"
+                          onClick={() => setSessionType(opt.key)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 5,
+                            padding: '6px 12px', fontSize: 12, fontWeight: 600,
+                            borderRadius: 6, border: `1.5px solid ${isActive ? '#0369a1' : '#bae6fd'}`,
+                            background: isActive ? '#0369a1' : '#fff',
+                            color: isActive ? '#fff' : '#0369a1',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <opt.Icon size={14} color={isActive ? '#fff' : '#0369a1'} />
+                          <span>{opt.label}</span>
+                          {isActive && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" /></svg>}
+                        </button>
+                      );
+                    })}
+                    {sessionType === 'MULTI' && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
+                        <button type="button" onClick={() => setSessionCount(Math.max(2, sessionCount - 1))} style={{ width: 24, height: 24, borderRadius: 5, border: '1px solid #bae6fd', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#0369a1' }}>
+                          <Minus size={12} />
+                        </button>
+                        <input type="number" min={2} max={20} value={sessionCount} onChange={(e) => setSessionCount(Math.min(20, Math.max(2, parseInt(e.target.value) || 2)))}
+                          style={{ width: 42, textAlign: 'center', padding: '3px 4px', fontSize: 13, fontWeight: 700, borderRadius: 5, border: '1.5px solid #0369a1', outline: 'none', color: '#0369a1', background: '#fff' }} />
+                        <button type="button" onClick={() => setSessionCount(Math.min(20, sessionCount + 1))} style={{ width: 24, height: 24, borderRadius: 5, border: '1px solid #bae6fd', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#0369a1' }}>
+                          <Plus size={12} />
+                        </button>
+                        <span style={{ fontSize: 11, color: '#64748b', marginLeft: 4 }}>visits</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {(sessionTypeChanged || sessionCountChanged) && (
+                  <p style={{ fontSize: 9, color: '#d97706', marginTop: 4 }}>Session config changed — will be recorded in the audit trail.</p>
+                )}
+              </div>
+
+              {/* ── Card 2: Payment Type — independent of session count ── */}
+              <div style={{ background: 'linear-gradient(135deg,#fff7ed,#fef3c7)', borderRadius: 8, border: `1px solid ${invoiceLocked ? '#e2e8f0' : '#fcd34d'}`, padding: '10px 12px', opacity: invoiceLocked ? 0.7 : 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <div style={{ width: 24, height: 24, borderRadius: 6, background: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Banknote size={13} color="#fff" />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: '#92400e', margin: 0 }}>Payment Type</p>
+                  </div>
+                  {invoiceLocked && <Lock size={12} color="#94a3b8" />}
+                </div>
+
+                <div style={{ display: 'flex', gap: 5, marginBottom: billingType === 'PAY_PARTIALLY' ? 8 : 0 }}>
+                  {[
+                    { key: 'PAY_FULL' as const, label: 'Pay in Full', Icon: Banknote },
+                    { key: 'PAY_PARTIALLY' as const, label: 'Pay Partially', Icon: Wallet },
+                  ].map((opt) => {
+                    const isActive = billingType === opt.key;
+                    return (
+                      <button
+                        key={opt.key} type="button"
+                        disabled={invoiceLocked}
+                        onClick={() => { setBillingType(opt.key); if (opt.key === 'PAY_PARTIALLY') setPartialAmount(null); }}
+                        style={{ flex: 1, padding: '6px 8px', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 6, border: `1.5px solid ${isActive ? '#d97706' : '#fcd34d'}`, background: isActive ? '#d97706' : '#fff', color: isActive ? '#fff' : '#d97706', cursor: invoiceLocked ? 'not-allowed' : 'pointer', opacity: invoiceLocked ? 0.6 : 1 }}
+                      >
+                        <opt.Icon size={13} color={isActive ? '#fff' : '#d97706'} />
+                        <span>{opt.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {billingType === 'PAY_PARTIALLY' && (
+                  <div style={{ background: '#fff', borderRadius: 6, border: '1px solid #fde68a', padding: '8px 10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                      <CreditCard size={12} color="#d97706" />
+                      <label style={{ fontSize: 12, fontWeight: 700, color: '#92400e' }}>Amount To Pay Now</label>
+                    </div>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type="number" min={1} max={maxDepositInDepositCurrency}
+                        step={partialAmountCurrency === 'USD' ? 0.01 : 1}
+                        value={partialAmount ?? ''}
+                        disabled={invoiceLocked}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setPartialAmount(val === '' ? null : Math.min(parseFloat(val) || 0, maxDepositInDepositCurrency));
+                        }}
+                        placeholder={`Max ${fmtDepositCur(maxDepositInDepositCurrency)}`}
+                        style={{ width: '100%', padding: '6px 72px 6px 10px', fontSize: 12, fontWeight: 700, borderRadius: 5, border: '1.5px solid #fcd34d', outline: 'none', boxSizing: 'border-box', background: '#fff', color: '#92400e' }}
+                      />
+                      <div style={{ position: 'absolute', right: 3, top: '50%', transform: 'translateY(-50%)', display: 'flex', borderRadius: 5, overflow: 'hidden', border: '1px solid #fcd34d' }}>
+                        {(['UGX', 'USD'] as Currency[]).map((cur) => (
+                          <button key={cur} type="button" disabled={invoiceLocked}
+                            onClick={() => { setPartialAmountCurrency(cur); setPartialAmount(null); }}
+                            style={{ padding: '4px 7px', fontSize: 12, fontWeight: 700, background: partialAmountCurrency === cur ? '#d97706' : '#fff', color: partialAmountCurrency === cur ? '#fff' : '#d97706', border: 'none', borderRight: cur === 'UGX' ? '1px solid #fcd34d' : 'none', cursor: invoiceLocked ? 'not-allowed' : 'pointer', opacity: invoiceLocked ? 0.6 : 1 }}>
+                            {cur}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {partialAmount != null && partialAmount > 0 && partialAmountCurrency !== currency && depositInProcCurrency != null && (
+                      <div style={{ fontSize: 10, color: '#92400e', background: '#fef3c7', borderRadius: 4, padding: '3px 8px', marginTop: 4 }}>
+                        ≈ <strong>{fmtPrice(depositInProcCurrency)}</strong>{' '}
+                        <span style={{ color: '#a16207' }}>(@ {exchangeRate.toLocaleString()} {partialAmountCurrency === 'USD' ? 'UGX/USD' : 'USD/UGX'})</span>
+                      </div>
+                    )}
+                    {depositInProcCurrency != null && depositInProcCurrency > 0 && depositInProcCurrency < finalTotalPrice && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4, padding: '5px 8px', background: '#fff', borderRadius: 5, border: '1px solid #fde68a' }}>
+                        <span style={{ fontSize: 10, color: '#92400e', fontWeight: 600 }}>Balance: <span style={{ color: '#b45309', fontWeight: 700 }}>{fmtPrice(finalTotalPrice - depositInProcCurrency)}</span></span>
+                      </div>
+                    )}
+                    {depositInProcCurrency != null && depositInProcCurrency >= finalTotalPrice && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4, padding: '5px 8px', background: '#fff', borderRadius: 5, border: '1px solid #86efac' }}>
+                        <span style={{ fontSize: 10, color: '#166534', fontWeight: 600 }}>Covers full — consider switching to "Pay in Full"</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {billingTypeChanged && (
+                  <p style={{ fontSize: 9, color: '#d97706', marginTop: 4 }}>Billing type changed — will be recorded in the audit trail.</p>
+                )}
+
+                {invoiceLocked && (
+                  <p style={{ fontSize: 9, color: '#94a3b8', marginTop: 4 }}>
+                    {initialData.invoiceStatus === 'POSTED'
+                      ? 'Cannot change billing — invoice is POSTED. Void the invoice first.'
+                      : tpPaid ? 'Cannot change billing — procedure has been paid.' : ''}
+                  </p>
+                )}
+              </div>
+
+            </div>
+
+            {/* ── RIGHT HALF: Pricing ── */}
+            <div style={{ flex: 1, background: invoiceLocked ? '#f8fafc' : 'linear-gradient(135deg,#f0f9ff,#e0f2fe)', borderRadius: 8, border: `1.5px solid ${invoiceLocked ? '#e2e8f0' : '#bae6fd'}`, padding: '10px 5px', opacity: invoiceLocked ? 0.7 : 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <div style={{ width: 24, height: 24, borderRadius: 6, background: invoiceLocked ? '#94a3b8' : '#0369a1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Receipt size={13} color="#fff" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: invoiceLocked ? '#94a3b8' : '#0369a1', margin: 0 }}>
+                    Price Total
+                  </p>
+                </div>
+                {invoiceLocked && <Lock size={12} color="#94a3b8" />}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', borderRadius: 7, padding: '2px 12px', border: '1px solid #e0f2fe', marginBottom: showPriceEdit && !invoiceLocked ? 10 : 0 }}>
                 <div>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                    Final Price (Patient Pays)
-                  </div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#1e293b', marginTop: 2 }}>
+                  <p style={{ marginRight: '6px', fontSize: 11, fontWeight: 600, color: '#64748b', margin: '0 0 1px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                    {priceOverride !== null ? 'Custom' : 'Original'}:
+                  </p>
+                  <span style={{ fontSize: 18, fontWeight: 800, color: priceOverride !== null ? '#b45309' : invoiceLocked ? '#94a3b8' : '#0369a1', letterSpacing: '-0.5px' }}>
                     {fmtPrice(finalTotalPrice)}
-                  </div>
+                  </span>
+                  {isUSD && (
+                    <span style={{ marginLeft: 5, fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>
+                      ≈ {fmtUGX(finalTotalPrice * exchangeRate)}
+                    </span>
+                  )}
                 </div>
                 {!invoiceLocked && (
                   <button
+                    type="button"
                     onClick={() => {
-                      setShowPriceEdit(!showPriceEdit);
-                      if (!showPriceEdit) setPriceOverride(initialData.totalPrice);
+                      if (showPriceEdit) { setPriceOverride(null); setShowPriceEdit(false); }
+                      else { setPriceOverride(finalTotalPrice); setShowPriceEdit(true); }
                     }}
-                    style={{
-                      fontSize: 11, fontWeight: 600, color: '#0369a1',
-                      background: '#fff', border: '1px solid #bae6fd',
-                      borderRadius: 6, padding: '6px 12px', cursor: 'pointer',
-                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6, border: '1.5px solid #fecaca', background: '#f9d963', color: '#dc2626', fontSize: 13, fontWeight: 900, cursor: 'pointer', whiteSpace: 'nowrap' }}
                   >
-                    {showPriceEdit ? 'Cancel' : 'Edit price'}
+                    {showPriceEdit ? <><RotateCcw size={12} /> Reset</> : <><Pencil size={12} /> Edit</>}
                   </button>
                 )}
               </div>
 
               {showPriceEdit && !invoiceLocked && (
-                <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <DollarSign size={13} color="#64748b" />
+                <div style={{ background: '#fff', borderRadius: 7, border: '1.5px solid #bae6fd', padding: '10px 12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                    <Tag size={12} color="#0369a1" />
+                    <label style={{ fontSize: 12, fontWeight: 700, color: '#0369a1' }}>Custom Price</label>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0369a1', background: '#e0f2fe', padding: '1px 6px', borderRadius: 8, marginLeft: 'auto' }}>{currency}</span>
+                  </div>
                   <input
-                    type="number"
-                    min={0}
-                    step={isUSD ? 0.01 : 1}
+                    type="number" min={0} step={currency === 'USD' ? 0.01 : 1000}
                     value={priceOverride ?? ''}
-                    onChange={e => setPriceOverride(e.target.value === '' ? null : Math.max(0, parseFloat(e.target.value) || 0))}
-                    placeholder={`Override total (${currency})`}
-                    style={{
-                      flex: 1, padding: '6px 10px', fontSize: 12,
-                      border: '1px solid #cbd5e1', borderRadius: 6, outline: 'none',
-                      background: '#fff',
-                    }}
+                    onChange={(e) => setPriceOverride(e.target.value === '' ? null : parseFloat(e.target.value))}
+                    placeholder="Enter custom amount…" autoFocus
+                    style={{ width: '100%', padding: '8px 12px', fontSize: 14, fontWeight: 700, borderRadius: 6, border: '2px solid #7dd3fc', outline: 'none', boxSizing: 'border-box', background: '#fff', color: '#0369a1' }}
                   />
-                  <span style={{ fontSize: 10, color: '#64748b' }}>{currency}</span>
                   {priceOverride !== null && priceOverride !== initialData.totalPrice && (
-                    <span style={{
-                      padding: '3px 8px', borderRadius: 10,
-                      background: '#fef3c7', color: '#a16207',
-                      fontSize: 10, fontWeight: 700,
-                    }}>
-                      New
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginTop: 6, padding: '2px 10px', background: '#f0f9ff', borderRadius: 5, border: '1px solid #e0f2fe' }}>
+                      <AlertCircle size={12} color="#0ea5e9" />
+                      <p style={{ fontSize: 12, color: '#0369a1', margin: 0, fontWeight: 700 }}>
+                        Original: <strong>{fmtPrice(initialData.totalPrice)}</strong>
+                        {' '}(<strong>{fmtPrice(priceOverride - initialData.totalPrice)}</strong> difference)
+                      </p>
+                    </div>
                   )}
                 </div>
               )}
 
-              {showPriceEdit && priceOverride !== null && priceOverride !== initialData.totalPrice && (
-                <p style={{ fontSize: 9, color: '#a16207', marginTop: 8 }}>
-                  Difference vs current ({fmtPrice(initialData.totalPrice)}):{' '}
-                  <b>{fmtPrice(priceOverride - initialData.totalPrice)}</b>
-                  {' '}— will be recorded as a discount.
+              {invoiceLocked && (
+                <p style={{ fontSize: 9, color: '#94a3b8', marginTop: 4 }}>
+                  {initialData.invoiceStatus === 'POSTED'
+                    ? 'Price locked — invoice is POSTED. Void or create a credit note to change.'
+                    : initialData.invoiceStatus === 'VOID'
+                      ? 'Price locked — linked invoice is VOIDED.'
+                      : tpPaid ? 'Price locked — procedure has been fully paid.' : 'Price locked — invoice has payments.'}
                 </p>
               )}
             </div>
-          </FieldRow>
-
-          {/* ════════════════════════════════════════════════════════════════════════
-              SESSION CONFIGURATION — SINGLE ↔ MULTI editable when no sessions
-          ════════════════════════════════════════════════════════════════════════ */}
-          <FieldRow
-            label="Session Configuration"
-            locked={sessionConfigLocked}
-            lockedReason="Cannot change session type once sessions have been recorded."
-          >
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', borderRadius: 7, border: `1.5px solid ${sessionConfigLocked ? '#e2e8f0' : '#0369a1'}`, overflow: 'hidden' }}>
-                {[
-                  { key: 'SINGLE' as const, label: 'Single', Icon: CalendarDays },
-                  { key: 'MULTI' as const, label: 'Multi',  Icon: Repeat },
-                ].map(opt => {
-                  const active = sessionType === opt.key;
-                  return (
-                    <button
-                      key={opt.key}
-                      type="button"
-                      disabled={sessionConfigLocked}
-                      onClick={() => setSessionType(opt.key)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 5,
-                        padding: '6px 14px',
-                        background: active ? '#0369a1' : '#fff',
-                        color: active ? '#fff' : '#0369a1',
-                        fontSize: 12, fontWeight: 600,
-                        border: 'none',
-                        cursor: sessionConfigLocked ? 'not-allowed' : 'pointer',
-                        opacity: sessionConfigLocked ? 0.6 : 1,
-                      }}
-                    >
-                      <opt.Icon size={13} /> {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-              {sessionType === 'MULTI' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <button
-                    type="button"
-                    disabled={sessionConfigLocked}
-                    onClick={() => setSessionCount(Math.max(2, sessionCount - 1))}
-                    style={numberStepperBtnStyle(sessionConfigLocked)}
-                  >
-                    <Minus size={12} />
-                  </button>
-                  <input
-                    type="number"
-                    min={2}
-                    max={20}
-                    value={sessionCount}
-                    disabled={sessionConfigLocked}
-                    onChange={e => setSessionCount(Math.min(20, Math.max(2, parseInt(e.target.value) || 2)))}
-                    style={{
-                      width: 42, textAlign: 'center', padding: '3px 4px',
-                      fontSize: 13, fontWeight: 700,
-                      borderRadius: 5, border: '1.5px solid #0369a1',
-                      outline: 'none', color: '#0369a1', background: '#fff',
-                      opacity: sessionConfigLocked ? 0.6 : 1,
-                    }}
-                  />
-                  <button
-                    type="button"
-                    disabled={sessionConfigLocked}
-                    onClick={() => setSessionCount(Math.min(20, sessionCount + 1))}
-                    style={numberStepperBtnStyle(sessionConfigLocked)}
-                  >
-                    <Plus size={12} />
-                  </button>
-                  <span style={{ fontSize: 11, color: '#64748b', marginLeft: 4 }}>
-                    sessions
-                  </span>
-                </div>
-              )}
-            </div>
-            {(sessionTypeChanged || sessionCountChanged) && (
-              <p style={{ fontSize: 9, color: '#d97706', marginTop: 4 }}>
-                Session config changed — will be recorded in the audit trail.
-              </p>
-            )}
-          </FieldRow>
-
-          {/* ════════════════════════════════════════════════════════════════════════
-              BILLING TYPE + DEPOSIT — mirrors AddTreatmentDialog
-          ════════════════════════════════════════════════════════════════════════ */}
-          <FieldRow
-            label="Billing Type"
-            locked={invoiceLocked}
-            lockedReason={
-              initialData.invoiceStatus === 'POSTED'
-                ? 'Cannot change billing type — invoice is POSTED. Void the invoice first.'
-                : tpPaid
-                  ? 'Cannot change billing type — procedure has been paid.'
-                  : undefined
-            }
-          >
-            <div style={{ display: 'flex', gap: 6, marginBottom: billingType === 'PAY_PARTIALLY' ? 10 : 0 }}>
-              {[
-                { key: 'PAY_FULL' as const, label: 'Pay in Full', Icon: Banknote },
-                { key: 'PAY_PARTIALLY' as const, label: 'Pay Partially', Icon: Wallet },
-              ].map(opt => {
-                const active = billingType === opt.key;
-                return (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    disabled={invoiceLocked}
-                    onClick={() => setBillingType(opt.key)}
-                    style={{
-                      flex: 1, padding: '8px 10px',
-                      fontSize: 12, fontWeight: 600,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      borderRadius: 7,
-                      border: `1.5px solid ${active ? '#0369a1' : '#bae6fd'}`,
-                      background: active ? '#0369a1' : '#fff',
-                      color: active ? '#fff' : '#0369a1',
-                      cursor: invoiceLocked ? 'not-allowed' : 'pointer',
-                      opacity: invoiceLocked ? 0.6 : 1,
-                      boxShadow: active ? '0 3px 8px rgba(3,105,161,0.22)' : 'none',
-                    }}
-                  >
-                    <opt.Icon size={13} /> {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {billingType === 'PAY_PARTIALLY' && (
-              <div style={{ background: '#f0f9ff', borderRadius: 7, border: '1px solid #bae6fd', padding: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                  <CreditCard size={12} color="#0369a1" />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#0369a1' }}>
-                    Amount To Pay Now
-                  </span>
-                </div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <input
-                    type="number"
-                    min={1}
-                    max={maxDepositInDepositCurrency}
-                    step={partialAmountCurrency === 'USD' ? 0.01 : 1}
-                    value={partialAmount ?? ''}
-                    disabled={invoiceLocked}
-                    onChange={e => {
-                      const v = e.target.value;
-                      setPartialAmount(
-                        v === '' ? null :
-                        Math.min(parseFloat(v) || 0, maxDepositInDepositCurrency)
-                      );
-                    }}
-                    placeholder={`Max ${partialAmountCurrency === 'USD'
-                      ? `USD ${maxDepositInDepositCurrency.toFixed(2)}`
-                      : `UGX ${Math.round(maxDepositInDepositCurrency).toLocaleString()}`}`}
-                    style={{
-                      flex: 1, padding: '6px 10px', fontSize: 12,
-                      border: '1px solid #bae6fd', borderRadius: 5,
-                      outline: 'none', background: '#fff',
-                      opacity: invoiceLocked ? 0.6 : 1,
-                    }}
-                  />
-                  <select
-                    value={partialAmountCurrency}
-                    disabled={invoiceLocked}
-                    onChange={e => setPartialAmountCurrency(e.target.value as Currency)}
-                    style={{
-                      padding: '6px 8px', fontSize: 12,
-                      border: '1px solid #bae6fd', borderRadius: 5,
-                      background: '#fff', cursor: invoiceLocked ? 'not-allowed' : 'pointer',
-                      opacity: invoiceLocked ? 0.6 : 1,
-                    }}
-                  >
-                    <option value="UGX">UGX</option>
-                    <option value="USD">USD</option>
-                  </select>
-                </div>
-                {depositInProcCurrency !== null && partialAmount !== null && partialAmount > 0 && (
-                  <p style={{ fontSize: 9, color: '#0c4a6e', marginTop: 6 }}>
-                    Deposit applied to invoice: <b>{fmtPrice(depositInProcCurrency)}</b>
-                    {partialAmountCurrency !== currency && (
-                      <span style={{ color: '#64748b' }}>
-                        {' '}(converted from {fmtPrice(partialAmount)} @ {exchangeRate.toLocaleString()})
-                      </span>
-                    )}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {billingTypeChanged && (
-              <p style={{ fontSize: 9, color: '#d97706', marginTop: 4 }}>
-                Billing type changed — will be recorded in the audit trail.
-              </p>
-            )}
-          </FieldRow>
+          </div>
 
           {/* ── COMPLETED: notes-only mode banner (above clinical notes) ─────────── */}
           {isCompleted && (

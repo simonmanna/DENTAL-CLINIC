@@ -98,8 +98,8 @@ export interface CancelProcedurePayload {
 }
 
 export interface DeleteProcedurePayload {
-  /** Optional — short note recorded in the audit log. */
-  reason?: string;
+  /** Required — clinical audit trail. */
+  reason: string;
 }
 
 export interface UpdateProcedureResult {
@@ -161,15 +161,15 @@ export const treatmentProceduresEditApi = {
   // ── 4. Hard delete ────────────────────────────────────────────────────────
   //    Only succeeds when sessionsCount === 0 and not PAID.
   //    Server returns 409 Conflict otherwise — catch and show Cancel flow.
-  //    `reason` (optional) is captured in the audit log.
+  //    `reason` is required — clinical audit trail.
   deleteProcedure: async (
     planId: string,
     procedureId: string,
-    payload?: DeleteProcedurePayload,
+    payload: DeleteProcedurePayload,
   ): Promise<{ success: boolean; deleted: string }> => {
-    const res = await api.delete(
-      `/treatment-plans/${planId}/procedures/${procedureId}`,
-      { data: payload ?? {} },
+    const res = await api.post(
+      `/treatment-plans/${planId}/procedures/${procedureId}/delete`,
+      payload,
     );
     return res.data;
   },

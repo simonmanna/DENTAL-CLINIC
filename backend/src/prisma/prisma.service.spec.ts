@@ -4,7 +4,7 @@
 // boot. We cannot exercise the real onModuleInit without a Postgres instance
 // (this spec runs in the unit-test sandbox), so we instead verify:
 //   1. The SQL file exists at the expected path relative to the project root.
-//   2. It is idempotent (DROP IF EXISTS + CREATE).
+//   2. It is idempotent (CREATE IF NOT EXISTS — no drop/recreate churn).
 //   3. It declares the partial predicate exactly as documented in
 //      prisma/schema.prisma (Filter "deletedAt" IS NULL on the
 //      condition_procedure_links table).
@@ -25,15 +25,17 @@ describe('boot SQL constraints', () => {
     expect(existsSync(sqlPath)).toBe(true);
   });
 
-  it('drops the previous index if present (idempotent)', () => {
+  it('is idempotent via CREATE ... IF NOT EXISTS', () => {
     const sql = readFileSync(sqlPath, 'utf8');
-    expect(sql).toMatch(/DROP\s+INDEX\s+IF\s+EXISTS\s+condition_procedure_links_active_unique/i);
+    expect(sql).toMatch(
+      /CREATE\s+UNIQUE\s+INDEX\s+IF\s+NOT\s+EXISTS\s+condition_procedure_links_active_unique/i,
+    );
   });
 
   it('creates a UNIQUE INDEX on the link table', () => {
     const sql = readFileSync(sqlPath, 'utf8');
     expect(sql).toMatch(
-      /CREATE\s+UNIQUE\s+INDEX\s+condition_procedure_links_active_unique\s+ON\s+condition_procedure_links/i,
+      /CREATE\s+UNIQUE\s+INDEX\s+(?:IF\s+NOT\s+EXISTS\s+)?condition_procedure_links_active_unique\s+ON\s+condition_procedure_links/i,
     );
   });
 

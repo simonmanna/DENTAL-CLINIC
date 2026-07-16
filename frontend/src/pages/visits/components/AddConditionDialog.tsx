@@ -818,6 +818,7 @@ export function AddConditionDialog({
                 <RadialSurfacePicker
                   value={surfaces}
                   onChange={setSurfaces}
+                  teeth={selectedTeeth}
                 />
                 {selectedCondition?.requiresSurface &&
                   surfaces.length === 0 && (

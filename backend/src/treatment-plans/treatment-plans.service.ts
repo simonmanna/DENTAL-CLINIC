@@ -237,6 +237,7 @@ export class TreatmentPlansService {
         },
         dentist: { select: { id: true, firstName: true, lastName: true } },
         procedures: {
+          where: { deletedAt: null },
           include: {
             procedure: {
               include: {
@@ -554,6 +555,7 @@ export class TreatmentPlansService {
       where: {
         procedureId,
         treatmentPlan: { patientId },
+        deletedAt: null,
         // On an EDIT, exclude the procedure being edited so it never collides
         // with its own (about-to-be-replaced) targets.
         ...(excludeProcedureId ? { id: { not: excludeProcedureId } } : {}),
@@ -1102,6 +1104,7 @@ export class TreatmentPlansService {
     const procedures = await this.prisma.treatmentProcedure.findMany({
       where: {
         ...(planId ? { treatmentPlanId: planId } : {}),
+        deletedAt: null,
         status: { not: TreatmentStatus.CANCELLED },
         invoiceItems: { none: {} },
       },
@@ -1166,11 +1169,11 @@ export class TreatmentPlansService {
   async removeProcedure(
     planId: string,
     procedureId: string,
+    reason: string,
     deletedById?: string,
-    reason?: string,
   ) {
     const tp = await this.prisma.treatmentProcedure.findFirst({
-      where: { id: procedureId, treatmentPlanId: planId },
+      where: { id: procedureId, treatmentPlanId: planId, deletedAt: null },
       include: {
         procedure: { select: { id: true, name: true, code: true } },
         chartEntries: true,
@@ -1200,16 +1203,15 @@ export class TreatmentPlansService {
 
     // ── Spec rules — Delete Treatment Procedure ──────────────────────────
     // ✅ Procedure status is PLANNED
-    // ✅ No payments attached
-    // ✅ Invoice (if linked) must not be POSTED
     // ✅ Not any session executions done on that procedure
+    // ✅ Invoice (if linked) must not be POSTED
     // ✅ Not completed  (implicit — COMPLETED ≠ PLANNED)
 
     // Rule: Status must be PLANNED (or PENDING legacy). Any other status
     // (IN_PROGRESS, COMPLETED, ON_HOLD, CANCELLED, REFERRED) blocks delete.
     if (
-      tp.status !== TreatmentStatus.PLANNED &&
-      tp.status !== ('PENDING' as any) // tolerate legacy PENDING
+      (tp.status as string).toUpperCase() !== 'PLANNED' &&
+      (tp.status as string).toUpperCase() !== 'PENDING'
     ) {
       throw new ConflictException(
         `Only PLANNED procedures can be deleted. Current status: ${tp.status}. ` +
@@ -1228,17 +1230,11 @@ export class TreatmentPlansService {
       );
     }
 
-    // Rule: No payments attached.
+    // Rule: Linked invoice (if any) must not be POSTED.
+    // Items on DRAFT invoices are voided (kept for record, zeroed from totals).
+    // Payments on DRAFT invoices are allowed — the line item is voided but
+    // preserved on the invoice for audit.
     const paymentStatus = (tp as any).paymentStatus as string;
-    if (paymentStatus === BalanceStatus.PAID) {
-      throw new ConflictException(
-        'Cannot delete a paid procedure. Void or refund the payment first.',
-      );
-    }
-
-    // Rule: Linked invoice (if any) must not be POSTED, and must not have
-    // partial payments recorded. A draft invoice with an unpaid line is
-    // fine — we'll void the line item in the same transaction.
     const invoiceItem = (tp as any).invoiceItems?.[0] ?? null;
     if (invoiceItem) {
       const inv = invoiceItem.invoice;
@@ -1249,19 +1245,7 @@ export class TreatmentPlansService {
             `create a credit note to remove this procedure.`,
         );
       }
-      if (inv.status === 'VOID' || inv.status === 'CANCELLED') {
-        // Voided invoice is harmless — proceed.
-      } else if (
-        inv.paymentStatus === 'PARTIALLY_PAID' ||
-        inv.paymentStatus === 'PAID' ||
-        Number(inv.amountPaid) > 0
-      ) {
-        throw new ConflictException(
-          `Cannot delete — the linked invoice has recorded payments ` +
-            `(paymentStatus=${inv.paymentStatus}, amountPaid=${inv.amountPaid}). ` +
-            `Void or refund the payment first.`,
-        );
-      }
+      // DRAFT invoice items with or without payments: void the item below.
     }
 
     const { invoiceId } = await this.prisma.$transaction(async (tx) => {
@@ -1281,7 +1265,7 @@ export class TreatmentPlansService {
           },
           data: {
             status: ChartEntryStatus.SUPERSEDED,
-            notes: `Procedure deleted from plan on ${new Date().toISOString()}: ${reason ?? ''}`.trim(),
+            notes: `Procedure deleted from plan on ${new Date().toISOString()}: ${reason}`.trim(),
           },
         });
       }
@@ -1290,7 +1274,7 @@ export class TreatmentPlansService {
       const billing = await this.invoiceLifecycle.voidProcedureBillingTx(
         tx,
         procedureId,
-        reason ?? 'Procedure removed from plan',
+        reason,
       );
 
       // Audit BEFORE the delete so we have the row's last snapshot.
@@ -1300,7 +1284,7 @@ export class TreatmentPlansService {
         entityType: 'TreatmentProcedure',
         entityId: procedureId,
         userId: deletedById ?? null,
-        reason: reason ?? null,
+        reason: reason,
         oldData: {
           treatmentPlanId: planId,
           procedureId: tp.procedureId,
@@ -1330,7 +1314,15 @@ export class TreatmentPlansService {
         reason,
       );
 
-      await tx.treatmentProcedure.delete({ where: { id: procedureId } });
+      await tx.treatmentProcedure.update({
+        where: { id: procedureId },
+        data: {
+          status: TreatmentStatus.DELETED,
+          deletedAt: new Date(),
+          deletedById: deletedById ?? null,
+          deletedReason: reason,
+        },
+      });
       await this.recalculatePlanCostTx(tx, planId);
       return { invoiceId: billing.invoiceId };
     });
@@ -2364,6 +2356,7 @@ export class TreatmentPlansService {
     const activeProcs = await tx.treatmentProcedure.findMany({
       where: {
         treatmentPlanId: planId,
+        deletedAt: null,
         status: { not: TreatmentStatus.CANCELLED },
       },
       select: { status: true, totalPrice: true, completedAt: true },
@@ -3872,8 +3865,9 @@ export class TreatmentPlansService {
       data: await this.prisma.treatmentPlan.findUnique({
         where: { id: duplicated.id },
         include: {
-          procedures: {
-            include: {
+        procedures: {
+          where: { deletedAt: null },
+          include: {
               sessions: {
                 where: { deletedAt: null },
                 include: { targets: true },
@@ -3984,6 +3978,7 @@ export class TreatmentPlansService {
   ): Promise<any[]> {
     const procedures = await this.prisma.treatmentProcedure.findMany({
       where: {
+        deletedAt: null,
         treatmentPlan: {
           patientId,
           status: { not: 'CANCELLED' },
@@ -4328,7 +4323,7 @@ export class TreatmentPlansService {
             },
           },
           procedures: {
-            where: { status: { not: TreatmentStatus.CANCELLED } },
+            where: { deletedAt: null, status: { not: TreatmentStatus.CANCELLED } },
             select: {
               status: true,
               totalPrice: true,
@@ -4419,6 +4414,7 @@ export class TreatmentPlansService {
     const allPlanProcs = await this.prisma.treatmentProcedure.findMany({
       where: {
         treatmentPlan: where,
+        deletedAt: null,
         status: { not: TreatmentStatus.CANCELLED },
       },
       select: {
@@ -4501,7 +4497,9 @@ export class TreatmentPlansService {
     ]);
     const resolvedSort = SAFE_PROC_SORT.has(sortBy) ? sortBy : 'createdAt';
 
-    const where: Prisma.TreatmentProcedureWhereInput = {};
+    const where: Prisma.TreatmentProcedureWhereInput = {
+      deletedAt: null,
+    };
 
     if (filters.startDate || filters.endDate) {
       where.createdAt = {

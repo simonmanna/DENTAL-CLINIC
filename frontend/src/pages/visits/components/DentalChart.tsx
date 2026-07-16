@@ -75,7 +75,8 @@ import {
   getQuadrant,
   toothName,
   uiToCanonical,
-  canonicalToUi,
+  canonicalToUiForTooth,
+  sortUiSurfaces,
   type CanonicalSurface,
   type UiSurface,
 } from "../../../lib/dental/notation";
@@ -720,7 +721,16 @@ const ToothSVG = React.memo(function ToothSVG({
     presence === "SUPERNUMERARY" ||
     presence === "RETAINED_ROOT";
 
-  // Surface polygon zones and label positions
+  // Surface polygon zones and label positions.
+  // Mesial always faces the dental midline. The arch rows (ARCH) are drawn
+  // facing the patient, so quadrants 1, 4, 5, 8 sit on the screen-left half
+  // and their mesial side is the glyph's RIGHT edge; quadrants 2, 3, 6, 7
+  // keep mesial on the LEFT. B/L get the same treatment per arch (isUpper).
+  const mesialOnRight = [1, 4, 5, 8].includes(getQuadrant(fdi));
+  const sideLeftZone = `${cl},${ct} ${oL},${oT} ${oL},${oB} ${cl},${cb}`;
+  const sideRightZone = `${cr},${ct} ${oR},${oT} ${oR},${oB} ${cr},${cb}`;
+  const sideLeftLabel: [number, number] = [(cl + oL) / 2, cm];
+  const sideRightLabel: [number, number] = [(cr + oR) / 2, cm];
   const Z: Record<string, string> = {
     O: `${oL},${oT} ${oR},${oT} ${oR},${oB} ${oL},${oB}`,
     B: isUpper
@@ -729,15 +739,15 @@ const ToothSVG = React.memo(function ToothSVG({
     L: isUpper
       ? `${cl},${cb} ${cr},${cb} ${oR},${oB} ${oL},${oB}`
       : `${cl},${ct} ${cr},${ct} ${oR},${oT} ${oL},${oT}`,
-    M: `${cl},${ct} ${oL},${oT} ${oL},${oB} ${cl},${cb}`,
-    D: `${cr},${ct} ${oR},${oT} ${oR},${oB} ${cr},${cb}`,
+    M: mesialOnRight ? sideRightZone : sideLeftZone,
+    D: mesialOnRight ? sideLeftZone : sideRightZone,
   };
   const LP: Record<string, [number, number]> = {
     O: [cx, (oT + oB) / 2],
     B: isUpper ? [cx, (ct + oT) / 2] : [cx, (cb + oB) / 2],
     L: isUpper ? [cx, (cb + oB) / 2] : [cx, (ct + oT) / 2],
-    M: [(cl + oL) / 2, cm],
-    D: [(cr + oR) / 2, cm],
+    M: mesialOnRight ? sideRightLabel : sideLeftLabel,
+    D: mesialOnRight ? sideLeftLabel : sideRightLabel,
   };
 
   // ── Shared surface overlay (used by PRESENT, SUPERNUMERARY branches) ───────
@@ -1817,7 +1827,9 @@ function SplitLedger({
                         fontSize: 10,
                       }}
                     >
-                      {entry.surfaces.length ? entry.surfaces.join("") : "—"}
+                      {entry.surfaces.length
+                        ? sortUiSurfaces(entry.surfaces).join("")
+                        : "—"}
                     </td>
                     <td
                       style={{
@@ -2642,7 +2654,9 @@ function DentalChartInner({
         return {
           id: e.id,
           toothNumbers: [t],
-          surfaces: (e.surfaces || []).map((s) => canonicalToUi(s as string)),
+          surfaces: (e.surfaces || []).map((s) =>
+            canonicalToUiForTooth(s as string, t),
+          ),
           type: e.type as ChartEntry["type"],
           status: e.status as EntryStatus,
           label: e.label,
@@ -2706,7 +2720,9 @@ function DentalChartInner({
       return targets.map((tgt) => ({
         id: `${DERIVED_PROC_ID_PREFIX}${p.id}-t${tgt.toothNumber}`,
         toothNumbers: [tgt.toothNumber],
-        surfaces: (tgt.surfaces || []).map((s) => canonicalToUi(s as string)),
+        surfaces: (tgt.surfaces || []).map((s) =>
+          canonicalToUiForTooth(s as string, tgt.toothNumber),
+        ),
         type,
         status: "ACTIVE",
         label: p.procedure?.name || "Procedure",

@@ -811,7 +811,11 @@ export function EditConditionDialog({
                     <span style={{ color: "#dc2626" }}>*</span>
                   )}
                 </label>
-                <RadialSurfacePicker value={surfaces} onChange={setSurfaces} />
+                <RadialSurfacePicker
+                  value={surfaces}
+                  onChange={setSurfaces}
+                  teeth={initialData.toothNumbers}
+                />
                 {selectedCondition?.requiresSurface &&
                   surfaces.length === 0 && (
                     <p style={{ fontSize: 10, color: "#dc2626", marginTop: 8 }}>

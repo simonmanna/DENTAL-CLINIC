@@ -49,17 +49,19 @@ export function assertSurfaces(
       'Cannot record surfaces without a valid tooth number',
     );
   }
-  const normalized = normalizeSurfaces(raw, fdi);
+  // Detect rejects per value, not by comparing lengths: normalization may
+  // legitimately collapse two provided values into one (e.g. OCCLUSAL+INCISAL
+  // both fold onto the tooth's bite surface), which is not an error.
   const provided = raw.filter(Boolean) as string[];
-  if (normalized.length !== new Set(provided).size) {
-    const bad = provided.filter(
-      (_, i) => normalizeSurfaces([provided[i]], fdi).length === 0,
-    );
+  const bad = [...new Set(provided)].filter(
+    (p) => normalizeSurfaces([p], fdi).length === 0,
+  );
+  if (bad.length > 0) {
     throw new BadRequestException(
-      `Unrecognized tooth surface(s): ${[...new Set(bad)].join(', ')}`,
+      `Unrecognized tooth surface(s): ${bad.join(', ')}`,
     );
   }
-  return normalized;
+  return normalizeSurfaces(raw, fdi);
 }
 
 /**

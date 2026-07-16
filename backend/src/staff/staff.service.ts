@@ -53,16 +53,32 @@ export class StaffService {
   }
 
   async update(id: string, data: any) {
-    const { email, role, ...staffData } = data;
+    const { email, role, password, ...staffData } = data;
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    void email; // reserved for future use — User model updates should go via /users/:id
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    void role;  // reserved for future use — User model updates should go via /users/:id
-
-    return this.prisma.staff.update({
+    const staff = await this.prisma.staff.findUnique({
       where: { id },
-      data: staffData,
+      include: { user: true },
+    });
+    if (!staff) throw new NotFoundException('Staff not found');
+
+    // Build user update data
+    const userUpdate: any = {};
+    if (email !== undefined) userUpdate.email = email;
+    if (role !== undefined) userUpdate.role = role;
+    if (password) userUpdate.password = await bcrypt.hash(password, 10);
+
+    return this.prisma.$transaction(async (tx) => {
+      if (Object.keys(userUpdate).length > 0) {
+        await tx.user.update({
+          where: { id: staff.userId },
+          data: userUpdate,
+        });
+      }
+
+      return tx.staff.update({
+        where: { id },
+        data: staffData,
+      });
     });
   }
 

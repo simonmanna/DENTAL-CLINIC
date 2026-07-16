@@ -93,6 +93,7 @@ const ALLOWED_STATUS_TRANSITIONS: Record<
   CANCELLED: [],
   PENDING: [TreatmentStatus.PLANNED],
   REFERRED: [],
+  DELETED: [],
 };
 
 const ALLOWED_TRANSITIONS_HELP: Record<TreatmentStatus, string> = {
@@ -104,6 +105,7 @@ const ALLOWED_TRANSITIONS_HELP: Record<TreatmentStatus, string> = {
     'Cancelled procedures must be restored before they can transition.',
   PENDING: 'Allowed transitions: PENDING → PLANNED.',
   REFERRED: 'Referred procedures cannot transition to any other status.',
+  DELETED: 'Deleted procedures cannot transition to any other status.',
 };
 
 function isAllowedStatusTransition(
@@ -205,8 +207,10 @@ export class TreatmentPlansEditService {
       invoiceAmountPaid?: number;
     }
   > {
+    // Note: if you add new return fields, update the type in
+    // update-treatment-procedure.dto.ts → ProcedureDeleteEligibility
     const tp = await this.prisma.treatmentProcedure.findFirst({
-      where: { id: procedureId, treatmentPlanId: planId },
+      where: { id: procedureId, treatmentPlanId: planId, deletedAt: null },
       include: {
         sessions: { select: { id: true } },
         _count: { select: { sessions: true } },
@@ -234,24 +238,19 @@ export class TreatmentPlansEditService {
     const paymentStatus = (tp as any).paymentStatus as string;
     const status = tp.status as string;
 
-    const isPaid = paymentStatus === BalanceStatus.PAID;
     const hasSessions = sessionsCount > 0;
-    const isPlanned = status === 'PLANNED' || status === 'PENDING';
+    const isPlanned = status.toUpperCase() === 'PLANNED' || status.toUpperCase() === 'PENDING';
 
     const invoiceItem = (tp as any).invoiceItems?.[0] ?? null;
     const invoice = invoiceItem?.invoice ?? null;
     const invoicePosted = invoice?.status === 'POSTED';
-    const invoiceHasPayments =
-      invoice?.paymentStatus === 'PARTIALLY_PAID' ||
-      invoice?.paymentStatus === 'PAID' ||
-      Number(invoice?.amountPaid ?? 0) > 0;
 
     // Spec: Delete is allowed only when:
     //   • status is PLANNED
     //   • no session executions
-    //   • no payments attached
     //   • linked invoice (if any) is not POSTED
-    //   • linked invoice (if any) has no recorded payments
+    // Items on DRAFT invoices (with or without payments) are voided but
+    // kept on the invoice record for audit.
     let canDelete = true;
     let canCancel = true;
     let reason: string | undefined;
@@ -267,15 +266,9 @@ export class TreatmentPlansEditService {
     } else if (hasSessions) {
       canDelete = false;
       reason = `Procedure has ${sessionsCount} recorded session${sessionsCount !== 1 ? 's' : ''}. Use Cancel instead.`;
-    } else if (isPaid) {
-      canDelete = false;
-      reason = 'Procedure has been paid. Void or refund the payment first.';
     } else if (invoicePosted) {
       canDelete = false;
       reason = `Linked invoice is POSTED (already billed). Void the invoice or create a credit note first.`;
-    } else if (invoiceHasPayments) {
-      canDelete = false;
-      reason = `Linked invoice has recorded payments. Void or refund the payment first.`;
     }
 
     if (status === TreatmentStatus.CANCELLED) {
@@ -291,6 +284,7 @@ export class TreatmentPlansEditService {
       status,
       invoiceStatus: invoice?.status ?? null,
       invoiceAmountPaid: invoice ? Number(invoice.amountPaid) : 0,
+      hasInvoiceItem: invoiceItem !== null,
     };
   }
 

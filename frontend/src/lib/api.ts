@@ -95,6 +95,8 @@ export const authApi = {
   register: (data: any) => api.post("/auth/register", data).then((r) => r.data),
   logout: () => api.post("/auth/logout").then((r) => r.data),
   me: () => api.get("/auth/me").then((r) => r.data),
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    api.post("/auth/change-password", data).then((r) => r.data),
 };
 
 export const patientsApi = {

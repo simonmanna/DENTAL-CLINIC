@@ -72,6 +72,10 @@ const escapeHtml = (str: string) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
+// Adaptive axis tick formatter — shows full values under 1000, "k" for thousands, "M" for millions
+const fmtAxis = (v: number): string =>
+  v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : v >= 1_000 ? `${(v / 1_000).toFixed(0)}k` : v < 1 ? "0" : String(v);
+
 type SortOrder = "asc" | "desc";
 
 interface FilterState {
@@ -487,7 +491,7 @@ function exportCSV(filename: string, columns: ColDef<any>[], rows: any[]) {
       .map((c) => `"${String(c.csv ? c.csv(row) : "").replace(/"/g, '""')}"`)
       .join(","),
   );
-  const blob = new Blob([[header, ...body].join("\n")], {
+  const blob = new Blob(["\uFEFF" + [header, ...body].join("\n")], {
     type: "text/csv;charset=utf-8;",
   });
   const url = URL.createObjectURL(blob);
@@ -1126,6 +1130,26 @@ function FinancialReportsView({
   return { data: dataArray, pagination, summary };
 }, [activeTab, invoiceData, receiptData, paymentData, expenseData]);
 
+// Compute per-currency totals from visible table rows when backend summary returns 0
+const revenueByCurrency = useMemo(() => {
+  if (activeTab !== "invoices") return { ugx: 0, usd: 0, collectedUgx: 0, collectedUsd: 0, balanceUgx: 0, balanceUsd: 0 };
+  const rows = currentData.data;
+  let ugx = 0, usd = 0, collUgx = 0, collUsd = 0, balUgx = 0, balUsd = 0;
+  for (const r of rows) {
+    const cur = r.currency === "USD" ? "USD" : "UGX";
+    if (cur === "USD") {
+      usd += Number(r.total) || 0;
+      collUsd += Number(r.amountPaid) || 0;
+      balUsd += Number(r.balance) || 0;
+    } else {
+      ugx += Number(r.total) || 0;
+      collUgx += Number(r.amountPaid) || 0;
+      balUgx += Number(r.balance) || 0;
+    }
+  }
+  return { ugx, usd, collectedUgx: collUgx, collectedUsd: collUsd, balanceUgx: balUgx, balanceUsd: balUsd };
+}, [activeTab, currentData.data]);
+
 const fetchReport = useCallback(async () => {
   setLoading(true);
   setError(null);
@@ -1143,7 +1167,7 @@ const fetchReport = useCallback(async () => {
     type: filters.type || undefined,
     direction: filters.direction || undefined,
     currency: filters.currency || undefined,
-    category: (filters as any).category || undefined,
+    category: filters.category || undefined,
     page,
     limit: filters.limit,
     sortBy,
@@ -1151,38 +1175,24 @@ const fetchReport = useCallback(async () => {
   };
 
   try {
-    // Helper to extract payload from Axios or fetch responses
-    const extractPayload = (response: any) => {
-      // Axios: response.data contains the actual payload
-      if (response?.data?.data !== undefined && Array.isArray(response.data.data)) {
-        return response.data;
+    const rawResponse = await (() => {
+      switch (activeTab) {
+        case "invoices": return financialReportingApi.getInvoicesReport(apiFilters);
+        case "receipts": return financialReportingApi.getReceiptsReport(apiFilters);
+        case "payments": return financialReportingApi.getPaymentsReport(apiFilters);
+        case "expenses": return financialReportingApi.getExpensesReport(apiFilters);
       }
-      // Direct payload (no wrapper)
-      if (Array.isArray(response?.data) || response?.pagination) {
-        return response;
-      }
-      // Fallback
-      return { data: [], pagination: {}, summary: {} };
-    };
+    })();
 
-    let rawResponse;
+    const payload = rawResponse && typeof rawResponse === "object" && Array.isArray(rawResponse.data)
+      ? rawResponse
+      : { data: [], pagination: { page: 1, limit: filters.limit, total: 0, totalPages: 1 }, summary: {} };
+
     switch (activeTab) {
-      case "invoices":
-        rawResponse = await financialReportingApi.getInvoicesReport(apiFilters);
-        setInvoiceData(extractPayload(rawResponse));
-        break;
-      case "receipts":
-        rawResponse = await financialReportingApi.getReceiptsReport(apiFilters);
-        setReceiptData(extractPayload(rawResponse));
-        break;
-      case "payments":
-        rawResponse = await financialReportingApi.getPaymentsReport(apiFilters);
-        setPaymentData(extractPayload(rawResponse));
-        break;
-      case "expenses":
-        rawResponse = await financialReportingApi.getExpensesReport(apiFilters);
-        setExpenseData(extractPayload(rawResponse));
-        break;
+      case "invoices": setInvoiceData(payload); break;
+      case "receipts": setReceiptData(payload); break;
+      case "payments": setPaymentData(payload); break;
+      case "expenses": setExpenseData(payload); break;
     }
   } catch (e: any) {
     console.error("Fetch error:", e);
@@ -1192,11 +1202,21 @@ const fetchReport = useCallback(async () => {
   }
 }, [activeTab, filters, page, sortBy, sortOrder]);
 
+  // Avoid double-fetch: when filters/tab change, reset page first without fetching.
+  // The page state change triggers a second effect run which does the fetch.
+  const needsPageReset = useRef(false);
+
   useEffect(() => {
+    if (needsPageReset.current) {
+      needsPageReset.current = false;
+      setPage(1);
+      return;
+    }
     fetchReport();
   }, [fetchReport]);
+
   useEffect(() => {
-    setPage(1);
+    needsPageReset.current = true;
   }, [filters, activeTab]);
 
   const handleSort = useCallback(
@@ -1256,8 +1276,9 @@ const fetchReport = useCallback(async () => {
       <body>${content}</body></html>`);
     w.document.close();
     w.focus();
+    w.onafterprint = () => w.close();
     w.print();
-    w.close();
+    setTimeout(() => { try { w.close(); } catch {} }, 1000);
   };
 
   const summary = currentData.summary ?? {};
@@ -1400,9 +1421,9 @@ const fetchReport = useCallback(async () => {
           Category
         </label>
         <select
-          value={(filters as any).category ?? ""}
+          value={filters.category ?? ""}
           onChange={(e) =>
-            setFilters((f) => ({ ...f, category: e.target.value }) as any)
+            setFilters((f) => ({ ...f, category: e.target.value }))
           }
           className="h-9 rounded-lg border border-slate-200 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
         >
@@ -1455,21 +1476,41 @@ const fetchReport = useCallback(async () => {
                 accent="#0ea5e9"
               />
               <StatCard
-                label="Total Revenue"
-                value={fmtCurrency(summary.totalRevenue)}
+                label="Revenue"
+                value={
+                  <>
+                    <span className="tabular-nums">UGX {Number(revenueByCurrency.ugx).toLocaleString("en-UG")}</span>
+                    <span className="text-sm font-normal text-slate-500 block tabular-nums">
+                      USD {Number(revenueByCurrency.usd).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </>
+                }
                 icon="💰"
                 accent="#8b5cf6"
               />
               <StatCard
-                label="Total Collected"
-                value={fmtCurrency(summary.totalCollected)}
+                label="Collected"
+                value={
+                  <>
+                    <span className="tabular-nums">UGX {Number(revenueByCurrency.collectedUgx).toLocaleString("en-UG")}</span>
+                    <span className="text-sm font-normal text-slate-500 block tabular-nums">
+                      USD {Number(revenueByCurrency.collectedUsd).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </>
+                }
                 icon="✅"
                 accent="#10b981"
               />
               <StatCard
                 label="Outstanding"
-                value={fmtCurrency(summary.outstandingAmount ?? summary.totalOutstanding)}
-                sub={`${summary.outstandingCount ?? 0} invoices`}
+                value={
+                  <>
+                    <span className="tabular-nums">UGX {Number(revenueByCurrency.balanceUgx).toLocaleString("en-UG")}</span>
+                    <span className="text-sm font-normal text-slate-500 block tabular-nums">
+                      USD {Number(revenueByCurrency.balanceUsd).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </>
+                }
                 icon="⏳"
                 accent="#f59e0b"
               />
@@ -1579,7 +1620,7 @@ const fetchReport = useCallback(async () => {
                         <XAxis
                           type="number"
                           tick={{ fontSize: 10 }}
-                          tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                          tickFormatter={fmtAxis}
                         />
                         <YAxis
                           type="category"
@@ -1959,7 +2000,7 @@ const fetchReport = useCallback(async () => {
                       <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                       <YAxis
                         tick={{ fontSize: 10 }}
-                        tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                        tickFormatter={fmtAxis}
                       />
                       <Tooltip
                         formatter={(v: number) => [fmtCurrency(v), "Expenses"]}
@@ -1990,7 +2031,7 @@ const fetchReport = useCallback(async () => {
                       />
                       <YAxis
                         tick={{ fontSize: 10 }}
-                        tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                        tickFormatter={fmtAxis}
                       />
                       <Tooltip
                         formatter={(v: number) => [fmtCurrency(v), "Amount"]}
@@ -2045,15 +2086,17 @@ const fetchReport = useCallback(async () => {
               </button>
               <button
                 onClick={handleExportCSV}
-                className="px-3 py-2 text-sm rounded-lg border border-sky-600 text-sky-700 hover:bg-sky-50 flex items-center gap-1.5 font-medium transition-colors"
+                disabled={loading}
+                className="px-3 py-2 text-sm rounded-lg border border-sky-600 text-sky-700 hover:bg-sky-50 flex items-center gap-1.5 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                ⬇ Export CSV
+                {loading ? "⏳ Loading…" : "⬇ Export CSV"}
               </button>
               <button
                 onClick={handlePrint}
-                className="px-3 py-2 text-sm rounded-lg bg-slate-800 text-white hover:bg-slate-700 flex items-center gap-1.5 font-medium transition-colors"
+                disabled={loading}
+                className="px-3 py-2 text-sm rounded-lg bg-slate-800 text-white hover:bg-slate-700 flex items-center gap-1.5 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                🖨 Print
+                {loading ? "⏳ Loading…" : "🖨 Print"}
               </button>
             </div>
           </div>

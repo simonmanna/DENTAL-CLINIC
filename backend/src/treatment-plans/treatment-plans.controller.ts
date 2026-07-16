@@ -15,6 +15,7 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import { DeleteProcedureReasonDto } from './dto/delete-procedure-reason.dto';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -200,18 +201,19 @@ export class TreatmentPlansController {
 
   @ApiOperation({ summary: 'Remove procedure from treatment plan' })
   @Roles(UserRole.DENTIST, UserRole.ADMIN)
-  @Delete(':id/procedures/:procedureId')
+  @Post(':id/procedures/:procedureId/delete')
   removeProcedure(
     @Param('id') id: string,
     @Param('procedureId') procedureId: string,
-    @Body() body: { reason?: string } = {},
+    @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+    body: DeleteProcedureReasonDto,
     @CurrentUser('id') currentUserId: string | undefined,
   ) {
     return this.svc.removeProcedure(
       id,
       procedureId,
-      currentUserId,
       body.reason,
+      currentUserId,
     );
   }
 

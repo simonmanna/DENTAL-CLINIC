@@ -959,7 +959,7 @@ export function AddTreatmentDialog({
                       {/* Divider */}
                       <div style={{ borderTop: "1px solid #e2e8f0", marginBottom: 8 }} />
                       <label style={S.label}>Surfaces <span style={{ fontWeight: 400, textTransform: "none", fontSize: 10, color: "#94a3b8" }}>(Optional)</span></label>
-                      <CompactSurfacePicker value={surfaces} onChange={setSurfaces} />
+                      <CompactSurfacePicker value={surfaces} onChange={setSurfaces} teeth={selectedTeeth} />
                     </div>
                   )}
 
@@ -1310,7 +1310,7 @@ export function AddTreatmentDialog({
 
                       <div style={card("#f8fafc", "#e2e8f0")}>
                         <label style={S.label}>Surfaces <span style={{ fontWeight: 400, textTransform: "none", color: "#94a3b8" }}>(Optional)</span></label>
-                        <CompactSurfacePicker value={existingSurfaces} onChange={setExistingSurfaces} />
+                        <CompactSurfacePicker value={existingSurfaces} onChange={setExistingSurfaces} teeth={selectedTeeth} />
                       </div>
 
                       <div>

@@ -23,6 +23,7 @@ import {
   DollarSign,
   HeartPulse,
   Shield,
+  KeyRound,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -1043,6 +1044,18 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                           style={{ width: 14, height: 14, color: "#64748b" }}
                         />
                         Settings
+                      </Link>
+
+                      <Link
+                        to="/change-password"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors hover:bg-slate-50"
+                        style={{ color: "#334155" }}
+                      >
+                        <KeyRound
+                          style={{ width: 14, height: 14, color: "#64748b" }}
+                        />
+                        Change Password
                       </Link>
 
                       <button

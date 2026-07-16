@@ -172,10 +172,11 @@ export function uiCodeToCanonical(
       return 'MESIAL';
     case 'D':
       return 'DISTAL';
+    // O and I are one anatomical concept (the biting surface); the correct
+    // enum value follows the tooth, not the code the client sent.
     case 'O':
-      return 'OCCLUSAL';
     case 'I':
-      return 'INCISAL';
+      return isAnterior ? 'INCISAL' : 'OCCLUSAL';
     case 'B': // cheek/lip side
       return isAnterior ? 'LABIAL' : 'BUCCAL';
     case 'L': // tongue side
@@ -211,8 +212,22 @@ export function canonicalToUiCode(surface: string): string {
   }
 }
 
+// Standard charting order M, O/I, D, B, L keyed by display letter — a tooth
+// never carries both O and I, so they share a slot.
+const SURFACE_ORDER: Record<string, number> = { M: 0, O: 1, I: 1, D: 2, B: 3, L: 4 };
+
+// A bite surface stored on the wrong tooth type (INCISAL on a molar, OCCLUSAL
+// on an incisor — legacy rows saved before O/I resolution existed) is folded
+// onto the tooth's real bite surface. Side surfaces are never remapped.
+function toAnatomicalBite(s: CanonicalSurface, fdi: number): CanonicalSurface {
+  if (s !== 'INCISAL' && s !== 'OCCLUSAL') return s;
+  const kind = getToothKind(fdi);
+  return kind === 'incisor' || kind === 'canine' ? 'INCISAL' : 'OCCLUSAL';
+}
+
 // Normalize an arbitrary surface array (from any layer) to canonical enum
 // values, given the tooth. Drops anything unrecognized rather than guessing.
+// Output is deduped and sorted in standard charting order.
 export function normalizeSurfaces(
   raw: (string | null | undefined)[] | null | undefined,
   fdi: number,
@@ -222,11 +237,16 @@ export function normalizeSurfaces(
   for (const r of raw) {
     if (!r) continue;
     if (isValidSurface(r)) {
-      if (!out.includes(r)) out.push(r);
+      const fixed = toAnatomicalBite(r, fdi);
+      if (!out.includes(fixed)) out.push(fixed);
       continue;
     }
     const resolved = uiCodeToCanonical(r, fdi);
     if (resolved && !out.includes(resolved)) out.push(resolved);
   }
-  return out;
+  return out.sort(
+    (a, b) =>
+      (SURFACE_ORDER[canonicalToUiCode(a)] ?? 9) -
+      (SURFACE_ORDER[canonicalToUiCode(b)] ?? 9),
+  );
 }

@@ -241,6 +241,7 @@ export class FinancialReportingService {
     const revenueByProcedure = await this.prisma.invoiceItem.groupBy({
       by: ['description'],
       where: {
+        status: 'ACTIVE',
         invoice: livePosted,
         procedureId: { not: null },
       },

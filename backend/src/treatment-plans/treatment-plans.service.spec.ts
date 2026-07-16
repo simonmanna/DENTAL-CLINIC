@@ -110,10 +110,12 @@ describe('TreatmentPlansService.syncConditionsForProcedureTx', () => {
 });
 
 // ── removeProcedure — spec rules for Delete Treatment Procedure ────────
+// Soft-delete: status → DELETED with deletedAt/deletedById/deletedReason
+// stamped (never a hard row delete). Linked DRAFT invoice items are voided
+// but preserved on the invoice for audit.
 // ✅ status must be PLANNED
 // ✅ no sessions
-// ✅ no payments
-// ✅ linked invoice (if any) must not be POSTED and must have no payments
+// ✅ linked invoice (if any) must not be POSTED (DRAFT + payments is allowed)
 describe('TreatmentPlansService.removeProcedure', () => {
   const buildBase = () => ({
     id: 'tp1',
@@ -194,15 +196,30 @@ describe('TreatmentPlansService.removeProcedure', () => {
     expect(prisma.treatmentProcedure.delete).not.toHaveBeenCalled();
   });
 
-  it('refuses to delete a PAID procedure', async () => {
-    const { prisma, service } = buildService();
+  it('allows delete of a PAID procedure with no linked invoice (soft delete)', async () => {
+    // The payment-status rule was dropped: the delete gate is invoice-based
+    // (only a POSTED invoice blocks). A PAID procedure with no invoice is
+    // soft-deleted like any other PLANNED procedure.
+    const { prisma, service, invoiceLifecycle } = buildService();
     prisma.treatmentProcedure.findFirst.mockResolvedValue({
       ...buildBase(),
       paymentStatus: 'PAID',
     });
-    await expect(
-      (service as any).removeProcedure('pl1', 'tp1', 'user-1'),
-    ).rejects.toThrow(/paid/i);
+    prisma.treatmentProcedure.aggregate.mockResolvedValue({ _sum: { totalPrice: 0 } });
+    invoiceLifecycle.voidProcedureBillingTx.mockResolvedValue({ invoiceId: null });
+
+    await (service as any).removeProcedure('pl1', 'tp1', 'duplicate', 'user-1');
+
+    expect(prisma.treatmentProcedure.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'tp1' },
+        data: expect.objectContaining({
+          status: 'DELETED',
+          deletedAt: expect.any(Date),
+          deletedReason: 'duplicate',
+        }),
+      }),
+    );
     expect(prisma.treatmentProcedure.delete).not.toHaveBeenCalled();
   });
 
@@ -227,8 +244,8 @@ describe('TreatmentPlansService.removeProcedure', () => {
     expect(prisma.treatmentProcedure.delete).not.toHaveBeenCalled();
   });
 
-  it('refuses to delete when the linked invoice has partial payments', async () => {
-    const { prisma, service } = buildService();
+  it('allows delete when the linked DRAFT invoice has partial payments (item voided, payment preserved)', async () => {
+    const { prisma, service, invoiceLifecycle } = buildService();
     prisma.treatmentProcedure.findFirst.mockResolvedValue({
       ...buildBase(),
       invoiceItems: [
@@ -242,9 +259,19 @@ describe('TreatmentPlansService.removeProcedure', () => {
         },
       ],
     });
-    await expect(
-      (service as any).removeProcedure('pl1', 'tp1', 'user-1'),
-    ).rejects.toThrow(/recorded payments/i);
+    prisma.treatmentProcedure.aggregate.mockResolvedValue({ _sum: { totalPrice: 0 } });
+    invoiceLifecycle.voidProcedureBillingTx.mockResolvedValue({ invoiceId: 'inv1' });
+    invoiceLifecycle.recalcInvoice.mockResolvedValue(undefined);
+
+    await (service as any).removeProcedure('pl1', 'tp1', 'duplicate', 'user-1');
+
+    expect(prisma.treatmentProcedure.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'tp1' },
+        data: expect.objectContaining({ status: 'DELETED', deletedReason: 'duplicate' }),
+      }),
+    );
+    expect(invoiceLifecycle.recalcInvoice).toHaveBeenCalledWith('inv1');
     expect(prisma.treatmentProcedure.delete).not.toHaveBeenCalled();
   });
 
@@ -261,7 +288,7 @@ describe('TreatmentPlansService.removeProcedure', () => {
     invoiceLifecycle.voidProcedureBillingTx.mockResolvedValue({ invoiceId: null });
     invoiceLifecycle.recalcInvoice.mockResolvedValue(undefined);
 
-    const r = await (service as any).removeProcedure('pl1', 'tp1', 'user-1', 'duplicate');
+    const r = await (service as any).removeProcedure('pl1', 'tp1', 'duplicate', 'user-1');
 
     expect(prisma.chartEntry.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -271,7 +298,18 @@ describe('TreatmentPlansService.removeProcedure', () => {
         }),
       }),
     );
-    expect(prisma.treatmentProcedure.delete).toHaveBeenCalledWith({ where: { id: 'tp1' } });
+    expect(prisma.treatmentProcedure.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'tp1' },
+        data: expect.objectContaining({
+          status: 'DELETED',
+          deletedAt: expect.any(Date),
+          deletedById: 'user-1',
+          deletedReason: 'duplicate',
+        }),
+      }),
+    );
+    expect(prisma.treatmentProcedure.delete).not.toHaveBeenCalled();
     expect(prisma.auditLog.create).toHaveBeenCalledTimes(1);
     const auditCall = prisma.auditLog.create.mock.calls[0][0];
     expect(auditCall.data.action).toBe('DELETE');
@@ -306,8 +344,13 @@ describe('TreatmentPlansService.removeProcedure', () => {
     invoiceLifecycle.voidProcedureBillingTx.mockResolvedValue({ invoiceId: 'inv1' });
     invoiceLifecycle.recalcInvoice.mockResolvedValue(undefined);
 
-    await (service as any).removeProcedure('pl1', 'tp1', 'user-1');
-    expect(prisma.treatmentProcedure.delete).toHaveBeenCalledWith({ where: { id: 'tp1' } });
+    await (service as any).removeProcedure('pl1', 'tp1', 'duplicate', 'user-1');
+    expect(prisma.treatmentProcedure.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'tp1' },
+        data: expect.objectContaining({ status: 'DELETED', deletedReason: 'duplicate' }),
+      }),
+    );
     expect(invoiceLifecycle.recalcInvoice).toHaveBeenCalledWith('inv1');
   });
 
@@ -329,8 +372,13 @@ describe('TreatmentPlansService.removeProcedure', () => {
     prisma.treatmentProcedure.aggregate.mockResolvedValue({ _sum: { totalPrice: 0 } });
     invoiceLifecycle.voidProcedureBillingTx.mockResolvedValue({ invoiceId: null });
 
-    await (service as any).removeProcedure('pl1', 'tp1', 'user-1');
-    expect(prisma.treatmentProcedure.delete).toHaveBeenCalledWith({ where: { id: 'tp1' } });
+    await (service as any).removeProcedure('pl1', 'tp1', 'voided', 'user-1');
+    expect(prisma.treatmentProcedure.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'tp1' },
+        data: expect.objectContaining({ status: 'DELETED', deletedReason: 'voided' }),
+      }),
+    );
   });
 });
 

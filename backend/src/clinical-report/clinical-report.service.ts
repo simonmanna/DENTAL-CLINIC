@@ -249,6 +249,7 @@ export class ClinicalReportsService {
 
         const procedures = await this.prisma.treatmentProcedure.findMany({
             where: {
+                deletedAt: null,
                 treatmentPlan: where,
             },
             include: {
@@ -503,6 +504,7 @@ export class ClinicalReportsService {
         endDate: Date,
     ) {
         const where: any = {
+            deletedAt: null,
             completedAt: { gte: startDate, lte: endDate },
             status: TreatmentStatus.COMPLETED,
         };
@@ -569,6 +571,7 @@ export class ClinicalReportsService {
       JOIN \"treatment_plans\" tp ON tp.id = tproc.\"treatmentPlanId\"
       JOIN \"procedures\" p ON p.id = tproc.\"procedureId\"
       WHERE tproc.status = 'COMPLETED'
+        AND tproc.\"deletedAt\" IS NULL
         AND tproc.\"completedAt\" BETWEEN ${startDate} AND ${endDate}
       GROUP BY tp.\"patientId\", p.name
       HAVING COUNT(*) > 1

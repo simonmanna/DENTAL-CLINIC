@@ -433,7 +433,8 @@ export class ReportsService {
       FROM "invoice_items" iip
       JOIN "invoices" i ON i.id = iip."invoiceId"
       JOIN "visit_procedures" vp ON vp.id = iip."procedureId"
-      WHERE vp."performedAt" BETWEEN ${new Date(startDate)} AND ${new Date(endDate)}
+      WHERE iip.status = 'ACTIVE'
+        AND vp."performedAt" BETWEEN ${new Date(startDate)} AND ${new Date(endDate)}
         AND i.status <> 'VOID'
         AND vp."procedureId" IS NOT NULL
       GROUP BY iip."procedureId", iip.description
@@ -1370,11 +1371,11 @@ export class ReportsService {
             include: { procedure: true },
           },
           procedureSessions: {
+            where: { deletedAt: null },
             include: {
               treatmentProcedure: {
                 include: {
                   procedure: true,
-                  // Optional: include targets (teeth/surfaces)
                   targets: true,
                 },
               },
@@ -1615,6 +1616,7 @@ async getPatientVisitsReport(query: VisitReportQueryDto): Promise<PatientVisitsR
         dentist: { select: { id: true, firstName: true, lastName: true, specialization: true } },
         procedures: { include: { procedure: true } },
         procedureSessions: {
+          where: { deletedAt: null },
           include: {
             treatmentProcedure: {
               include: {
@@ -1624,7 +1626,6 @@ async getPatientVisitsReport(query: VisitReportQueryDto): Promise<PatientVisitsR
             },
           },
         },
-        // payments: true,
       },
       orderBy: { createdAt: 'desc' },
       skip,

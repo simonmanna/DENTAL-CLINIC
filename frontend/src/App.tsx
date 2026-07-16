@@ -36,6 +36,9 @@ import { StaffEditPage } from "./pages/staff/StaffEditPage";
 import { StaffDetailPage } from "./pages/staff/StaffDetailPage";
 import { StaffSchedulePage } from "./pages/staff/StaffSchedulePage";
 import { StaffPerformancePage } from "./pages/staff/StaffPerformancePage";
+
+// Auth Pages
+import { ChangePasswordPage } from "./pages/auth/ChangePasswordPage";
 // import { DentalChart } from "./pages/trials/DentalChart";
 
 import ProceduresPage from "./pages/procedures/ProceduresPage";
@@ -791,6 +794,14 @@ export default function App() {
               <AdminRoute>
                 <StaffPerformancePage />
               </AdminRoute>
+            }
+          />
+          <Route
+            path="/change-password"
+            element={
+              <ProtectedRoute>
+                <ChangePasswordPage />
+              </ProtectedRoute>
             }
           />
           <Route

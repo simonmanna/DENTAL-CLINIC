@@ -11,7 +11,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React from 'react';
-import type { UiSurface } from '../../../lib/dental/notation';
+import { biteCode, type UiSurface } from '../../../lib/dental/notation';
 
 // ── Surface metadata ────────────────────────────────────────────────────────
 
@@ -41,13 +41,29 @@ export const SURFACE_COMBOS: { label: string; surfaces: UiSurface[] }[] = [
 interface SurfacePickerProps {
   value: UiSurface[];
   onChange: (v: UiSurface[]) => void;
+  /**
+   * FDI numbers of the teeth being charted. When every tooth shares the same
+   * bite surface, the picker only offers that surface — O on posteriors,
+   * I on anteriors (a molar has no incisal edge). Omitted or mixed selection
+   * falls back to offering both.
+   */
+  teeth?: number[];
+}
+
+/** Single bite letter shared by ALL given teeth, or null when mixed/unknown. */
+function biteForTeeth(teeth?: number[]): 'O' | 'I' | null {
+  if (!teeth?.length) return null;
+  // biteCode only ever returns 'O' or 'I' (its signature is the wider UiSurface)
+  const codes = new Set(teeth.map((t) => biteCode(t) as 'O' | 'I'));
+  return codes.size === 1 ? [...codes][0] : null;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 1. Radial Surface Picker — used in AddConditionDialog, ToothDetailDrawer
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function RadialSurfacePicker({ value, onChange }: SurfacePickerProps) {
+export function RadialSurfacePicker({ value, onChange, teeth }: SurfacePickerProps) {
+  const bite = biteForTeeth(teeth);
   const toggle = (s: UiSurface) =>
     onChange(value.includes(s) ? value.filter((x) => x !== s) : [...value, s]);
 
@@ -91,14 +107,22 @@ export function RadialSurfacePicker({ value, onChange }: SurfacePickerProps) {
 
   const hasO = value.includes('O');
   const hasI = value.includes('I');
+  const centerActive = hasO || hasI;
   const handleCenter = () => {
+    if (bite) {
+      // The tooth's bite surface is unambiguous — plain on/off toggle.
+      // Stripping BOTH letters also clears a stale opposite value loaded
+      // from a legacy row into an edit dialog.
+      const rest = value.filter((x) => x !== 'O' && x !== 'I');
+      onChange(centerActive ? rest : [...rest, bite]);
+      return;
+    }
     if (!hasO && !hasI) onChange([...value, 'O']);
     else if (hasO && !hasI)
       onChange([...value.filter((x) => x !== 'O'), 'I']);
     else onChange(value.filter((x) => x !== 'O' && x !== 'I'));
   };
-  const centerLabel = hasO ? 'O' : hasI ? 'I' : 'O/I';
-  const centerActive = hasO || hasI;
+  const centerLabel = bite ?? (hasO ? 'O' : hasI ? 'I' : 'O/I');
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -127,7 +151,13 @@ export function RadialSurfacePicker({ value, onChange }: SurfacePickerProps) {
         <button
           type="button"
           onClick={handleCenter}
-          title="Occlusal / Incisal — click to cycle"
+          title={
+            bite === 'O'
+              ? 'Occlusal'
+              : bite === 'I'
+                ? 'Incisal'
+                : 'Occlusal / Incisal — click to cycle'
+          }
           style={{
             position: 'absolute',
             width: 42,
@@ -164,14 +194,18 @@ export function RadialSurfacePicker({ value, onChange }: SurfacePickerProps) {
           Surface combinations
         </p>
         {SURFACE_COMBOS.map((c) => {
+          // Presets are written with 'O'; swap in the tooth's real bite letter.
+          const surfaces = c.surfaces.map((s) =>
+            (s === 'O' || s === 'I') && bite ? bite : s,
+          );
           const active =
-            c.surfaces.every((s) => value.includes(s)) &&
-            value.length === c.surfaces.length;
+            surfaces.every((s) => value.includes(s)) &&
+            value.length === surfaces.length;
           return (
             <button
               key={c.label}
               type="button"
-              onClick={() => onChange(active ? [] : [...c.surfaces])}
+              onClick={() => onChange(active ? [] : [...surfaces])}
               style={{
                 padding: '5px 14px',
                 fontSize: 11,
@@ -185,7 +219,12 @@ export function RadialSurfacePicker({ value, onChange }: SurfacePickerProps) {
                 transition: 'all 0.15s',
               }}
             >
-              {c.label}
+              {/* Labels read "DO / DI" — show only the applicable half. */}
+              {bite === 'O'
+                ? c.label.split(' / ')[0]
+                : bite === 'I'
+                  ? c.label.split(' / ')[1]
+                  : c.label}
             </button>
           );
         })}
@@ -198,17 +237,31 @@ export function RadialSurfacePicker({ value, onChange }: SurfacePickerProps) {
 // 2. Compact Surface Picker — used in AddTreatmentDialog
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function CompactSurfacePicker({ value, onChange }: SurfacePickerProps) {
+export function CompactSurfacePicker({ value, onChange, teeth }: SurfacePickerProps) {
+  const bite = biteForTeeth(teeth);
+  // When the bite surface is unambiguous, hide the inapplicable pill and let
+  // the remaining one own BOTH letters — so a stale opposite value loaded
+  // from a legacy row still reads as selected and can be cleared.
+  const meta = bite
+    ? SURFACE_META.filter((s) => (s.key === 'O' || s.key === 'I' ? s.key === bite : true))
+    : SURFACE_META;
   return (
     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-      {SURFACE_META.map((s) => {
-        const selected = value.includes(s.key);
+      {meta.map((s) => {
+        const isBiteKey = s.key === 'O' || s.key === 'I';
+        const selected =
+          bite && isBiteKey
+            ? value.includes('O') || value.includes('I')
+            : value.includes(s.key);
         return (
           <button
             key={s.key}
             type="button"
             onClick={() => {
-              if (selected) {
+              if (bite && isBiteKey) {
+                const rest = value.filter((v) => v !== 'O' && v !== 'I');
+                onChange(selected ? rest : [...rest, bite]);
+              } else if (selected) {
                 onChange(value.filter((v) => v !== s.key));
               } else {
                 onChange([...value, s.key]);

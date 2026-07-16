@@ -45,6 +45,7 @@ interface InvoiceItem {
   originalTotal: number;
   exchangeRate: number;
   ledgerEntryId?: string;
+  status?: string;
   ledgerEntry?: {
     id: string;
     entryCode: string;

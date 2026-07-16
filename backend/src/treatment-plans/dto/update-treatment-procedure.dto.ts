@@ -296,4 +296,5 @@ export interface ProcedureDeleteEligibility {
   sessionsCount: number;
   paymentStatus: string;
   status: string;
+  hasInvoiceItem: boolean;
 }

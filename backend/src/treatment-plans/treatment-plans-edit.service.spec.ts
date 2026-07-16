@@ -45,7 +45,31 @@ describe('TreatmentPlansEditService', () => {
       expect(r.sessionsCount).toBe(2);
     });
 
-    it('blocks hard delete when paid', async () => {
+    it('blocks hard delete when the linked invoice is POSTED', async () => {
+      prisma.treatmentProcedure.findFirst.mockResolvedValue({
+        id: 'pr1',
+        status: 'PLANNED',
+        paymentStatus: 'PAID',
+        _count: { sessions: 0 },
+        invoiceItems: [
+          {
+            invoice: {
+              id: 'inv1',
+              status: 'POSTED',
+              paymentStatus: 'PAID',
+              amountPaid: 100,
+            },
+          },
+        ],
+      });
+      const r = await service.checkProcedureDeleteEligibility('pl1', 'pr1');
+      expect(r.canDelete).toBe(false);
+    });
+
+    // The delete gate is invoice-based, not payment-status based: a procedure
+    // whose paymentStatus is PAID but has no POSTED invoice can still be
+    // soft-deleted (linked DRAFT items are voided but preserved for audit).
+    it('allows delete of a PAID procedure with no POSTED invoice', async () => {
       prisma.treatmentProcedure.findFirst.mockResolvedValue({
         id: 'pr1',
         status: 'PLANNED',
@@ -53,7 +77,7 @@ describe('TreatmentPlansEditService', () => {
         _count: { sessions: 0 },
       });
       const r = await service.checkProcedureDeleteEligibility('pl1', 'pr1');
-      expect(r.canDelete).toBe(false);
+      expect(r.canDelete).toBe(true);
     });
 
     it('blocks everything when already cancelled', async () => {

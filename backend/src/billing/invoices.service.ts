@@ -23,6 +23,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { LedgerService } from './ledger.service';
@@ -128,9 +129,11 @@ const INVOICE_SELECT = {
     },
   },
   items: {
+    where: { status: 'ACTIVE' },
     orderBy: { createdAt: 'asc' as const },
     select: {
       id: true,
+      status: true,
       description: true,
       itemType: true,
       treatmentProcedureId: true,
@@ -424,6 +427,39 @@ export class InvoicesService {
         data: itemData.map((item) => ({ ...item, invoiceId: inv.id })),
       });
 
+      // C7: capture the invoice-CREATE event. Co-transactional so a failure
+      // in any downstream step (ledger flip, TP sync) unrolls the audit row
+      // along with the invoice itself. The numeric snapshots are the values
+      // actually written to the row above, not caller-supplied approximations.
+      await tx.auditLog.create({
+        data: {
+          userId: createdBy ?? null,
+          action: 'CREATE',
+          module: 'BILLING',
+          entityType: 'Invoice',
+          recordId: inv.id,
+          newData: {
+            invoiceNumber: inv.invoiceNumber,
+            patientId: dto.patientId,
+            visitId: dto.visitId ?? null,
+            ledgerEntryIds: dto.ledgerEntryIds,
+            currency: invoiceCurrency,
+            exchangeRate: M.str(invoiceExchangeRateD),
+            subtotal: M.str(subtotalInInvoiceCurrency),
+            discountType: dto.discountType ?? null,
+            discountValue: M.str(discountValue),
+            discountAmount: M.str(invoiceDiscountAmount),
+            taxPercent: M.str(taxPercent),
+            taxAmount: M.str(invoiceTaxAmount),
+            total: M.str(invoiceTotal),
+            baseTotal: M.str(baseTotal),
+            baseCurrency,
+            status: InvoiceStatus.POSTED,
+            itemCount: itemData.length,
+          } as Prisma.InputJsonValue,
+        },
+      });
+
       await tx.ledgerEntry.updateMany({
         where: { id: { in: dto.ledgerEntryIds } },
         data: { status: 'INVOICED' },
@@ -485,6 +521,17 @@ export class InvoicesService {
   }
 
   // ── Add manual item to existing invoice ───────────────────────────────────
+  //
+  // H6 + C7: item creation, audit row, and invoice-totals recalc all happen
+  // inside one transaction gated on the invoice's `version` column. A
+  // concurrent edit (addItem / removeItem / payment / currency change) will
+  // have bumped `version`, so our atomic recalc UPDATE matches 0 rows →
+  // ConflictException with the current version. No silent overwrite of the
+  // other edit's totals.
+  //
+  // All money arithmetic via M (Decimal). The previous implementation used
+  // `item.quantity * item.unitPrice` etc. (JS number) which violated the
+  // file header rule and could lose cents on FX-conversion paths.
 
   async addItem(
     invoiceId: string,
@@ -496,17 +543,26 @@ export class InvoicesService {
       currency?: string;
       exchangeRate?: number;
     },
+    currentUserId?: string,
   ) {
     const invoice = await this.assertEditable(invoiceId);
-    const discount = item.discount ?? 0;
-    const itemCurrency = item.currency || invoice.currency;
-    const originalUnitPrice = item.unitPrice;
-    const originalSubtotal = item.quantity * item.unitPrice;
-    const originalTotal = originalSubtotal - discount;
+    const expectedVersion = invoice.version;
 
-    let finalUnitPrice = item.unitPrice;
-    let finalTotal = originalTotal;
-    let itemExchangeRate = 1;
+    // ── Money inputs → Decimal immediately ────────────────────────────────
+    const qty = M.of(item.quantity);
+    const unitPriceMoney = M.of(item.unitPrice);
+    const discount = M.money(item.discount ?? 0);
+    const itemCurrency = item.currency ?? invoice.currency;
+
+    // Source-currency (caller-supplied) snapshot.
+    const originalUnitPrice = unitPriceMoney;
+    const originalSubtotal = M.mul(qty, unitPriceMoney);
+    const originalTotal = M.money(M.sub(originalSubtotal, discount));
+
+    // Projected into the invoice currency for the charged columns.
+    let finalUnitPrice: Money = unitPriceMoney;
+    let finalTotal: Money = originalTotal;
+    let itemExchangeRate: Money = M.of(1);
 
     if (item.currency && item.currency !== invoice.currency) {
       const conversion = await this.currency.convert(
@@ -515,49 +571,152 @@ export class InvoicesService {
         invoice.currency,
         item.exchangeRate,
       );
-      finalUnitPrice = conversion.amount;
-      finalTotal = item.quantity * finalUnitPrice - discount;
-      itemExchangeRate = conversion.rate;
+      finalUnitPrice = M.of(conversion.amount);
+      finalTotal = M.money(M.sub(M.mul(qty, finalUnitPrice), discount));
+      itemExchangeRate = M.of(conversion.rate);
     }
 
-    await this.prisma.invoiceItem.create({
-      data: {
+    const created = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.invoiceItem.create({
+        data: {
+          invoiceId,
+          description: item.description,
+          quantity: item.quantity, // Int column — JS number is correct here
+          unitPrice: M.money(finalUnitPrice).toString(),
+          discount: M.money(discount).toString(),
+          total: M.money(finalTotal).toString(),
+          toothNumbers: [],
+          originalCurrency: itemCurrency,
+          originalUnitPrice: M.money(originalUnitPrice).toString(),
+          originalTotal: M.money(originalTotal).toString(),
+          exchangeRate: M.money(itemExchangeRate).toString(),
+        },
+      });
+
+      // C7: capture the item-add event with what changed (no prior state
+      // to diff against for a brand-new row). Co-transactional so a tx
+      // rollback discards the audit entry too.
+      await tx.auditLog.create({
+        data: {
+          userId: currentUserId ?? null,
+          action: 'CREATE',
+          module: 'BILLING',
+          entityType: 'InvoiceItem',
+          recordId: created.id,
+          newData: {
+            invoiceId,
+            invoiceNumber: invoice.invoiceNumber ?? null,
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: M.str(finalUnitPrice),
+            discount: M.str(discount),
+            total: M.str(finalTotal),
+            originalCurrency: itemCurrency,
+            originalUnitPrice: M.str(originalUnitPrice),
+            originalTotal: M.str(originalTotal),
+            currency: invoice.currency,
+          } as Prisma.InputJsonValue,
+        },
+      });
+
+      // Atomic totals recalc inside the same tx — guards on `version` so a
+      // concurrent edit surfaces a 409 rather than overwriting the totals.
+      await this.recalcInvoiceAtomicTx(
+        tx,
         invoiceId,
-        description: item.description,
-        quantity: item.quantity,
-        unitPrice: finalUnitPrice,
-        discount,
-        total: finalTotal,
-        toothNumbers: [],
-        originalCurrency: itemCurrency,
-        originalUnitPrice,
-        originalTotal,
-        exchangeRate: itemExchangeRate,
-      },
+        expectedVersion,
+        currentUserId,
+      );
+      await this.syncInvoiceRevenueGl(invoiceId, tx);
+
+      return created;
     });
 
-    return this.recalcAndSave(invoiceId);
+    return this.getInvoice(invoiceId);
   }
 
   // ── Remove item from invoice ───────────────────────────────────────────────
+  //
+  // H6 + C7: same atomic-tx treatment as addItem — ledger unwind, item VOID,
+  // audit row, and totals recalc all happen co-transactionally, gated on
+  // `version`. The ledger-entry status unwind that used to live OUTSIDE any
+  // transaction (line 555-559 in the old code) is now inside the tx so it
+  // can't survive an aborted recalc.
 
-  async removeItem(invoiceId: string, itemId: string) {
-    await this.assertEditable(invoiceId);
+  async removeItem(
+    invoiceId: string,
+    itemId: string,
+    currentUserId?: string,
+  ) {
+    const invoice = await this.assertEditable(invoiceId);
+    const expectedVersion = invoice.version;
 
     const item = await this.prisma.invoiceItem.findFirst({
       where: { id: itemId, invoiceId },
+      select: {
+        id: true,
+        description: true,
+        total: true,
+        quantity: true,
+        unitPrice: true,
+        status: true,
+        ledgerEntryId: true,
+      },
     });
     if (!item) throw new NotFoundException('Invoice item not found');
 
-    if (item.ledgerEntryId) {
-      await this.prisma.ledgerEntry.update({
-        where: { id: item.ledgerEntryId },
-        data: { status: 'PENDING' },
-      });
-    }
+    await this.prisma.$transaction(async (tx) => {
+      // 1. Release the ledger entry back to PENDING so it can be re-billed.
+      //    (Same step the old code did — now inside the tx.)
+      if (item.ledgerEntryId) {
+        await tx.ledgerEntry.update({
+          where: { id: item.ledgerEntryId },
+          data: { status: 'PENDING' },
+        });
+      }
 
-    await this.prisma.invoiceItem.delete({ where: { id: itemId } });
-    return this.recalcAndSave(invoiceId);
+      // 2. Soft-VOID the item (InvoiceItemStatus, never hard delete).
+      await tx.invoiceItem.update({
+        where: { id: itemId },
+        data: { status: 'VOID' },
+      });
+
+      // 3. C7 audit row — captures the voided item's identity + totals.
+      await tx.auditLog.create({
+        data: {
+          userId: currentUserId ?? null,
+          action: 'REMOVE',
+          module: 'BILLING',
+          entityType: 'InvoiceItem',
+          recordId: itemId,
+          oldData: {
+            invoiceId,
+            invoiceNumber: invoice.invoiceNumber ?? null,
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: M.str(item.unitPrice),
+            total: M.str(item.total),
+            status: item.status,
+            ledgerEntryId: item.ledgerEntryId ?? null,
+          } as Prisma.InputJsonValue,
+          newData: {
+            status: 'VOID',
+            ledgerEntryStatus: item.ledgerEntryId ? 'PENDING' : null,
+          } as Prisma.InputJsonValue,
+        },
+      });
+
+      // 4. Atomic totals recalc — gated on `version`, bumps `version`.
+      await this.recalcInvoiceAtomicTx(
+        tx,
+        invoiceId,
+        expectedVersion,
+        currentUserId,
+      );
+      await this.syncInvoiceRevenueGl(invoiceId, tx);
+    });
+
+    return this.getInvoice(invoiceId);
   }
 
   // ── Record a payment (NO Payment creation, only Receipt) ───────────────────
@@ -618,8 +777,9 @@ export class InvoicesService {
         invoiceNumber: true,
         patientId: true,
         currency: true,
-        baseCurrency: true,
         exchangeRate: true,
+        baseCurrency: true,
+        paymentStatus: true,
         baseBalance: true,
         baseAmountPaid: true,
         baseTotal: true,
@@ -770,6 +930,8 @@ export class InvoicesService {
               THEN NOW()
             ELSE NULL
           END,
+          "version"     = "version" + 1,
+          "updatedAt"   = NOW(),
           "updatedById" = ${currentUserId ?? null}
         WHERE "id" = ${invoiceId}
           AND "balance" >= ${paymentInv}::numeric
@@ -871,6 +1033,47 @@ export class InvoicesService {
       const isFullyPaid = fresh.paymentStatus === 'PAID';
       const newAmountPaid = M.of(fresh.amountPaid);
       const newBalance = M.of(fresh.balance);
+
+      // ── 8c. C7 audit row — captures the money-IN event with before/after
+      //     invoice state. Co-transactional with the payment so a rollback
+      //     discards the audit entry too. The receipt already has its own
+      //     void-audit trail on reversal; this row records the CREATE.
+      await tx.auditLog.create({
+        data: {
+          userId: currentUserId ?? null,
+          action: 'CREATE',
+          module: 'BILLING',
+          entityType: 'Payment',
+          recordId: payment.id,
+          oldData: {
+            invoiceId,
+            invoiceNumber: invoice.invoiceNumber,
+            amountPaidBefore: M.str(invoice.amountPaid),
+            balanceBefore: M.str(invoice.balance),
+            paymentStatusBefore: invoice.paymentStatus ?? null,
+          } as Prisma.InputJsonValue,
+          newData: {
+            paymentCode: payment.paymentCode,
+            receiptId: receipt?.id ?? null,
+            receiptNumber: receipt?.receiptNumber ?? null,
+            amount: M.str(M.money(dto.amount)),
+            paymentCurrency,
+            method: dto.method,
+            reference: dto.reference ?? null,
+            transactionId: dto.transactionId ?? null,
+            invoiceAmountApplied: M.str(paymentInInvoiceCurrency),
+            baseAmountReceived: M.str(paymentInBaseCurrency),
+            exchangeRate: M.str(rateUsed),
+            receivedById: dto.receivedById ?? null,
+            receivedByName,
+            amountPaidAfter: M.str(fresh.amountPaid),
+            balanceAfter: M.str(fresh.balance),
+            paymentStatusAfter: fresh.paymentStatus,
+            isFullyPaid,
+            idempotent: !!idempotencyKey,
+          } as Prisma.InputJsonValue,
+        },
+      });
 
       // ── 8d. Double-entry posting ─────────────────────────────────────────
       // Always DR the cash/bank account the money landed in. The credit side
@@ -1130,6 +1333,8 @@ export class InvoicesService {
             ELSE 'PARTIALLY_PAID'::"InvoicePaymentStatus"
           END,
           "paidAt"      = NULL,
+          "version"     = "version" + 1,
+          "updatedAt"   = NOW(),
           "updatedById" = ${currentUserId ?? null}
         WHERE "id" = ${invoiceId}
           AND "status" <> 'VOID'::"InvoiceStatus"
@@ -1308,34 +1513,88 @@ export class InvoicesService {
       );
     }
 
-    // Refuse while any receipts are ACTIVE — they must be voided first so
-    // their cash flow is reversed before the invoice is torn down.
-    const activeReceiptCount = await this.prisma.receipt.count({
-      where: { invoiceId: id, status: 'ACTIVE' },
-    });
-    if (activeReceiptCount > 0) {
-      throw new BadRequestException(
-        `Cannot void invoice ${invoice.invoiceNumber}: ${activeReceiptCount} active ` +
-          `receipt(s) must be voided first so their cash flow is reversed.`,
-      );
-    }
-
     const ledgerEntryIds = invoice.items
       .map((i) => i.ledgerEntryId)
       .filter(Boolean) as string[];
 
+    // ── H6: ALL of the void logic runs inside ONE transaction, gated by an
+    //    invoice-row `SELECT ... FOR UPDATE` lock and a `version`-guarded
+    //    flip. The lock serialises this void against any concurrent
+    //    addPayment / refundPayment / addItem: those operations' atomic
+    //    UPDATE on the invoice row blocks on our row lock until we COMMIT
+    //    or ROLLBACK. Conversely, if one of them committed first, our
+    //    conditional updateMany below matches 0 rows and we surface a 409.
+    //
+    //    The active-receipt count is now read INSIDE the tx after the
+    //    invoice lock is taken, so a concurrent receipt can't be created
+    //    between a pre-tx count and the void commit — the receipt-creating
+    //    path (addPayment) must first pass the invoice-row lock, which it
+    //    can't acquire while we hold it. The old code's pre-tx count had
+    //    exactly that race; this closes it.
     await this.prisma.$transaction(async (tx) => {
-      // 1. Flip the invoice.
-      await tx.invoice.update({
-        where: { id },
+      // 0. Lock the invoice row for the duration of this transaction.
+      //    SELECT ... FOR UPDATE blocks any other writer that touches the
+      //    same invoice row until we COMMIT/ROLLBACK.
+      const locked = await tx.$queryRaw<Array<{ version: number }>>`
+        SELECT "version" FROM "invoices" WHERE "id" = ${id} FOR UPDATE
+      `;
+      if (locked.length === 0) {
+        throw new NotFoundException('Invoice not found during void');
+      }
+      const expectedVersion = locked[0].version;
+
+      // 0a. Now-safe active-receipt check. Any new receipt would have to
+      //     update this invoice row (addPayment's atomic UPDATE) — but we
+      //     hold the FOR UPDATE lock, so the concurrent addPayment blocks
+      //     until we commit. Hence this count is a consistent snapshot.
+      const activeReceiptCount = await tx.receipt.count({
+        where: { invoiceId: id, status: 'ACTIVE' },
+      });
+      if (activeReceiptCount > 0) {
+        throw new BadRequestException(
+          `Cannot void invoice ${invoice.invoiceNumber}: ${activeReceiptCount} active ` +
+            `receipt(s) must be voided first so their cash flow is reversed.`,
+        );
+      }
+
+      // 1. Version-guarded flip. If a concurrent edit (payment, item add,
+      //    currency change) bumped `version` between our outer read and
+      //    the FOR UPDATE lock, the updateMany matches 0 rows → 409.
+      const flipped = await tx.invoice.updateMany({
+        where: {
+          id,
+          version: expectedVersion,
+          status: { in: [InvoiceStatus.DRAFT, InvoiceStatus.POSTED] },
+        },
         data: {
           status: InvoiceStatus.VOID,
+          version: { increment: 1 },
           voidedAt: new Date(),
           voidedBy: dto.voidedBy ?? null,
           voidReason: dto.reason ?? null,
           updatedById: dto.voidedBy ?? null,
         },
       });
+      if (flipped.count === 0) {
+        // Re-read to give a precise error message.
+        const current = await tx.invoice.findUnique({
+          where: { id },
+          select: { status: true, version: true },
+        });
+        if (!current) {
+          throw new NotFoundException('Invoice disappeared during void');
+        }
+        if (current.status === InvoiceStatus.VOID) {
+          throw new BadRequestException(
+            'Invoice was voided by a concurrent request',
+          );
+        }
+        throw new ConflictException({
+          message:
+            'Invoice was modified by another request. Reload the invoice and try again.',
+          currentVersion: current.version,
+        });
+      }
 
       // 1a. Audit row — written INSIDE the transaction so it commits/rolls
       //     back atomically with the void itself. The receipt count is
@@ -1465,7 +1724,9 @@ export class InvoicesService {
             },
           },
         },
-        items: true,
+        items: {
+          where: { status: 'ACTIVE' },
+        },
         receipts: { orderBy: { generatedAt: 'desc' } },
       },
     });
@@ -1701,7 +1962,7 @@ export class InvoicesService {
   private async assertEditable(invoiceId: string) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: invoiceId },
-      select: { id: true, status: true, currency: true, baseTotal: true },
+      select: { id: true, status: true, currency: true, paymentStatus: true, baseTotal: true, version: true, invoiceNumber: true },
     });
     if (!invoice) throw new NotFoundException('Invoice not found');
     if (['VOID'].includes(invoice.status)) {
@@ -1710,100 +1971,222 @@ export class InvoicesService {
     return invoice;
   }
 
-  /** Recompute invoice totals from its current items and persist */
-  private async recalcAndSave(invoiceId: string) {
-    const items = await this.prisma.invoiceItem.findMany({
-      where: { invoiceId },
-      select: {
-        total: true,
-        discount: true,
-        originalTotal: true,
-        exchangeRate: true,
-      },
+  /**
+   * Recompute invoice totals from its current items and persist atomically.
+   *
+   * H6: this is the lost-update-safe recalculation. The reads, computation,
+   * write, GL sync, and (for item mutations) the audit row all happen inside a
+   * single transaction, gated on the invoice's `version` column so a concurrent
+   * edit that bumped `version` between the caller's pre-read and this write
+   * causes a 0-row UPDATE match → ConflictException with the current version,
+   * NOT a silent overwrite of the other edit's totals.
+   *
+   * Caller options:
+   *   - `tx?: Prisma.TransactionClient` — if provided, the atomic UPDATE and
+   *     GL sync participate in the caller's transaction (used by addItem /
+   *     removeItem / changeCurrency, which mutate items in the same tx). If
+   *     omitted, this method opens its own $transaction.
+   *   - `expectedVersion?: number` — the `version` the caller observed when
+   *     it last read the invoice. Required for the optimistic-lock guard to be
+   *     effective. If omitted, the UPDATE still succeeds (last-writer semantics),
+   *     but no concurrent-edit detection runs — kept for legacy call sites only.
+   *   - `currentUserId?: string` — written to `updatedById` for audit.
+   *
+   * Rounding: the raw SQL uses Postgres `ROUND()` (HALF_AWAY_FROM_ZERO) while
+   * the money module uses `M.money()` (ROUND_HALF_EVEN). The two diverge by at
+   * most 0.01 on half-ending values; `syncInvoiceRevenueGl` (run in the same
+   * tx) uses Decimal and follows the committed invoice row, so the GL stays
+   * reconciled to whatever the invoice says. The 1-cent divergence never lands
+   * in the GL because the GL always reads the invoice's stored totals.
+   */
+  private async recalcAndSave(
+    invoiceId: string,
+    opts?: {
+      tx?: Prisma.TransactionClient;
+      expectedVersion?: number;
+      currentUserId?: string;
+    },
+  ) {
+    if (opts?.tx) {
+      const updated = await this.recalcInvoiceAtomicTx(
+        opts.tx,
+        invoiceId,
+        opts.expectedVersion,
+        opts.currentUserId,
+      );
+      await this.syncInvoiceRevenueGl(invoiceId, opts.tx);
+      return this.getInvoice(invoiceId);
+    }
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await this.recalcInvoiceAtomicTx(
+        tx,
+        invoiceId,
+        opts?.expectedVersion,
+        opts?.currentUserId,
+      );
+      await this.syncInvoiceRevenueGl(invoiceId, tx);
+      return this.getInvoice(invoiceId);
     });
+  }
 
-    // All money math via M (Decimal) — no JS float drift. M.sum returns full
-    // precision; M.money() rounds once at the end to banker's-rounded 2dp.
-    const subtotal: Money = M.money(M.sum(items.map((i) => i.total)));
-
-    const baseSubtotal: Money = M.money(
-      M.sum(
-        items.map((i) =>
-          M.mul(M.of(i.originalTotal ?? i.total), M.of(i.exchangeRate ?? 1)),
-        ),
+  /**
+   * Atomic conditional UPDATE that recomputes invoice totals from a live
+   * subquery against `invoice_items`. Guards on `version = $expectedVersion`
+   * (lost-update prevention) and `status <> 'VOID'` (no mutating a voided
+   * invoice). Bumps `version` in the same statement so the next caller's
+   * optimistic check sees a fresh value. Returns the post-write invoice row
+   * shape; throws ConflictException (with currentVersion) or BadRequestException
+   * (voided) on a 0-row match.
+   *
+   * The discount/tax math is performed in SQL so that totals are derived from
+   * the CURRENT committed items (not values the caller read earlier). This
+   * closes the stale-read window the old read-compute-write loop had.
+   *
+   * The discount/tax inputs come from the invoice's own row (joined in via the
+   * `inv` CTE) so the SET clause never has to refer to `i.discountValue` etc.
+   * directly — keeps the arithmetic factored and SQL-clean.
+   */
+  private async recalcInvoiceAtomicTx(
+    tx: Prisma.TransactionClient,
+    invoiceId: string,
+    expectedVersion?: number,
+    currentUserId?: string,
+  ) {
+    const result = await tx.$queryRaw<
+      Array<{
+        version: bigint;
+        total: Prisma.Decimal;
+        baseTotal: Prisma.Decimal;
+        paymentStatus: string;
+      }>
+    >(Prisma.sql`
+      WITH items AS (
+        SELECT
+          COALESCE(SUM("total"), 0)::numeric                                           AS subtotal,
+          COALESCE(SUM(COALESCE("originalTotal", "total") * "exchangeRate"), 0)::numeric  AS base_subtotal
+        FROM "invoice_items"
+        WHERE "invoiceId" = ${invoiceId} AND "status" = 'ACTIVE'
       ),
-    );
+      inv AS (
+        SELECT
+          "discountValue"::numeric,
+          "discountType",
+          "taxPercent"::numeric,
+          "amountPaid"::numeric,
+          "baseAmountPaid"::numeric
+        FROM "invoices"
+        WHERE "id" = ${invoiceId}
+      ),
+      calc AS (
+        SELECT
+          i.subtotal,
+          i.base_subtotal,
+          -- Discount in invoice currency
+          CASE
+            WHEN v."discountType" = 'PERCENT'
+              THEN ROUND(i.subtotal * v."discountValue" / 100.0::numeric, 2)
+            ELSE v."discountValue"
+          END AS discount_inv,
+          -- Discount prorated into base currency
+          CASE
+            WHEN i.subtotal > 0 THEN ROUND(
+              i.base_subtotal * (
+                CASE WHEN v."discountType" = 'PERCENT'
+                  THEN v."discountValue" / 100.0::numeric
+                  ELSE v."discountValue" / NULLIF(i.subtotal, 0)
+                END
+              ), 2)
+            ELSE 0::numeric
+          END AS discount_base,
+          v."taxPercent",
+          v."amountPaid",
+          v."baseAmountPaid"
+        FROM items i, inv v
+      ),
+      totals AS (
+        SELECT
+          c.subtotal,
+          c.base_subtotal,
+          c.discount_inv,
+          c.discount_base,
+          -- Taxable amount + tax in each currency
+          ROUND((c.subtotal - c.discount_inv), 2)      AS taxable_inv,
+          ROUND((c.base_subtotal - c.discount_base), 2) AS taxable_base,
+          ROUND((c.subtotal - c.discount_inv) * c."taxPercent" / 100.0::numeric, 2)    AS tax_inv,
+          ROUND((c.base_subtotal - c.discount_base) * c."taxPercent" / 100.0::numeric, 2) AS tax_base,
+          c."amountPaid",
+          c."baseAmountPaid"
+        FROM calc c
+      ),
+      final AS (
+        SELECT
+          t.subtotal,
+          t.base_subtotal,
+          t.discount_inv,
+          t.discount_base,
+          t.tax_inv,
+          t.tax_base,
+          ROUND((t.taxable_inv + t.tax_inv), 2) AS total,
+          ROUND((t.taxable_base + t.tax_base), 2) AS base_total,
+          t."amountPaid",
+          t."baseAmountPaid"
+        FROM totals t
+      )
+      UPDATE "invoices" i
+      SET
+        "version"        = i."version" + 1,
+        "updatedAt"      = NOW(),
+        "subtotal"        = f.subtotal,
+        "baseSubtotal"    = f.base_subtotal,
+        "discountAmount"  = f.discount_inv,
+        "baseDiscountAmount" = f.discount_base,
+        "taxAmount"       = f.tax_inv,
+        "baseTaxAmount"   = f.tax_base,
+        "total"           = f.total,
+        "baseTotal"       = f.base_total,
+        "balance"         = GREATEST(f.total - f."amountPaid", 0),
+        "baseBalance"     = GREATEST(f.base_total - f."baseAmountPaid", 0),
+        "paymentStatus"   = CASE
+          WHEN (f.total - f."amountPaid") <= 0.01
+            THEN 'PAID'::"InvoicePaymentStatus"
+          WHEN f."amountPaid" > 0
+            THEN 'PARTIALLY_PAID'::"InvoicePaymentStatus"
+          ELSE 'UNPAID'::"InvoicePaymentStatus"
+        END,
+        "paidAt" = CASE
+          WHEN (f.total - f."amountPaid") <= 0.01
+            THEN CASE WHEN i."paidAt" IS NOT NULL THEN i."paidAt" ELSE NOW() END
+          ELSE NULL
+        END,
+        "updatedById" = ${currentUserId ?? null}
+      FROM final f
+      WHERE i."id" = ${invoiceId}
+        AND i."status" <> 'VOID'::"InvoiceStatus"
+        ${expectedVersion != null ? Prisma.sql`AND i."version" = ${expectedVersion}::int` : Prisma.empty}
+      RETURNING i."version", i."total", i."baseTotal", i."paymentStatus"
+    `);
 
-    const invoice = await this.prisma.invoice.findUnique({
-      where: { id: invoiceId },
-      select: {
-        taxPercent: true,
-        discountValue: true,
-        discountType: true,
-        amountPaid: true,
-        baseCurrency: true,
-        exchangeRate: true,
-        baseAmountPaid: true,
-      },
-    });
-    if (!invoice)
-      throw new NotFoundException('Invoice not found during recalc');
-
-    const discountValue = M.of(invoice.discountValue);
-    const taxPercent = M.of(invoice.taxPercent);
-    const amtPaid = M.of(invoice.amountPaid);
-    const baseAmtPaid = M.of(invoice.baseAmountPaid);
-
-    const discountAmount: Money = M.money(
-      invoice.discountType === 'PERCENT'
-        ? M.applyPct(subtotal, discountValue)
-        : discountValue,
-    );
-
-    const taxableAmount = M.sub(subtotal, discountAmount);
-    const taxAmount = M.money(M.applyPct(taxableAmount, taxPercent));
-    const total: Money = M.money(M.add(taxableAmount, taxAmount));
-    const balance = M.sub(total, amtPaid);
-
-    const discountRatio: Money = M.isPositive(subtotal)
-      ? M.div(discountAmount, subtotal)
-      : M.zero();
-    const baseDiscountAmount: Money = M.money(M.mul(baseSubtotal, discountRatio));
-    const baseTaxableAmount = M.sub(baseSubtotal, baseDiscountAmount);
-    const baseTaxAmount = M.money(M.applyPct(baseTaxableAmount, taxPercent));
-    const baseTotal: Money = M.money(M.add(baseTaxableAmount, baseTaxAmount));
-    const baseBalance = M.sub(baseTotal, baseAmtPaid);
-
-    const newPaymentStatus: InvoicePaymentStatus = M.lte(balance, '0.01')
-      ? InvoicePaymentStatus.PAID
-      : M.isPositive(amtPaid)
-        ? InvoicePaymentStatus.PARTIALLY_PAID
-        : InvoicePaymentStatus.UNPAID;
-
-    const updated = await this.prisma.invoice.update({
-      where: { id: invoiceId },
-      data: {
-        subtotal: M.str(subtotal),
-        discountAmount: M.str(discountAmount),
-        taxAmount: M.str(taxAmount),
-        total: M.str(total),
-        balance: M.str(M.max(balance, 0)),
-        baseSubtotal: M.str(baseSubtotal),
-        baseDiscountAmount: M.str(baseDiscountAmount),
-        baseTaxAmount: M.str(baseTaxAmount),
-        baseTotal: M.str(baseTotal),
-        baseBalance: M.str(M.max(baseBalance, 0)),
-        paymentStatus: newPaymentStatus,
-      },
-      select: INVOICE_SELECT,
-    });
-
-    // ACC-1: keep the GL revenue recognition reconciled to the (possibly newly
-    // discounted/taxed/re-priced) invoice total. Idempotent delta — no-op if
-    // nothing changed; non-blocking via safePost.
-    await this.syncInvoiceRevenueGl(invoiceId);
-
-    return updated;
+    if (result.length === 0) {
+      // Disambiguate: VOIDed concurrently, or version mismatch (concurrent edit)?
+      const current = await tx.invoice.findUnique({
+        where: { id: invoiceId },
+        select: { status: true, version: true },
+      });
+      if (!current) {
+        throw new NotFoundException('Invoice not found during recalc');
+      }
+      if (current.status === InvoiceStatus.VOID) {
+        throw new BadRequestException(
+          'Cannot recalc an invoice that was voided by a concurrent request',
+        );
+      }
+      throw new ConflictException({
+        message:
+          'Invoice was modified by another request. Reload the invoice and try again.',
+        currentVersion: current.version,
+      });
+    }
+    return result[0];
   }
 
   /**
@@ -1817,10 +2200,14 @@ export class InvoicesService {
    * It touches only the recognition quartet (A/R, Revenue, Sales Discount, Tax);
    * payment/deposit entries on A/R are separate and intentionally untouched.
    */
-  private async syncInvoiceRevenueGl(invoiceId: string) {
+  private async syncInvoiceRevenueGl(
+    invoiceId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
     if (!(await this.gl.isAutoPostingEnabled())) return;
+    const db = tx ?? this.prisma;
 
-    const inv = await this.prisma.invoice.findUnique({
+    const inv = await db.invoice.findUnique({
       where: { id: invoiceId },
       select: {
         status: true,
@@ -1865,7 +2252,7 @@ export class InvoicesService {
 
     // Resolve the fallback (default) revenue account id once. If it can't be
     // resolved we can't reconcile per-account safely — bail rather than drift.
-    const defaultAcc = await this.prisma.ledgerAccount.findUnique({
+    const defaultAcc = await db.ledgerAccount.findUnique({
       where: { systemKey: GL.TREATMENT_REVENUE },
       select: { id: true },
     });
@@ -1908,11 +2295,11 @@ export class InvoicesService {
     // ── Net revenue already posted for this invoice, per account ─────────────
     // Scan INCOME accounts (excluding the contra Sales Discount, handled below)
     // so remapped procedures' old accounts get wound back to zero too.
-    const discountAcc = await this.prisma.ledgerAccount.findUnique({
+    const discountAcc = await db.ledgerAccount.findUnique({
       where: { systemKey: GL.SALES_DISCOUNT },
       select: { id: true },
     });
-    const postedRevenue = await this.prisma.journalLine.groupBy({
+    const postedRevenue = await db.journalLine.groupBy({
       by: ['accountId'],
       where: {
         journalEntry: {
@@ -1953,11 +2340,11 @@ export class InvoicesService {
 
     const discDelta = M.sub(
       targetDiscount,
-      await this.netPostedForInvoice(invoiceId, { systemKey: GL.SALES_DISCOUNT }, 'debit'),
+      await this.netPostedForInvoice(invoiceId, { systemKey: GL.SALES_DISCOUNT }, 'debit', tx),
     );
     const taxDelta = M.sub(
       targetTax,
-      await this.netPostedForInvoice(invoiceId, { systemKey: GL.TAX_PAYABLE }, 'credit'),
+      await this.netPostedForInvoice(invoiceId, { systemKey: GL.TAX_PAYABLE }, 'credit', tx),
     );
     const arDelta = M.add(M.sub(totalRevDelta, discDelta), taxDelta);
 
@@ -1970,14 +2357,21 @@ export class InvoicesService {
 
     if (lines.length === 0) return;
 
-    await this.gl.safePost({
-      memo: `Invoice ${inv.invoiceNumber} revenue/discount/tax adjustment`,
-      sourceType: 'INVOICE',
-      sourceId: invoiceId,
-      patientId: inv.patientId,
-      skipIfZero: true,
-      lines,
-    });
+    // tx-aware: when the caller provides a transaction client, the GL delta
+    // commits atomically with the invoice update — no failure window between
+    // the invoice writing new totals and the GL recognising them. safePost
+    // accepts an optional tx (second arg) per GeneralLedgerService.
+    await this.gl.safePost(
+      {
+        memo: `Invoice ${inv.invoiceNumber} revenue/discount/tax adjustment`,
+        sourceType: 'INVOICE',
+        sourceId: invoiceId,
+        patientId: inv.patientId,
+        skipIfZero: true,
+        lines,
+      },
+      tx,
+    );
   }
 
   /**
@@ -1989,10 +2383,12 @@ export class InvoicesService {
     invoiceId: string,
     ref: { systemKey?: string; accountId?: string },
     side: 'credit' | 'debit',
+    tx?: Prisma.TransactionClient,
   ): Promise<Money> {
+    const db = tx ?? this.prisma;
     let accountId = ref.accountId;
     if (!accountId && ref.systemKey) {
-      const acc = await this.prisma.ledgerAccount.findUnique({
+      const acc = await db.ledgerAccount.findUnique({
         where: { systemKey: ref.systemKey },
         select: { id: true },
       });
@@ -2000,7 +2396,7 @@ export class InvoicesService {
       accountId = acc.id;
     }
     if (!accountId) return M.zero();
-    const agg = await this.prisma.journalLine.aggregate({
+    const agg = await db.journalLine.aggregate({
       where: {
         accountId,
         journalEntry: {

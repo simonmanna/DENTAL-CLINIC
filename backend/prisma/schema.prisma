@@ -86,6 +86,7 @@ enum TreatmentStatus {
   ON_HOLD
   CANCELLED
   REFERRED
+  DELETED
 }
 
 enum InvoiceStatus {
@@ -272,6 +273,11 @@ enum InvoiceItemType {
   MATERIAL
   LAB
   MANUAL
+}
+
+enum InvoiceItemStatus {
+  ACTIVE
+  VOID
 }
 
 enum LedgerEntryStatus {
@@ -1368,6 +1374,14 @@ model TreatmentProcedure {
   cancellationReason String?
   lastEditReason     String?
 
+  // ── Soft delete ──────────────────────────────────────────────────────────
+  // Clinical records are never hard-deleted. A "delete" stamps deletedAt,
+  // voids linked invoice items, supersedes chart entries, and preserves the
+  // full audit trail.
+  deletedAt     DateTime?
+  deletedById   String?
+  deletedReason String?
+
   // ── Optimistic concurrency control (H2) ───────────────────────────────────
   // Bumped on every mutation; clients pass the value they last read as
   // `expectedVersion` so a concurrent edit is rejected (409) instead of silently
@@ -1387,7 +1401,7 @@ model TreatmentProcedure {
 model ProcedureSession {
   id                   String             @id @default(cuid())
   treatmentProcedureId String
-  treatmentProcedure   TreatmentProcedure @relation(fields: [treatmentProcedureId], references: [id], onDelete: Cascade)
+  treatmentProcedure   TreatmentProcedure @relation(fields: [treatmentProcedureId], references: [id], onDelete: SetNull)
 
   // Add these fields
   visitId String?
@@ -1542,6 +1556,17 @@ model Invoice {
   deletedById   String?
   deletedReason String?
 
+  // ── Optimistic-concurrency token (H6) ──────────────────────────────
+  // Bumped on every mutation by the service layer's atomic UPDATE
+  // statements (recalcInvoiceAtomicTx / voidInvoice / addPayment).
+  // Used as the optimistic-lock guard: `WHERE version = $expected`
+  // detects a concurrent edit and surfaces a 409 instead of a silent
+  // lost update on the invoice's stored totals. Matches the proven
+  // `version` pattern on treatment_procedures / chart_entries /
+  // expenses / purchase_orders. Adding a column is non-breaking; the
+  // DEFAULT 0 backfills all existing rows in one statement.
+  version Int @default(0)
+
   // ── Audit columns (C7) ──────────────────────────────────────────
   createdById String?
   updatedById String?
@@ -1591,6 +1616,7 @@ model InvoiceItem {
   itemType             InvoiceItemType     @default(MANUAL)
   treatmentProcedureId String?
   treatmentProcedure   TreatmentProcedure? @relation("InvoiceItemTP", fields: [treatmentProcedureId], references: [id], onDelete: SetNull)
+  status               InvoiceItemStatus   @default(ACTIVE)
 
   @@index([invoiceId])
   @@index([treatmentProcedureId])

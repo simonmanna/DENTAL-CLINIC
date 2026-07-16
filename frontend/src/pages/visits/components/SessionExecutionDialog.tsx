@@ -737,6 +737,9 @@ export function SessionExecutionDialog({
                 <CompactSurfacePicker
                   value={sessionSurfaces}
                   onChange={setSessionSurfaces}
+                  teeth={(procedure?.targets ?? [])
+                    .map((t) => t.toothNumber)
+                    .filter((n): n is number => typeof n === "number")}
                 />
                 {/* FIX-9: Single empty-state message (was duplicated) */}
                 {sessionSurfaces.length === 0 && (

@@ -19,6 +19,8 @@ import { staffApi } from "@/lib/api/staff-api";
 
 // ─── Tabs that own their own data/state (kept modular for easy debugging) ──────
 import VisitsReportTab from "./VisitsReportTab";
+import PrescriptionsReportTab from "./PrescriptionsReportTab";
+import AppointmentsReportTab from "./AppointmentsReportTab";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -1105,7 +1107,7 @@ const SESSION_COLUMNS: ColumnDef<SessionRow>[] = [
 const TABS: TabConfig[] = [
   {
     id: "plans",
-    label: "Treatment Plans",
+    label: "Treatment Plans Report",
     icon: "🗂",
     endpoint: "plans",
     columns: PLAN_COLUMNS,
@@ -1132,7 +1134,7 @@ const TABS: TabConfig[] = [
   },
   {
     id: "procedures",
-    label: "Procedures",
+    label: "Treatment Procedures Report",
     icon: "🦷",
     endpoint: "procedures",
     columns: PROCEDURE_COLUMNS,
@@ -1158,7 +1160,7 @@ const TABS: TabConfig[] = [
   },
   {
     id: "sessions",
-    label: "Sessions",
+    label: "Procedure Execution Report",
     icon: "📋",
     endpoint: "sessions",
     columns: SESSION_COLUMNS,
@@ -1196,7 +1198,7 @@ const DEFAULT_FILTERS: FilterState = {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function TreatmentReports(): JSX.Element {
-  const [activeTab, setActiveTab] = useState<"plans" | "procedures" | "sessions" | "visits">("plans");
+  const [activeTab, setActiveTab] = useState<"plans" | "procedures" | "sessions" | "visits" | "prescriptions" | "appointments">("plans");
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [result, setResult] = useState<ApiResponse>({
@@ -1222,10 +1224,13 @@ export default function TreatmentReports(): JSX.Element {
       .catch(() => setDentists([]));
   }, []);
 
-  // "visits" has no TABS entry (it's a self-contained component), so fall back
-  // to TABS[0] to keep `tab` defined — the visits branch never renders the
-  // TABS-driven body anyway.
+  // "visits" and "prescriptions" have no TABS entry (self-contained components),
+  // so fall back to TABS[0] to keep `tab` defined — those branches never render
+  // the TABS-driven body anyway.
   const isVisits = activeTab === "visits";
+  const isPrescriptions = activeTab === "prescriptions";
+  const isAppointments = activeTab === "appointments";
+  const isSelfContained = isVisits || isPrescriptions || isAppointments;
   const tab = useMemo<TabConfig>(
     () => TABS.find((t) => t.id === activeTab) ?? TABS[0],
     [activeTab]
@@ -1233,7 +1238,7 @@ export default function TreatmentReports(): JSX.Element {
 
   // ── Fetch real data ────────────────────────────────────────────────────────
   const fetchReport = useCallback(async () => {
-    if (activeTab === "visits") return; // the Visits tab owns its own data fetch
+    if (isSelfContained) return; // self-contained tabs own their own data fetch
     const filtersForApi: ReportFilters = {
       search: filters.search || undefined,
       startDate: filters.startDate || undefined,
@@ -1303,7 +1308,7 @@ export default function TreatmentReports(): JSX.Element {
     [sortBy]
   );
 
-  const handleTabChange = (id: "plans" | "procedures" | "sessions" | "visits") => {
+  const handleTabChange = (id: "plans" | "procedures" | "sessions" | "visits" | "prescriptions" | "appointments") => {
     setActiveTab(id);
     setFilters(DEFAULT_FILTERS);
     setPage(1);
@@ -1449,9 +1454,9 @@ export default function TreatmentReports(): JSX.Element {
               </h1>
             </div>
             {/* The plans/procedures/sessions tabs share these export/print/chart
-                controls. The Visits tab is self-contained and carries its own
-                export, so they are hidden there. */}
-            {!isVisits && (
+                controls. The Visits/Prescriptions tabs are self-contained and
+                carry their own export, so they are hidden here. */}
+            {!isSelfContained && (
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowChart((v) => !v)}
@@ -1479,6 +1484,43 @@ export default function TreatmentReports(): JSX.Element {
 
           {/* Tabs */}
           <div className="flex gap-0 mt-1 -mb-px">
+                        {/* Visits — rendered by the self-contained VisitsReportTab */}
+            <button
+              key="visits"
+              onClick={() => handleTabChange("visits")}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === "visits"
+                ? "border-emerald-600 text-emerald-700"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                }`}
+            >
+              <span>📅</span>
+              Visits Report
+            </button>
+            {/* Prescriptions — rendered by the self-contained PrescriptionsReportTab */}
+            <button
+              key="prescriptions"
+              onClick={() => handleTabChange("prescriptions")}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === "prescriptions"
+                ? "border-emerald-600 text-emerald-700"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                }`}
+            >
+              <span>💊</span>
+              Prescriptions Report
+            </button>
+            {/* Appointments — rendered by the self-contained AppointmentsReportTab */}
+            <button
+              key="appointments"
+              onClick={() => handleTabChange("appointments")}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === "appointments"
+                ? "border-emerald-600 text-emerald-700"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                }`}
+            >
+              <span>📆</span>
+              Appointments Report
+            </button>
+
             {TABS.map((t) => (
               <button
                 key={t.id}
@@ -1497,18 +1539,6 @@ export default function TreatmentReports(): JSX.Element {
                 )}
               </button>
             ))}
-            {/* Visits — rendered by the self-contained VisitsReportTab */}
-            <button
-              key="visits"
-              onClick={() => handleTabChange("visits")}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === "visits"
-                ? "border-emerald-600 text-emerald-700"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
-                }`}
-            >
-              <span>📅</span>
-              Visits
-            </button>
           </div>
         </div>
       </div>
@@ -1517,6 +1547,10 @@ export default function TreatmentReports(): JSX.Element {
       <div className="max-w-screen-2xl mx-auto px-1 py-2 space-y-1">
         {isVisits ? (
           <VisitsReportTab />
+        ) : isPrescriptions ? (
+          <PrescriptionsReportTab />
+        ) : isAppointments ? (
+          <AppointmentsReportTab />
         ) : (
         <>
         {error && (

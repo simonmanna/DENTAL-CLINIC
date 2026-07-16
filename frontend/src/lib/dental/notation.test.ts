@@ -2,6 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   uiToCanonical,
   canonicalToUi,
+  canonicalToUiForTooth,
+  sortUiSurfaces,
+  sortSurfaces,
   biteCode,
   isValidFdi,
   isPrimary,
@@ -32,6 +35,15 @@ describe("uiToCanonical", () => {
     expect(uiToCanonical("D", UPPER_POSTERIOR)).toBe("DISTAL");
     expect(uiToCanonical("O", UPPER_POSTERIOR)).toBe("OCCLUSAL");
     expect(uiToCanonical("I", UPPER_ANTERIOR)).toBe("INCISAL");
+  });
+
+  it("resolves O/I to the tooth's real bite surface (IDBML-on-molar bug)", () => {
+    // A molar has no incisal edge; an incisor has no occlusal table. The
+    // stored enum follows the tooth, not the button that was pressed.
+    expect(uiToCanonical("I", 18)).toBe("OCCLUSAL");
+    expect(uiToCanonical("I", LOWER_POSTERIOR)).toBe("OCCLUSAL");
+    expect(uiToCanonical("O", UPPER_ANTERIOR)).toBe("INCISAL");
+    expect(uiToCanonical("O", UPPER_CANINE)).toBe("INCISAL");
   });
 
   it("resolves B to BUCCAL on posteriors and LABIAL on anteriors", () => {
@@ -70,16 +82,45 @@ describe("canonicalToUi", () => {
 });
 
 describe("round-trip UI → canonical → UI", () => {
-  // For M/D/O/I the round trip is lossless. For B/L it is lossless at the UI
-  // layer (B↔BUCCAL/LABIAL, L↔LINGUAL/PALATAL both collapse back to B/L).
+  // For M/D the round trip is lossless. B/L are lossless at the UI layer
+  // (B↔BUCCAL/LABIAL, L↔LINGUAL/PALATAL both collapse back to B/L). O/I fold
+  // onto the tooth's real bite surface — biteCode(fdi) — by design.
   const teeth = [UPPER_ANTERIOR, UPPER_POSTERIOR, LOWER_ANTERIOR, LOWER_POSTERIOR];
   for (const fdi of teeth) {
-    for (const code of ["M", "D", "O", "B", "L"] as const) {
-      it(`tooth ${fdi}: ${code} survives the round trip`, () => {
-        expect(canonicalToUi(uiToCanonical(code, fdi))).toBe(code);
+    for (const code of ["M", "D", "O", "I", "B", "L"] as const) {
+      const expected = code === "O" || code === "I" ? biteCode(fdi) : code;
+      it(`tooth ${fdi}: ${code} round-trips to ${expected}`, () => {
+        expect(canonicalToUi(uiToCanonical(code, fdi))).toBe(expected);
       });
     }
   }
+});
+
+describe("canonicalToUiForTooth (legacy-row read normalization)", () => {
+  it("folds a stored INCISAL on a molar onto O, and OCCLUSAL on an incisor onto I", () => {
+    expect(canonicalToUiForTooth("INCISAL", 18)).toBe("O");
+    expect(canonicalToUiForTooth("OCCLUSAL", UPPER_ANTERIOR)).toBe("I");
+  });
+  it("leaves correct bite values and side surfaces untouched", () => {
+    expect(canonicalToUiForTooth("OCCLUSAL", 18)).toBe("O");
+    expect(canonicalToUiForTooth("INCISAL", UPPER_ANTERIOR)).toBe("I");
+    expect(canonicalToUiForTooth("MESIAL", 18)).toBe("M");
+    expect(canonicalToUiForTooth("PALATAL", 18)).toBe("L");
+  });
+});
+
+describe("surface sorting (standard M, O/I, D, B, L charting order)", () => {
+  it("sorts UI codes — the reported 'IDBML' renders as 'MODBL' after bite folding", () => {
+    expect(sortUiSurfaces(["I", "D", "B", "M", "L"]).join("")).toBe("MIDBL");
+    expect(sortUiSurfaces(["O", "D", "B", "M", "L"]).join("")).toBe("MODBL");
+    expect(sortUiSurfaces(["D", "O"]).join("")).toBe("OD");
+    expect(sortUiSurfaces([]).join("")).toBe("");
+  });
+  it("sorts canonical strings by their display letter", () => {
+    expect(
+      sortSurfaces(["INCISAL", "DISTAL", "LABIAL", "MESIAL", "PALATAL"]),
+    ).toEqual(["MESIAL", "INCISAL", "DISTAL", "LABIAL", "PALATAL"]);
+  });
 });
 
 describe("biteCode", () => {
@@ -212,18 +253,19 @@ describe("toothName (FDI canonical — regression for drawer mislabeling bug)", 
 describe("surface display formatters (regression for BD → DL/D bug)", () => {
   const ALL_CANONICAL = Object.keys(SURFACE_DISPLAY) as CanonicalSurface[];
 
-  it("formatSurfaces renders LABIAL+DISTAL as BD (the reported bug)", () => {
-    expect(formatSurfaces(["LABIAL", "DISTAL"])).toBe("BD");
-    expect(formatSurfaces(["BUCCAL", "DISTAL"])).toBe("BD");
+  it("formatSurfaces renders LABIAL+DISTAL with a B, never L/dropped (the reported bug)", () => {
+    expect(formatSurfaces(["LABIAL", "DISTAL"])).toBe("DB");
+    expect(formatSurfaces(["BUCCAL", "DISTAL"])).toBe("DB");
   });
 
-  it("preserves as-entered order (no canonical re-sort)", () => {
-    expect(formatSurfaces(["DISTAL", "LABIAL"])).toBe("DB");
-    expect(formatSurfaces(["OCCLUSAL", "MESIAL"])).toBe("OM");
+  it("sorts into standard charting order regardless of entry order", () => {
+    expect(formatSurfaces(["DISTAL", "MESIAL"])).toBe("MD");
+    expect(formatSurfaces(["OCCLUSAL", "MESIAL"])).toBe("MO");
+    expect(formatSurfaces(["LINGUAL", "BUCCAL", "DISTAL", "OCCLUSAL", "MESIAL"])).toBe("MODBL");
   });
 
   it("dedupes by display letter across merged multi-tooth targets", () => {
-    expect(formatSurfaces(["BUCCAL", "LABIAL", "DISTAL"])).toBe("BD");
+    expect(formatSurfaces(["BUCCAL", "LABIAL", "DISTAL"])).toBe("DB");
     expect(formatSurfaces(["LINGUAL", "PALATAL"])).toBe("L");
   });
 

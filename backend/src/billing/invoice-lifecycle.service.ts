@@ -294,11 +294,9 @@ export class InvoiceLifecycleService {
       return toNum(conv.amount);
     };
 
-    const unitPriceInv =
-      Math.round((await toInvoiceCcy(toNum(tp.pricePerUnit))) * 100) / 100;
-    const totalInv =
-      Math.round((await toInvoiceCcy(toNum(tp.totalPrice))) * 100) / 100;
-    const discountInv = Math.round((await toInvoiceCcy(discount)) * 100) / 100;
+    const unitPriceInv = M.money(await toInvoiceCcy(toNum(tp.pricePerUnit)));
+    const totalInv = M.money(await toInvoiceCcy(toNum(tp.totalPrice)));
+    const discountInv = M.money(await toInvoiceCcy(discount));
 
     const itemData = {
       invoiceId: invoice!.id,
@@ -358,7 +356,7 @@ export class InvoiceLifecycleService {
                   currency: tp.currency,
                   exchangeRate: rate !== 1 ? rate : null,
                   baseCurrency,
-                  baseAmount: Math.round(baseAmt * 100) / 100,
+                  baseAmount: M.money(baseAmt),
                   status: 'INVOICED',
                 },
               }),
@@ -520,9 +518,9 @@ export class InvoiceLifecycleService {
       return toNum(conv.amount);
     };
 
-    const unitPriceInv = Math.round((await toInvoiceCcy(toNum(pricing.pricePerUnit))) * 100) / 100;
-    const totalInv = Math.round((await toInvoiceCcy(toNum(pricing.totalPrice))) * 100) / 100;
-    const discountInv = Math.round((await toInvoiceCcy(toNum(pricing.discountAmount))) * 100) / 100;
+    const unitPriceInv = M.money(await toInvoiceCcy(toNum(pricing.pricePerUnit)));
+    const totalInv = M.money(await toInvoiceCcy(toNum(pricing.totalPrice)));
+    const discountInv = M.money(await toInvoiceCcy(toNum(pricing.discountAmount)));
 
     await this.prisma.invoiceItem.update({
       where: { id: item.id },
@@ -559,7 +557,10 @@ export class InvoiceLifecycleService {
       );
     }
 
-    await this.prisma.invoiceItem.delete({ where: { id: item.id } });
+    await this.prisma.invoiceItem.update({
+      where: { id: item.id },
+      data: { status: 'VOID' },
+    });
     await this.recalcDraft(item.invoice.id);
   }
 
@@ -607,14 +608,10 @@ export class InvoiceLifecycleService {
       return { invoiceId: null };
     }
 
-    if (toNum(item.invoice.amountPaid) > 0) {
-      throw new BadRequestException(
-        'This procedure is billed on an invoice that already has payments. ' +
-          'Void or refund the payment before cancelling/removing the procedure.',
-      );
-    }
-
-    await tx.invoiceItem.delete({ where: { id: item.id } });
+    await tx.invoiceItem.update({
+      where: { id: item.id },
+      data: { status: 'VOID' },
+    });
     return { invoiceId: item.invoice.id };
   }
 
@@ -631,7 +628,7 @@ export class InvoiceLifecycleService {
 
   // ── Activate a Draft invoice — posts CHARGE ledger entries ─────────────────
 
-  async activateInvoice(invoiceId: string, activatedBy?: string) {
+  async activateInvoice(invoiceId: string, activatedBy?: string, currentUserId?: string) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: {
@@ -667,8 +664,11 @@ export class InvoiceLifecycleService {
         `Invoice is already ${invoice.status} — only DRAFT invoices can be activated`,
       );
     }
-    if (!invoice.items.length) {
-      throw new BadRequestException('Cannot activate an invoice with no items');
+    const activeItems = invoice.items.filter(
+      (item) => (item as any).status === 'ACTIVE' || !(item as any).status,
+    );
+    if (!activeItems.length) {
+      throw new BadRequestException('Cannot activate an invoice with no active items');
     }
 
     const baseCurrency = this.currency.getBaseCurrency();
@@ -686,8 +686,8 @@ export class InvoiceLifecycleService {
       const revenueByAccountId = new Map<string, Money>();
       let defaultRevenue = M.zero();
 
-      // Post one CHARGE ledger entry per invoice item for audit granularity
-      for (const item of invoice.items) {
+      // Post one CHARGE ledger entry per active invoice item for audit granularity
+      for (const item of activeItems) {
         const entryCurrency = item.originalCurrency ?? invoice.currency;
         const rate = toNum(item.exchangeRate ?? invoice.exchangeRate ?? 1);
         const originalTotal = toNum(item.originalTotal ?? item.total);
@@ -739,7 +739,7 @@ export class InvoiceLifecycleService {
                 currency: entryCurrency,
                 exchangeRate: rate !== 1 ? rate : null,
                 baseCurrency,
-                baseAmount: Math.round(baseAmt * 100) / 100,
+                baseAmount: M.money(baseAmt),
                 notes: activatedBy ? `Activated by ${activatedBy}` : null,
                 status: 'INVOICED',
               },
@@ -846,6 +846,23 @@ export class InvoiceLifecycleService {
           issuedAt: new Date(),
         },
       });
+
+      await tx.auditLog.create({
+        data: {
+          userId: currentUserId ?? activatedBy ?? null,
+          action: 'ACTIVATE',
+          module: 'BILLING',
+          entityType: 'Invoice',
+          recordId: invoiceId,
+          oldData: {
+            status: InvoiceStatus.DRAFT,
+          } as Prisma.InputJsonValue,
+          newData: {
+            status: InvoiceStatus.POSTED,
+            activatedAt: new Date(),
+          } as Prisma.InputJsonValue,
+        },
+      });
     });
 
     // Sync stored invoice totals (discount/tax/balance) so the invoice row
@@ -855,7 +872,7 @@ export class InvoiceLifecycleService {
 
   // ── Add an encounter item to a DRAFT or POSTED invoice ─────────────────────
 
-  async addEncounterItem(invoiceId: string, dto: AddEncounterItemDto) {
+  async addEncounterItem(invoiceId: string, dto: AddEncounterItemDto, currentUserId?: string) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: invoiceId },
       select: {
@@ -917,24 +934,23 @@ export class InvoiceLifecycleService {
       itemCurrency === invoice.currency ? 1 : srcToBase * baseToInvoice;
 
     // Source-currency snapshot (exactly what the caller gave us).
-    const originalTotal =
-      Math.round((dto.quantity * dto.unitPrice - discount) * 100) / 100;
+    const originalTotal = M.money(dto.quantity * dto.unitPrice - discount);
 
     // Projected into the invoice currency for the display/charged columns.
-    const unitPrice = Math.round(dto.unitPrice * srcToInvoice * 100) / 100;
-    const invDiscount = Math.round(discount * srcToInvoice * 100) / 100;
+    const unitPrice = M.money(dto.unitPrice * srcToInvoice);
+    const invDiscount = M.money(discount * srcToInvoice);
     const itemTotal =
-      Math.round((dto.quantity * unitPrice - invDiscount) * 100) / 100;
+      M.money(dto.quantity * toNum(unitPrice) - toNum(invDiscount));
 
     // Base-currency total (invariant, used for ledger + future re-pricing).
-    const baseTotal = Math.round(originalTotal * srcToBase * 100) / 100;
+    const baseTotal = M.money(toNum(originalTotal) * srcToBase);
 
     // Rate persisted on the item must be source→base for changeCurrency.
     const rate = srcToBase;
 
     if (isDraft) {
       // DRAFT — create item only (ledger entries are posted at activation)
-      await this.prisma.invoiceItem.create({
+      const created = await this.prisma.invoiceItem.create({
         data: {
           invoiceId,
           description: dto.description,
@@ -948,6 +964,23 @@ export class InvoiceLifecycleService {
           originalUnitPrice: dto.unitPrice,
           originalTotal,
           exchangeRate: rate,
+        },
+      });
+      await this.prisma.auditLog.create({
+        data: {
+          userId: currentUserId ?? null,
+          action: 'CREATE',
+          module: 'BILLING',
+          entityType: 'InvoiceItem',
+          recordId: created.id,
+          newData: {
+            invoiceId,
+            description: dto.description,
+            itemType: dto.itemType,
+            quantity: dto.quantity,
+            unitPrice: M.str(unitPrice),
+            total: M.str(itemTotal),
+          } as Prisma.InputJsonValue,
         },
       });
       return this.recalcDraft(invoiceId);
@@ -972,6 +1005,24 @@ export class InvoiceLifecycleService {
         },
       });
 
+      await tx.auditLog.create({
+        data: {
+          userId: currentUserId ?? null,
+          action: 'CREATE',
+          module: 'BILLING',
+          entityType: 'InvoiceItem',
+          recordId: invoiceItem.id,
+          newData: {
+            invoiceId,
+            description: dto.description,
+            itemType: dto.itemType,
+            quantity: dto.quantity,
+            unitPrice: M.str(unitPrice),
+            total: M.str(itemTotal),
+          } as Prisma.InputJsonValue,
+        },
+      });
+
       await withUniqueCodeRetry(
         () => this.generateLedgerEntryCode(tx),
         (entryCode) =>
@@ -993,7 +1044,7 @@ export class InvoiceLifecycleService {
               currency: itemCurrency,
               exchangeRate: rate !== 1 ? rate : null,
               baseCurrency,
-              baseAmount: Math.round(baseTotal * 100) / 100,
+              baseAmount: M.money(baseTotal),
               notes: dto.notes ?? null,
               status: 'INVOICED',
             },
@@ -1054,131 +1105,162 @@ export class InvoiceLifecycleService {
 
   // ─── Private helpers ────────────────────────────────────────────────────────
 
-  private async recalcDraft(invoiceId: string) {
-    const invoice = await this.prisma.invoice.findUnique({
-      where: { id: invoiceId },
-      select: { amountPaid: true, baseAmountPaid: true },
-    });
-    if (!invoice) throw new NotFoundException('Invoice not found during recalc');
-
-    const items = await this.prisma.invoiceItem.findMany({
-      where: { invoiceId },
-      select: { total: true, originalTotal: true, exchangeRate: true },
-    });
-
-    // All money math via M (Decimal) — see common/money/money.ts header.
-    const subtotal: Money = M.money(M.sum(items.map((i) => i.total)));
-    const baseSubtotal: Money = M.money(
-      M.sum(
-        items.map((i) =>
-          M.mul(M.of(i.originalTotal ?? i.total), M.of(i.exchangeRate ?? 1)),
-        ),
+  /**
+   * Atomic recalculation of invoice totals running INSIDE an existing
+   * transaction. Uses a single raw-SQL UPDATE with CTEs so the read–compute–
+   * write is a single statement — no race window.
+   *
+   * Guards on version when expectedVersion is provided (optimistic lock).
+   * Returns the updated row columns. Throws ConflictException (409) when the
+   * version check fails, NotFoundException when the invoice disappeared, or
+   * BadRequestException when the invoice was voided concurrently.
+   */
+  private async recalcInvoiceAtomicTx(
+    tx: Prisma.TransactionClient,
+    invoiceId: string,
+    expectedVersion?: number,
+    currentUserId?: string,
+  ) {
+    const result = await tx.$queryRaw<
+      Array<{ version: bigint; total: string; baseTotal: string; paymentStatus: string }>
+    >(Prisma.sql`
+      WITH items AS (
+        SELECT
+          COALESCE(SUM("total"), 0)::numeric                                           AS subtotal,
+          COALESCE(SUM(COALESCE("originalTotal", "total") * "exchangeRate"), 0)::numeric  AS base_subtotal
+        FROM "invoice_items"
+        WHERE "invoiceId" = ${invoiceId} AND "status" = 'ACTIVE'
       ),
-    );
+      inv AS (
+        SELECT
+          "discountValue"::numeric,
+          "discountType",
+          "taxPercent"::numeric,
+          "amountPaid"::numeric,
+          "baseAmountPaid"::numeric
+        FROM "invoices"
+        WHERE "id" = ${invoiceId}
+      ),
+      calc AS (
+        SELECT
+          i.subtotal,
+          i.base_subtotal,
+          CASE
+            WHEN v."discountType" = 'PERCENT'
+              THEN ROUND(i.subtotal * v."discountValue" / 100.0::numeric, 2)
+            ELSE v."discountValue"
+          END AS discount_inv,
+          CASE
+            WHEN i.subtotal > 0 THEN ROUND(
+              i.base_subtotal * (
+                CASE WHEN v."discountType" = 'PERCENT'
+                  THEN v."discountValue" / 100.0::numeric
+                  ELSE v."discountValue" / NULLIF(i.subtotal, 0)
+                END
+              ), 2)
+            ELSE 0::numeric
+          END AS discount_base,
+          v."taxPercent",
+          v."amountPaid",
+          v."baseAmountPaid"
+        FROM items i, inv v
+      ),
+      totals AS (
+        SELECT
+          c.subtotal,
+          c.base_subtotal,
+          c.discount_inv,
+          c.discount_base,
+          ROUND((c.subtotal - c.discount_inv), 2)      AS taxable_inv,
+          ROUND((c.base_subtotal - c.discount_base), 2) AS taxable_base,
+          ROUND((c.subtotal - c.discount_inv) * c."taxPercent" / 100.0::numeric, 2)    AS tax_inv,
+          ROUND((c.base_subtotal - c.discount_base) * c."taxPercent" / 100.0::numeric, 2) AS tax_base,
+          c."amountPaid",
+          c."baseAmountPaid"
+        FROM calc c
+      ),
+      final AS (
+        SELECT
+          t.subtotal,
+          t.base_subtotal,
+          t.discount_inv,
+          t.discount_base,
+          t.tax_inv,
+          t.tax_base,
+          ROUND((t.taxable_inv + t.tax_inv), 2) AS total,
+          ROUND((t.taxable_base + t.tax_base), 2) AS base_total,
+          t."amountPaid",
+          t."baseAmountPaid"
+        FROM totals t
+      )
+      UPDATE "invoices" i
+      SET
+        "version"        = i."version" + 1,
+        "updatedAt"      = NOW(),
+        "subtotal"        = f.subtotal,
+        "baseSubtotal"    = f.base_subtotal,
+        "discountAmount"  = f.discount_inv,
+        "baseDiscountAmount" = f.discount_base,
+        "taxAmount"       = f.tax_inv,
+        "baseTaxAmount"   = f.tax_base,
+        "total"           = f.total,
+        "baseTotal"       = f.base_total,
+        "balance"         = GREATEST(f.total - f."amountPaid", 0),
+        "baseBalance"     = GREATEST(f.base_total - f."baseAmountPaid", 0),
+        "paymentStatus"   = CASE
+          WHEN (f.total - f."amountPaid") <= 0.01
+            THEN 'PAID'::"InvoicePaymentStatus"
+          WHEN f."amountPaid" > 0
+            THEN 'PARTIALLY_PAID'::"InvoicePaymentStatus"
+          ELSE 'UNPAID'::"InvoicePaymentStatus"
+        END,
+        "paidAt" = CASE
+          WHEN (f.total - f."amountPaid") <= 0.01
+            THEN CASE WHEN i."paidAt" IS NOT NULL THEN i."paidAt" ELSE NOW() END
+          ELSE NULL
+        END,
+        "updatedById" = ${currentUserId ?? null}
+      FROM final f
+      WHERE i."id" = ${invoiceId}
+        AND i."status" <> 'VOID'::"InvoiceStatus"
+        ${expectedVersion != null ? Prisma.sql`AND i."version" = ${expectedVersion}::int` : Prisma.empty}
+      RETURNING i."version", i."total", i."baseTotal", i."paymentStatus"
+    `);
 
-    const amtPaid = M.of(invoice.amountPaid);
-    const baseAmtPaid = M.of(invoice.baseAmountPaid);
-    const balance = M.max(M.sub(subtotal, amtPaid), 0);
-    const baseBalance = M.max(M.sub(baseSubtotal, baseAmtPaid), 0);
+    if (result.length === 0) {
+      const current = await tx.invoice.findUnique({
+        where: { id: invoiceId },
+        select: { status: true, version: true },
+      });
+      if (!current) {
+        throw new NotFoundException('Invoice not found during recalc');
+      }
+      if (current.status === InvoiceStatus.VOID) {
+        throw new BadRequestException(
+          'Cannot recalc an invoice that was voided by a concurrent request',
+        );
+      }
+      throw new ConflictException({
+        message:
+          'Invoice was modified by another request. Reload the invoice and try again.',
+        currentVersion: current.version,
+      });
+    }
+    return result[0];
+  }
 
-    const newPaymentStatus: InvoicePaymentStatus = M.lte(balance, '0.01')
-      ? InvoicePaymentStatus.PAID
-      : M.isPositive(amtPaid)
-        ? InvoicePaymentStatus.PARTIALLY_PAID
-        : InvoicePaymentStatus.UNPAID;
-
-    return this.prisma.invoice.update({
-      where: { id: invoiceId },
-      data: {
-        subtotal: M.str(subtotal),
-        discountAmount: '0',
-        taxAmount: '0',
-        total: M.str(subtotal),
-        balance: M.str(balance),
-        baseSubtotal: M.str(baseSubtotal),
-        baseDiscountAmount: '0',
-        baseTaxAmount: '0',
-        baseTotal: M.str(baseSubtotal),
-        baseBalance: M.str(baseBalance),
-        paymentStatus: newPaymentStatus,
-      },
+  private async recalcDraft(invoiceId: string) {
+    await this.prisma.$transaction(async (tx) => {
+      await this.recalcInvoiceAtomicTx(tx, invoiceId);
     });
+    return this.prisma.invoice.findUnique({ where: { id: invoiceId } });
   }
 
   private async recalcActive(invoiceId: string) {
-    const invoice = await this.prisma.invoice.findUnique({
-      where: { id: invoiceId },
-      select: {
-        taxPercent: true,
-        discountValue: true,
-        discountType: true,
-        amountPaid: true,
-        baseAmountPaid: true,
-        status: true,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      await this.recalcInvoiceAtomicTx(tx, invoiceId);
     });
-    if (!invoice) throw new NotFoundException('Invoice not found during recalc');
-
-    const items = await this.prisma.invoiceItem.findMany({
-      where: { invoiceId },
-      select: { total: true, originalTotal: true, exchangeRate: true },
-    });
-
-    const subtotal: Money = M.money(M.sum(items.map((i) => i.total)));
-    const baseSubtotal: Money = M.money(
-      M.sum(
-        items.map((i) =>
-          M.mul(M.of(i.originalTotal ?? i.total), M.of(i.exchangeRate ?? 1)),
-        ),
-      ),
-    );
-
-    const discountValue = M.of(invoice.discountValue);
-    const discountAmount: Money = M.money(
-      invoice.discountType === 'PERCENT'
-        ? M.applyPct(subtotal, discountValue)
-        : discountValue,
-    );
-    const taxPercent = M.of(invoice.taxPercent);
-
-    const taxableAmount = M.sub(subtotal, discountAmount);
-    const taxAmount = M.money(M.applyPct(taxableAmount, taxPercent));
-    const total: Money = M.money(M.add(taxableAmount, taxAmount));
-    const amtPaid = M.of(invoice.amountPaid);
-    const balance = M.sub(total, amtPaid);
-
-    const discountRatio: Money = M.isPositive(subtotal)
-      ? M.div(discountAmount, subtotal)
-      : M.zero();
-    const baseDiscountAmount: Money = M.money(M.mul(baseSubtotal, discountRatio));
-    const baseTaxableAmount = M.sub(baseSubtotal, baseDiscountAmount);
-    const baseTaxAmount = M.money(M.applyPct(baseTaxableAmount, taxPercent));
-    const baseTotal: Money = M.money(M.add(baseTaxableAmount, baseTaxAmount));
-    const baseAmtPaid = M.of(invoice.baseAmountPaid);
-    const baseBalance = M.sub(baseTotal, baseAmtPaid);
-
-    const newPaymentStatus: InvoicePaymentStatus = M.lte(balance, '0.01')
-      ? InvoicePaymentStatus.PAID
-      : M.isPositive(amtPaid)
-        ? InvoicePaymentStatus.PARTIALLY_PAID
-        : InvoicePaymentStatus.UNPAID;
-
-    return this.prisma.invoice.update({
-      where: { id: invoiceId },
-      data: {
-        subtotal: M.str(subtotal),
-        discountAmount: M.str(discountAmount),
-        taxAmount: M.str(taxAmount),
-        total: M.str(total),
-        balance: M.str(M.max(balance, 0)),
-        baseSubtotal: M.str(baseSubtotal),
-        baseDiscountAmount: M.str(baseDiscountAmount),
-        baseTaxAmount: M.str(baseTaxAmount),
-        baseTotal: M.str(baseTotal),
-        baseBalance: M.str(M.max(baseBalance, 0)),
-        paymentStatus: newPaymentStatus,
-      },
-    });
+    return this.prisma.invoice.findUnique({ where: { id: invoiceId } });
   }
 
   // ── Revenue-account resolution (per-procedure → category → system default) ──

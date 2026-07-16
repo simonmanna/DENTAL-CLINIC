@@ -571,7 +571,6 @@ interface ProcedureRowProps {
   checked: boolean;
   onCheck: () => void;
   onStatusClick: () => void;
-  onRemove: () => void;
   readOnly: boolean;
   isDragging: boolean;
   isDragOver: boolean;
@@ -600,7 +599,6 @@ function ProcedureRow({
   checked,
   onCheck,
   onStatusClick,
-  onRemove,
   readOnly,
   isDragging,
   isDragOver,
@@ -846,7 +844,6 @@ interface VisitGroupSectionProps {
   selectedIds: Set<string>;
   onCheck: (id: string) => void;
   onStatusClick: (p: TreatmentProcedure) => void;
-  onRemove: (id: string) => void;
   onExecuteClick?: (p: TreatmentProcedure) => void;
   onReorder: (
     updates: { id: string; sequence: number; visitGroup: number }[],
@@ -873,7 +870,6 @@ function VisitGroupSection({
   selectedIds,
   onCheck,
   onStatusClick,
-  onRemove,
   onReorder,
   readOnly,
   allProcedures,
@@ -1106,8 +1102,7 @@ function VisitGroupSection({
                   checked={selectedIds.has(proc.id)}
                   onCheck={() => onCheck(proc.id)}
                   onStatusClick={() => onStatusClick(proc)}
-                  onRemove={() => onRemove(proc.id)}
-                  readOnly={readOnly}
+  readOnly={readOnly}
                   isDragging={dragState.draggingItem?.procId === proc.id}
                   isDragOver={localDragOver?.id === proc.id}
                   onExecuteClick={() => onExecuteClick?.(proc)}
@@ -1330,7 +1325,7 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
   });
 
   const removeProcMut = useMutation({
-    mutationFn: (id: string) => txApi.removeProcedure(activePlanId!, id),
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => txApi.removeProcedure(activePlanId!, id, reason),
     onSuccess: () => {
       toast.success("Procedure removed");
       inv();
@@ -1424,6 +1419,8 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
     onSuccess: () => {
       toast.success("Session recorded successfully");
       inv();
+      queryClient.invalidateQueries({ queryKey: ["chart-entries", patientId, visitId], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["treatment-procedures", patientId], refetchType: 'all' });
     },
     onError: (error: any) => {
       console.error("Session execution failed:", error);
@@ -1883,7 +1880,7 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
                     selectedIds={selectedIds}
                     onCheck={toggleSelect}
                     onStatusClick={setDetailDialogProc}
-                    onRemove={(id) => removeProcMut.mutate(id)}
+
                     onReorder={(updates) => reorderProcMut.mutate(updates)}
                     readOnly={readOnly}
                     allProcedures={activePlan?.procedures ?? []}
@@ -2023,8 +2020,8 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
           paymentStatus={deleteDialogState.eligibility.paymentStatus}
           invoiceStatus={deleteDialogState.eligibility.invoiceStatus ?? null}
           invoiceAmountPaid={deleteDialogState.eligibility.invoiceAmountPaid ?? 0}
-          onConfirmDelete={async () => {
-            await removeProcMut.mutateAsync(deleteDialogState.proc.id);
+          onConfirmDelete={async (reason: string) => {
+            await removeProcMut.mutateAsync({ id: deleteDialogState.proc.id, reason });
             setDeleteDialogState(null);
           }}
           onGoToCancel={() => {

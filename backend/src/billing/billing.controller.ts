@@ -282,14 +282,19 @@ export class BillingController {
       currency?: string;
       exchangeRate?: number;
     },
+    @CurrentUser('id') currentUserId: string | undefined,
   ) {
-    return this.invoices.addItem(id, item);
+    return this.invoices.addItem(id, item, currentUserId);
   }
 
   @Delete('invoices/:id/items/:itemId')
   @Roles(...CAN_EDIT_INVOICE)
-  removeInvoiceItem(@Param('id') id: string, @Param('itemId') itemId: string) {
-    return this.invoices.removeItem(id, itemId);
+  removeInvoiceItem(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @CurrentUser('id') currentUserId: string | undefined,
+  ) {
+    return this.invoices.removeItem(id, itemId, currentUserId);
   }
 
   // Cashier-like work — admin or receptionist.
@@ -400,15 +405,23 @@ export class BillingController {
   // Activating a DRAFT → POSTED is the moment it becomes billable — restrict.
   @Post('invoices/:id/activate')
   @Roles(...CAN_RECORD_PAYMENT)
-  activateInvoice(@Param('id') id: string, @Body() dto: ActivateInvoiceDto) {
-    return this.lifecycle.activateInvoice(id, dto.activatedBy);
+  activateInvoice(
+    @Param('id') id: string,
+    @Body() dto: ActivateInvoiceDto,
+    @CurrentUser('id') currentUserId: string | undefined,
+  ) {
+    return this.lifecycle.activateInvoice(id, dto.activatedBy, currentUserId);
   }
 
   // Encounter items can be added by clinical staff and billing staff.
   @Post('invoices/:id/encounter-items')
   @Roles(...CAN_EDIT_INVOICE, UserRole.DENTIST)
-  addEncounterItem(@Param('id') id: string, @Body() dto: AddEncounterItemDto) {
-    return this.lifecycle.addEncounterItem(id, dto);
+  addEncounterItem(
+    @Param('id') id: string,
+    @Body() dto: AddEncounterItemDto,
+    @CurrentUser('id') currentUserId: string | undefined,
+  ) {
+    return this.lifecycle.addEncounterItem(id, dto, currentUserId);
   }
 
   @Patch('invoices/:id/meta')

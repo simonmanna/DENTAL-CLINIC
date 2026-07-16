@@ -206,8 +206,8 @@ export const treatmentPlansApi = {
     return res.data;
   },
 
-  removeProcedure: async (planId: string, procedureId: string): Promise<{ message: string }> => {
-    const res = await api.delete<{ message: string }>(`/treatment-plans/${planId}/procedures/${procedureId}`);
+  removeProcedure: async (planId: string, procedureId: string, reason: string): Promise<{ message: string }> => {
+    const res = await api.post<{ message: string }>(`/treatment-plans/${planId}/procedures/${procedureId}/delete`, { reason });
     return res.data;
   },
 
