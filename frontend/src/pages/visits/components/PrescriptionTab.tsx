@@ -41,7 +41,6 @@ interface Drug {
   form?: string;
   strength?: string;
   manufacturer?: string;
-  stockQuantity: number;
   unitPrice: number;
   isActive: boolean;
 }
@@ -384,7 +383,7 @@ function DrugCombobox({
                     type="button"
                     onClick={() => handleSelect(drug)}
                     className={cn(
-                      "w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-slate-50 last:border-0 flex items-center justify-between gap-3",
+                      "w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-slate-50 last:border-0 flex items-center gap-2",
                       drug.id === value &&
                         "bg-blue-50 border-l-4 border-l-blue-500",
                     )}
@@ -402,19 +401,6 @@ function DrugCombobox({
                         {drug.genericName && `${drug.genericName} • `}
                         {drug.strength} {drug.form}
                       </div>
-                    </div>
-
-                    <div
-                      className={cn(
-                        "text-xs px-2 py-1 rounded-full font-medium shrink-0",
-                        drug.stockQuantity > 20
-                          ? "bg-emerald-50 text-emerald-600"
-                          : drug.stockQuantity > 5
-                            ? "bg-amber-50 text-amber-600"
-                            : "bg-red-50 text-red-600",
-                      )}
-                    >
-                      {drug.stockQuantity} in stock
                     </div>
                   </button>
                 ))}

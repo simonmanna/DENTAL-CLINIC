@@ -233,14 +233,6 @@ export const billingApi = {
     }
   ) => api.post<Invoice>(`/billing/invoices/${invoiceId}/encounter-items`, data).then(r => r.data),
 
-  /** Close a fully-paid invoice */
-  closeInvoice: (id: string) =>
-    api.patch<Invoice>(`/billing/invoices/${id}/close`).then(r => r.data),
-
-  /** Void an invoice via the lifecycle endpoint (same comprehensive logic as voidInvoice) */
-  voidInvoiceLifecycle: (id: string, reason: string, voidedBy?: string) =>
-    api.patch<Invoice>(`/billing/invoices/${id}/void-new`, { reason, voidedBy }).then(r => r.data),
-
   /** Remove an encounter item from an invoice (recalculates totals automatically) */
   removeInvoiceItem: (invoiceId: string, itemId: string) =>
     api.delete<Invoice>(`/billing/invoices/${invoiceId}/items/${itemId}`).then(r => r.data),

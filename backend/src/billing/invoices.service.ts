@@ -554,6 +554,18 @@ export class InvoicesService {
     const invoice = await this.assertEditable(invoiceId);
     const expectedVersion = invoice.version;
 
+    // Guard: reject nonsense values even if a caller bypasses the DTO layer —
+    // a negative line would silently reduce the invoice total.
+    if (!Number.isInteger(item.quantity) || item.quantity < 1) {
+      throw new BadRequestException('Item quantity must be a positive integer');
+    }
+    if (item.unitPrice < 0) {
+      throw new BadRequestException('Item unit price cannot be negative');
+    }
+    if ((item.discount ?? 0) < 0) {
+      throw new BadRequestException('Item discount cannot be negative');
+    }
+
     // ── Money inputs → Decimal immediately ────────────────────────────────
     const qty = M.of(item.quantity);
     const unitPriceMoney = M.of(item.unitPrice);
@@ -564,6 +576,11 @@ export class InvoicesService {
     const originalUnitPrice = unitPriceMoney;
     const originalSubtotal = M.mul(qty, unitPriceMoney);
     const originalTotal = M.money(M.sub(originalSubtotal, discount));
+    if (M.gt(discount, originalSubtotal)) {
+      throw new BadRequestException(
+        'Item discount cannot exceed the line subtotal',
+      );
+    }
 
     // Projected into the invoice currency for the charged columns.
     let finalUnitPrice: Money = unitPriceMoney;

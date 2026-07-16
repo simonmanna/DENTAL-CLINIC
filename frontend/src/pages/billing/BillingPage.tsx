@@ -153,21 +153,17 @@ function derivePaymentStatus(
 
 import { api } from "@/lib/api/client";
 
-async function apiFetch(path: string, opts?: RequestInit) {
-  const token = localStorage.getItem("access_token");
-  const res = await fetch(`${api.defaults.baseURL}${path}`, {
-    ...opts,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...opts?.headers,
-    },
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `HTTP ${res.status}`);
+// Thin wrapper over the shared axios instance so this page gets the same
+// auth-header + 401-refresh interceptors as the rest of the app.
+async function apiFetch(path: string) {
+  try {
+    const { data } = await api.get(path);
+    return data;
+  } catch (err: any) {
+    throw new Error(
+      err?.response?.data?.message || err?.message || "Request failed",
+    );
   }
-  return res.json();
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

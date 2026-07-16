@@ -28,6 +28,12 @@ import {
   AddEncounterItemDto,
   ActivateInvoiceDto,
   VoidInvoiceDto,
+  AddInvoiceItemDto,
+  UpdateInvoiceMetaDto,
+  ChangeInvoiceCurrencyDto,
+  SetExchangeRateDto,
+  CreateLedgerFromServiceDto,
+  CreateLedgerFromPrescriptionItemDto,
 } from './dto/billing.dto';
 import {
   CreateBillingServiceDto,
@@ -51,6 +57,7 @@ const CAN_RECORD_PAYMENT = [
 const CAN_CREATE_INVOICE = [
   UserRole.SUPER_ADMIN,
   UserRole.ADMIN,
+  UserRole.DENTIST,
   UserRole.RECEPTIONIST,
 ];
 const CAN_CREATE_LEDGER = [
@@ -66,6 +73,7 @@ const CAN_CREATE_PRESCRIPTION_LEDGER = [
 const CAN_EDIT_INVOICE = [
   UserRole.SUPER_ADMIN,
   UserRole.ADMIN,
+  UserRole.DENTIST,
   UserRole.RECEPTIONIST,
 ];
 // C3: patient ledger / invoice / receipt reads expose financial PII. Gate them
@@ -126,9 +134,7 @@ export class BillingController {
   // Restrict to admins — anyone with auth could otherwise rig FX for refunds.
   @Post('currencies/rate')
   @Roles(...ADMIN_ONLY)
-  async setExchangeRate(
-    @Body() dto: { from: string; to: string; rate: number; source?: string },
-  ) {
+  async setExchangeRate(@Body() dto: SetExchangeRateDto) {
     await this.currency.setExchangeRate(dto.from, dto.to, dto.rate, dto.source);
     return { success: true, from: dto.from, to: dto.to, rate: dto.rate };
   }
@@ -273,15 +279,7 @@ export class BillingController {
   @Roles(...CAN_EDIT_INVOICE)
   addInvoiceItem(
     @Param('id') id: string,
-    @Body()
-    item: {
-      description: string;
-      quantity: number;
-      unitPrice: number;
-      discount?: number;
-      currency?: string;
-      exchangeRate?: number;
-    },
+    @Body() item: AddInvoiceItemDto,
     @CurrentUser('id') currentUserId: string | undefined,
   ) {
     return this.invoices.addItem(id, item, currentUserId);
@@ -346,26 +344,14 @@ export class BillingController {
 
   @Post('ledger/from-service')
   @Roles(...CAN_CREATE_LEDGER)
-  createLedgerEntryFromService(
-    @Body()
-    dto: {
-      patientId: string;
-      visitId?: string;
-      serviceId: string;
-      quantity?: number;
-      overridePrice?: number;
-      overrideCurrency?: string;
-      overrideRate?: number;
-      notes?: string;
-    },
-  ) {
+  createLedgerEntryFromService(@Body() dto: CreateLedgerFromServiceDto) {
     return this.ledger.createFromBillingService(dto);
   }
 
   @Post('ledger/from-prescription-item')
   @Roles(...CAN_CREATE_PRESCRIPTION_LEDGER)
   async createLedgerFromPrescriptionItem(
-    @Body() dto: { prescriptionItemId: string; currency?: string; exchangeRate?: number },
+    @Body() dto: CreateLedgerFromPrescriptionItemDto,
   ) {
     return this.ledger.createFromPrescriptionItem(
       dto.prescriptionItemId,
@@ -428,7 +414,7 @@ export class BillingController {
   @Roles(...CAN_EDIT_INVOICE)
   updateInvoiceMeta(
     @Param('id') id: string,
-    @Body() dto: { paymentTerms?: string; notes?: string },
+    @Body() dto: UpdateInvoiceMetaDto,
   ) {
     return this.invoices.updateMeta(id, dto);
   }
@@ -439,7 +425,7 @@ export class BillingController {
   @Roles(...ADMIN_ONLY)
   changeInvoiceCurrency(
     @Param('id') id: string,
-    @Body() dto: { currency: string },
+    @Body() dto: ChangeInvoiceCurrencyDto,
   ) {
     return this.invoices.changeCurrency(id, dto);
   }

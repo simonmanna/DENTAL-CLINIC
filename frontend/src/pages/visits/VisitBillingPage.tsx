@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { billingApi } from "@/lib/api/billing";
 import { useAuthStore } from "@/store/auth.store";
+import { usePermissions } from "@/hooks/usePermissions";
 import { ReceivedByPicker } from "@/components/billing/ReceivedByPicker";
 import type {
   BillingService,
@@ -1008,6 +1009,9 @@ export function VisitBillingPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuthStore();
+  // Void + currency-change are ADMIN_ONLY on the backend — hide them for
+  // everyone else instead of surfacing a 403 on click.
+  const { isAdmin } = usePermissions();
   const currentUserName = user?.staff
     ? `${user.staff.firstName} ${user.staff.lastName}`.trim()
     : (user?.email ?? undefined);
@@ -1279,11 +1283,6 @@ export function VisitBillingPage() {
       invoiceId: string;
       itemId: string;
     }) => billingApi.removeInvoiceItem(invoiceId, itemId),
-    onSuccess: () => invalidate(),
-  });
-
-  const closeMutation = useMutation({
-    mutationFn: (invoiceId: string) => billingApi.closeInvoice(invoiceId),
     onSuccess: () => invalidate(),
   });
 
@@ -1696,7 +1695,8 @@ export function VisitBillingPage() {
                     </button>
                   )}
                   <div className="flex items-center gap-2">
-                  {["DRAFT", "POSTED", "CLOSED"].includes(
+                  {isAdmin &&
+                    ["DRAFT", "POSTED", "CLOSED"].includes(
                     selectedInvoice.status,
                   ) && (
                     <button
@@ -1823,7 +1823,7 @@ export function VisitBillingPage() {
                     <p className="text-sm text-slate-600 w-32 shrink-0">
                       Currency
                     </p>
-                    {isEditable ? (
+                    {isEditable && isAdmin ? (
                       <div className="flex items-center gap-2">
                         <select
                           value={selectedInvoice.currency}

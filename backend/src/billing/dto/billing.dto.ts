@@ -9,6 +9,10 @@ import {
   IsEnum,
   IsDateString,
   IsBoolean,
+  IsInt,
+  IsNotEmpty,
+  IsPositive,
+  Min,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { InvoiceItemType } from '@prisma/client';
@@ -267,21 +271,25 @@ export class CreateDraftInvoiceDto {
 
 export class AddEncounterItemDto {
   @IsString()
+  @IsNotEmpty()
   description: string;
 
   @IsEnum(InvoiceItemType)
   itemType: InvoiceItemType;
 
-  @IsNumber()
+  @IsInt()
+  @Min(1)
   @Type(() => Number)
   quantity: number;
 
   @IsNumber()
+  @Min(0)
   @Type(() => Number)
   unitPrice: number;
 
   @IsOptional()
   @IsNumber()
+  @Min(0)
   @Type(() => Number)
   discount?: number;
 
@@ -291,6 +299,7 @@ export class AddEncounterItemDto {
 
   @IsOptional()
   @IsNumber()
+  @IsPositive()
   @Type(() => Number)
   exchangeRate?: number;
 
@@ -317,4 +326,128 @@ export class VoidInvoiceDto {
   @IsOptional()
   @IsString()
   voidedBy?: string;
+}
+
+export class AddInvoiceItemDto {
+  @IsString()
+  @IsNotEmpty()
+  description: string;
+
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  quantity: number;
+
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  unitPrice: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  discount?: number;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  @Type(() => Number)
+  exchangeRate?: number;
+}
+
+export class UpdateInvoiceMetaDto {
+  @IsOptional()
+  @IsString()
+  paymentTerms?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class ChangeInvoiceCurrencyDto {
+  @IsString()
+  @IsNotEmpty()
+  currency: string;
+}
+
+export class SetExchangeRateDto {
+  @IsString()
+  @IsNotEmpty()
+  from: string;
+
+  @IsString()
+  @IsNotEmpty()
+  to: string;
+
+  @IsNumber()
+  @IsPositive()
+  @Type(() => Number)
+  rate: number;
+
+  @IsOptional()
+  @IsString()
+  source?: string;
+}
+
+export class CreateLedgerFromServiceDto {
+  @IsString()
+  @IsNotEmpty()
+  patientId: string;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => (value === '' ? undefined : value))
+  visitId?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  serviceId: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  quantity?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  overridePrice?: number;
+
+  @IsOptional()
+  @IsString()
+  overrideCurrency?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  @Type(() => Number)
+  overrideRate?: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class CreateLedgerFromPrescriptionItemDto {
+  @IsString()
+  @IsNotEmpty()
+  prescriptionItemId: string;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  @Type(() => Number)
+  exchangeRate?: number;
 }

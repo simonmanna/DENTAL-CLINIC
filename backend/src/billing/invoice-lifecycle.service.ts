@@ -326,8 +326,8 @@ export class InvoiceLifecycleService {
     if (invoiceIsActive) {
       const baseAmt =
         tp.currency === baseCurrency
-          ? toNum(tp.totalPrice)
-          : toNum(tp.totalPrice) * rate;
+          ? M.of(tp.totalPrice)
+          : M.mul(M.of(tp.totalPrice), M.of(rate));
 
       // Resolve the procedure's mapped revenue account (→ category → default).
       const revenueAccountId =
@@ -357,7 +357,9 @@ export class InvoiceLifecycleService {
                   sourceId: tp.id,
                   quantity: tp.quantity,
                   pricePerUnit: toNum(tp.pricePerUnit),
-                  subtotalPrice: toNum(tp.pricePerUnit) * tp.quantity,
+                  subtotalPrice: M.money(
+                    M.mul(M.of(tp.pricePerUnit), M.of(tp.quantity)),
+                  ),
                   discountAmount: discount,
                   taxAmount: toNum(tp.taxAmount),
                   totalPrice: toNum(tp.totalPrice),
@@ -698,10 +700,10 @@ export class InvoiceLifecycleService {
       for (const item of activeItems) {
         const entryCurrency = item.originalCurrency ?? invoice.currency;
         const rate = toNum(item.exchangeRate ?? invoice.exchangeRate ?? 1);
-        const originalTotal = toNum(item.originalTotal ?? item.total);
+        const originalTotal = M.of(item.originalTotal ?? item.total);
         const baseAmt = entryCurrency === baseCurrency
           ? originalTotal
-          : originalTotal * rate;
+          : M.mul(originalTotal, M.of(rate));
 
         const baseAmtMoney = M.money(baseAmt);
         totalBaseRevenue = M.add(totalBaseRevenue, baseAmtMoney);
@@ -740,7 +742,9 @@ export class InvoiceLifecycleService {
                 sourceId: item.treatmentProcedureId ?? item.id,
                 quantity: item.quantity,
                 pricePerUnit: toNum(item.unitPrice),
-                subtotalPrice: toNum(item.unitPrice) * item.quantity,
+                subtotalPrice: M.money(
+                  M.mul(M.of(item.unitPrice), M.of(item.quantity)),
+                ),
                 discountAmount: toNum(item.discount ?? 0),
                 taxAmount: 0,
                 totalPrice: toNum(item.total),
@@ -1116,6 +1120,23 @@ export class InvoiceLifecycleService {
     const itemCurrency = dto.currency || invoice.currency;
     const discount = dto.discount ?? 0;
 
+    // Guard: mirror the DTO constraints in case a caller bypasses validation —
+    // a negative line would silently reduce the invoice total.
+    if (!Number.isInteger(dto.quantity) || dto.quantity < 1) {
+      throw new BadRequestException('Item quantity must be a positive integer');
+    }
+    if (dto.unitPrice < 0) {
+      throw new BadRequestException('Item unit price cannot be negative');
+    }
+    if (
+      discount < 0 ||
+      M.gt(M.of(discount), M.mul(M.of(dto.quantity), M.of(dto.unitPrice)))
+    ) {
+      throw new BadRequestException(
+        'Item discount must be between 0 and the line subtotal',
+      );
+    }
+
     // ── Currency model ────────────────────────────────────────────────────
     // We store every item against a lossless base-currency snapshot so the
     // invoice can be re-priced into any currency later (see changeCurrency):
@@ -1153,16 +1174,19 @@ export class InvoiceLifecycleService {
       itemCurrency === invoice.currency ? 1 : srcToBase * baseToInvoice;
 
     // Source-currency snapshot (exactly what the caller gave us).
-    const originalTotal = M.money(dto.quantity * dto.unitPrice - discount);
+    const originalTotal = M.money(
+      M.sub(M.mul(M.of(dto.quantity), M.of(dto.unitPrice)), M.of(discount)),
+    );
 
     // Projected into the invoice currency for the display/charged columns.
-    const unitPrice = M.money(dto.unitPrice * srcToInvoice);
-    const invDiscount = M.money(discount * srcToInvoice);
-    const itemTotal =
-      M.money(dto.quantity * toNum(unitPrice) - toNum(invDiscount));
+    const unitPrice = M.money(M.mul(M.of(dto.unitPrice), M.of(srcToInvoice)));
+    const invDiscount = M.money(M.mul(M.of(discount), M.of(srcToInvoice)));
+    const itemTotal = M.money(
+      M.sub(M.mul(M.of(dto.quantity), unitPrice), invDiscount),
+    );
 
     // Base-currency total (invariant, used for ledger + future re-pricing).
-    const baseTotal = M.money(toNum(originalTotal) * srcToBase);
+    const baseTotal = M.money(M.mul(originalTotal, M.of(srcToBase)));
 
     // Rate persisted on the item must be source→base for changeCurrency.
     const rate = srcToBase;

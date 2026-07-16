@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { receiptsApi, Receipt, ReceiptStats } from "@/lib/api/receipts";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { usePermissions } from "@/hooks/usePermissions";
 
 // Icons
 import {
@@ -1020,6 +1021,9 @@ function VoidReceiptDialog({
    ═════════════════════════════════════════════════════════════════ */
 export function ReceiptsPage() {
   const navigate = useNavigate();
+  // Voiding a receipt is ADMIN_ONLY on the backend — hide the buttons for
+  // everyone else instead of surfacing a 403 on click.
+  const { isAdmin } = usePermissions();
   // ── Filter state ──────────────────────────────────────────────────
   // `search` is the live text input; `debouncedSearch` is what actually
   // hits the API (250 ms debounce keeps typing responsive without spamming
@@ -1165,7 +1169,7 @@ export function ReceiptsPage() {
           onBack={() => setViewReceiptId(null)}
           onPrint={() => window.print()}
           onVoid={
-            detailReceipt && detailReceipt.status !== "VOID"
+            isAdmin && detailReceipt && detailReceipt.status !== "VOID"
               ? () => setVoidTarget(detailReceipt)
               : undefined
           }
@@ -1784,7 +1788,7 @@ export function ReceiptsPage() {
                             >
                               <Printer size={13} />
                             </button>
-                            {!isVoided && (
+                            {isAdmin && !isVoided && (
                               <button
                                 className="pur-action-btn void"
                                 title="Void Receipt"
