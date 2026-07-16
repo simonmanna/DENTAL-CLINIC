@@ -9,6 +9,8 @@ import {
   ChevronUp,
   Calendar,
   FileText,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import type {
   ProcedureSession,
@@ -88,6 +90,8 @@ interface Props {
   visitId: string;
   initialSessions: ProcedureSession[];
   onSessionUpdate?: () => void;
+  onSessionEdit?: (session: ProcedureSession) => void;
+  onSessionVoid?: (session: ProcedureSession) => void;
 }
 
 export function ProcedureSessionManager({
@@ -99,6 +103,8 @@ export function ProcedureSessionManager({
   readOnly,
   initialSessions,
   onSessionUpdate,
+  onSessionEdit,
+  onSessionVoid,
   visitId,
 }: Props) {
   const qc = useQueryClient();
@@ -257,42 +263,66 @@ export function ProcedureSessionManager({
                     {lm.label}
                   </span>
                 )}
-                {/* Actions */}
-                {!readOnly && (
-                  <div className="flex items-center gap-1 shrink-0">
-                    {/* Edit / record session — terminal sessions are corrected
-                        through the audited edit-session flow instead */}
-                    {!isTerminal && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          isEditing ? setEditingId(null) : startEdit(session)
-                        }
-                        className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600"
-                        title="Record session details"
-                      >
-                        <FileText className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                 {/* Actions */}
+                 {!readOnly && (
+                   <div className="flex items-center gap-1 shrink-0">
+                     {/* Edit / record session — terminal sessions are corrected
+                         through the audited edit-session flow instead */}
+                     {!isTerminal && (
+                       <button
+                         type="button"
+                         onClick={() =>
+                           isEditing ? setEditingId(null) : startEdit(session)
+                         }
+                         className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+                         title="Record session details"
+                       >
+                         <FileText className="w-3.5 h-3.5" />
+                       </button>
+                     )}
 
-                    {/* Expand notes */}
-                    {session.performedNotes && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setExpandedId(isExpanded ? null : session.id)
-                        }
-                        className="p-1.5 rounded hover:bg-slate-100 text-slate-400"
-                      >
-                        {isExpanded ? (
-                          <ChevronUp className="w-3.5 h-3.5" />
-                        ) : (
-                          <ChevronDown className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    )}
-                  </div>
-                )}
+                     {/* Edit session (external — e.g. from ProcedureDetailDialog) */}
+                     {onSessionEdit && (
+                       <button
+                         type="button"
+                         onClick={() => onSessionEdit(session)}
+                         className="p-1.5 rounded hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
+                         title="Edit session"
+                       >
+                         <Pencil className="w-3.5 h-3.5" />
+                       </button>
+                     )}
+
+                     {/* Delete / void session */}
+                     {onSessionVoid && session.status !== 'CANCELLED' && (
+                       <button
+                         type="button"
+                         onClick={() => onSessionVoid(session)}
+                         className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors"
+                         title="Delete session"
+                       >
+                         <Trash2 className="w-3.5 h-3.5" />
+                       </button>
+                     )}
+
+                     {/* Expand notes */}
+                     {session.performedNotes && (
+                       <button
+                         type="button"
+                         onClick={() =>
+                           setExpandedId(isExpanded ? null : session.id)
+                         }
+                         className="p-1.5 rounded hover:bg-slate-100 text-slate-400"
+                       >
+                         {isExpanded ? (
+                           <ChevronUp className="w-3.5 h-3.5" />
+                         ) : (
+                           <ChevronDown className="w-3.5 h-3.5" />
+                         )}
+                       </button>
+                     )}
+                   </div>
+                 )}
               </div>
 
               {/* Edit form */}

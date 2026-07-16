@@ -220,6 +220,12 @@ export interface ProcedureDetailDialogProps {
   readOnly?: boolean;
   onRefresh?: () => void;
   onProcedureUpdate?: (updatedProc: TreatmentProcedure) => void;
+  /** When set, opens the SessionEditDialog for this session as soon as the dialog opens */
+  pendingEditTarget?: ProcedureSession | null;
+  /** When set, opens the SessionVoidDialog for this session as soon as the dialog opens */
+  pendingVoidTarget?: ProcedureSession | null;
+  /** Called by the dialog once it has consumed the pending targets */
+  onPendingSessionActionsApplied?: () => void;
 }
 
 export function ProcedureDetailDialog({
@@ -230,7 +236,10 @@ export function ProcedureDetailDialog({
   activePlanId,
   readOnly,
   onRefresh,
-  onProcedureUpdate
+  onProcedureUpdate,
+  pendingEditTarget,
+  pendingVoidTarget,
+  onPendingSessionActionsApplied,
 }: ProcedureDetailDialogProps) {
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<'overview' | 'sessions' | 'materials' | 'chart'>('overview');
@@ -298,18 +307,33 @@ export function ProcedureDetailDialog({
     },
   });
 
-  useEffect(() => {
-    setProc(initialProc);
-    if (initialProc) {
-      const teeth = getToothNumbersFromTargets(initialProc.targets);
-      const surfaces = getSurfacesFromTargets(initialProc.targets);
-      setEditedTeeth(teeth);
-      setEditedSurfaces(surfaces);
-      setActiveTab('overview');
-      setEditingSession(null);
-      setEditMode(false);
-    }
-  }, [initialProc]);
+   useEffect(() => {
+     setProc(initialProc);
+     if (initialProc) {
+       const teeth = getToothNumbersFromTargets(initialProc.targets);
+       const surfaces = getSurfacesFromTargets(initialProc.targets);
+       setEditedTeeth(teeth);
+       setEditedSurfaces(surfaces);
+       setActiveTab('overview');
+       setEditingSession(null);
+       setEditMode(false);
+     }
+   }, [initialProc]);
+
+   // Apply externally-pushed edit/void targets (e.g. from ProcedureSessionManager
+   // buttons rendered in TreatmentPlanTab) once the dialog is open.
+   useEffect(() => {
+     if (!open || !proc) return;
+     if (pendingEditTarget) {
+       setEditTarget(pendingEditTarget);
+     }
+     if (pendingVoidTarget) {
+       setVoidTarget(pendingVoidTarget);
+     }
+     if ((pendingEditTarget || pendingVoidTarget) && onPendingSessionActionsApplied) {
+       onPendingSessionActionsApplied();
+     }
+   }, [open, proc?.id, pendingEditTarget?.id, pendingVoidTarget?.id]);
 
   if (!open || !proc) return null;
 

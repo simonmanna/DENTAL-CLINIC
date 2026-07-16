@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useRef,
 } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   BarChart,
   Bar,
@@ -23,6 +24,9 @@ import {
   LineChart,
   Line,
 } from "recharts";
+import {
+  Eye,
+} from "lucide-react";
 import {
   financialReportingApi,
   FinancialReportFilters,
@@ -556,7 +560,7 @@ function PieBreakdown({
 // COLUMN DEFINITIONS
 // ══════════════════════════════════════════════════════════════════════════════
 
-const INVOICE_COLUMNS: ColDef<InvoiceRow>[] = [
+const INVOICE_COLUMNS = (navigate: (to: string) => void): ColDef<InvoiceRow>[] => [
   {
     key: "invoiceNumber",
     label: "Invoice #",
@@ -664,9 +668,28 @@ const INVOICE_COLUMNS: ColDef<InvoiceRow>[] = [
     ),
     csv: (r) => fmtDate(r.createdAt),
   },
+  {
+    key: "_actions",
+    label: "Actions",
+    sortable: false,
+    render: (r) => (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          navigate(`/billing?invoiceId=${r.id}`);
+        }}
+        title="View invoice detail"
+        className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
+      >
+        <Eye className="w-4 h-4" />
+      </button>
+    ),
+    csv: () => "",
+  },
 ];
 
-const RECEIPT_COLUMNS: ColDef<ReceiptRow>[] = [
+const RECEIPT_COLUMNS = (navigate: (to: string) => void): ColDef<ReceiptRow>[] => [
   {
     key: "receiptNumber",
     label: "Receipt #",
@@ -828,6 +851,25 @@ const RECEIPT_COLUMNS: ColDef<ReceiptRow>[] = [
       </span>
     ),
     csv: (r) => fmtDateTime(r.generatedAt),
+  },
+  {
+    key: "_actions",
+    label: "Actions",
+    sortable: false,
+    render: (r) => (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          navigate(`/receipts/${r.id}`);
+        }}
+        title="View receipt detail"
+        className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
+      >
+        <Eye className="w-4 h-4" />
+      </button>
+    ),
+    csv: () => "",
   },
 ];
 
@@ -1092,6 +1134,7 @@ function FinancialReportsView({
   const [error, setError] = useState<string | null>(null);
   const [showCharts, setShowCharts] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   // Data state per tab
   const [invoiceData, setInvoiceData] = useState<any>({
@@ -1265,15 +1308,15 @@ const fetchReport = useCallback(async () => {
   const activeColumns: ColDef<any>[] = useMemo(() => {
     switch (activeTab) {
       case "invoices":
-        return INVOICE_COLUMNS;
+        return INVOICE_COLUMNS(navigate);
       case "receipts":
-        return RECEIPT_COLUMNS;
+        return RECEIPT_COLUMNS(navigate);
       case "payments":
         return PAYMENT_COLUMNS;
       case "expenses":
         return EXPENSE_COLUMNS;
     }
-  }, [activeTab]);
+  }, [activeTab, navigate]);
 
   const handleExportCSV = () => {
   const rows = Array.isArray(currentData.data) ? currentData.data : [];

@@ -590,6 +590,8 @@ interface ProcedureRowProps {
   onEditClick?: () => void;
   onCancelClick?: () => void;
   onDeleteClick?: (eligibility: ProcedureDeleteEligibility) => void;
+  onSessionEdit?: (proc: TreatmentProcedure, session: any) => void;
+  onSessionVoid?: (proc: TreatmentProcedure, session: any) => void;
 }
 
 function ProcedureRow({
@@ -613,6 +615,8 @@ function ProcedureRow({
   onEditClick,
   onCancelClick,
   onDeleteClick,
+  onSessionEdit,
+  onSessionVoid,
 }: ProcedureRowProps) {
   const [expanded, setExpanded] = useState(false);
   const toothNumbers = getToothNumbersFromTargets(proc.targets);
@@ -809,6 +813,8 @@ function ProcedureRow({
                   billingType={proc.billingType ?? "PAY_FULL"}
                   readOnly={readOnly}
                   visitId={visitId}
+                  onSessionEdit={onSessionEdit ? (session) => onSessionEdit(proc, session) : undefined}
+                  onSessionVoid={onSessionVoid ? (session) => onSessionVoid(proc, session) : undefined}
                   initialSessions={proc.sessions.map((s: any) => ({
                     id: s.id,
                     sessionNumber: s.sessionNumber,
@@ -862,6 +868,8 @@ interface VisitGroupSectionProps {
   onEditProc?: (proc: TreatmentProcedure) => void;
   onCancelProc?: (proc: TreatmentProcedure) => void;
   onDeleteProc?: (proc: TreatmentProcedure, eligibility: ProcedureDeleteEligibility) => void;
+  onSessionEdit?: (proc: TreatmentProcedure, session: any) => void;
+  onSessionVoid?: (proc: TreatmentProcedure, session: any) => void;
 }
 
 function VisitGroupSection({
@@ -881,6 +889,8 @@ function VisitGroupSection({
   onEditProc,
   onCancelProc,
   onDeleteProc,
+  onSessionEdit,
+  onSessionVoid,
 }: VisitGroupSectionProps) {
   const [expanded, setExpanded] = useState(true);
   const [localDragOver, setLocalDragOver] = useState<{
@@ -1120,6 +1130,8 @@ function VisitGroupSection({
                   onEditClick={onEditProc ? () => onEditProc(proc) : undefined}
                   onCancelClick={onCancelProc ? () => onCancelProc(proc) : undefined}
                   onDeleteClick={onDeleteProc ? (elig) => onDeleteProc(proc, elig) : undefined}
+                  onSessionEdit={onSessionEdit ? (session) => onSessionEdit(proc, session) : undefined}
+                  onSessionVoid={onSessionVoid ? (session) => onSessionVoid(proc, session) : undefined}
                 />
               ))}
               <tr
@@ -1231,6 +1243,10 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
   const [newPlanTitle, setNewPlanTitle] = useState("");
   const [detailDialogProc, setDetailDialogProc] =
     useState<TreatmentProcedure | null>(null);
+  const [pendingSessionEdit, setPendingSessionEdit] =
+    useState<ProcedureSession | null>(null);
+  const [pendingSessionVoid, setPendingSessionVoid] =
+    useState<ProcedureSession | null>(null);
   const [showSessionExecution, setShowSessionExecution] = useState(false);
   const [selectedProcedureForSession, setSelectedProcedureForSession] =
     useState<TreatmentProcedure | null>(null);
@@ -1256,6 +1272,18 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
   }>({ draggingItem: null, hoverVisitGroup: null });
 
   const handleOpenProcedureDetail = useCallback((proc: TreatmentProcedure) => {
+    setDetailDialogProc(proc);
+    setPendingSessionEdit(null);
+    setPendingSessionVoid(null);
+  }, []);
+
+  const handleSessionRowEdit = useCallback((proc: TreatmentProcedure, session: any) => {
+    setPendingSessionEdit(session);
+    setDetailDialogProc(proc);
+  }, []);
+
+  const handleSessionRowVoid = useCallback((proc: TreatmentProcedure, session: any) => {
+    setPendingSessionVoid(session);
     setDetailDialogProc(proc);
   }, []);
 
@@ -1889,10 +1917,12 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
                     activePlanId={activePlanId || undefined}
                     onExecuteClick={handleDirectExecution}
                     visitId={visitId}
-                    onEditProc={handleEditProc}
-                    onCancelProc={handleCancelProc}
-                    onDeleteProc={handleDeleteProc}
-                  />
+                     onEditProc={handleEditProc}
+                     onCancelProc={handleCancelProc}
+                     onDeleteProc={handleDeleteProc}
+                     onSessionEdit={handleSessionRowEdit}
+                     onSessionVoid={handleSessionRowVoid}
+                   />
                 ))
               )}
             </div>
@@ -1926,13 +1956,23 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
       <ProcedureDetailDialog
         open={!!detailDialogProc}
         proc={detailDialogProc}
-        onClose={() => setDetailDialogProc(null)}
+        onClose={() => {
+          setDetailDialogProc(null);
+          setPendingSessionEdit(null);
+          setPendingSessionVoid(null);
+        }}
         onContinueTreatment={handleContinueTreatment}
         activePlanId={activePlanId || undefined}
         readOnly={readOnly}
         onRefresh={() =>
           queryClient.invalidateQueries({ queryKey: ["tx-plan", activePlanId] })
         }
+        pendingEditTarget={pendingSessionEdit}
+        pendingVoidTarget={pendingSessionVoid}
+        onPendingSessionActionsApplied={() => {
+          setPendingSessionEdit(null);
+          setPendingSessionVoid(null);
+        }}
       />
 
       <SessionExecutionDialog

@@ -3,7 +3,7 @@
 // Full-table billing page — all detail, receipt, and payment in dialogs.
 
 import React, { useState, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   FileText,
@@ -1335,6 +1335,17 @@ function InvoiceRow({
 
 export function BillingPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // ── Auto-open invoice detail when ?invoiceId= is in the URL (e.g. from SalesReports) ──
+  useEffect(() => {
+    const invoiceIdFromUrl = searchParams.get("invoiceId");
+    if (invoiceIdFromUrl) {
+      setDetailInvoiceId(invoiceIdFromUrl);
+      // Clean the URL so it doesn't re-trigger on refresh
+      navigate("/billing", { replace: true });
+    }
+  }, [navigate, searchParams]);
 
   // ── Filter state (controlled, fed into the query key) ──────────────
   // searchInput is the raw input; `search` is the debounced value that
