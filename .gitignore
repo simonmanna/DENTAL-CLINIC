@@ -13,3 +13,10 @@ Thumbs.db
 .vscode/
 .idea/
 *.sublime-*
+
+# IDE / editor
+.claude/
+
+# Uploaded patient imaging — never commit medical data
+backend/uploads/imaging/
+uploads/

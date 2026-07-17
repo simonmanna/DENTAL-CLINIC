@@ -422,7 +422,7 @@ export class BillingController {
   // P0: changing invoice currency mid-flight retroactively rewrites every
   // amount — admin only.
   @Patch('invoices/:id/currency')
-  @Roles(...ADMIN_ONLY)
+  @Roles(...CAN_EDIT_INVOICE)
   changeInvoiceCurrency(
     @Param('id') id: string,
     @Body() dto: ChangeInvoiceCurrencyDto,

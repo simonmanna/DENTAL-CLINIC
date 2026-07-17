@@ -78,8 +78,10 @@ export class InvoiceLifecycleService {
   //     The clinic's base currency is NOT used unless the caller explicitly
   //     requests it (pass `baseCurrency` as `currency`).
   //
-  // `exchangeRate` is the source→base rate for the new invoice. For a
-  // UGX-denominated invoice this stays 1; for USD it is the current rate.
+  // `exchangeRate` is the base→invoice rate (1 baseCurrency = rate × invoice
+  // currency) — the same convention as createInvoice/changeCurrency in
+  // InvoicesService. For a UGX-denominated invoice this stays 1; for USD it is
+  // 1 / (USD→UGX rate).
 
   async getOrCreateDraft(
     patientId: string,
@@ -125,7 +127,7 @@ export class InvoiceLifecycleService {
           baseCurrency,
           // baseSubtotal / baseTotal / baseBalance are kept in the clinic base
           // currency. For a base-currency invoice, baseX === X. For a foreign
-          // currency invoice, baseX = X * rate.
+          // currency invoice, X = baseX * rate (rate is base→invoice).
           subtotal: 0,
           discountAmount: 0,
           taxPercent: 0,
@@ -198,6 +200,7 @@ export class InvoiceLifecycleService {
     },
     initialPaymentAmount?: number | null,
     initialPaymentCurrency?: string | null,
+    createdById?: string | null,
   ) {
     // ── 1. Resolve the invoice to use ────────────────────────────────────────
     let invoice: Awaited<ReturnType<typeof this.prisma.invoice.findFirst>>;
@@ -228,8 +231,7 @@ export class InvoiceLifecycleService {
       //      currency that draft is in (the line-item conversion is handled
       //      by `toInvoiceCcy` below).
       //   2. No existing DRAFT + partial payment → use the deposit currency
-      //      (initialPaymentCurrency) as the new invoice's main currency,
-      //      with rate 1 (the patient already chose to pay in this currency).
+      //      (initialPaymentCurrency) as the new invoice's main currency.
       //   3. No existing DRAFT + pay in full → use the procedure's currency.
       //   4. No deposit info available → fall back to the clinic base
       //      currency (UGX) for backward compatibility.
@@ -249,6 +251,9 @@ export class InvoiceLifecycleService {
         const baseCurrency = this.currency.getBaseCurrency();
         let newCurrency: string;
         let newRate: number;
+        // The stored invoice rate is always base→invoice (see getOrCreateDraft
+        // header) so downstream consumers (addEncounterItem, changeCurrency,
+        // the billing UI) can project base amounts with a plain multiply.
         if (
           initialPaymentAmount != null &&
           initialPaymentAmount > 0 &&
@@ -256,12 +261,20 @@ export class InvoiceLifecycleService {
         ) {
           // Partial: invoice currency = deposit currency.
           newCurrency = initialPaymentCurrency;
-          newRate = 1;
+          newRate = await this.currency.getExchangeRate(
+            baseCurrency,
+            newCurrency,
+          );
         } else if (tp.currency && tp.currency !== baseCurrency) {
           // Pay in full in a non-base currency: invoice currency = procedure
-          // currency, rate = the procedure's source→base rate.
+          // currency. tp.exchangeRate is the source→base snapshot, so invert
+          // it; fall back to the live rate if the snapshot is missing.
           newCurrency = tp.currency;
-          newRate = toNum(tp.exchangeRate ?? 1);
+          const tpRate = toNum(tp.exchangeRate ?? 0);
+          newRate =
+            tpRate > 0
+              ? 1 / tpRate
+              : await this.currency.getExchangeRate(baseCurrency, newCurrency);
         } else {
           // Base-currency procedure OR no deposit info: stay in base.
           newCurrency = baseCurrency;
@@ -272,6 +285,7 @@ export class InvoiceLifecycleService {
           visitId,
           treatmentPlanId,
           { currency: newCurrency, exchangeRate: newRate },
+          createdById,
         );
       }
     }
@@ -1146,13 +1160,14 @@ export class InvoiceLifecycleService {
     //
     // The caller supplies unitPrice + discount in `itemCurrency`. If it passes
     // `dto.exchangeRate`, we trust it as the source→base rate; otherwise we look
-    // it up. The base→invoice leg uses the invoice's own stored rate so the new
-    // item is priced at the same rate as the rest of the invoice.
+    // it up. The base→invoice leg always uses the live clinic rate: legacy
+    // invoices stored the header rate as 1 or inverted (source→base), and the
+    // Decimal(10,4) column can't hold a UGX→USD rate (1/3700 rounds to 0.0003,
+    // an 11% error), so the stored value is unusable for projection.
     const baseToInvoice =
       invoice.currency === baseCurrency
         ? 1
-        : toNum(invoice.exchangeRate) ||
-          (await this.currency.getExchangeRate(baseCurrency, invoice.currency));
+        : await this.currency.getExchangeRate(baseCurrency, invoice.currency);
 
     let srcToBase: number;
     if (itemCurrency === baseCurrency) {

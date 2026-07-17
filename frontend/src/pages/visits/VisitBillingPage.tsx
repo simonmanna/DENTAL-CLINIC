@@ -47,6 +47,7 @@ import type {
   ReceiptData,
 } from "@/types/billing";
 import { prescriptionsApi } from "../../services/pharmacyApi";
+import { UserRole } from "@/types/shared";
 
 // ─── Utils ────────────────────────────────────────────────────────────────────
 
@@ -1035,7 +1036,7 @@ export function VisitBillingPage() {
   const { user } = useAuthStore();
   // Void + currency-change are ADMIN_ONLY on the backend — hide them for
   // everyone else instead of surfacing a 403 on click.
-  const { isAdmin } = usePermissions();
+  const { isAdmin, userRole } = usePermissions();
   const currentUserName = user?.staff
     ? `${user.staff.firstName} ${user.staff.lastName}`.trim()
     : (user?.email ?? undefined);
@@ -1058,6 +1059,9 @@ export function VisitBillingPage() {
     description: string;
     quantity: number;
     unitPrice: number;
+    originalUnitPrice: number;
+    originalCurrency: string;
+    originalExchangeRate: number;
     discountPct: number;
   };
   const [draftRows, setDraftRows] = useState<DraftRow[]>([]);
@@ -1362,6 +1366,9 @@ export function VisitBillingPage() {
         description: "",
         quantity: 1,
         unitPrice: 0,
+        originalUnitPrice: 0,
+        originalCurrency: "",
+        originalExchangeRate: 1,
         discountPct: 0,
       },
     ]);
@@ -1379,28 +1386,52 @@ export function VisitBillingPage() {
 
   /**
    * Convert any price into the active invoice's currency.
-   * - svc.currency → base via svc.exchangeRate (or 1 if same)
-   * - base → invoice currency via selectedInvoice.exchangeRate
+   * - svc.currency → base via svc.exchangeRate (falling back to the live rate
+   *   when the service has none and is priced in the invoice currency)
+   * - base → invoice via the LIVE invoice→base rate (rateData; inputCurrency
+   *   is synced to the invoice currency). The stored invoice.exchangeRate is
+   *   not trusted for this leg: legacy invoices hold 1 or the inverted
+   *   (source→base) rate, and the Decimal(10,4) column can't represent
+   *   UGX→USD (1/3700) without an ~11% rounding error.
    */
   function convertToInvoiceCurrency(
     price: number,
     fromCurrency: string,
-    fromRate?: number, // rate from fromCurrency to base
+    fromRate?: number | null, // rate from fromCurrency to base
   ): number {
     if (!selectedInvoice) return price;
-    const invRate = Number(selectedInvoice.exchangeRate ?? 1) || 1;
     const base = selectedInvoice.baseCurrency ?? BASE_CURRENCY;
     const priceInBase =
-      fromCurrency === base ? price : price * (Number(fromRate ?? 1) || 1);
-    return Math.round(priceInBase * invRate * 100) / 100;
+      fromCurrency === base
+        ? price
+        : price *
+          (Number(fromRate) ||
+            (fromCurrency === inputCurrency ? currentExchangeRate : 1));
+    if (selectedInvoice.currency === base) {
+      return Math.round(priceInBase * 100) / 100;
+    }
+    const liveInvToBase = Number(rateData?.rate);
+    const storedBaseToInv = Number(selectedInvoice.exchangeRate);
+    // While the live rate loads, accept the stored header rate only when it
+    // looks like a genuine base→invoice rate (a foreign-currency rate against
+    // UGX is always < 1); legacy rows holding 1 or the inverted rate fall
+    // through to no conversion rather than showing a wild number.
+    const baseToInv =
+      liveInvToBase > 0
+        ? 1 / liveInvToBase
+        : storedBaseToInv > 0 && storedBaseToInv < 1
+          ? storedBaseToInv
+          : 1;
+    return Math.round(priceInBase * baseToInv * 100) / 100;
   }
 
   function onDraftServicePick(tempId: string, serviceId: string) {
     const svc = activeServices.find((s) => s.id === serviceId);
     if (!svc) {
-      updateDraftRow(tempId, { serviceId: "", description: "", unitPrice: 0 });
+      updateDraftRow(tempId, { serviceId: "", description: "", unitPrice: 0, originalUnitPrice: 0, originalCurrency: "", originalExchangeRate: 1 });
       return;
     }
+    if (!selectedInvoice) return;
     const priceInInvoiceCurrency = convertToInvoiceCurrency(
       Number(svc.price) || 0,
       svc.currency,
@@ -1410,6 +1441,9 @@ export function VisitBillingPage() {
       serviceId,
       description: svc.name,
       unitPrice: priceInInvoiceCurrency,
+      originalUnitPrice: Number(svc.price),
+      originalCurrency: svc.currency,
+      originalExchangeRate: svc.exchangeRate ?? 1,
     });
   }
 
@@ -1426,16 +1460,36 @@ export function VisitBillingPage() {
     }
     setSavingDraftId(draft.tempId);
     try {
-      const lineSubtotal = Number(draft.quantity) * Number(draft.unitPrice);
+      let finalUnitPrice = draft.originalUnitPrice ?? Number(svc.price);
+      const finalCurrency = draft.originalCurrency || svc.currency;
+      const finalRate = draft.originalExchangeRate ?? svc.exchangeRate ?? 1;
+
+      if (svc) {
+        const svcDisplay = convertToInvoiceCurrency(
+          Number(svc.price),
+          svc.currency,
+          svc.exchangeRate,
+        );
+        if (
+          draft.originalUnitPrice != null &&
+          Math.abs(Number(draft.unitPrice) - svcDisplay) > 0.005
+        ) {
+          const safeDisplay = svcDisplay || 1;
+          const ratio = Number(draft.unitPrice) / safeDisplay;
+          finalUnitPrice = Math.round(draft.originalUnitPrice * ratio * 100) / 100;
+        }
+      }
+
+      const lineSubtotal = Number(draft.quantity) * finalUnitPrice;
       const discountAmount =
         (lineSubtotal * Number(draft.discountPct || 0)) / 100;
-      // unitPrice is already in invoice currency (we converted on pick + user may
-      // have edited it), so don't pass currency/exchangeRate overrides.
       await billingApi.addEncounterItem(selectedInvoice.id, {
         description: svc.name,
         itemType: ITEM_TYPE_MAP[svc.type] ?? "MANUAL",
         quantity: Number(draft.quantity),
-        unitPrice: Number(draft.unitPrice),
+        unitPrice: finalUnitPrice,
+        currency: finalCurrency,
+        exchangeRate: finalRate,
         discount: discountAmount > 0 ? discountAmount : undefined,
         notes: svc.serviceCode ?? undefined,
       });
@@ -1847,7 +1901,7 @@ export function VisitBillingPage() {
                     <p className="text-sm text-slate-600 w-32 shrink-0">
                       Currency
                     </p>
-                    {isEditable && isAdmin ? (
+                    {isEditable && (isAdmin || userRole === UserRole.DENTIST || userRole === UserRole.RECEPTIONIST) ? (
                       <div className="flex items-center gap-2">
                         <select
                           value={selectedInvoice.currency}

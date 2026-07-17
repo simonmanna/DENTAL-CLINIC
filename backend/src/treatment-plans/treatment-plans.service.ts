@@ -947,6 +947,7 @@ export class TreatmentPlansService {
             patientId: plan.patientId,
             visitId: dto.visitId ?? null,
             planId,
+            createdById: actorUserId ?? null,
             initialPaymentAmount: (dto as any).initialPaymentAmount ?? null,
             initialPaymentCurrency: (dto as any).initialPaymentCurrency ?? null,
             tp: {
@@ -1041,6 +1042,7 @@ export class TreatmentPlansService {
       patientId: string;
       visitId: string | null;
       planId: string;
+      createdById?: string | null;
       initialPaymentAmount?: number | null;
       initialPaymentCurrency?: string | null;
       tp: {
@@ -1068,6 +1070,7 @@ export class TreatmentPlansService {
           params.tp,
           params.initialPaymentAmount ?? null,
           params.initialPaymentCurrency ?? null,
+          params.createdById ?? null,
         );
         if (attempt > 1) {
           this.logger.log(

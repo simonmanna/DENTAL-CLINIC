@@ -4,9 +4,11 @@
 //   • If a DRAFT already exists for the visit/plan → reuse it, never change
 //     its currency (first caller's choice wins).
 //   • If no DRAFT + partial payment (deposit provided) → new invoice currency
-//     = the deposit currency (initialPaymentCurrency), rate = 1.
+//     = the deposit currency (initialPaymentCurrency), rate = the live
+//     base→deposit rate.
 //   • If no DRAFT + pay in full + non-base procedure → new invoice currency
-//     = the procedure currency, rate = procedure's source→base rate.
+//     = the procedure currency, rate = inverse of the procedure's source→base
+//     snapshot (the stored invoice rate is always base→invoice).
 //   • If no DRAFT + base-currency procedure OR no deposit info → fall back
 //     to the clinic base currency (UGX), rate = 1.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -32,6 +34,14 @@ function makeService() {
     from: 'USD',
     to: 'UGX',
   }));
+  // Live rate: 1 USD = 3700 UGX (both directions)
+  (currency.getExchangeRate as jest.Mock).mockImplementation(
+    async (from: string, to: string) => {
+      if (from === to) return 1;
+      if (from === 'USD' && to === 'UGX') return 3700;
+      return 1 / 3700;
+    },
+  );
 
   // Default doc number — just resolve to a fixed string
   (docNum.next as jest.Mock).mockImplementation(async (prefix: string) => {
@@ -165,10 +175,11 @@ describe('InvoiceLifecycleService — Adding Procedure spec: invoice currency', 
         'USD', // partial currency
       );
 
-      // The new invoice must be in USD (deposit currency), rate 1.
+      // The new invoice must be in USD (deposit currency), rate = live
+      // base→invoice (UGX→USD).
       const createArg = prisma.invoice.create.mock.calls[0][0];
       expect(createArg.data.currency).toBe('USD');
-      expect(Number(createArg.data.exchangeRate)).toBe(1);
+      expect(Number(createArg.data.exchangeRate)).toBeCloseTo(1 / 3700, 8);
       // Deposit fields written
       const updateArg = prisma.invoice.update.mock.calls[0][0];
       expect(updateArg.data.initialPaymentAmount).toBe(50);
@@ -203,7 +214,8 @@ describe('InvoiceLifecycleService — Adding Procedure spec: invoice currency', 
 
       const createArg = prisma.invoice.create.mock.calls[0][0];
       expect(createArg.data.currency).toBe('USD');
-      expect(Number(createArg.data.exchangeRate)).toBe(3700);
+      // Inverse of the procedure's source→base snapshot (3700).
+      expect(Number(createArg.data.exchangeRate)).toBeCloseTo(1 / 3700, 8);
     });
 
     it('falls back to base currency for a base-currency procedure paying in full', async () => {

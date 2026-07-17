@@ -768,7 +768,10 @@ function ProcedureRow({
             <button
               type="button"
               onClick={onExecuteClick}
-              className="p-1 rounded bg-sky-50 text-sky-600 hover:bg-sky-100 transition-colors"
+              className={cn(
+                "p-1 rounded bg-sky-50 text-sky-600 hover:bg-sky-100 transition-colors",
+                proc.status === "COMPLETED" && "opacity-50"
+              )}
               title="Execute Procedure"
               disabled={
                 proc.status === "COMPLETED" ||

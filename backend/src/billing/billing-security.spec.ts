@@ -13,7 +13,7 @@ const rolesOf = (target: any, method: string): UserRole[] =>
 
 describe('Billing RBAC (C2/C3 regression guards)', () => {
   describe('money-OUT actions are admin-only', () => {
-    it.each(['refundPayment', 'voidInvoice', 'changeInvoiceCurrency'])(
+    it.each(['refundPayment', 'voidInvoice'])(
       'BillingController.%s requires only SUPER_ADMIN/ADMIN',
       (m) => {
         expect([...rolesOf(BillingController, m)].sort()).toEqual(
@@ -21,6 +21,12 @@ describe('Billing RBAC (C2/C3 regression guards)', () => {
         );
       },
     );
+
+    it('BillingController.changeInvoiceCurrency allows billing-capable roles', () => {
+      expect([...rolesOf(BillingController, 'changeInvoiceCurrency')].sort()).toEqual(
+        [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DENTIST, UserRole.RECEPTIONIST].sort(),
+      );
+    });
 
     it('ReceiptsController.voidReceipt is admin-only', () => {
       expect([...rolesOf(ReceiptsController, 'voidReceipt')].sort()).toEqual(
