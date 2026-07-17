@@ -74,8 +74,11 @@ import { BackupModule } from './backup/backup.module';
       rootPath: join(__dirname, '..', 'uploads'), // Path to your uploads folder
       serveRoot: '/uploads', // The URL prefix
       serveStaticOptions: {
-        setHeaders: (res) => {
-          res.set('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || 'http://localhost:5173');
+        setHeaders: (res: import('express').Response) => {
+          res.set(
+            'Access-Control-Allow-Origin',
+            process.env.CORS_ORIGIN || 'http://localhost:5173',
+          );
         },
       },
     }),

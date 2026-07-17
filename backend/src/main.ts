@@ -2,7 +2,6 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { join } from 'path';
 import helmet from 'helmet';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
@@ -41,4 +40,7 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`Backend running on http://localhost:${port}`);
 }
-bootstrap();
+bootstrap().catch((err) => {
+  console.error('Failed to bootstrap application', err);
+  process.exit(1);
+});
