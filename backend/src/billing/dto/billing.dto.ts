@@ -370,6 +370,19 @@ export class UpdateInvoiceMetaDto {
   notes?: string;
 }
 
+export class SetInvoiceDiscountDto {
+  @IsEnum(['PERCENT', 'FIXED'] as const)
+  discountType: 'PERCENT' | 'FIXED';
+
+  // 0 clears the discount (discountType is then reset to null server-side).
+  // PERCENT <= 100 and FIXED <= subtotal are enforced in the service, which
+  // has the invoice row; ValidateIf would disable IsNumber/Min for FIXED.
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  discountValue: number;
+}
+
 export class ChangeInvoiceCurrencyDto {
   @IsString()
   @IsNotEmpty()

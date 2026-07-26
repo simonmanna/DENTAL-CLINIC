@@ -245,4 +245,11 @@ export const billingApi = {
    *  reconverted on the backend; base-currency snapshots are preserved. */
   changeInvoiceCurrency: (id: string, currency: string) =>
     api.patch<Invoice>(`/billing/invoices/${id}/currency`, { currency }).then(r => r.data),
+
+  /** Set/clear the invoice-level (additional) discount on a DRAFT invoice.
+   *  discountValue 0 clears. FIXED value is in the invoice currency. */
+  setInvoiceDiscount: (
+    id: string,
+    data: { discountType: 'PERCENT' | 'FIXED'; discountValue: number }
+  ) => api.patch<Invoice>(`/billing/invoices/${id}/discount`, data).then(r => r.data),
 };

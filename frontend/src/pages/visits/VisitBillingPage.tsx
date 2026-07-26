@@ -31,6 +31,7 @@ import {
   Trash2,
   Save,
   Eye,
+  Pencil,
 } from "lucide-react";
 import { billingApi } from "@/lib/api/billing";
 import { useAuthStore } from "@/store/auth.store";
@@ -787,8 +788,11 @@ function InvoiceDocument({ data }: { data: ReceiptData }) {
     0,
   );
   const displaySubtotal = computedSubtotal || Number(invoice?.subtotal) || 0;
+  // Item discounts are netted into invoice.subtotal server-side, while
+  // invoice.discountAmount holds only the invoice-level discount — the printed
+  // Discount line must show both so Subtotal − Discount reconciles with TOTAL.
   const displayDiscount =
-    computedDiscount || Number(invoice?.discountAmount) || 0;
+    computedDiscount + (Number(invoice?.discountAmount) || 0);
 
   return (
     <div className="text-sm text-slate-800">
@@ -1052,6 +1056,13 @@ export function VisitBillingPage() {
     null,
   );
 
+  // Invoice-level (additional) discount editor
+  const [discountEditorOpen, setDiscountEditorOpen] = useState(false);
+  const [discountTypeInput, setDiscountTypeInput] = useState<
+    "PERCENT" | "FIXED"
+  >("PERCENT");
+  const [discountValueInput, setDiscountValueInput] = useState<string>("");
+
   // Inline draft rows (Odoo-style)
   type DraftRow = {
     tempId: string;
@@ -1184,6 +1195,14 @@ export function VisitBillingPage() {
   const isEditable =
     selectedInvoice &&
     ["DRAFT", "POSTED", "CLOSED"].includes(selectedInvoice.status);
+  // Invoice-level discount is DRAFT-only (GL is posted at activation), so this
+  // deliberately does NOT reuse isEditable. Role set mirrors the backend's
+  // CAN_CREATE_INVOICE gate on PATCH /invoices/:id/discount.
+  const canSetDiscount =
+    selectedInvoice?.status === "DRAFT" &&
+    (isAdmin ||
+      userRole === UserRole.DENTIST ||
+      userRole === UserRole.RECEPTIONIST);
   const displayStatus = selectedInvoice
     ? getDisplayStatus(selectedInvoice.status)
     : null;
@@ -1235,6 +1254,22 @@ export function VisitBillingPage() {
       setNotesSynced(true);
     }
   }, [selectedInvoice?.id, selectedInvoice?.notes]);
+
+  // Seed the discount editor from the selected invoice
+  React.useEffect(() => {
+    if (selectedInvoice) {
+      setDiscountTypeInput(
+        selectedInvoice.discountType === "FIXED" ? "FIXED" : "PERCENT",
+      );
+      setDiscountValueInput(
+        Number(selectedInvoice.discountValue ?? 0) > 0
+          ? String(Number(selectedInvoice.discountValue))
+          : "",
+      );
+      setDiscountEditorOpen(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedInvoice?.id]);
 
   // ── Mutations ─────────────────────────────────────────────────────────────
 
@@ -1338,6 +1373,76 @@ export function VisitBillingPage() {
       setToastError(msg);
     },
   });
+
+  // Invoice-level (additional) discount — DRAFT only, on top of item discounts
+  const setDiscountMutation = useMutation({
+    mutationFn: ({
+      id,
+      discountType,
+      discountValue,
+    }: {
+      id: string;
+      discountType: "PERCENT" | "FIXED";
+      discountValue: number;
+    }) => billingApi.setInvoiceDiscount(id, { discountType, discountValue }),
+    onSuccess: (_data, vars) => {
+      invalidate();
+      setDiscountEditorOpen(false);
+      setToastSuccess(
+        vars.discountValue > 0 ? "Discount applied" : "Discount removed",
+      );
+    },
+    onError: (err: any) => {
+      if (err?.response?.status === 409) {
+        invalidate();
+        setToastError(
+          "Invoice was modified by another user — reloaded, please try again",
+        );
+        return;
+      }
+      setToastError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to update discount",
+      );
+    },
+  });
+
+  function applyInvoiceDiscount() {
+    if (!selectedInvoice) return;
+    const value = Number(discountValueInput);
+    if (!Number.isFinite(value) || value < 0) {
+      setToastError("Enter a valid discount value");
+      return;
+    }
+    // Mirror the server checks so obvious mistakes fail before the round-trip
+    const subtotal = Number(selectedInvoice.subtotal ?? 0);
+    const taxPercent = Number(selectedInvoice.taxPercent ?? 0);
+    const amountPaid = Number(selectedInvoice.amountPaid ?? 0);
+    if (discountTypeInput === "PERCENT" && value > 100) {
+      setToastError("Percentage discount cannot exceed 100%");
+      return;
+    }
+    const discountAmount =
+      discountTypeInput === "PERCENT" ? (subtotal * value) / 100 : value;
+    if (discountTypeInput === "FIXED" && discountAmount > subtotal) {
+      setToastError("Fixed discount cannot exceed the invoice subtotal");
+      return;
+    }
+    const taxable = subtotal - discountAmount;
+    const newTotal = taxable + (taxable * taxPercent) / 100;
+    if (newTotal < amountPaid) {
+      setToastError(
+        `Discount would reduce the total below the amount already paid (${fmt(amountPaid, selectedInvoice.currency)})`,
+      );
+      return;
+    }
+    setDiscountMutation.mutate({
+      id: selectedInvoice.id,
+      discountType: discountTypeInput,
+      discountValue: value,
+    });
+  }
 
   // ── Inline draft-row helpers (Odoo-style) ────────────────────────────────
 
@@ -2445,16 +2550,122 @@ export function VisitBillingPage() {
             {/* ── TOTALS ──────────────────────────────────────────────── */}
             <div className="px-7 py-5 flex justify-end border-t border-slate-100 mt-5">
               <div className="w-72 space-y-1.5 text-sm">
-                {Number(selectedInvoice.discountAmount ?? 0) > 0 && (
-                  <div className="flex justify-between text-red-500">
-                    <span>Discount:</span>
+                {(Number(selectedInvoice.discountAmount ?? 0) > 0 ||
+                  canSetDiscount) && (
+                  <div className="flex justify-between text-slate-600">
+                    <span>Subtotal:</span>
                     <span>
-                      -
                       {formatCurrency(
-                        Number(selectedInvoice.discountAmount),
+                        Number(selectedInvoice.subtotal ?? 0),
                         selectedInvoice.currency,
                       )}
                     </span>
+                  </div>
+                )}
+                {(Number(selectedInvoice.discountAmount ?? 0) > 0 ||
+                  canSetDiscount) && (
+                  <div>
+                    <div className="flex justify-between items-center text-red-500">
+                      <span className="flex items-center gap-1.5">
+                        Additional discount:
+                        {selectedInvoice.discountType === "PERCENT" &&
+                          Number(selectedInvoice.discountValue ?? 0) > 0 && (
+                            <span className="text-xs text-red-400">
+                              ({Number(selectedInvoice.discountValue)}%)
+                            </span>
+                          )}
+                        {canSetDiscount && (
+                          <button
+                            type="button"
+                            onClick={() => setDiscountEditorOpen((o) => !o)}
+                            className="text-slate-400 hover:text-slate-600"
+                            title="Edit additional discount"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </span>
+                      <span>
+                        -
+                        {formatCurrency(
+                          Number(selectedInvoice.discountAmount ?? 0),
+                          selectedInvoice.currency,
+                        )}
+                      </span>
+                    </div>
+                    {canSetDiscount && discountEditorOpen && (
+                      <div className="mt-1.5 mb-1 flex items-center justify-end gap-1.5">
+                        <select
+                          value={discountTypeInput}
+                          onChange={(e) =>
+                            setDiscountTypeInput(
+                              e.target.value as "PERCENT" | "FIXED",
+                            )
+                          }
+                          disabled={setDiscountMutation.isPending}
+                          className="border border-slate-200 rounded px-1.5 py-1 text-xs bg-white text-slate-700"
+                        >
+                          <option value="PERCENT">%</option>
+                          <option value="FIXED">
+                            {selectedInvoice.currency}
+                          </option>
+                        </select>
+                        <input
+                          type="number"
+                          min={0}
+                          max={
+                            discountTypeInput === "PERCENT" ? 100 : undefined
+                          }
+                          step="any"
+                          value={discountValueInput}
+                          onChange={(e) =>
+                            setDiscountValueInput(e.target.value)
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") applyInvoiceDiscount();
+                          }}
+                          disabled={setDiscountMutation.isPending}
+                          placeholder="0"
+                          className="w-24 border border-slate-200 rounded px-2 py-1 text-xs text-right text-slate-700"
+                        />
+                        <button
+                          type="button"
+                          onClick={applyInvoiceDiscount}
+                          disabled={setDiscountMutation.isPending}
+                          className="px-2 py-1 rounded bg-slate-800 text-white text-xs hover:bg-slate-700 disabled:opacity-50 inline-flex items-center gap-1"
+                        >
+                          {setDiscountMutation.isPending && (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          )}
+                          Apply
+                        </button>
+                        {Number(selectedInvoice.discountAmount ?? 0) > 0 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setDiscountMutation.mutate({
+                                id: selectedInvoice.id,
+                                discountType: discountTypeInput,
+                                discountValue: 0,
+                              })
+                            }
+                            disabled={setDiscountMutation.isPending}
+                            className="px-2 py-1 rounded border border-slate-200 text-slate-600 text-xs hover:bg-slate-50 disabled:opacity-50"
+                          >
+                            Clear
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setDiscountEditorOpen(false)}
+                          disabled={setDiscountMutation.isPending}
+                          className="p-1 rounded text-slate-400 hover:text-slate-600"
+                          title="Cancel"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
                 {Number(selectedInvoice.taxAmount ?? 0) > 0 && (

@@ -31,6 +31,7 @@ import {
   AddInvoiceItemDto,
   UpdateInvoiceMetaDto,
   ChangeInvoiceCurrencyDto,
+  SetInvoiceDiscountDto,
   SetExchangeRateDto,
   CreateLedgerFromServiceDto,
   CreateLedgerFromPrescriptionItemDto,
@@ -428,5 +429,18 @@ export class BillingController {
     @Body() dto: ChangeInvoiceCurrencyDto,
   ) {
     return this.invoices.changeCurrency(id, dto);
+  }
+
+  // Invoice-level "additional" discount on top of per-item discounts.
+  // DRAFT only (enforced in the service — GL entries are written at posting,
+  // so the discount must be final before activation). discountValue 0 clears.
+  @Patch('invoices/:id/discount')
+  @Roles(...CAN_CREATE_INVOICE)
+  setInvoiceDiscount(
+    @Param('id') id: string,
+    @Body() dto: SetInvoiceDiscountDto,
+    @CurrentUser('id') currentUserId: string | undefined,
+  ) {
+    return this.lifecycle.setInvoiceDiscount(id, dto, currentUserId);
   }
 }

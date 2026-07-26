@@ -19,11 +19,13 @@
 2. [Section 2: Dentist Guide](#section-2-dentist-guide)
    - 2.1 Starting a Visit
    - 2.2 Clinical Notes (SOAP)
-   - 2.3 Vital Signs
-   - 2.4 Procedures
-   - 2.5 Prescriptions
-   - 2.6 Imaging & Lab Orders
-   - 2.7 Completing a Visit
+    - 2.3 Vital Signs
+    - 2.4 Conditions & Diagnoses
+    - 2.5 Treatment Plans & Procedures
+    - 2.6 Treatment Sessions
+    - 2.7 Prescriptions
+    - 2.8 Imaging & Lab Orders
+    - 2.9 Completing a Visit
 
 3. [Section 3: Manager Guide](#section-3-manager-guide)
    - 3.1 Dashboard Overview
@@ -341,46 +343,437 @@ Values outside normal ranges are flagged visually. All vitals auto-save when ent
 
 ---
 
-## 2.4 Procedures
+## 2.4 Conditions & Diagnoses
 
-**Tab:** **Treatment Plans** or add directly from the visit dashboard.
-
-### Adding a Procedure
-
-1. Search the **procedure catalog** (or browse by category)
-2. Select the procedure (e.g., "Composite Filling — Posterior")
-3. Assign **tooth numbers** (FDI notation) if applicable
-4. Assign **surfaces** (Mesial, Occlusal, Distal, Buccal, Lingual) if applicable
-5. The system calculates the cost based on the pricing model (Fixed / Per Tooth / Per Arch / Per Session)
-6. Click **Add** to attach to the visit
-
-### Procedure pricing models
-
-| Model | Description |
-|---|---|
-| Fixed | One price per procedure regardless of quantity |
-| Per Tooth | Price × number of teeth |
-| Per Arch | Price per dental arch |
-| Per Session | Price per treatment session |
-| Per Bracket | Price per orthodontic bracket |
-| Per Unit | Price per unit quantity |
-
-### Procedure Categories
-
-Consultation, Procedure, Diagnostic, Medication, Therapy, Surgical, Preventive, Administrative, Other
-
-### Tooth Chart (Dental Chart tab)
-
-The interactive dental chart (odontogram) uses FDI numbering. Each tooth can be marked with:
-
-- **Conditions:** Decayed, Missing, Filled, etc.
-- **Status colours:** Healthy (green), Decayed (red), Filled (blue), Missing (grey), Treated (purple), Crown (amber), Implant (cyan)
-
-Click a tooth to add chart entries (condition, existing work, planned treatment, completed procedure).
+Conditions and diagnoses are managed through the **Dental Chart** (odontogram) during a patient visit. Each condition is tied to a specific tooth and surfaces, and is colour-coded in **amber** on the chart.
 
 ---
 
-## 2.5 Prescriptions
+### 2.4.1 Adding a Condition
+
+**Navigation:** Visit → **Dental Chart** tab → select tooth/teeth → click **"+ Condition"** in toolbar
+
+The **"Add Condition"** dialog has two panels:
+
+**Left panel — Condition Catalog:**
+- Search by name or browse categories (Caries, Periodontal, Pulpal, Fracture, etc.)
+- Each condition may have associated ICD-10, SNODENT, or SNOMED CT codes
+- Click a condition to select it
+
+**Right panel — Details:**
+| Field | Details |
+|---|---|
+| Date | Defaults to today |
+| Provider | Auto-filled with your name (dentist dropdown) |
+| Status | Active / Monitored / In Treatment / Resolved / Ruled Out |
+| Severity | Mild / Moderate / Severe |
+| Surfaces | Visual radial picker — click the tooth surfaces affected |
+| Notes | Free-text clinical notes |
+
+**Multi-tooth support:** When multiple teeth are selected, choose:
+- **"Same condition to all teeth"** — applies identical condition to every selected tooth
+- **"One entry per tooth"** — allows different surfaces/notes per tooth
+
+Click **"Save Condition"** → the tooth surfaces render in **amber** on the chart.
+
+---
+
+### 2.4.2 Editing a Condition
+
+1. Click the tooth on the chart → **Tooth Detail Drawer** opens
+2. Under the **CONDITION** section, click **Edit**
+3. Modify fields as needed (severity, status, surfaces, notes)
+4. If making a clinical change, an **edit reason** is required for the audit trail
+5. Click **"Save Changes"** → updates the condition and chart entries
+
+**Concurrent edit protection:** If another user edited the same condition at the same time, the system shows a **409 Conflict** warning. Refresh the chart and try again.
+
+---
+
+### 2.4.3 Deleting a Condition
+
+1. Click the tooth → **Tooth Detail Drawer** → CONDITION section → **Delete**
+2. Enter a **reason** for deletion (mandatory — recorded in audit log)
+3. Click **"Delete condition"**
+
+The condition is **soft-deleted** — it disappears from the chart but remains in the patient's audit history. It can be restored by an administrator if needed.
+
+---
+
+### 2.4.4 Condition Statuses
+
+| Status | Meaning |
+|---|---|
+| **ACTIVE** | Condition currently present and untreated |
+| **MONITORED** | Under observation, no active treatment needed yet |
+| **IN_TREATMENT** | Active treatment is underway |
+| **RESOLVED** | Condition has resolved (may auto-resolve when a linked procedure completes) |
+| **RULED_OUT** | Diagnostically excluded |
+
+Conditions can also auto-resolve: when a procedure linked to the condition is marked complete, the system automatically transitions the condition to **RESOLVED**.
+
+---
+
+### 2.4.5 Condition Catalog (Master List)
+
+**Navigation:** Sidebar → **Clinical → Conditions/Diagnosis**
+
+This page lists all conditions available in the system. You can:
+
+- **Search** by name or code
+- **Filter** tabs: All / Favourites / System / Custom
+- **Favourite** a condition (star icon) for quick access
+- **Add:** Click **"New Condition"** → fill name, codes, category, affected area
+- **Edit:** Click a row → modify fields
+- **Delete:** Only custom (user-created) conditions can be deleted. System conditions are locked.
+
+| Field | Details |
+|---|---|
+| Name | Clinical name of the condition |
+| Category | Caries, Periodontal, Pulpal, Fracture, etc. |
+| Coding System | ICD-10, SNODENT, SNOMED CT, or Custom |
+| ICD-10 Code | e.g., K02.9 (dental caries, unspecified) |
+| Affected Area | Tooth / Root / Arch / Quadrant / Soft Tissue |
+| Tooth-Specific | Whether it applies to individual teeth |
+| Requires Surface | Whether surface selection is needed |
+| Default Severity | Mild / Moderate / Severe |
+| Auto-Resolve | Automatically resolved when linked procedure completes |
+
+---
+
+## 2.5 Treatment Plans & Procedures
+
+Treatment plans organise clinical work into structured, multi-visit care. Procedures are the individual clinical actions within a plan. Sessions execute a procedure in a single visit.
+
+**Navigation:** Visit → **Treatment Plans** tab, or Sidebar → **Patients** → select patient → **Treatment Plan** tab
+
+---
+
+### 2.5.1 Treatment Plans
+
+A treatment plan groups procedures for a patient, tracking the full course of care from diagnosis to completion.
+
+#### Creating a Treatment Plan
+
+1. From the Treatment Plans tab, click **"+ New Treatment Plan"** (or create inline when adding the first procedure)
+2. Enter a **title** (e.g., "Upper Arch Restoration", "Root Canal 26")
+3. Select the **dentist/provider**
+4. Click **Create**
+5. The plan appears in the left sidebar under **Active** plans
+
+A plan code is auto-generated.
+
+#### Viewing & Selecting Plans
+
+The left sidebar groups plans into:
+
+| Group | Contains |
+|---|---|
+| **Active** | Plans with status PLANNED or IN_PROGRESS |
+| **Referred** | Plans sent to a specialist (REFERRED) |
+| **Completed** | Plans with all procedures completed |
+| **Cancelled** | Plans that were cancelled |
+
+Click a plan to load its procedures in the main panel.
+
+#### Editing a Plan
+
+- **Rename:** Click the pencil icon next to the plan title → edit inline
+- **Status override:** Use the status dropdown to manually set ON_HOLD or REFERRED
+- **Resume auto-status:** Select **"Resume Auto"** to let the system recalculate the plan status from its procedures
+- **Other fields:** Click **Edit** to modify priority, diagnosis, consent status, or notes
+
+#### Deleting a Plan
+
+- Only allowed when the plan has **zero procedures**
+- Click the trash icon → confirm deletion
+- If procedures exist, remove them first or cancel the plan instead
+
+#### Duplicating a Plan
+
+- Click the duplicate icon to copy an entire plan with all its procedures
+- Useful for creating similar plans for different arches or patients
+
+#### Plan Summary
+
+The top of the plan panel shows:
+- **Progress bar** — percentage of procedures completed
+- **Cost breakdown** — completed cost vs. remaining cost
+- **Procedure counts** — total / completed / remaining
+
+#### Plan Statuses
+
+| Status | Meaning |
+|---|---|
+| **PLANNED** | Plan created, procedures added, not yet started |
+| **IN_PROGRESS** | At least one procedure is in progress |
+| **COMPLETED** | All procedures completed |
+| **ON_HOLD** | Treatment paused (manual override) |
+| **REFERRED** | Referred to a specialist |
+| **CANCELLED** | Plan abandoned |
+
+Plan statuses for PLANNED / IN_PROGRESS / COMPLETED are **auto-derived** from child procedure statuses. Manual overrides (ON_HOLD, REFERRED, CANCELLED) are sticky until "Resume Auto" is used.
+
+---
+
+### 2.5.2 Treatment Procedures
+
+Procedures are individual clinical actions (e.g., "Composite Filling — Posterior", "Root Canal Therapy") assigned to specific teeth and surfaces, grouped under a treatment plan.
+
+#### Adding a Procedure
+
+**Navigation:** Treatment Plans tab → click **"+ Add Treatment"**
+
+The **"Add Treatment"** dialog has two tabs:
+
+**Tab 1 — New Treatment:**
+
+1. **Search the procedure catalog** — type to search by name, or filter by category dropdown
+2. **Select provider** — choose the dentist performing the procedure
+3. **Select treatment plan** — pick from existing plans, or create a new one
+4. **Select teeth** — the currently selected teeth from the dental chart are pre-filled; use FDI notation
+5. **Pick surfaces** — Mesial, Occlusal, Distal, Buccal, Lingual via the surface picker
+6. **Link conditions** (optional) — check active conditions on the selected teeth to link them (e.g., linking "Caries 26" to a filling procedure enables auto-resolve)
+7. **Session type** — toggle:
+   - **Single** — one session for the entire procedure
+   - **Multi** — multiple sessions (e.g., root canal over 2–3 visits); set visit count via stepper
+8. **Payment type** — choose:
+   - **Pay in Full** — full cost billed upfront
+   - **Pay Partially** — billed per session; set a deposit amount
+9. **Price** — auto-calculated from tooth selection and pricing model; click **Edit** to override manually
+10. **Notes** — optional clinical notes
+11. Click **"Add to Plan"**
+
+**Tab 2 — Existing Treatment (chart-only):**
+
+For documenting work already done (no billing or planning):
+1. Search and select the procedure
+2. Select surfaces and add notes
+3. Click **"Add as Existing"**
+
+#### Pricing Models
+
+| Model | Calculation | Example |
+|---|---|---|
+| **Fixed** | Flat price regardless of quantity | Consultation fee |
+| **Per Tooth** | Price × number of teeth selected | Filling per tooth |
+| **Per Arch** | Price per arch (upper / lower) | Full arch bleach tray |
+| **Per Session** | Price per treatment session | Root canal (3 sessions) |
+| **Per Bracket** | Price per orthodontic bracket | Braces |
+| **Per Unit** | Generic per-unit pricing | Custom lab work |
+
+#### Procedure Categories
+
+Consultation, Procedure, Diagnostic, Medication, Therapy, Surgical, Preventive, Administrative, Other
+
+#### Editing a Procedure
+
+**Trigger:** Click the **three-dot menu** (⋮) on the procedure row → **Edit**
+
+The **"Edit Procedure"** dialog allows changes with smart field locking:
+
+| Field | Editable? | Condition |
+|---|---|---|
+| Notes, Provider | Always | |
+| Sequence, Visit Group | Always | |
+| Scheduled Date | Always | |
+| Tooth Numbers | Only if no sessions have been executed | |
+| Surfaces | Always | Changes audited via diff recording |
+| Price, Discount, Tax | Only if linked invoice is DRAFT or absent | POSTED/PAID locks pricing |
+| Session Config (Single/Multi, count) | Only if no sessions exist | |
+| Reason for Edit | **Always required** | |
+
+Click **"Save Changes"** — the procedure updates, and a reason is recorded in the audit log.
+
+**Concurrent edit protection:** If another user edited the same procedure at the same time, the system returns a **409 Conflict** warning. Refresh and try again.
+
+#### Procedure Statuses
+
+| Status | Meaning |
+|---|---|
+| **PLANNED** | Procedure added, not yet started |
+| **IN_PROGRESS** | Treatment has begun (at least one session started) |
+| **COMPLETED** | Procedure fully done |
+| **ON_HOLD** | Temporarily paused |
+| **CANCELLED** | Abandoned — reason required |
+| **REFERRED** | Sent to a specialist |
+| **DELETED** | Soft-deleted (hidden from active views) |
+
+#### Cancelling a Procedure
+
+**Trigger:** Three-dot menu → **Cancel**
+
+1. Select a **reason** from presets or type a custom reason (mandatory)
+2. Cancellation reverses all side effects:
+   - Chart entries are superseded
+   - Pending ledger entries are voided
+   - Any pending sessions are cancelled
+3. The procedure remains visible in history with status **CANCELLED**
+
+**Restrictions:**
+- Can cancel from PLANNED, IN_PROGRESS, or ON_HOLD
+- **Cannot** cancel a COMPLETED procedure (legal-record lock)
+- Payments do not block cancellation — refund the invoice separately
+
+#### Deleting a Procedure
+
+**Trigger:** Three-dot menu → **Delete**
+
+1. System checks eligibility first (no sessions executed, no payments, not completed)
+2. If eligible: enter a **reason** and confirm
+3. If not eligible: the system shows why and offers **Cancel** as an alternative
+
+Delete is **soft-delete** — stamps deletedAt / deletedBy / deletedReason, voids invoice items, supersedes chart entries. Everything remains in the audit trail.
+
+A deleted procedure can be restored by an administrator if needed.
+
+#### Reordering Procedures
+
+- **Drag & drop:** Drag a procedure row up or down to change its sequence
+- **Move between visits:** Select procedures via checkboxes → click **"Move"** → pick a target visit number → all selected procedures move in a batch
+- Reorder and move changes are saved immediately via API
+
+---
+
+### 2.5.3 Procedures vs. Dental Chart
+
+When you add a procedure through the Treatment Plans tab, it also appears as a coloured entry on the **Dental Chart** tab:
+
+| Chart Colour | Entry Type |
+|---|---|
+| **Blue** | Completed procedure |
+| **Red** | Planned treatment |
+| **Green** | Existing work |
+| **Amber** | Condition |
+
+Click any tooth on the chart to see all conditions, planned treatments, and completed work for that tooth in the Tooth Detail Drawer.
+
+---
+
+## 2.6 Treatment Sessions
+
+A session is a single clinical encounter where a procedure is performed. For single-session procedures (e.g., a filling), one session covers the entire work. For multi-session procedures (e.g., root canal), each visit executes one session.
+
+**Navigation:** Treatment Plans tab → expand a procedure row → session list is shown inline
+
+---
+
+### 2.6.1 Executing a Session
+
+**Trigger:** Click the **Play** button (▶) on the procedure row
+
+The **"Execute Session"** dialog:
+
+| Field | Details |
+|---|---|
+| Performed Date | Defaults to today |
+| Provider | Auto-filled with your name, changeable |
+| Surfaces | Visual surface picker — confirm which surfaces were treated |
+| Session Phase | Assessment, Preparation, Cleaning, Shaping, Filling, Cementation, etc. |
+| Per-Tooth Status | For multi-tooth procedures: mark each tooth as pending / in-progress / completed / skipped |
+| Outcome | Partial or Completed |
+| Is Final Session? | Check if this is the last session (requires reason to close early) |
+| Notes | Clinical notes for this session |
+| Materials/Inventory | Log materials used (actual inputs consumed) |
+| Imaging Links | Link radiographic images taken during this session |
+
+Click **"Execute"** — the system atomically:
+1. Creates the session record
+2. Records chart entries for the treated surfaces
+3. Optionally generates a ledger entry (for PAY_PARTIALLY billing)
+4. Links any attached imaging
+
+**Idempotency protection:** The system uses an idempotency key to prevent duplicate session creation if the button is double-clicked or the network retries.
+
+---
+
+### 2.6.2 Editing a Session
+
+#### Quick Edit (Inline)
+- For non-terminal sessions (PENDING or IN_PROGRESS), click the edit button on the session row
+- Modify: status, date, notes, phase, price
+- Changes save immediately
+
+#### Audited Edit (Full)
+For corrections to completed or terminal sessions:
+
+**Trigger:** Open **Procedure Detail** → Session section → **Edit**
+
+1. Modify surfaces (system records diff: before vs. after)
+2. Modify notes, phase, performed date, provider, outcome, per-tooth statuses
+3. **Reason required** (preset options or custom)
+4. Click **"Save Edits"**
+
+The system writes a **ProcedureSessionEdit** audit record capturing:
+- Surfaces before / after / added / removed
+- Notes before / after
+- Phase before / after
+- Editor identity and reason
+
+---
+
+### 2.6.3 Voiding / Deleting a Session
+
+**Trigger:** Open **Procedure Detail** → Session section → **Void/Delete**
+
+1. Select a **reason** (presets: wrong patient, duplicate, incorrect procedure, session didn't happen, data error, other)
+2. Confirm deletion
+
+Voiding reverses **every side effect**:
+- Chart entries for the session are voided
+- Linked ledger entries are reversed
+- Imaging links are detached
+- Progress report links are removed
+
+The session is **soft-deleted** (status = VOIDED) and remains in the audit trail. It can be restored by an administrator.
+
+**Important:** Deleting a session does NOT delete the procedure. The procedure remains with its other sessions intact.
+
+---
+
+### 2.6.4 Session Statuses
+
+| Status | Meaning |
+|---|---|
+| **PENDING** | Session planned but not yet started |
+| **IN_PROGRESS** | Session is actively being performed |
+| **COMPLETED** | Session finished successfully |
+| **SKIPPED** | Session was bypassed (e.g., treatment changed) |
+| **CANCELLED** | Session abandoned |
+| **VOIDED** | Session reversed / soft-deleted |
+
+---
+
+### 2.6.5 Extra Sessions
+
+If a procedure requires more sessions than originally planned:
+
+**Trigger:** Procedure row → **"+ Add Session"**
+
+- Adds a session beyond the originally configured session count
+- Useful when treatment takes longer than expected
+- The extra session follows the same execution workflow
+
+---
+
+### 2.6.6 Procedure Detail View
+
+**Trigger:** Click the procedure name or **Detail** from the three-dot menu
+
+The **Procedure Detail** dialog shows a full read-only summary:
+
+- Procedure name, code, and status
+- Tooth numbers and surfaces
+- Pricing breakdown (total price, per-unit price, quantity, discount, tax, currency)
+- Session timeline — all sessions listed with expandable details
+- Per-session edit / void buttons
+- **"Continue Treatment"** button to execute the next pending session
+- Linked conditions and procedures
+- Audit log entries
+
+---
+
+## 2.7 Prescriptions
 
 **Tab:** **Prescriptions**
 
@@ -405,7 +798,7 @@ Accessible via **Medicines → Drugs**. Drugs are categorised (Antibiotics, Anal
 
 ---
 
-## 2.6 Imaging & Lab Orders
+## 2.8 Imaging & Lab Orders
 
 ### Imaging
 
@@ -427,7 +820,7 @@ All images are stored in the local file system and linked to the visit. Previous
 
 ---
 
-## 2.7 Completing a Visit
+## 2.9 Completing a Visit
 
 When all clinical work is done:
 

@@ -28,6 +28,12 @@ describe('Billing RBAC (C2/C3 regression guards)', () => {
       );
     });
 
+    it('BillingController.setInvoiceDiscount allows billing-capable roles only', () => {
+      expect([...rolesOf(BillingController, 'setInvoiceDiscount')].sort()).toEqual(
+        [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DENTIST, UserRole.RECEPTIONIST].sort(),
+      );
+    });
+
     it('ReceiptsController.voidReceipt is admin-only', () => {
       expect([...rolesOf(ReceiptsController, 'voidReceipt')].sort()).toEqual(
         [UserRole.ADMIN, UserRole.SUPER_ADMIN].sort(),

@@ -2185,23 +2185,31 @@ export class InvoicesService {
         SELECT
           i.subtotal,
           i.base_subtotal,
-          -- Discount in invoice currency
-          CASE
-            WHEN v."discountType" = 'PERCENT'
-              THEN ROUND(i.subtotal * v."discountValue" / 100.0::numeric, 2)
-            ELSE v."discountValue"
-          END AS discount_inv,
-          -- Discount prorated into base currency
-          CASE
-            WHEN i.subtotal > 0 THEN ROUND(
-              i.base_subtotal * (
-                CASE WHEN v."discountType" = 'PERCENT'
-                  THEN v."discountValue" / 100.0::numeric
-                  ELSE v."discountValue" / NULLIF(i.subtotal, 0)
-                END
-              ), 2)
-            ELSE 0::numeric
-          END AS discount_base,
+          -- Discount in invoice currency. Clamped to subtotal: a FIXED
+          -- discount set while more items existed must not drive the total
+          -- negative after items are removed.
+          LEAST(
+            CASE
+              WHEN v."discountType" = 'PERCENT'
+                THEN ROUND(i.subtotal * v."discountValue" / 100.0::numeric, 2)
+              ELSE v."discountValue"
+            END,
+            i.subtotal
+          ) AS discount_inv,
+          -- Discount prorated into base currency (same clamp)
+          LEAST(
+            CASE
+              WHEN i.subtotal > 0 THEN ROUND(
+                i.base_subtotal * (
+                  CASE WHEN v."discountType" = 'PERCENT'
+                    THEN v."discountValue" / 100.0::numeric
+                    ELSE v."discountValue" / NULLIF(i.subtotal, 0)
+                  END
+                ), 2)
+              ELSE 0::numeric
+            END,
+            i.base_subtotal
+          ) AS discount_base,
           v."taxPercent",
           v."amountPaid",
           v."baseAmountPaid"

@@ -1363,6 +1363,119 @@ export class InvoiceLifecycleService {
     });
   }
 
+  // ── Invoice-level "additional" discount ───────────────────────────────────
+  //
+  // Applied on top of per-item discounts (recalc nets item discounts into
+  // subtotal first, then subtracts this). DRAFT only: activation posts the GL
+  // journal (DR A/R net + DR Sales Discount = CR Revenue gross), so the
+  // discount must be final before POSTED. discountValue 0 clears.
+
+  async setInvoiceDiscount(
+    invoiceId: string,
+    dto: { discountType: 'PERCENT' | 'FIXED'; discountValue: number },
+    currentUserId?: string,
+  ) {
+    await this.prisma.$transaction(async (tx) => {
+      const invoice = await tx.invoice.findUnique({
+        where: { id: invoiceId },
+        select: {
+          id: true,
+          status: true,
+          version: true,
+          subtotal: true,
+          taxPercent: true,
+          amountPaid: true,
+          currency: true,
+          discountType: true,
+          discountValue: true,
+        },
+      });
+      if (!invoice) throw new NotFoundException('Invoice not found');
+      if (invoice.status !== InvoiceStatus.DRAFT) {
+        throw new BadRequestException(
+          `Invoice-level discount can only be set on DRAFT invoices (current status: ${invoice.status})`,
+        );
+      }
+
+      const value = M.money(M.of(dto.discountValue));
+      if (M.isNegative(value)) {
+        throw new BadRequestException('Discount value cannot be negative');
+      }
+      const clearing = M.isZero(value);
+
+      if (!clearing) {
+        const subtotal = M.of(invoice.subtotal);
+        if (dto.discountType === 'PERCENT' && M.gt(value, 100)) {
+          throw new BadRequestException(
+            'Percentage discount cannot exceed 100%',
+          );
+        }
+        const discountAmount =
+          dto.discountType === 'PERCENT'
+            ? M.money(M.applyPct(subtotal, value))
+            : value;
+        if (dto.discountType === 'FIXED' && M.gt(discountAmount, subtotal)) {
+          throw new BadRequestException(
+            'Fixed discount cannot exceed the invoice subtotal',
+          );
+        }
+        // Drafts can already carry advance payments — the discounted total
+        // must still cover what was paid, or the books show an overpayment.
+        const taxable = M.sub(subtotal, discountAmount);
+        const newTotal = M.money(
+          M.add(taxable, M.applyPct(taxable, M.of(invoice.taxPercent))),
+        );
+        if (M.lt(newTotal, M.of(invoice.amountPaid))) {
+          throw new BadRequestException(
+            `Discount would reduce the total below the amount already paid (${M.str(invoice.amountPaid)} ${invoice.currency})`,
+          );
+        }
+      }
+
+      // Version-guarded write: a concurrent item add/remove bumps version via
+      // recalc, so a stale client gets a 409 instead of silently overwriting.
+      const updated = await tx.invoice.updateMany({
+        where: {
+          id: invoiceId,
+          status: InvoiceStatus.DRAFT,
+          version: invoice.version,
+        },
+        data: {
+          discountType: clearing ? null : dto.discountType,
+          discountValue: M.str(value),
+          updatedById: currentUserId ?? null,
+        },
+      });
+      if (updated.count === 0) {
+        throw new ConflictException(
+          'Invoice was modified by another request. Reload the invoice and try again.',
+        );
+      }
+
+      await tx.auditLog.create({
+        data: {
+          userId: currentUserId ?? null,
+          action: 'UPDATE',
+          module: 'BILLING',
+          entityType: 'Invoice',
+          recordId: invoiceId,
+          oldData: {
+            discountType: invoice.discountType,
+            discountValue: M.str(invoice.discountValue),
+          } as Prisma.InputJsonValue,
+          newData: {
+            discountType: clearing ? null : dto.discountType,
+            discountValue: M.str(value),
+          } as Prisma.InputJsonValue,
+        },
+      });
+
+      await this.recalcInvoiceAtomicTx(tx, invoiceId, undefined, currentUserId);
+    });
+
+    return this.prisma.invoice.findUnique({ where: { id: invoiceId } });
+  }
+
   // ─── Private helpers ────────────────────────────────────────────────────────
 
   /**
@@ -1405,21 +1518,29 @@ export class InvoiceLifecycleService {
         SELECT
           i.subtotal,
           i.base_subtotal,
-          CASE
-            WHEN v."discountType" = 'PERCENT'
-              THEN ROUND(i.subtotal * v."discountValue" / 100.0::numeric, 2)
-            ELSE v."discountValue"
-          END AS discount_inv,
-          CASE
-            WHEN i.subtotal > 0 THEN ROUND(
-              i.base_subtotal * (
-                CASE WHEN v."discountType" = 'PERCENT'
-                  THEN v."discountValue" / 100.0::numeric
-                  ELSE v."discountValue" / NULLIF(i.subtotal, 0)
-                END
-              ), 2)
-            ELSE 0::numeric
-          END AS discount_base,
+          -- Clamped to subtotal: a FIXED discount set while more items
+          -- existed must not drive the total negative after items are removed.
+          LEAST(
+            CASE
+              WHEN v."discountType" = 'PERCENT'
+                THEN ROUND(i.subtotal * v."discountValue" / 100.0::numeric, 2)
+              ELSE v."discountValue"
+            END,
+            i.subtotal
+          ) AS discount_inv,
+          LEAST(
+            CASE
+              WHEN i.subtotal > 0 THEN ROUND(
+                i.base_subtotal * (
+                  CASE WHEN v."discountType" = 'PERCENT'
+                    THEN v."discountValue" / 100.0::numeric
+                    ELSE v."discountValue" / NULLIF(i.subtotal, 0)
+                  END
+                ), 2)
+              ELSE 0::numeric
+            END,
+            i.base_subtotal
+          ) AS discount_base,
           v."taxPercent",
           v."amountPaid",
           v."baseAmountPaid"
