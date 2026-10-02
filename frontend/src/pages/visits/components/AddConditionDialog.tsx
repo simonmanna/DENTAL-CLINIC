@@ -59,6 +59,7 @@ interface AddConditionDialogProps {
   isOpen: boolean;
   onClose: () => void;
   selectedTeeth: number[];
+  initialSurfaces?: UiSurface[];
   defaultDentistId?: string;
   onSubmit: (data: AddConditionSubmitData) => Promise<void>;
 }
@@ -69,13 +70,14 @@ export function AddConditionDialog({
   isOpen,
   onClose,
   selectedTeeth,
+  initialSurfaces,
   defaultDentistId = '',
   onSubmit,
 }: AddConditionDialogProps) {
   const [search, setSearch] = useState('');
   const [selectedCondition, setSelectedCondition] =
     useState<Condition | null>(null);
-  const [surfaces, setSurfaces] = useState<UiSurface[]>([]);
+  const [surfaces, setSurfaces] = useState<UiSurface[]>(() => initialSurfaces ?? []);
   const [status, setStatus] = useState<PatientConditionStatus>('ACTIVE');
   // Local-time default: a UTC split('T')[0] gives yesterday's date during the
   // early-morning hours in any zone ahead of UTC (e.g. UTC+3 Kampala).

@@ -1,23 +1,5 @@
-// src/pages/visits/components/DentalChart.tsx
-// ─────────────────────────────────────────────────────────────────────────────
-// Production dental chart — v3
-//
-// CHANGES FROM v2:
-//  · O(n) dedup via compound-key Map  (was O(n²) findIndex)
-//  · staleTime: 30_000 on both queries — ends focus-event refetch cascade
-//  · isImplant flag + ADA D-code set — robust implant detection (no label regex)
-//  · resolvePresence() → PresenceState with compound flags:
-//      wasExtracted  (implant placed in extracted socket)
-//      wasCongenital (implant placed on congenitally absent site)
-//      hasPlannedIntervention / hasCompletedIntervention
-//  · Multi-state visual: IMPLANT on extracted socket shows socket brackets;
-//    IMPLANT on congenital site shows ∅ badge; UNERUPTED+PLANNED shows dot
-//  · Roots rendered as proper JSX (no dangerouslySetInnerHTML)
-//  · DeleteConfirmModal replaces window.prompt()
-//  · handleSurfaceClick: modifier-aware multi-select preserved
-//  · procAsEntries: keyed by `proc-{id}-t{tooth}` — no collision across teeth
-//  · Toolbar, ledger, and tooth SVG UI polished
-// ─────────────────────────────────────────────────────────────────────────────
+// Patient odontogram: anatomical facial views, interactive surfaces and clinical ledger.
+// Patient IDs and canonical surfaces remain FDI regardless of display notation.
 
 import React, {
   useState,
@@ -34,6 +16,12 @@ import {
   Trash2,
   X,
   Eye,
+  Plus,
+  MousePointer2,
+  ZoomIn,
+  ZoomOut,
+  Layers,
+  ChevronDown,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -77,6 +65,7 @@ import {
   uiToCanonical,
   canonicalToUiForTooth,
   sortUiSurfaces,
+  surfaceLabel,
   type CanonicalSurface,
   type UiSurface,
 } from "../../../lib/dental/notation";
@@ -93,6 +82,7 @@ import {
   LAYER_PAINT_PRIORITY,
   highestPriorityEntry,
   pickRestoration,
+  restorationKind,
   type ChartEntry,
   type EntryStatus,
   type Layer,
@@ -108,6 +98,10 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type { ChartEntry } from "./dentalChartLogic";
+import { ToothAnatomy } from "./ToothAnatomy";
+import { occlusalGeometry, OCC_VIEW } from "./occlusalGeometry";
+import { displayToothNumber, type ToothNumbering } from "./dentalChartDisplay";
+import "./DentalChart.css";
 
 // Layer, LAYER_FOR_TYPE and layerForEntry live in ./dentalChartLogic so the
 // IN_PROGRESS / INACTIVE derivation is unit-tested without React.
@@ -479,52 +473,6 @@ function DeleteConfirmModal({
 // TOOTH SVG
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Root paths as JSX — replaces dangerouslySetInnerHTML. */
-const ToothRoots = React.memo(function ToothRoots({
-  kind,
-  isUpper,
-  cl,
-  cx,
-  cr,
-  cb,
-  ct,
-}: {
-  kind: string;
-  isUpper: boolean;
-  cl: number;
-  cx: number;
-  cr: number;
-  cb: number;
-  ct: number;
-}) {
-  const tip = isUpper ? 113 : 3; // H=116, tip near bottom (upper) or top (lower)
-  const rT = isUpper ? cb - 3 : ct + 3;
-
-  const rootPath = (rx: number, ry: number, rw: number) => {
-    const m = rx + rw / 2;
-    return `M${rx} ${ry}Q${rx - 1.5} ${(ry + tip) / 2} ${m} ${tip}Q${rx + rw + 1.5} ${(ry + tip) / 2} ${rx + rw} ${ry}Z`;
-  };
-
-  const paths: string[] =
-    kind === "molar"
-      ? [
-          rootPath(cl + 3, rT, 8),
-          rootPath(cx - 4, rT, 8),
-          rootPath(cr - 11, rT, 8),
-        ]
-      : kind === "premolar"
-        ? [rootPath(cx - 9, rT, 8), rootPath(cx + 1, rT, 7)]
-        : [rootPath(cx - 5, rT, 10)];
-
-  return (
-    <>
-      {paths.map((d, i) => (
-        <path key={i} d={d} fill="#ece0c8" stroke="#cbb389" strokeWidth={0.7} />
-      ))}
-    </>
-  );
-});
-
 const ToothSVG = React.memo(function ToothSVG({
   fdi,
   isUpper,
@@ -533,11 +481,13 @@ const ToothSVG = React.memo(function ToothSVG({
   visibleLayers,
   onClick,
   onSurfaceClick,
+  selectedSurfaces,
 }: {
   fdi: number;
   isUpper: boolean;
   entries: ChartEntry[];
   selected: boolean;
+  selectedSurfaces: UiSurface[];
   visibleLayers: Record<Layer, boolean>;
   onClick: (n: number, mods: { ctrl: boolean; shift: boolean }) => void;
   onSurfaceClick: (
@@ -658,13 +608,6 @@ const ToothSVG = React.memo(function ToothSVG({
   );
   const crownLayer = wholeToothEntry ? layerForEntry(wholeToothEntry) : null;
 
-  const hasRct = entries.some(
-    (e) =>
-      e.status === "ACTIVE" &&
-      /root canal|rct|endodont/i.test(e.label) &&
-      visibleLayers[layerForEntry(e)],
-  );
-
   // M-1: the dominant restoration glyph (crown / veneer / bridge retainer /
   // denture / sealant / ortho) overlaid on a present tooth. Pre-filter to
   // active, layer-visible procedure rows; pickRestoration resolves precedence.
@@ -679,323 +622,243 @@ const ToothSVG = React.memo(function ToothSVG({
   );
 
   // ── Geometry ───────────────────────────────────────────────────────────────
-  const W = 64,
-    H = 116;
-  const cx = W / 2;
-  const CW = { molar: 50, premolar: 40, canine: 33, incisor: 29 }[k]!;
-  const CH = { molar: 45, premolar: 50, canine: 52, incisor: 44 }[k]!;
-  const cl = cx - CW / 2,
-    cr = cx + CW / 2;
-  const ct = isUpper ? 12 : H - 12 - CH;
-  const cb = ct + CH;
-  const cm = (ct + cb) / 2;
-  const ins = 9;
-  const oL = cl + ins,
-    oR = cr - ins,
-    oT = ct + ins,
-    oB = cb - ins;
+  // Anatomical occlusal outline (see occlusalGeometry). The five clickable
+  // zones follow the crown: a central occlusal table / incisal edge plus four
+  // wedges cut from the ring between that table and the outline. Mesial faces
+  // the midline and buccal faces the facial row, per quadrant.
+  const g = occlusalGeometry(fdi, isUpper);
+  const W = OCC_VIEW;
+  const cx = W / 2,
+    cm = W / 2;
+  const { l: cl, r: cr, t: ct, b: cb } = g.box;
+  const crown = g.outline;
+  const buccalY = isUpper ? ct : cb;
+  const svgId = React.useId().replace(/:/g, "");
+  const zoneKey = (z: (typeof SURF_ZONES)[number]) =>
+    (z === "O" ? centralKey : z) as UiSurface;
 
-  // ── Crown path ─────────────────────────────────────────────────────────────
-  let crown: string;
-  if (k === "molar")
-    crown = isUpper
-      ? `M${cl + 4} ${ct + 6}Q${cl - 1} ${ct} ${cl + 6} ${ct - 3}Q${cx - 5} ${ct - 7} ${cx} ${ct - 3}Q${cx + 5} ${ct - 7} ${cr - 6} ${ct - 3}Q${cr + 1} ${ct} ${cr - 4} ${ct + 6}Q${cr + 3} ${cm} ${cr} ${cb - 4}Q${cr - 4} ${cb + 3} ${cx} ${cb + 3}Q${cl + 4} ${cb + 3} ${cl} ${cb - 4}Q${cl - 3} ${cm} ${cl + 4} ${ct + 6}Z`
-      : `M${cl + 4} ${cb - 6}Q${cl - 1} ${cb} ${cl + 6} ${cb + 3}Q${cx - 5} ${cb + 7} ${cx} ${cb + 3}Q${cx + 5} ${cb + 7} ${cr - 6} ${cb + 3}Q${cr + 1} ${cb} ${cr - 4} ${cb - 6}Q${cr + 3} ${cm} ${cr} ${ct + 4}Q${cr - 4} ${ct - 3} ${cx} ${ct - 3}Q${cl + 4} ${ct - 3} ${cl} ${ct + 4}Q${cl - 3} ${cm} ${cl + 4} ${cb - 6}Z`;
-  else if (k === "premolar")
-    crown = isUpper
-      ? `M${cl + 3} ${ct + 6}Q${cx} ${ct - 7} ${cr - 3} ${ct + 6}Q${cr + 2} ${cm} ${cr} ${cb - 4}Q${cr - 3} ${cb + 3} ${cx} ${cb + 4}Q${cl + 3} ${cb + 3} ${cl} ${cb - 4}Q${cl - 2} ${cm} ${cl + 3} ${ct + 6}Z`
-      : `M${cl + 3} ${cb - 6}Q${cx} ${cb + 7} ${cr - 3} ${cb - 6}Q${cr + 2} ${cm} ${cr} ${ct + 4}Q${cr - 3} ${ct - 3} ${cx} ${ct - 4}Q${cl + 3} ${ct - 3} ${cl} ${ct + 4}Q${cl - 2} ${cm} ${cl + 3} ${cb - 6}Z`;
-  else if (k === "canine")
-    crown = isUpper
-      ? `M${cl + 3} ${ct + 9}Q${cx} ${ct - 11} ${cr - 3} ${ct + 9}Q${cr + 2} ${cm} ${cr} ${cb - 4}Q${cr - 3} ${cb + 3} ${cx} ${cb + 4}Q${cl + 3} ${cb + 3} ${cl} ${cb - 4}Q${cl - 2} ${cm} ${cl + 3} ${ct + 9}Z`
-      : `M${cl + 3} ${cb - 9}Q${cx} ${cb + 11} ${cr - 3} ${cb - 9}Q${cr + 2} ${cm} ${cr} ${ct + 4}Q${cr - 3} ${ct - 3} ${cx} ${ct - 4}Q${cl + 3} ${ct - 3} ${cl} ${ct + 4}Q${cl - 2} ${cm} ${cl + 3} ${cb - 9}Z`;
-  else
-    crown = isUpper
-      ? `M${cl + 2} ${ct + 3}Q${cx} ${ct - 4} ${cr - 2} ${ct + 3}L${cr} ${cb - 4}Q${cr - 2} ${cb + 3} ${cx} ${cb + 3}Q${cl + 2} ${cb + 3} ${cl} ${cb - 4}Z`
-      : `M${cl + 2} ${cb - 3}Q${cx} ${cb + 4} ${cr - 2} ${cb - 3}L${cr} ${ct + 4}Q${cr - 2} ${ct - 3} ${cx} ${ct - 3}Q${cl + 2} ${ct - 3} ${cl} ${ct + 4}Z`;
+  // Full-coverage work paints the whole crown in its status colour (planned
+  // red, completed blue, existing green …) so the occlusal and facial rows agree.
+  const restorationEntry = restoration
+    ? highestPriorityEntry(
+        entries.filter(
+          (e) =>
+            e.status === "ACTIVE" &&
+            e.type !== "CONDITION" &&
+            visibleLayers[layerForEntry(e)] &&
+            restorationKind(e) === restoration,
+        ),
+      )
+    : null;
+  const restColor = restorationEntry
+    ? LAYER_COLOR[layerForEntry(restorationEntry)]
+    : crownLayer
+      ? LAYER_COLOR[crownLayer]
+      : null;
+  const fullCoverage =
+    restoration === "CROWN" || restoration === "BRIDGE_RETAINER";
 
-  const clipId = `cp-${fdi}`;
-  const showRoots =
-    presence === "PRESENT" ||
-    presence === "UNERUPTED" ||
-    presence === "SUPERNUMERARY" ||
-    presence === "RETAINED_ROOT";
-
-  // Surface polygon zones and label positions.
-  // Mesial always faces the dental midline. The arch rows (ARCH) are drawn
-  // facing the patient, so quadrants 1, 4, 5, 8 sit on the screen-left half
-  // and their mesial side is the glyph's RIGHT edge; quadrants 2, 3, 6, 7
-  // keep mesial on the LEFT. B/L get the same treatment per arch (isUpper).
-  const mesialOnRight = [1, 4, 5, 8].includes(getQuadrant(fdi));
-  const sideLeftZone = `${cl},${ct} ${oL},${oT} ${oL},${oB} ${cl},${cb}`;
-  const sideRightZone = `${cr},${ct} ${oR},${oT} ${oR},${oB} ${cr},${cb}`;
-  const sideLeftLabel: [number, number] = [(cl + oL) / 2, cm];
-  const sideRightLabel: [number, number] = [(cr + oR) / 2, cm];
-  const Z: Record<string, string> = {
-    O: `${oL},${oT} ${oR},${oT} ${oR},${oB} ${oL},${oB}`,
-    B: isUpper
-      ? `${cl},${ct} ${cr},${ct} ${oR},${oT} ${oL},${oT}`
-      : `${cl},${cb} ${cr},${cb} ${oR},${oB} ${oL},${oB}`,
-    L: isUpper
-      ? `${cl},${cb} ${cr},${cb} ${oR},${oB} ${oL},${oB}`
-      : `${cl},${ct} ${cr},${ct} ${oR},${oT} ${oL},${oT}`,
-    M: mesialOnRight ? sideRightZone : sideLeftZone,
-    D: mesialOnRight ? sideLeftZone : sideRightZone,
-  };
-  const LP: Record<string, [number, number]> = {
-    O: [cx, (oT + oB) / 2],
-    B: isUpper ? [cx, (ct + oT) / 2] : [cx, (cb + oB) / 2],
-    L: isUpper ? [cx, (cb + oB) / 2] : [cx, (ct + oT) / 2],
-    M: mesialOnRight ? sideRightLabel : sideLeftLabel,
-    D: mesialOnRight ? sideLeftLabel : sideRightLabel,
-  };
-
-  // ── Shared surface overlay (used by PRESENT, SUPERNUMERARY branches) ───────
-  const SurfaceOverlay = () => (
-    <g clipPath={`url(#${clipId})`}>
-      <defs>
-        {SURF_ZONES.map((z) =>
-          surfBoth(z) ? (
-            // Thick diagonal hatch for a surface carrying BOTH an active
-            // condition and treatment: solid condition fill (amber) with thick
-            // treatment stripes coloured by the treatment's own status layer —
-            // PLANNED red, COMPLETED blue, EXISTING green, etc (baseColor[z]).
-            // A 5px stripe on an 8px tile reads as heavy bars over the condition
-            // so neither layer is lost. Id keyed by fdi+zone — SVG ids global.
-            <pattern
-              key={`hx-${z}`}
-              id={`hx-${fdi}-${z}`}
-              width={8}
-              height={8}
-              patternUnits="userSpaceOnUse"
-              patternTransform="rotate(45)"
-            >
-              <rect width={8} height={8} fill={condColor[z]} />
-              <line
-                x1={0}
-                y1={0}
-                x2={0}
-                y2={8}
-                stroke={baseColor[z]}
-                strokeWidth={5}
-              />
-            </pattern>
-          ) : null,
-        )}
-      </defs>
-      {SURF_ZONES.map((z) => {
-        const both = surfBoth(z);
-        const col = surfColor[z];
-        return (
-          <polygon
-            key={z}
-            points={Z[z]}
-            fill={both ? `url(#hx-${fdi}-${z})` : col || "transparent"}
-            fillOpacity={col ? 0.9 : 0}
-            stroke={both ? condColor[z] : col || "#c9b48f"}
-            strokeWidth={col ? (both ? 0.9 : 0.6) : 0.4}
-            strokeOpacity={col ? 1 : 0.38}
-            style={{ cursor: "pointer" }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSurfaceClick(fdi, (z === "O" ? centralKey : z) as UiSurface, {
-                ctrl: e.metaKey || e.ctrlKey,
-                shift: e.shiftKey,
-              });
-            }}
-          />
-        );
-      })}
-      {k === "molar" && (
-        <>
-          <line
-            x1={cx}
-            y1={oT + 2}
-            x2={cx}
-            y2={oB - 2}
-            stroke="#b09666"
-            strokeWidth={0.7}
-            strokeOpacity={0.5}
-          />
-          <line
-            x1={oL + 2}
-            y1={cm}
-            x2={oR - 2}
-            y2={cm}
-            stroke="#b09666"
-            strokeWidth={0.7}
-            strokeOpacity={0.5}
-          />
-        </>
+  const defs = (
+    <defs>
+      <radialGradient id={`enamel-${svgId}`} cx="42%" cy="38%" r="72%">
+        <stop stopColor="#fffffb" />
+        <stop offset=".6" stopColor="#f1f1e6" />
+        <stop offset="1" stopColor="#cdd3c5" />
+      </radialGradient>
+      <radialGradient id={`table-${svgId}`} r="60%">
+        <stop stopColor="#d6d1b9" stopOpacity=".8" />
+        <stop offset="1" stopColor="#ebe8d8" stopOpacity="0" />
+      </radialGradient>
+      {restColor && (
+        <linearGradient id={`rest-${svgId}`} x1="0" x2="1" y1="0" y2="1">
+          <stop stopColor={restColor.light} />
+          <stop offset=".45" stopColor={restColor.c} stopOpacity=".78" />
+          <stop offset="1" stopColor={restColor.c} />
+        </linearGradient>
       )}
-      {k === "premolar" && (
-        <line
-          x1={cx}
-          y1={oT + 1}
-          x2={cx}
-          y2={oB - 1}
-          stroke="#b09666"
-          strokeWidth={0.7}
-          strokeOpacity={0.45}
-        />
+      <clipPath id={`crown-${svgId}`}>
+        <path d={crown} />
+      </clipPath>
+      {(["B", "L", "M", "D"] as const).map((z) => (
+        <clipPath key={z} id={`sec-${svgId}-${z}`}>
+          <polygon points={g.sectors[z]} />
+        </clipPath>
+      ))}
+      {SURF_ZONES.map((z) =>
+        surfBoth(z) ? (
+          // Thick diagonal hatch for a surface carrying BOTH an active
+          // condition and treatment: condition fill with treatment stripes in
+          // the treatment's own status colour, so neither layer is lost.
+          <pattern
+            key={`hx-${z}`}
+            id={`hx-${svgId}-${z}`}
+            width={7}
+            height={7}
+            patternUnits="userSpaceOnUse"
+            patternTransform="rotate(45)"
+          >
+            <rect width={7} height={7} fill={condColor[z]} />
+            <line x1={0} y1={0} x2={0} y2={7} stroke={baseColor[z]} strokeWidth={4.5} />
+          </pattern>
+        ) : null,
       )}
+    </defs>
+  );
+
+  // Crown body: enamel (or restoration) fill, occlusal-table shading, fissures.
+  const anatomy = (fill: string, stroke: string, restored = false) => (
+    <g pointerEvents="none">
+      <path d={crown} fill={fill} stroke={stroke} strokeWidth={1} />
+      {!restored && <path d={g.table} fill={`url(#table-${svgId})`} />}
+      <path
+        d={g.grooves}
+        fill="none"
+        stroke={restored ? "#ffffff" : "#a3977a"}
+        strokeOpacity={restored ? 0.5 : 0.65}
+        strokeWidth={0.9}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <ellipse
+        cx={cl + (cr - cl) * 0.34}
+        cy={ct + (cb - ct) * 0.3}
+        rx={(cr - cl) * 0.16}
+        ry={(cb - ct) * 0.1}
+        fill="#fff"
+        fillOpacity={0.4}
+        clipPath={`url(#crown-${svgId})`}
+      />
     </g>
   );
 
-  // ── Restoration glyph overlay (M-1) ────────────────────────────────────────
-  // Drawn on top of the crown for a PRESENT / SUPERNUMERARY tooth so prosthetic
-  // and preventive work reads at a glance, not only in the ledger. Each kind has
-  // a clinically-recognisable mark; geometry comes from the crown box above.
-  const renderRestoration = (kind: RestorationKind): React.ReactNode => {
-    const cervY = isUpper ? cb - 6 : ct + 6; // crown base (toward gum)
-    switch (kind) {
-      case "CROWN":
-        // Full-coverage gold ring tracing the crown perimeter.
-        return (
-          <g style={{ pointerEvents: "none" }}>
-            <path
-              d={crown}
-              fill="none"
-              stroke="#d4af37"
-              strokeWidth={2.4}
-              strokeOpacity={0.95}
-            />
-            <circle cx={cr - 3} cy={cm} r={3.2} fill="#d4af37" />
+  // Five clickable surface zones, painted per channel, plus labels/guides.
+  const overlay = (outlineStroke: string, outlineWidth = 1) => (
+    <>
+      {SURF_ZONES.map((z) => {
+        const both = surfBoth(z);
+        const col = surfColor[z];
+        const key = zoneKey(z);
+        const zone = (
+          <path
+            d={z === "O" ? g.table : `${g.outline}${g.table}`}
+            fillRule="evenodd"
+            fill={both ? `url(#hx-${svgId}-${z})` : col || "transparent"}
+            fillOpacity={col ? 0.9 : 0}
+            stroke={col ? "#ffffff" : "none"}
+            strokeWidth={col ? 0.8 : 0}
+            strokeOpacity={0.75}
+            className="dc-surface"
+            data-painted={col ? "" : undefined}
+            role="button"
+            tabIndex={0}
+            aria-label={`Tooth ${fdi}, ${surfaceLabel(uiToCanonical(key, fdi))}`}
+            aria-pressed={selected && selectedSurfaces.includes(key)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                e.stopPropagation();
+                onSurfaceClick(fdi, key, { ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey });
+              }
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSurfaceClick(fdi, key, { ctrl: e.metaKey || e.ctrlKey, shift: e.shiftKey });
+            }}
+          />
+        );
+        return z === "O" ? (
+          <React.Fragment key={z}>{zone}</React.Fragment>
+        ) : (
+          <g key={z} clipPath={`url(#sec-${svgId}-${z})`}>
+            {zone}
           </g>
         );
-      case "BRIDGE_RETAINER":
-        // Abutment crown (gold ring) + proximal connector stubs to the pontic.
+      })}
+      <path className="dc-zone-guides" d={g.guides} pointerEvents="none" />
+      <path d={crown} fill="none" stroke={outlineStroke} strokeWidth={outlineWidth} pointerEvents="none" />
+      {SURF_ZONES.map((z) => {
+        if (!surfColor[z]) return null;
+        const [lx, ly] = g.labels[z];
         return (
-          <g style={{ pointerEvents: "none" }}>
-            <line
-              x1={cl - 5}
-              y1={cm}
-              x2={cl + 4}
-              y2={cm}
-              stroke="#b8860b"
-              strokeWidth={3}
-              strokeLinecap="round"
-            />
-            <line
-              x1={cr - 4}
-              y1={cm}
-              x2={cr + 5}
-              y2={cm}
-              stroke="#b8860b"
-              strokeWidth={3}
-              strokeLinecap="round"
-            />
-            <path
-              d={crown}
-              fill="none"
-              stroke="#d4af37"
-              strokeWidth={2.4}
-              strokeOpacity={0.95}
-            />
-          </g>
+          <text
+            key={z}
+            x={lx}
+            y={ly}
+            className="dc-surface-label"
+            textAnchor="middle"
+            dominantBaseline="central"
+            pointerEvents="none"
+          >
+            {zoneKey(z)}
+          </text>
+        );
+      })}
+    </>
+  );
+
+  // ── Restoration glyph overlay (M-1) ────────────────────────────────────────
+  // Crowns are conveyed by the crown fill itself; the remaining kinds get a
+  // clinically recognisable occlusal mark.
+  const renderRestoration = (kind: RestorationKind): React.ReactNode => {
+    const tone = restColor?.c ?? "#64748b";
+    switch (kind) {
+      case "BRIDGE_RETAINER":
+        return (
+          <path
+            d={`M${cl - 7} ${cm}H${cl + 2}M${cr - 2} ${cm}H${cr + 7}`}
+            stroke={tone}
+            strokeWidth={3}
+            strokeLinecap="round"
+            pointerEvents="none"
+          />
         );
       case "VENEER":
-        // Facial laminate — a ceramic shield over the crown face.
+        // Facial laminate — shown on the buccal/labial band only.
         return (
-          <g style={{ pointerEvents: "none" }}>
-            <rect
-              x={cl + 5}
-              y={cm - 8}
-              width={cr - cl - 10}
-              height={16}
-              rx={3.5}
-              fill="#f5d0fe"
-              fillOpacity={0.55}
-              stroke="#c026d3"
+          <g clipPath={`url(#sec-${svgId}-B)`} pointerEvents="none">
+            <path
+              d={`${crown}${g.table}`}
+              fillRule="evenodd"
+              fill="#f3e8ff"
+              fillOpacity={0.8}
+              stroke="#a855f7"
               strokeWidth={1.3}
             />
-            <text
-              x={cx}
-              y={cm}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fontSize="8.5"
-              fontWeight={800}
-              fontFamily="ui-monospace,monospace"
-              fill="#a21caf"
-            >
-              VNR
-            </text>
           </g>
         );
       case "DENTURE":
-        // Partial-denture clasp arms hugging the cervical third + tag.
         return (
-          <g style={{ pointerEvents: "none" }}>
-            <path
-              d={`M${cl - 1} ${cm - 6} Q${cl - 5} ${cervY} ${cl + 5} ${cervY}`}
-              fill="none"
-              stroke="#64748b"
-              strokeWidth={1.6}
-              strokeLinecap="round"
-            />
-            <path
-              d={`M${cr + 1} ${cm - 6} Q${cr + 5} ${cervY} ${cr - 5} ${cervY}`}
-              fill="none"
-              stroke="#64748b"
-              strokeWidth={1.6}
-              strokeLinecap="round"
-            />
-            <text
-              x={cx}
-              y={cm}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fontSize="8"
-              fontWeight={800}
-              fontFamily="ui-monospace,monospace"
-              fill="#475569"
-            >
+          <g pointerEvents="none" fill="none" stroke="#64748b" strokeWidth={1.6} strokeLinecap="round">
+            <path d={`M${cl - 2} ${cm}Q${cl - 2} ${buccalY} ${cx - 5} ${buccalY}`} />
+            <path d={`M${cr + 2} ${cm}Q${cr + 2} ${buccalY} ${cx + 5} ${buccalY}`} />
+            <text x={cx} y={cm} className="dc-occlusal-tag" fill="#475569" stroke="none">
               PD
             </text>
           </g>
         );
       case "SEALANT":
-        // Occlusal sealant — stipple of teal dots across the biting surface.
+        // Sealant fills the fissures, so trace them in teal.
         return (
-          <g style={{ pointerEvents: "none" }}>
-            {[-7, 0, 7].map((dx) => (
-              <circle
-                key={dx}
-                cx={cx + dx}
-                cy={(oT + oB) / 2}
-                r={1.8}
-                fill="#0d9488"
-                fillOpacity={0.85}
-              />
-            ))}
+          <path
+            d={g.grooves}
+            fill="none"
+            stroke="#0d9488"
+            strokeOpacity={0.85}
+            strokeWidth={2.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            pointerEvents="none"
+          />
+        );
+      case "ORTHODONTIC": {
+        const wireY = buccalY + (isUpper ? 5 : -5);
+        return (
+          <g pointerEvents="none">
+            <line x1={-2} y1={wireY} x2={W + 2} y2={wireY} stroke="#475569" strokeWidth={1.4} />
+            <rect x={cx - 5} y={wireY - 4} width={10} height={8} rx={1.5} fill="#e2e8f0" stroke="#334155" strokeWidth={1.1} />
           </g>
         );
-      case "ORTHODONTIC":
-        // Bracket on the facial + arch wire spanning across teeth (SVG overflow
-        // is visible, so the wire visually links neighbours).
-        return (
-          <g style={{ pointerEvents: "none" }}>
-            <line
-              x1={-4}
-              y1={cm}
-              x2={W + 4}
-              y2={cm}
-              stroke="#475569"
-              strokeWidth={1.5}
-            />
-            <rect
-              x={cx - 5}
-              y={cm - 5}
-              width={10}
-              height={10}
-              rx={1.5}
-              fill="#e2e8f0"
-              stroke="#334155"
-              strokeWidth={1.2}
-            />
-          </g>
-        );
+      }
       default:
         return null;
     }
@@ -1005,517 +868,143 @@ const ToothSVG = React.memo(function ToothSVG({
   let bodyEl: React.ReactNode;
 
   if (presence === "EXTRACTED") {
-    const xPad = 4;
-    const ridgeY = isUpper ? cb + 1.5 : ct - 1.5;
     bodyEl = (
       <>
         <path
           d={crown}
           fill="#fef2f2"
-          fillOpacity={0.55}
-          stroke="#fca5a5"
+          fillOpacity={0.5}
+          stroke="#f2a7a7"
           strokeWidth={1}
-          strokeDasharray="3,2.5"
+          strokeDasharray="3 2.5"
         />
-        <line
-          x1={cl + xPad}
-          y1={ct + xPad}
-          x2={cr - xPad}
-          y2={cb - xPad}
+        <path
+          d={`M${cl + 6} ${ct + 4}L${cr - 6} ${cb - 4}M${cr - 6} ${ct + 4}L${cl + 6} ${cb - 4}`}
           stroke="#dc2626"
-          strokeWidth={3.2}
-          strokeLinecap="round"
-        />
-        <line
-          x1={cr - xPad}
-          y1={ct + xPad}
-          x2={cl + xPad}
-          y2={cb - xPad}
-          stroke="#dc2626"
-          strokeWidth={3.2}
-          strokeLinecap="round"
-        />
-        <line
-          x1={cl + 2}
-          y1={ridgeY}
-          x2={cl + 9}
-          y2={ridgeY}
-          stroke="#b91c1c"
-          strokeWidth={1.4}
-          strokeLinecap="round"
-        />
-        <line
-          x1={cr - 9}
-          y1={ridgeY}
-          x2={cr - 2}
-          y2={ridgeY}
-          stroke="#b91c1c"
-          strokeWidth={1.4}
+          strokeWidth={3}
           strokeLinecap="round"
         />
       </>
     );
   } else if (presence === "PONTIC") {
-    // Bridge pontic — a suspended artificial tooth. Connector bars reach the
-    // adjacent abutments, the crown floats with a dashed (rootless) base, and
-    // socket brackets show when the site was previously extracted (M-1).
-    const cf = crownLayer ? LAYER_COLOR[crownLayer].light : "#f3e9cf";
-    const cs = crownLayer ? LAYER_COLOR[crownLayer].c : "#b8860b";
-    const baseY = isUpper ? cb : ct;
-    const socketY = isUpper ? cb + 2 : ct - 2;
+    // Bridge pontic — a suspended artificial tooth joined to its abutments.
+    const tone = restColor?.c ?? "#b8860b";
     bodyEl = (
       <>
-        <line
-          x1={cl - 5}
-          y1={cm}
-          x2={cl + 5}
-          y2={cm}
-          stroke="#b8860b"
-          strokeWidth={3.2}
-          strokeLinecap="round"
-        />
-        <line
-          x1={cr - 5}
-          y1={cm}
-          x2={cr + 5}
-          y2={cm}
-          stroke="#b8860b"
-          strokeWidth={3.2}
-          strokeLinecap="round"
-        />
         <path
-          d={crown}
-          fill={cf}
-          stroke={cs}
-          strokeWidth={crownLayer ? 2 : 1.6}
+          d={`M${cl - 7} ${cm}H${cl + 2}M${cr - 2} ${cm}H${cr + 7}`}
+          stroke={tone}
+          strokeWidth={3.2}
+          strokeLinecap="round"
         />
-        <defs>
-          <clipPath id={clipId}>
-            <path d={crown} />
-          </clipPath>
-        </defs>
-        <SurfaceOverlay />
-        <line
-          x1={cl + 3}
-          y1={baseY}
-          x2={cr - 3}
-          y2={baseY}
-          stroke="#b45309"
-          strokeWidth={1.3}
-          strokeDasharray="2.5,2"
-        />
-        <text
-          x={cx}
-          y={cm}
-          textAnchor="middle"
-          dominantBaseline="central"
-          fontSize="8.5"
-          fontWeight={800}
-          fontFamily="ui-monospace,monospace"
-          fill="#7c2d12"
-          style={{ pointerEvents: "none" }}
-        >
-          PON
-        </text>
-        {ps.wasExtracted && (
-          <>
-            <line
-              x1={cl + 2}
-              y1={socketY}
-              x2={cl + 9}
-              y2={socketY}
-              stroke="#b91c1c"
-              strokeWidth={1.2}
-              strokeLinecap="round"
-              strokeDasharray="2,1.5"
-            />
-            <line
-              x1={cr - 9}
-              y1={socketY}
-              x2={cr - 2}
-              y2={socketY}
-              stroke="#b91c1c"
-              strokeWidth={1.2}
-              strokeLinecap="round"
-              strokeDasharray="2,1.5"
-            />
-          </>
-        )}
+        {anatomy(restColor ? `url(#rest-${svgId})` : "#f3e9cf", tone, true)}
+        {overlay(tone, 1.4)}
       </>
     );
   } else if (presence === "RETAINED_ROOT") {
-    // Crown lost, root retained (K08.3). Roots are drawn by ToothRoots
-    // (showRoots); the body is just a cervical stump cap — no crown (M-1).
-    const stumpY = isUpper ? cb - 9 : ct - 2;
+    // Crown lost, root retained (K08.3): the root face with its canal.
     bodyEl = (
       <>
-        <rect
-          x={cl + 4}
-          y={stumpY}
-          width={cr - cl - 8}
-          height={11}
-          rx={4}
+        <path d={crown} fill="none" stroke="#d6c7ab" strokeWidth={1} strokeDasharray="2.5 2" />
+        <ellipse
+          cx={cx}
+          cy={cm}
+          rx={(cr - cl) * 0.3}
+          ry={(cb - ct) * 0.3}
           fill="#d8c3a0"
           stroke="#a98c5f"
-          strokeWidth={1.3}
+          strokeWidth={1.2}
         />
-        <text
-          x={cx}
-          y={stumpY + 5.5}
-          textAnchor="middle"
-          dominantBaseline="central"
-          fontSize="8"
-          fontWeight={800}
-          fontFamily="ui-monospace,monospace"
-          fill="#7c5e2e"
-          style={{ pointerEvents: "none" }}
-        >
-          RR
-        </text>
+        <circle cx={cx} cy={cm} r={2} fill="#8a6a3c" />
       </>
     );
   } else if (presence === "CONGENITAL") {
-    const scale = 0.7;
-    const ccx = cx,
-      ccy = isUpper ? ct + CH / 2 : cb - CH / 2;
-    bodyEl = (
-      <>
-        <g
-          transform={`translate(${ccx} ${ccy}) scale(${scale}) translate(${-ccx} ${-ccy})`}
-        >
-          <path
-            d={crown}
-            fill="none"
-            stroke="#cbd5e1"
-            strokeWidth={1.1}
-            strokeDasharray="2,2"
-          />
-        </g>
-        <circle
-          cx={cx}
-          cy={cm}
-          r={9}
-          fill="none"
-          stroke="#94a3b8"
-          strokeWidth={1.5}
-        />
-        <line
-          x1={cx - 7}
-          y1={cm + 7}
-          x2={cx + 7}
-          y2={cm - 7}
-          stroke="#94a3b8"
-          strokeWidth={1.5}
-          strokeLinecap="round"
-        />
-        <text
-          x={cx}
-          y={isUpper ? cb + 8 : ct - 8}
-          textAnchor="middle"
-          dominantBaseline="central"
-          fontSize="8.5"
-          fontWeight={700}
-          fontFamily="ui-monospace,monospace"
-          fill="#94a3b8"
-          letterSpacing="0.5"
-        >
-          CONG
-        </text>
-      </>
-    );
-  } else if (presence === "UNERUPTED") {
-    const offset = isUpper ? 11 : -11;
-    const gumY = isUpper ? ct - 4 : cb + 4;
-    const gumH = 6;
-    const stripes = Array.from({ length: 5 }).map((_, i) => {
-      const x0 = cl + (i / 5) * (cr - cl);
-      return (
-        <line
-          key={i}
-          x1={x0}
-          y1={gumY}
-          x2={x0 + 5}
-          y2={gumY - gumH * (isUpper ? 1 : -1)}
-          stroke="#a78bfa"
-          strokeOpacity={0.7}
-          strokeWidth={1.1}
-        />
-      );
-    });
-    // Planned-intervention dot on UE badge
-    const planDotColor = ps.hasPlannedIntervention ? "#dc2626" : "transparent";
-    bodyEl = (
-      <>
-        <rect
-          x={cl - 1}
-          y={isUpper ? gumY - gumH : gumY}
-          width={cr - cl + 2}
-          height={gumH}
-          fill="#ede9fe"
-          fillOpacity={0.55}
-          stroke="none"
-        />
-        {stripes}
-        <g transform={`translate(0,${offset})`} opacity={0.6}>
-          <path
-            d={crown}
-            fill="#f3e8ff"
-            stroke="#8b5cf6"
-            strokeWidth={1.1}
-            strokeDasharray="3.5,2.5"
-          />
-        </g>
-        <rect
-          x={cx - 11}
-          y={cm - 7}
-          width={22}
-          height={14}
-          rx={3}
-          fill="#7c3aed"
-          fillOpacity={0.92}
-        />
-        <text
-          x={cx}
-          y={cm}
-          textAnchor="middle"
-          dominantBaseline="central"
-          fontSize="9"
-          fontWeight={800}
-          fontFamily="ui-monospace,monospace"
-          fill="#fff"
-          letterSpacing="0.6"
-        >
-          UE
-        </text>
-        {/* Planned intervention indicator dot */}
-        <circle cx={cx + 8} cy={cm - 8} r={3.5} fill={planDotColor} />
-      </>
-    );
-  } else if (presence === "SUPERNUMERARY") {
-    const cf = crownLayer ? LAYER_COLOR[crownLayer].light : "#faf3e3";
-    const cs = crownLayer ? LAYER_COLOR[crownLayer].c : "#c4a06a";
-    const extraScale = 0.55;
-    const extraDx = CW * 0.62;
-    const extraDy = isUpper ? 1 : -1;
-    const exCx = cx + extraDx;
-    const exCy = isUpper ? ct + CH / 2 + extraDy : cb - CH / 2 - extraDy;
     bodyEl = (
       <>
         <path
           d={crown}
-          fill={cf}
-          stroke={cs}
-          strokeWidth={crownLayer ? 2 : 1.1}
+          fill="none"
+          stroke="#cbd5e1"
+          strokeWidth={1.1}
+          strokeDasharray="2 2"
+          transform={`translate(${cx} ${cm}) scale(.75) translate(${-cx} ${-cm})`}
         />
-        <defs>
-          <clipPath id={clipId}>
-            <path d={crown} />
-          </clipPath>
-        </defs>
-        <SurfaceOverlay />
+        <circle cx={cx} cy={cm} r={9} fill="none" stroke="#94a3b8" strokeWidth={1.5} />
+        <line x1={cx - 7} y1={cm + 7} x2={cx + 7} y2={cm - 7} stroke="#94a3b8" strokeWidth={1.5} strokeLinecap="round" />
+      </>
+    );
+  } else if (presence === "UNERUPTED") {
+    bodyEl = (
+      <>
+        <path d={crown} fill="#f5f3ff" stroke="#8b5cf6" strokeWidth={1.1} strokeDasharray="3.5 2.5" />
+        <rect x={cx - 10} y={cm - 6.5} width={20} height={13} rx={3} fill="#7c3aed" fillOpacity={0.92} />
+        <text x={cx} y={cm} className="dc-occlusal-tag" fill="#fff">
+          UE
+        </text>
+        {ps.hasPlannedIntervention && <circle cx={cr - 3} cy={ct + 3} r={3.5} fill="#dc2626" />}
+      </>
+    );
+  } else if (presence === "SUPERNUMERARY") {
+    const fill = crownLayer ? LAYER_COLOR[crownLayer].light : `url(#enamel-${svgId})`;
+    const stroke = crownLayer ? LAYER_COLOR[crownLayer].c : "#b5bcae";
+    bodyEl = (
+      <>
+        {anatomy(fill, stroke)}
+        {overlay(stroke)}
         {restoration && renderRestoration(restoration)}
         <g
-          transform={`translate(${exCx} ${exCy}) scale(${extraScale}) translate(${-cx} ${-(isUpper ? ct + CH / 2 : cb - CH / 2)})`}
-          opacity={0.85}
+          transform={`translate(${cr - 3} ${isUpper ? cb - 3 : ct + 3}) scale(.34) translate(${-cx} ${-cm})`}
+          pointerEvents="none"
         >
-          <path
-            d={crown}
-            fill="#fdf2f8"
-            stroke="#db2777"
-            strokeWidth={1.4}
-            strokeDasharray="3,2"
-          />
+          <path d={crown} fill="#fdf2f8" stroke="#db2777" strokeWidth={3.5} strokeDasharray="7 5" />
         </g>
-        <circle
-          cx={cr - 2}
-          cy={ct + 2}
-          r={7}
-          fill="#db2777"
-          stroke="#fff"
-          strokeWidth={1.5}
-        />
-        <text
-          x={cr - 2}
-          y={ct + 2}
-          textAnchor="middle"
-          dominantBaseline="central"
-          fontSize="8"
-          fontWeight={800}
-          fontFamily="ui-monospace,monospace"
-          fill="#fff"
-        >
+        <circle cx={cr - 2} cy={ct + 2} r={6} fill="#db2777" stroke="#fff" strokeWidth={1.4} />
+        <text x={cr - 2} y={ct + 2} className="dc-occlusal-tag dc-occlusal-tag--small" fill="#fff">
           +S
         </text>
       </>
     );
   } else if (presence === "IMPLANT") {
-    // A PLANNED-only implant must not look identical to a placed (osseointegrated)
-    // one. When planned we ghost the fixture: dashed crown + dashed fixture line,
-    // lighter threads, muted "IMP", and a red planned dot — mirroring the
-    // planned-intervention dot used on unerupted teeth.
+    // Occlusal view of an implant crown: screw-access channel over the
+    // fixture. A PLANNED-only implant is ghosted and dashed, with the red
+    // planned dot used for unerupted teeth, so it never reads as placed.
     const planned = ps.implantPlanned;
-    const fixtureCol = planned ? "#b8bdc2" : "#9aa0a6";
-    const threadCol = planned ? "#b0b6bc" : "#7d848b";
-    const crownFill = planned ? "#eef1f3" : "#dee1e4";
-    const crownStroke = planned ? "#9aa0a6" : "#8b9197";
-    const impFill = planned ? "#9aa0a6" : "#5f656b";
-    const dash = planned ? "3,2" : undefined;
-    const y0 = isUpper ? cb - 2 : ct + 2;
-    const y1 = isUpper ? H - 5 : 5;
-    const threads = Array.from({ length: 7 }).map((_, i) => {
-      const yy = y0 + (y1 - y0) * (i / 7);
-      return (
-        <line
-          key={i}
-          x1={cx - 4}
-          y1={yy}
-          x2={cx + 4}
-          y2={yy + (isUpper ? 2.5 : -2.5)}
-          stroke={threadCol}
-          strokeWidth={1.2}
-          strokeDasharray={dash}
-        />
-      );
-    });
+    const dash = planned ? "3 2" : undefined;
     bodyEl = (
-      <>
-        {/* Socket brackets — shown when implant replaced an extracted tooth */}
-        {ps.wasExtracted && (
-          <>
-            <line
-              x1={cl + 2}
-              y1={isUpper ? cb + 2 : ct - 2}
-              x2={cl + 9}
-              y2={isUpper ? cb + 2 : ct - 2}
-              stroke="#b91c1c"
-              strokeWidth={1.2}
-              strokeLinecap="round"
-              strokeDasharray="2,1.5"
-            />
-            <line
-              x1={cr - 9}
-              y1={isUpper ? cb + 2 : ct - 2}
-              x2={cr - 2}
-              y2={isUpper ? cb + 2 : ct - 2}
-              stroke="#b91c1c"
-              strokeWidth={1.2}
-              strokeLinecap="round"
-              strokeDasharray="2,1.5"
-            />
-          </>
-        )}
-        <line
-          x1={cx}
-          y1={y0}
-          x2={cx}
-          y2={y1}
-          stroke={fixtureCol}
-          strokeWidth={4.5}
-          strokeDasharray={dash}
-        />
-        {threads}
+      <g pointerEvents="none">
         <path
           d={crown}
-          fill={crownFill}
-          stroke={crownStroke}
-          strokeWidth={1.2}
+          fill={planned ? "#f1f3f5" : "#dde1e5"}
+          stroke={planned ? "#a3a9af" : "#7d848b"}
+          strokeWidth={1.1}
           strokeDasharray={dash}
         />
-        <text
-          x={cx}
-          y={cm}
-          textAnchor="middle"
-          dominantBaseline="central"
-          fontSize="10"
-          fontWeight={500}
-          fontFamily="ui-monospace,monospace"
-          fill={impFill}
-        >
-          IMP
-        </text>
-        {/* Planned-fixture indicator — distinguishes "implant planned" from "implant placed" */}
+        <circle cx={cx} cy={cm} r={7} fill={planned ? "none" : "#c3cad1"} stroke="#6b7280" strokeWidth={1.1} strokeDasharray={dash} />
+        <path
+          d={`M${cx + 3.4} ${cm}L${cx + 1.7} ${cm + 2.95}L${cx - 1.7} ${cm + 2.95}L${cx - 3.4} ${cm}L${cx - 1.7} ${cm - 2.95}L${cx + 1.7} ${cm - 2.95}Z`}
+          fill={planned ? "#a3a9af" : "#4b5563"}
+        />
         {planned && <circle cx={cr - 3} cy={ct + 3} r={3.5} fill="#dc2626" />}
-        {/* Congenital-absence badge — ∅ in top corner */}
-        {ps.wasCongenital && (
-          <>
-            <circle
-              cx={cl + 8}
-              cy={ct + 8}
-              r={6}
-              fill="#e0f2fe"
-              stroke="#38bdf8"
-              strokeWidth={1}
-            />
-            <line
-              x1={cl + 4}
-              y1={ct + 12}
-              x2={cl + 12}
-              y2={ct + 4}
-              stroke="#0284c7"
-              strokeWidth={1.2}
-              strokeLinecap="round"
-            />
-          </>
-        )}
-      </>
+      </g>
     );
   } else {
-    // PRESENT — standard crown with surface overlays
-    const cf = crownLayer ? LAYER_COLOR[crownLayer].light : "#faf3e3";
-    const cs = crownLayer ? LAYER_COLOR[crownLayer].c : "#c4a06a";
+    // PRESENT — anatomical crown with clickable surfaces.
+    const fill =
+      fullCoverage && restColor
+        ? `url(#rest-${svgId})`
+        : crownLayer
+          ? LAYER_COLOR[crownLayer].light
+          : `url(#enamel-${svgId})`;
+    const stroke =
+      fullCoverage && restColor
+        ? restColor.c
+        : crownLayer
+          ? LAYER_COLOR[crownLayer].c
+          : "#b5bcae";
     bodyEl = (
       <>
-        <path
-          d={crown}
-          fill={cf}
-          stroke={cs}
-          strokeWidth={crownLayer ? 2 : 1.1}
-        />
-        <defs>
-          <clipPath id={clipId}>
-            <path d={crown} />
-          </clipPath>
-        </defs>
-        <SurfaceOverlay />
-        {(["M", "D", "O", "B", "L"] as const).map((z) => {
-          if (!surfColor[z]) return null;
-          const [lx, ly] = LP[z];
-          return (
-            <text
-              key={z}
-              x={lx}
-              y={ly}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fontSize="12"
-              fontWeight={500}
-              fontFamily="ui-monospace,monospace"
-              fill="#fff"
-              style={{ pointerEvents: "none" }}
-            >
-              {z === "O" ? centralKey : z}
-            </text>
-          );
-        })}
-        <ellipse
-          cx={cx - CW * 0.16}
-          cy={isUpper ? ct + CH * 0.27 : ct + CH * 0.73}
-          rx={CW * 0.18}
-          ry={CH * 0.12}
-          fill="#fff"
-          fillOpacity={0.34}
-        />
-        {hasRct && visibleLayers.PLANNED && (
-          <line
-            x1={cx}
-            y1={isUpper ? cb - 2 : ct + 2}
-            x2={cx}
-            y2={isUpper ? H - 4 : 4}
-            stroke="#dc2626"
-            strokeWidth={1.4}
-            strokeDasharray="3,2"
-          />
-        )}
+        {anatomy(fill, stroke, fullCoverage && !!restColor)}
+        {overlay(stroke, fullCoverage || crownLayer ? 1.4 : 1)}
         {restoration && renderRestoration(restoration)}
       </>
     );
@@ -1523,50 +1012,15 @@ const ToothSVG = React.memo(function ToothSVG({
 
   return (
     <svg
-      width={W}
-      height={H}
-      viewBox={`0 0 ${W} ${H}`}
-      style={{ display: "block", overflow: "visible", cursor: "pointer" }}
+      className="dc-occlusal"
+      viewBox={`0 0 ${W} ${W}`}
+      role="group"
+      aria-label={`Tooth ${fdi} biting surfaces`}
       onClick={(e) =>
         onClick(fdi, { ctrl: e.metaKey || e.ctrlKey, shift: e.shiftKey })
       }
     >
-      {selected && (
-        <rect
-          x={-3}
-          y={-3}
-          width={W + 6}
-          height={H + 6}
-          rx={7}
-          fill="#dbeafe"
-          fillOpacity={0.45}
-          stroke="#2563eb"
-          strokeWidth={2}
-        />
-      )}
-      {showRoots && (
-        <ToothRoots
-          kind={k}
-          isUpper={isUpper}
-          cl={cl}
-          cx={cx}
-          cr={cr}
-          cb={cb}
-          ct={ct}
-        />
-      )}
-      {presence !== "CONGENITAL" && (
-        <ellipse
-          cx={cx}
-          cy={isUpper ? cb + 2 : ct - 2}
-          rx={CW / 2 + 3}
-          ry={4.5}
-          fill={presence === "EXTRACTED" ? "#fde2e2" : "#f6dccb"}
-          stroke={presence === "EXTRACTED" ? "#f5b5b5" : "#e6bfa6"}
-          strokeWidth={0.6}
-          opacity={presence === "EXTRACTED" ? 0.7 : 1}
-        />
-      )}
+      {defs}
       {bodyEl}
     </svg>
   );
@@ -1740,7 +1194,7 @@ function SplitLedger({
               <tr style={{ background: "#f8fafc" }}>
                 {[
                   "Date",
-                  "Th",
+                  "FDI tooth",
                   "Surf",
                   "Code / Name",
                   opts.showPrice ? "Price" : null,
@@ -1967,6 +1421,7 @@ function SplitLedger({
       }}
     >
       <div
+        className="dc-ledger-columns"
         style={{
           display: "flex",
           gap: 8,
@@ -2304,20 +1759,11 @@ const RESTORATION_LEGEND: Array<{
 }> = [
   {
     key: "CROWN",
-    label: "Crown",
+    label: "Crown (status colour)",
     swatch: (
-      <svg width={18} height={18} viewBox="0 0 18 18">
-        <rect x={2.5} y={2.5} width={13} height={13} rx={3} fill="#fdf6e3" />
-        <rect
-          x={2.5}
-          y={2.5}
-          width={13}
-          height={13}
-          rx={3}
-          fill="none"
-          stroke="#d4af37"
-          strokeWidth={2.2}
-        />
+      <svg width={30} height={18} viewBox="0 0 30 18">
+        <rect x={1.5} y={2.5} width={12} height={13} rx={3.5} fill={LAYER_COLOR.COMPLETED.c} fillOpacity={0.85} stroke={LAYER_COLOR.COMPLETED.c} />
+        <rect x={16.5} y={2.5} width={12} height={13} rx={3.5} fill={LAYER_COLOR.PLANNED.c} fillOpacity={0.85} stroke={LAYER_COLOR.PLANNED.c} />
       </svg>
     ),
   },
@@ -2360,9 +1806,7 @@ const RESTORATION_LEGEND: Array<{
     swatch: (
       <svg width={18} height={18} viewBox="0 0 18 18">
         <rect x={3} y={3} width={12} height={12} rx={3} fill="#faf3e3" stroke="#c4a06a" strokeWidth={0.8} />
-        {[5, 9, 13].map((cx) => (
-          <circle key={cx} cx={cx} cy={9} r={1.6} fill="#0d9488" />
-        ))}
+        <path d="M5 10 L9 8.5 L13 10 M9 8.5 V5" fill="none" stroke="#0d9488" strokeWidth={2} strokeLinecap="round" />
       </svg>
     ),
   },
@@ -2553,6 +1997,10 @@ function DentalChartInner({
   const [internalEntries, setInternalEntries] = useState<ChartEntry[]>([]);
   const [selected, setSelected] = useState<number[]>([]);
   const [anchor, setAnchor] = useState<number | null>(null);
+  const [selectedSurfaces, setSelectedSurfaces] = useState<UiSurface[]>([]);
+  const [numbering, setNumbering] = useState<ToothNumbering>("FDI");
+  const [zoom, setZoom] = useState(100);
+  const [ledgerSelectionOnly, setLedgerSelectionOnly] = useState(false);
   const [dentition, setDentition] = useState<"permanent" | "primary">(
     "permanent",
   );
@@ -2774,6 +2222,8 @@ function DentalChartInner({
   // ── Selection handlers ─────────────────────────────────────────────────────
   const handleToothClick = useCallback(
     (n: number, mods: { ctrl: boolean; shift: boolean }) => {
+      setSelectedSurfaces([]);
+      setDrawerTooth(null);
       if (mods.shift) {
         const start = anchor ?? n;
         const i = orderedTeeth.indexOf(start),
@@ -2796,30 +2246,37 @@ function DentalChartInner({
       }
       setSelected([n]);
       setAnchor(n);
-      setDrawerTooth(n);
     },
     [anchor, orderedTeeth],
   );
 
-  /**
-   * Surface click:
-   *  · Modifier held → delegate to tooth-click (multi-select).
-   *  · Plain click   → exclusive single-tooth select + open drawer.
-   */
+  // Surface selection is local until the clinician submits the charting dialog.
   const handleSurfaceClick = useCallback(
-    (n: number, _s: UiSurface, mods: { ctrl: boolean; shift: boolean }) => {
+    (n: number, surface: UiSurface, mods: { ctrl: boolean; shift: boolean }) => {
       if (mods.ctrl || mods.shift) {
         handleToothClick(n, mods);
         return;
       }
+      setSelectedSurfaces(prev => selected.length === 1 && selected[0] === n
+        ? (prev.includes(surface) ? prev.filter(s => s !== surface) : sortUiSurfaces([...prev, surface]))
+        : [surface]);
       setSelected([n]);
       setAnchor(n);
-      setDrawerTooth(n);
+      setDrawerTooth(null);
     },
-    [handleToothClick],
+    [handleToothClick, selected],
   );
 
+  const clearSelection = () => {
+    setSelected([]);
+    setSelectedSurfaces([]);
+    setAnchor(null);
+    setDrawerTooth(null);
+  };
+
   const selectQuadrant = (q: number) => {
+    setSelectedSurfaces([]);
+    setDrawerTooth(null);
     const all = [
       ...ARCH.permanent.upper,
       ...ARCH.permanent.lower,
@@ -2831,6 +2288,8 @@ function DentalChartInner({
     setAnchor(teeth[0] ?? null);
   };
   const selectArch = (a: "U" | "L") => {
+    setSelectedSurfaces([]);
+    setDrawerTooth(null);
     const rws = dentition === "permanent" ? ARCH.permanent : ARCH.primary;
     const teeth = a === "U" ? rws.upper : rws.lower;
     setSelected(teeth);
@@ -3219,93 +2678,51 @@ function DentalChartInner({
     return counts;
   }, [entries]);
 
-  // ── Arch renderer ─────────────────────────────────────────────────────────
   const rws = dentition === "permanent" ? ARCH.permanent : ARCH.primary;
+  const selectedEntries = entries.filter(e => e.toothNumbers.some(t => selected.includes(t)));
+  const currentTooth = selected.length === 1 ? selected[0] : null;
+  const currentPresence = currentTooth ? resolvePresence(getEntries(currentTooth)) : null;
+  const presenceLabel = currentPresence ? ({
+    PRESENT: "Present", EXTRACTED: "Missing / extracted", CONGENITAL: "Congenitally absent",
+    UNERUPTED: "Unerupted / impacted", SUPERNUMERARY: "Supernumerary",
+    IMPLANT: currentPresence.implantPlanned ? "Implant planned" : "Implant present",
+    PONTIC: "Bridge pontic", RETAINED_ROOT: "Retained root",
+  })[currentPresence.primary] : "";
 
   const renderArch = (teeth: number[], isUpper: boolean) => (
-    <div style={{ textAlign: "left" }}>
-      {" "}
-      {/* ← add this */}
-      <div style={{ display: "flex", justifyContent: "flex-start", gap: 10 }}>
-        {teeth.map((t) => (
-          <div key={t} style={{ width: 54, flexShrink: 0 }}>
-            <ToothSVG
-              fdi={t}
-              isUpper={isUpper}
-              entries={getEntries(t)}
-              selected={selected.includes(t)}
-              visibleLayers={visibleLayers}
-              onClick={handleToothClick}
-              onSurfaceClick={handleSurfaceClick}
-            />
-          </div>
-        ))}
-      </div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-start",
-          gap: 13,
-          margin: "4px 0",
-        }}
-      >
-        {/* <div style={{ display: "flex", justifyContent: "center", gap: 10, margin: "4px 0" }}> */}
-        {teeth.map((t) => (
-          <span
-            key={t}
-            style={{
-              width: 52,
-              textAlign: "center",
-              fontSize: 11,
-              fontFamily: "monospace",
-              color: selected.includes(t) ? "#2563eb" : "#94a3b8",
-              fontWeight: selected.includes(t) ? 700 : 400,
-            }}
-          >
-            {t}
-          </span>
-        ))}
-      </div>
+    <div className={`dc-arch ${isUpper ? "dc-arch--upper" : "dc-arch--lower"}`}
+      style={{ "--tooth-count": teeth.length } as React.CSSProperties}>
+      {teeth.map((t, index) => (
+        <div key={t} className={`dc-tooth ${selected.includes(t) ? "is-selected" : ""} ${index === teeth.length / 2 ? "dc-midline" : ""}`}>
+          <button type="button" className="dc-tooth-face" aria-pressed={selected.includes(t)}
+            aria-label={`Select tooth ${displayToothNumber(t, numbering)}, ${toothName(t)}, FDI ${t}`}
+            title={`${toothName(t)} · FDI ${t}\n${getEntries(t).filter(e => e.status === "ACTIVE").map(e => e.label).join("\n") || "No recorded findings"}`}
+            onClick={e => handleToothClick(t, { ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey })}
+            onKeyDown={e => {
+              const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+              if (step) {
+                e.preventDefault();
+                const buttons = Array.from(e.currentTarget.closest(".dc-arch")!.querySelectorAll<HTMLButtonElement>(".dc-tooth-face"));
+                buttons[(index + step + teeth.length) % teeth.length]?.focus();
+              }
+            }}>
+            <ToothAnatomy fdi={t} isUpper={isUpper} entries={getEntries(t)} visibleLayers={visibleLayers} colors={LAYER_COLOR} />
+          </button>
+          <ToothSVG fdi={t} isUpper={isUpper} entries={getEntries(t)} selected={selected.includes(t)}
+            selectedSurfaces={selectedSurfaces} visibleLayers={visibleLayers}
+            onClick={handleToothClick} onSurfaceClick={handleSurfaceClick} />
+          <button type="button" className="dc-tooth-number" aria-pressed={selected.includes(t)}
+            aria-label={`Select tooth ${displayToothNumber(t, numbering)}`}
+            onClick={e => handleToothClick(t, { ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey })}>
+            {displayToothNumber(t, numbering)}
+            <span className="dc-entry-dots" aria-hidden="true">
+              {[...new Set(getEntries(t).filter(e => e.status === "ACTIVE" && isLiveConditionEntry(e)).map(layerForEntry))]
+                .filter(l => visibleLayers[l]).map(l => <i key={l} style={{ background: LAYER_COLOR[l].c }} />)}
+            </span>
+          </button>
+        </div>
+      ))}
     </div>
-  );
-
-  // ── Button styles ─────────────────────────────────────────────────────────
-  const segBtn = (active: boolean): React.CSSProperties => ({
-    padding: "5px 13px",
-    fontSize: 12,
-    fontWeight: active ? 600 : 400,
-    borderRadius: 6,
-    border: `1px solid ${active ? "#2563eb" : "#e2e8f0"}`,
-    background: active ? "#eff6ff" : "#fff",
-    color: active ? "#1d4ed8" : "#64748b",
-    cursor: "pointer",
-    transition: "all 0.12s",
-  });
-
-  const actionBtn = (
-    label: string,
-    borderColor: string,
-    bg: string,
-    color: string,
-    onClick: () => void,
-    size: "sm" | "md" = "md",
-  ) => (
-    <button
-      onClick={onClick}
-      style={{
-        padding: size === "sm" ? "3px 11px" : "5px 14px",
-        fontSize: size === "sm" ? 11 : 12,
-        fontWeight: 600,
-        borderRadius: 6,
-        border: `1px solid ${borderColor}`,
-        background: bg,
-        color,
-        cursor: "pointer",
-        transition: "opacity 0.12s",
-      }}
-    >
-      {label}
-    </button>
   );
 
   // ── Guard: a real (non-demo) chart needs a patient ─────────────────────────
@@ -3389,333 +2806,123 @@ function DentalChartInner({
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div
-      style={{
-        background: "#fff",
-        border: "1px solid #e2e8f0",
-        borderRadius: 14,
-        padding: "6px 10px",
-        width: "100%", // ← expand to parent width
-        boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-      }}
-    >
-      {/* ── Toolbar ── */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          flexWrap: "wrap",
-          padding: "6px 14px",
-          background: "#fff",
-          borderBottom: "1px solid #e2e8f0",
-          minHeight: 48,
-        }}
-      >
-        {!readOnly && (
-          <div style={{ display: "flex", gap: 7 }}>
-            {actionBtn("+ Condition", "#fca5a5", "#fff5f5", "#b91c1c", () => {
-              if (!selected.length)
-                setSelected([dentition === "permanent" ? 11 : 51]);
-              setShowCond(true);
-            })}
-            {actionBtn("+ Procedure", "#93c5fd", "#eff6ff", "#1d4ed8", () => {
-              if (!selected.length)
-                setSelected([dentition === "permanent" ? 11 : 51]);
-              setShowTx(true);
-            })}
-          </div>
-        )}
-        {isDemo && (
-          <button
-            onClick={() => {
-              setInternalEntries([]);
-              toast.success("Demo chart cleared");
-            }}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              padding: "5px 12px",
-              fontSize: 12,
-              borderRadius: 6,
-              border: "1px solid #e2e8f0",
-              background: "#fff",
-              color: "#64748b",
-              cursor: "pointer",
-            }}
-          >
-            <RefreshCcw size={13} /> Reset
-          </button>
-        )}
-
-        {/* Divider */}
-        <div
-          style={{
-            width: 1,
-            height: 22,
-            background: "#e2e8f0",
-            margin: "0 4px",
-          }}
-        />
-
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 600,
-            color: "#94a3b8",
-            letterSpacing: ".05em",
-          }}
-        >
-          LAYERS
-        </span>
-        {(
-          [
-            "EXISTING",
-            "PLANNED",
-            "IN_PROGRESS",
-            "COMPLETED",
-            "INACTIVE",
-            "CONDITION",
-            "RESOLVED",
-          ] as Layer[]
-        ).map((l) => {
-          const on = visibleLayers[l],
-            lc = LAYER_COLOR[l];
-          return (
-            <button
-              key={l}
-              onClick={() => setVisibleLayers((p) => ({ ...p, [l]: !p[l] }))}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "3px 12px",
-                fontSize: 11,
-                fontWeight: on ? 600 : 400,
-                borderRadius: 6,
-                border: `1.5px solid ${on ? lc.c : "#e2e8f0"}`,
-                background: on ? lc.light : "#fff",
-                color: on ? lc.text : "#94a3b8",
-                opacity: on ? 1 : 0.55,
-                cursor: "pointer",
-                transition: "all 0.12s",
-              }}
-            >
-              <span
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: 2,
-                  background: lc.c,
-                }}
-              />
-              {lc.label}
-              <span
-                style={{ fontSize: 10, fontFamily: "monospace", opacity: 0.75 }}
-              >
-                {stats[l]}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ── Dentition / arch / selection bar ── */}
-      <div style={{ display: "flex", justifyContent: "flex-start", gap: 10 }}>
-        <span style={{ fontSize: 12, color: "#64748b" }}>Dentition</span>
-        <button
-          onClick={() => {
-            setDentition("permanent");
-            setSelected([]);
-            setAnchor(null);
-          }}
-          style={segBtn(dentition === "permanent")}
-        >
-          Permanent
-        </button>
-        <button
-          onClick={() => {
-            setDentition("primary");
-            setSelected([]);
-            setAnchor(null);
-          }}
-          style={segBtn(dentition === "primary")}
-        >
-          Primary
-        </button>
-
-        <span
-          style={{
-            width: 1,
-            height: 18,
-            background: "#e2e8f0",
-            margin: "0 2px",
-          }}
-        />
-
-        {dentition === "permanent" &&
-          [1, 2, 3, 4].map((q) => (
-            <button
-              key={q}
-              onClick={() => selectQuadrant(q)}
-              style={segBtn(false)}
-            >
-              Q{q}
-            </button>
-          ))}
-        <button onClick={() => selectArch("U")} style={segBtn(false)}>
-          Upper
-        </button>
-        <button onClick={() => selectArch("L")} style={segBtn(false)}>
-          Lower
-        </button>
-
-        {selected.length > 0 && (
-          <span
-            style={{
-              marginLeft: "auto",
-              display: "flex",
-              alignItems: "center",
-              gap: 7,
-              fontSize: 12,
-            }}
-          >
-            <span style={{ color: "#2563eb", fontWeight: 600 }}>
-              {selected.length === 1
-                ? `${selected[0]} — ${toothName(selected[0])}`
-                : `${selected.length} teeth`}
-            </span>
-            {selected.length === 1 && (
-              <button
-                onClick={() => setDrawerTooth(selected[0])}
-                style={{
-                  padding: "3px 9px",
-                  fontSize: 11,
-                  borderRadius: 5,
-                  border: "1px solid #bfdbfe",
-                  background: "#eff6ff",
-                  color: "#1d4ed8",
-                  cursor: "pointer",
-                }}
-              >
-                Details
-              </button>
-            )}
-            {!readOnly && (
-              <>
-                {actionBtn(
-                  "+ Cond.",
-                  "#fca5a5",
-                  "#fff5f5",
-                  "#b91c1c",
-                  () => setShowCond(true),
-                  "sm",
-                )}
-                {actionBtn(
-                  "+ Proc.",
-                  "#93c5fd",
-                  "#eff6ff",
-                  "#1d4ed8",
-                  () => setShowTx(true),
-                  "sm",
-                )}
-              </>
-            )}
-            <button
-              onClick={() => {
-                setSelected([]);
-                setAnchor(null);
-              }}
-              style={{
-                padding: "3px 9px",
-                fontSize: 11,
-                borderRadius: 5,
-                border: "1px solid #e2e8f0",
-                background: "#fff",
-                color: "#64748b",
-                cursor: "pointer",
-              }}
-            >
-              Clear
-            </button>
-          </span>
-        )}
-      </div>
-
-      {/* ── Chart canvas ── */}
-      <div style={{ padding: 8, overflowX: "auto" }}>
-        <div
-          style={{
-            background: "#fff",
-            border: "1px solid #e2e8f0",
-            borderRadius: 14,
-            padding: "6px 10px",
-            width: "fit-content",
-            minWidth: "100%",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between", // ← was "flex-start"
-              padding: "6px 10px 0",
-              fontSize: 10,
-              fontWeight: 700,
-              color: "#94a3b8",
-              letterSpacing: ".07em",
-              width: "70%",
-            }}
-          >
-            <span>UPPER RIGHT</span>
-            <span style={{ color: "#818cf8" }}>MAXILLA</span>
-            <span>UPPER LEFT</span>
-          </div>
-
-          {renderArch(rws.upper, true)}
-
-          <div
-            style={{ display: "flex", alignItems: "center", margin: "4px 3px" }}
-          >
-            <div style={{ flex: 1, borderTop: "1.5px dashed #e2e8f0" }} />
-            <span
-              style={{
-                margin: "0 14px",
-                padding: "3px 14px",
-                background: "#f8fafc",
-                borderRadius: 5,
-                fontSize: 10,
-                color: "#94a3b8",
-                fontWeight: 700,
-                letterSpacing: ".06em",
-              }}
-            >
-              OCCLUSAL PLANE
-            </span>
-            <div style={{ flex: 1, borderTop: "1.5px dashed #e2e8f0" }} />
-          </div>
-
-          {renderArch(rws.lower, false)}
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between", // ← was "flex-start"
-              padding: "6px 10px 0",
-              fontSize: 10,
-              fontWeight: 700,
-              color: "#94a3b8",
-              letterSpacing: ".07em",
-              width: "70%",
-            }}
-          >
-            <span>LOWER RIGHT</span>
-            <span style={{ color: "#818cf8" }}>MANDIBLE</span>
-            <span>LOWER LEFT</span>
-          </div>
+    <div className="dental-chart">
+      <header className="dc-header">
+        <div className="dc-heading">
+          <span className="dc-heading-icon"><ClipboardList size={21} aria-hidden="true" /></span>
+          <div><h2>Clinical chart</h2><p>Odontogram <span>·</span> {dentition === "permanent" ? "Permanent dentition · 32 teeth" : "Primary dentition · 20 teeth"}</p></div>
         </div>
+        <div className="dc-header-actions">
+          {isDemo && <span className="dc-demo-badge">Demo · not saved</span>}
+          {readOnly && <span className="dc-demo-badge">Read only</span>}
+          <button className="dc-button" aria-label={isDemo ? "Reset demo chart" : "Refresh dental chart"} onClick={() => {
+            if (isDemo) { setInternalEntries([]); clearSelection(); }
+            else { refetch(); refetchProcs(); }
+          }}><RefreshCcw size={14} aria-hidden="true" /><span>{isDemo ? "Reset" : "Refresh"}</span></button>
+          {!readOnly && <>
+            <button className="dc-button" disabled={!selected.length} onClick={() => setShowCond(true)}>
+              <Plus size={15} aria-hidden="true" /> Add condition
+            </button>
+            <button className="dc-button dc-button--primary" disabled={!selected.length || isDemo} title={isDemo ? "Procedures require a patient record" : undefined} onClick={() => setShowTx(true)}>
+              <Plus size={15} aria-hidden="true" /> Add procedure
+            </button>
+          </>}
+        </div>
+      </header>
 
+      <div className="dc-toolbar">
+        <div className="dc-segmented" role="group" aria-label="Dentition">
+          {(["permanent", "primary"] as const).map(d => <button key={d} aria-pressed={dentition === d}
+            onClick={() => { setDentition(d); clearSelection(); }}>
+            {d === "permanent" ? "Permanent" : "Primary"}
+          </button>)}
+        </div>
+        <label className="dc-numbering">Numbering
+          <select value={numbering} onChange={e => setNumbering(e.target.value as ToothNumbering)}>
+            <option value="FDI">FDI</option><option value="Universal">Universal</option>
+          </select>
+        </label>
+        <span className="dc-toolbar-divider" />
+        <div className="dc-quadrants" role="group" aria-label="Select a quadrant">
+          {(dentition === "permanent" ? [1, 2, 4, 3] : [5, 6, 8, 7]).map((q, i) =>
+            <button key={q} className="dc-button dc-button--small" title={`Select ${["upper right", "upper left", "lower right", "lower left"][i]} quadrant`}
+              onClick={() => selectQuadrant(q)}>{["UR", "UL", "LR", "LL"][i]}</button>)}
+        </div>
+        <button className="dc-button dc-button--small" onClick={() => selectArch("U")}>Upper</button>
+        <button className="dc-button dc-button--small" onClick={() => selectArch("L")}>Lower</button>
+        <div className="dc-zoom" role="group" aria-label="Chart zoom">
+          <button aria-label="Zoom out" disabled={zoom === 100} onClick={() => setZoom(z => Math.max(100, z - 25))}><ZoomOut size={15} /></button>
+          <output aria-live="polite">{zoom}%</output>
+          <button aria-label="Zoom in" disabled={zoom === 150} onClick={() => setZoom(z => Math.min(150, z + 25))}><ZoomIn size={15} /></button>
+        </div>
+      </div>
+
+      <div className="dc-layers" role="group" aria-label="Visible chart layers">
+        <span className="dc-label"><Layers size={13} aria-hidden="true" /> Layers</span>
+        {(Object.keys(LAYER_COLOR) as Layer[]).map(l => (
+          <button key={l} className={`dc-layer ${visibleLayers[l] ? "" : "is-hidden"}`}
+            aria-pressed={visibleLayers[l]} onClick={() => setVisibleLayers(p => ({ ...p, [l]: !p[l] }))}>
+            <i style={{ background: LAYER_COLOR[l].c }} aria-hidden="true" />
+            {LAYER_COLOR[l].label}<span>{stats[l]}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="dc-workspace">
+        <section className="dc-canvas-panel" aria-label="Dental odontogram">
+          <div className="dc-canvas-topline"><span>Patient’s right</span><span>FACIAL / OCCLUSAL VIEW</span><span>Patient’s left</span></div>
+          <div className="dc-canvas-scroll" tabIndex={0} role="region" aria-label="Scrollable tooth chart">
+            <div className="dc-canvas" style={{ minWidth: `${(dentition === "permanent" ? 760 : 540) * zoom / 100}px`, width: `${zoom}%` }}>
+              <div className="dc-arch-caption"><span>UR <small>Upper right</small></span><span>MAXILLA</span><span><small>Upper left</small> UL</span></div>
+              {renderArch(rws.upper, true)}
+              <div className="dc-occlusal-plane"><span>OCCLUSAL PLANE</span></div>
+              {renderArch(rws.lower, false)}
+              <div className="dc-arch-caption"><span>LR <small>Lower right</small></span><span>MANDIBLE</span><span><small>Lower left</small> LL</span></div>
+            </div>
+          </div>
+          <div className="dc-chart-hint"><MousePointer2 size={13} aria-hidden="true" /><span>Click a tooth or surface · Ctrl / ⌘ to select multiple · Shift for a range</span></div>
+        </section>
+
+        <aside className="dc-inspector" aria-label="Selection details">
+          <div className="dc-inspector-top"><span className="dc-label">SELECTION</span>{selected.length > 0 && <button className="dc-text-button" onClick={clearSelection}>Clear</button>}</div>
+          {selected.length ? <>
+            <div className="dc-selection-title">
+              <span className="dc-selection-number">{currentTooth ? displayToothNumber(currentTooth, numbering) : selected.length}</span>
+              <div><h3>{currentTooth ? toothName(currentTooth).replace(/^(UR|UL|LR|LL) /, "") : "Teeth selected"}</h3>
+                <p>{currentTooth ? `${numbering} ${displayToothNumber(currentTooth, numbering)} · ${presenceLabel}` : selected.map(t => displayToothNumber(t, numbering)).join(", ")}</p></div>
+            </div>
+            {currentTooth && <>
+              <span className="dc-label">SURFACES</span>
+              <div className="dc-surface-buttons" role="group" aria-label="Selected tooth surfaces">
+                {(["M", toothKind(currentTooth) === "incisor" || toothKind(currentTooth) === "canine" ? "I" : "O", "D", "B", "L"] as UiSurface[]).map(surface =>
+                  <button key={surface} aria-pressed={selectedSurfaces.includes(surface)}
+                    title={surfaceLabel(uiToCanonical(surface, currentTooth))}
+                    onClick={() => handleSurfaceClick(currentTooth, surface, { ctrl: false, shift: false })}>{surface}</button>)}
+              </div>
+              <p className="dc-surface-summary" aria-live="polite">{selectedSurfaces.length ? selectedSurfaces.map(s => surfaceLabel(uiToCanonical(s, currentTooth))).join(" · ") : "Whole tooth selected"}</p>
+            </>}
+            <div className="dc-inspector-records">
+              <span className="dc-label">RECORDED FINDINGS</span>
+              {selectedEntries.filter(e => e.status === "ACTIVE" && isLiveConditionEntry(e)).length === 0
+                ? <p className="dc-muted">No active findings recorded.</p>
+                : selectedEntries.filter(e => e.status === "ACTIVE" && isLiveConditionEntry(e)).slice(0, 4).map(e =>
+                  <div className="dc-finding" key={e.id}><i style={{ background: LAYER_COLOR[layerForEntry(e)].c }} />
+                    <div><strong>{e.label}</strong><span>{LAYER_COLOR[layerForEntry(e)].label}{e.surfaces.length ? ` · ${sortUiSurfaces(e.surfaces).join("")}` : ""}</span></div></div>)}
+            </div>
+            {currentTooth && <button className="dc-button dc-details-button" onClick={() => setDrawerTooth(currentTooth)}><Eye size={14} /> View tooth history</button>}
+          </> : <div className="dc-empty-selection">
+            <span><MousePointer2 size={24} aria-hidden="true" /></span>
+            <h3>Select a tooth</h3>
+            <p>Choose a tooth to review findings, select surfaces, or chart treatment.</p>
+            <div className="dc-empty-tip">Use the quadrant controls to chart several teeth together.</div>
+          </div>}
+          <div className="dc-inspector-footer"><span className="dc-status-dot" />{numbering} notation · Patient-facing view</div>
+        </aside>
+      </div>
+
+      <div className="dc-reference">
+        <details>
+          <summary>Chart symbols <ChevronDown size={13} aria-hidden="true" /></summary>
         {/* Presence legend */}
         <div
           style={{
@@ -3812,6 +3019,7 @@ function DentalChartInner({
             <span style={{ fontWeight: 500 }}>Condition + treatment</span>
           </span>
         </div>
+        </details>
       </div>
 
       {/* ── Treatment-procedures load failure (non-blocking) ── */}
@@ -3860,16 +3068,21 @@ function DentalChartInner({
         </div>
       )}
 
-      {/* ── Split ledger ── */}
+      <div className="dc-ledger-heading">
+        <div><h3>Clinical record</h3><span>Conditions and procedures</span></div>
+        <label><input type="checkbox" checked={ledgerSelectionOnly} onChange={e => setLedgerSelectionOnly(e.target.checked)} /> Selected teeth only</label>
+      </div>
       <SplitLedger
-        entries={entries}
+        entries={ledgerSelectionOnly ? selectedEntries : entries}
         selectedTeeth={selected}
         onRowClick={(teeth) => {
           setSelected(teeth);
           setAnchor(teeth[0] ?? null);
+          setSelectedSurfaces([]);
+          setDrawerTooth(null);
         }}
-        onViewCondition={setViewingCondition}
-        onViewProcedure={setViewingProcedure}
+        onViewCondition={readOnly ? undefined : setViewingCondition}
+        onViewProcedure={readOnly ? undefined : setViewingProcedure}
       />
 
       {/* ── Dialogs & drawers ── */}
@@ -3891,6 +3104,7 @@ function DentalChartInner({
           onClose={() => setShowCond(false)}
           selectedTeeth={selected}
           defaultDentistId={dentistId}
+          initialSurfaces={selectedSurfaces}
           onSubmit={handleAddCondition}
         />
       )}
@@ -3904,6 +3118,7 @@ function DentalChartInner({
           visitId={visitId}
           dentistId={dentistId}
           hasActivePlan={hasActivePlan}
+          initialSurfaces={selectedSurfaces}
           onSuccess={() => {
             if (!isDemo) {
               qc.invalidateQueries({

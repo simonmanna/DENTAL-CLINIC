@@ -86,6 +86,7 @@ interface AddTreatmentDialogProps {
   isOpen: boolean;
   onClose: () => void;
   selectedTeeth: number[];
+  initialSurfaces?: UiSurface[];
   patientId: string;
   visitId: string;
   dentistId?: string;
@@ -156,6 +157,7 @@ export function AddTreatmentDialog({
   isOpen,
   onClose,
   selectedTeeth,
+  initialSurfaces,
   patientId,
   visitId,
   dentistId,
@@ -172,7 +174,7 @@ export function AddTreatmentDialog({
   const [procSearch, setProcSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedProc, setSelectedProc] = useState<ProcedureCatalogItem | null>(null);
-  const [surfaces, setSurfaces] = useState<UiSurface[]>([]);
+  const [surfaces, setSurfaces] = useState<UiSurface[]>(() => initialSurfaces ?? []);
   const [quantityOverride, setQuantityOverride] = useState<number | null>(null);
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
 
