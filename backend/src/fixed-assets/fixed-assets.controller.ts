@@ -10,7 +10,7 @@ import {
   CreateMaintenanceDto, CompleteMaintenanceDto, TransferAssetDto,
   PostDepreciationDto, FixedAssetQueryDto,
 } from './dto/fixed-assets.dto';
-// import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 // import { Roles } from '../auth/decorators/roles.decorator';
 import {
   ApiTags,
@@ -18,13 +18,11 @@ import {
   ApiOperation,
   ApiResponse,
 } from '@nestjs/swagger';
-import { Public } from '../auth/decorators/public.decorator';
 
 
 @Controller('fixed-assets')
-@Public()
 @ApiBearerAuth()
-// @UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard)
 export class FixedAssetsController {
   constructor(private readonly service: FixedAssetsService) {}
 

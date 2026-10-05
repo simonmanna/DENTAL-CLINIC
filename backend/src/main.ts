@@ -5,8 +5,13 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
+import { corsOrigins, validateEnv } from './common/config/validate-env';
 
 async function bootstrap() {
+  // Refuse to start on a half-configured environment rather than fall back to
+  // development defaults in production.
+  validateEnv();
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.set('trust proxy', true);
@@ -31,14 +36,14 @@ async function bootstrap() {
   app.useGlobalFilters(new PrismaExceptionFilter());
 
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: corsOrigins(),
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
   const port = process.env.PORT || 3001;
   await app.listen(port);
-  console.log(`Backend running on http://localhost:${port}`);
+  console.log(`Backend listening on port ${port} (NODE_ENV=${process.env.NODE_ENV ?? 'unset'})`);
 }
 bootstrap().catch((err) => {
   console.error('Failed to bootstrap application', err);

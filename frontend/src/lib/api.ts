@@ -583,9 +583,13 @@ export const paymentsApi = {
     api.get(`/visits/${visitId}/payments`).then((r) => r.data),
 };
 
-// const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
-// const BASE_URL = import.meta.env?.VITE_API_URL || "http://localhost:3001";
-const BASE_URL = ((import.meta as any).env?.VITE_API_URL || "http://localhost:3001") + "/api";
+// Same rule as lib/api/client.ts: the dev-server fallback must never survive a
+// production build, or the SPA quietly calls localhost.
+const API_BASE = (import.meta as any).env?.VITE_API_URL;
+if (!API_BASE && (import.meta as any).env?.PROD) {
+  throw new Error("VITE_API_URL is not set — cannot start in production without it.");
+}
+const BASE_URL = (API_BASE || "http://localhost:3001") + "/api";
 
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {

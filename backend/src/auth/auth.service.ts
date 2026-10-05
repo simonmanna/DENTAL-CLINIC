@@ -117,8 +117,6 @@ export class AuthService {
     // Get secrets explicitly
     const accessSecret = this.config.get<string>('JWT_ACCESS_SECRET');
     const refreshSecret = this.config.get<string>('JWT_REFRESH_SECRET');
-    
-    this.logger.log('Generating tokens – secrets present: ' + (!!accessSecret && !!refreshSecret));
 
     if (!accessSecret || !refreshSecret) {
       throw new Error('JWT secrets not configured');
@@ -134,8 +132,8 @@ export class AuthService {
         expiresIn: this.config.get('JWT_REFRESH_EXPIRATION', '7d'),
       }),
     ]);
-    
-    this.logger.log('Tokens generated successfully for user: ' + userId);
+
+    this.logger.debug('Tokens generated for user: ' + userId);
     return { accessToken, refreshToken };
   }
 

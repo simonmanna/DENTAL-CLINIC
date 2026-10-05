@@ -1,6 +1,7 @@
 // src/app.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { corsOrigins } from './common/config/validate-env';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
@@ -75,10 +76,7 @@ import { BackupModule } from './backup/backup.module';
       serveRoot: '/uploads', // The URL prefix
       serveStaticOptions: {
         setHeaders: (res: import('express').Response) => {
-          res.set(
-            'Access-Control-Allow-Origin',
-            process.env.CORS_ORIGIN || 'http://localhost:5173',
-          );
+          res.set('Access-Control-Allow-Origin', corsOrigins()[0]);
         },
       },
     }),

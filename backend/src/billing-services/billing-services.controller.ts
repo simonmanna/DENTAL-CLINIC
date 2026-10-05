@@ -20,11 +20,9 @@ import { UpdateBillingServiceDto } from './dto/update-billing-service.dto';
 import { BillingServiceResponseDto } from './dto/billing-service-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UseGuards } from '@nestjs/common';
-import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Billing Services')
 @UseGuards(JwtAuthGuard)
-@Public()
 @Controller('billing-services')
 export class BillingServicesController {
   constructor(private readonly service: BillingServicesService) {}

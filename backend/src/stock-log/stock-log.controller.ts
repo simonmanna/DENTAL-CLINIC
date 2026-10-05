@@ -11,15 +11,13 @@ import { StockLogService } from './stock-log.service';
 import { GetStockLogsDto } from './dto/get-stock-logs.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UserRole, StockLedgerType } from '@prisma/client';  // ✅ Added StockLedgerType
-import { Public } from '../auth/decorators/public.decorator';
 
 @Controller('stock-logs')
-@Public()
+@UseGuards(JwtAuthGuard)
 export class StockLogController {
   constructor(private readonly stockLogService: StockLogService) {}
 
   @Get()
-  @Public()
   async findAll(@Query() dto: GetStockLogsDto) {
     return this.stockLogService.getStockLogs(dto);
   }
