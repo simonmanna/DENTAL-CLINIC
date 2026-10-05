@@ -9,6 +9,7 @@ import {
   IsDateString,
   IsNotEmpty,
   Min,
+  ArrayMinSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { WasteCategory } from '@prisma/client';
@@ -136,6 +137,7 @@ export class CreateWasteRecordDto {
   disposalDate?: string;
 
   @IsArray()
+  @ArrayMinSize(1, { message: 'At least one line item is required' })
   @ValidateNested({ each: true })
   @Type(() => CreateWasteItemDto)
   items: CreateWasteItemDto[];

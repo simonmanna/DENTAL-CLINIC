@@ -18,8 +18,8 @@ import {
   QueryWasteRecordsDto,
 } from './dto/create-waste.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-// import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+// import { RolesGuard } from '../auth/guards/roles.guard';
 
 @Controller('waste')
 @UseGuards(JwtAuthGuard)
@@ -62,7 +62,7 @@ export class WasteController {
    */
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  // @Roles('SUPER_ADMIN', 'ADMIN', 'PHARMACIST', 'NURSE')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'PHARMACIST')
   async create(@Body() dto: CreateWasteRecordDto, @Request() req: any) {
     return this.wasteService.create(dto, req.user.id);
   }
@@ -82,7 +82,7 @@ export class WasteController {
    * Approve waste record → triggers stock deduction + stock log
    */
   @Patch(':id/approve')
-  // @Roles('SUPER_ADMIN', 'ADMIN')
+  @Roles('SUPER_ADMIN', 'ADMIN')
   async approve(
     @Param('id') id: string,
     @Body() dto: ApproveWasteRecordDto,
@@ -95,8 +95,18 @@ export class WasteController {
    * PATCH /api/waste/:id/reject
    * Reject waste record (no stock deduction)
    */
+  @Patch(':id/void')
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  async void(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+    @Request() req: any,
+  ) {
+    return this.wasteService.void(id, reason, req.user?.id);
+  }
+
   @Patch(':id/reject')
-  // @Roles('SUPER_ADMIN', 'ADMIN')
+  @Roles('SUPER_ADMIN', 'ADMIN')
   async reject(
     @Param('id') id: string,
     @Body() body: { reason: string },

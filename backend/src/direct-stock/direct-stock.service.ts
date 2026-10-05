@@ -2,9 +2,18 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, StockLedgerType } from '@prisma/client';
+import {
+  Prisma,
+  StockLedgerType,
+  StockOutCategory,
+  StockDocumentStatus,
+} from '@prisma/client';
+import { DocumentNumberService } from '../common/document-number/document-number.service';
+import { StockMovementService } from '../common/inventory/stock-movement.service';
+import { DirectStockInDto, DirectStockOutDto } from './dto/direct-stock.dto';
 
 function toNum(v: unknown): number {
   if (v == null) return 0;
@@ -14,343 +23,358 @@ function toNum(v: unknown): number {
   return isNaN(n) ? 0 : n;
 }
 
-function genCode(prefix: string) {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-  return `${prefix}-${new Date().getFullYear()}-${timestamp}${random}`;
-}
-
 @Injectable()
 export class DirectStockService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly docNum: DocumentNumberService,
+    private readonly movements: StockMovementService,
+  ) {}
 
   // ───────────────────────────────────────────────────────────────────────────
   // DIRECT STOCK IN — same logic as PurchaseService.updateStockOnReceipt
   // ───────────────────────────────────────────────────────────────────────────
 
-  async stockIn(dto: { locationId: string; items: Array<{ inventoryItemId: string; quantity: number; unitCost: number; batchNumber?: string; expiryDate?: string; itemName?: string; unit?: string }>; notes?: string }, performedById?: string) {
-    const location = await this.prisma.location.findUnique({ where: { id: dto.locationId } });
-    if (!location) throw new NotFoundException('Location not found');
-
-    const txResult = await this.prisma.$transaction(async (tx) => {
-      const receiptCode = genCode('DSI');
-      let totalValue = 0;
-      const createdItems: Array<{ inventoryItemId: string; quantity: number; unitCost: number; batchId: string; itemName?: string }> = [];
-
-      for (const item of dto.items) {
-        const inventoryItem = await tx.inventoryItem.findUnique({
-          where: { id: item.inventoryItemId },
-          select: { id: true, name: true, batchTracking: true, unit: true, unitCost: true },
-        });
-        if (!inventoryItem) throw new NotFoundException(`Inventory item ${item.inventoryItemId} not found`);
-
-        const qtyNum = item.quantity;
-        const unitCost = item.unitCost ?? toNum(inventoryItem.unitCost);
-        const totalItemValue = qtyNum * unitCost;
-        totalValue += totalItemValue;
-
-        const batchNumber = item.batchNumber?.trim();
-        const expiryDate = item.expiryDate ? new Date(item.expiryDate) : null;
-
-        // Validation: batch-tracked items must have batch info
-        if (inventoryItem.batchTracking) {
-          if (!batchNumber) throw new BadRequestException(`Item "${inventoryItem.name}" has batch tracking enabled. Batch number is required.`);
-          if (!expiryDate) throw new BadRequestException(`Item "${inventoryItem.name}" has batch tracking enabled. Expiry date is required.`);
-        }
-
-        const resolvedBatchNumber = inventoryItem.batchTracking ? batchNumber! : 'DEFAULT';
-
-        // ── 1. Upsert InventoryBatch ───────────────────────────────────
-        let batchId: string;
-        const existingBatch = await tx.inventoryBatch.findUnique({
-          where: {
-            itemId_locationId_batchNumber: {
-              itemId: item.inventoryItemId,
-              locationId: dto.locationId,
-              batchNumber: resolvedBatchNumber,
-            },
-          },
-          select: { id: true },
-        });
-
-        if (existingBatch) {
-          const updated = await tx.inventoryBatch.update({
-            where: { id: existingBatch.id },
-            data: {
-              quantity: { increment: qtyNum },
-              unitCost,
-              ...(expiryDate && { expiryDate }),
-              isActive: true,
-            },
-            select: { id: true },
-          });
-          batchId = updated.id;
-        } else {
-          const created = await tx.inventoryBatch.create({
-            data: {
-              itemId: item.inventoryItemId,
-              locationId: dto.locationId,
-              batchNumber: resolvedBatchNumber,
-              expiryDate,
-              quantity: qtyNum,
-              unitCost,
-              isActive: true,
-            },
-            select: { id: true },
-          });
-          batchId = created.id;
-        }
-
-        // ── 2. Recalculate location stock from batch sums ──────────────
-        const batchSum = await tx.inventoryBatch.aggregate({
-          where: { itemId: item.inventoryItemId, locationId: dto.locationId, isActive: true },
-          _sum: { quantity: true },
-        });
-        const calculatedQty = batchSum._sum.quantity ?? 0;
-
-        await tx.inventoryLocationStock.upsert({
-          where: { itemId_locationId: { itemId: item.inventoryItemId, locationId: dto.locationId } },
-          create: { itemId: item.inventoryItemId, locationId: dto.locationId, quantity: calculatedQty, minQuantity: 0 },
-          update: { quantity: calculatedQty },
-        });
-
-        // ── 3. Write InventoryLedger entry ────────────────────────────
-        const locationQtyBefore = calculatedQty - qtyNum;
-        await tx.inventoryLedger.create({
-          data: {
-            ledgerCode: genCode('ILG'),
-            itemId: item.inventoryItemId,
-            locationId: dto.locationId,
-            batchId,
-            type: StockLedgerType.PURCHASE_RECEIPT,
-            quantityBefore: locationQtyBefore,
-            quantityChange: qtyNum,
-            quantityAfter: calculatedQty,
-            unitCost,
-            totalValue: totalItemValue,
-            referenceType: 'DIRECT_STOCK_IN',
-            referenceId: receiptCode,
-            notes: `Direct stock in: ${qtyNum} ${inventoryItem.unit ?? 'units'}${dto.notes ? ` — ${dto.notes}` : ''}`,
-            performedById,
-          },
-        });
-
-        createdItems.push({
-          inventoryItemId: item.inventoryItemId,
-          quantity: qtyNum,
-          unitCost,
-          batchId,
-          itemName: inventoryItem.name,
-        });
-      }
-
-      return { receiptCode, totalValue, items: createdItems };
-    });
-
-    return {
-      code: txResult.receiptCode,
-      type: 'IN',
-      locationId: dto.locationId,
-      totalValue: txResult.totalValue,
-      items: txResult.items,
-      notes: dto.notes,
-      timestamp: new Date(),
-    };
-  }
-
-  // ───────────────────────────────────────────────────────────────────────────
-  // DIRECT STOCK OUT — same logic as StockOutService.deductNonBatch / deductBatch
-  // ───────────────────────────────────────────────────────────────────────────
-
-  async stockOut(dto: { locationId: string; items: Array<{ inventoryItemId: string; quantity: number; distributionStrategy?: 'FEFO' | 'FIFO' | 'MANUAL'; selectedBatchNumber?: string; itemName?: string; unitCost?: number }>; notes?: string }, performedById?: string) {
-    const location = await this.prisma.location.findUnique({ where: { id: dto.locationId } });
-    if (!location) throw new NotFoundException('Location not found');
-
-    // Pre-validate stock availability
-    for (const item of dto.items) {
-      const stock = await this.prisma.inventoryLocationStock.findUnique({
-        where: { itemId_locationId: { itemId: item.inventoryItemId, locationId: dto.locationId } },
-        select: { quantity: true },
-      });
-      if (!stock || stock.quantity < item.quantity) {
-        const available = stock?.quantity ?? 0;
-        throw new BadRequestException(`Insufficient stock. Available: ${available}, Requested: ${item.quantity}`);
-      }
+  async stockIn(dto: DirectStockInDto, performedById?: string) {
+    if (!dto.items?.length) {
+      throw new BadRequestException('A stock-in needs at least one line item.');
     }
 
-    const txResult = await this.prisma.$transaction(async (tx) => {
-      const outCode = genCode('DSO');
-      let totalValue = 0;
-      const deductedItems: Array<{ inventoryItemId: string; quantity: number; unitCost: number; batchId: string; itemName?: string }> = [];
-
-      for (const item of dto.items) {
-        const inventoryItem = await tx.inventoryItem.findUnique({
-          where: { id: item.inventoryItemId },
-          select: { id: true, name: true, batchTracking: true, unitCost: true },
+    const doc = await this.prisma.$transaction(
+      async (tx) => {
+        const location = await tx.location.findUnique({
+          where: { id: dto.locationId },
+          select: { id: true },
         });
-        if (!inventoryItem) throw new NotFoundException(`Inventory item ${item.inventoryItemId} not found`);
+        if (!location) throw new NotFoundException('Location not found');
 
-        const unitCost = toNum(item.unitCost ?? inventoryItem.unitCost);
-        let remaining = item.quantity;
+        const created = await tx.stockIn.create({
+          data: {
+            inCode: await this.docNum.next('DSI', tx),
+            locationId: dto.locationId,
+            notes: dto.notes,
+            performedById,
+            totalValue: 0,
+          },
+        });
 
-        if (!inventoryItem.batchTracking) {
-          // ── Non-batch: deduct from DEFAULT batch ──────────────────
-          const defaultBatch = await tx.inventoryBatch.upsert({
-            where: { itemId_locationId_batchNumber: { itemId: item.inventoryItemId, locationId: dto.locationId, batchNumber: 'DEFAULT' } },
-            create: { itemId: item.inventoryItemId, locationId: dto.locationId, batchNumber: 'DEFAULT', quantity: 0, unitCost, isActive: true, expiryDate: null },
-            update: {},
-            select: { id: true, quantity: true },
+        let totalValue = 0;
+        const items: Array<{
+          inventoryItemId: string;
+          quantity: number;
+          unitCost: number;
+          batchId: string;
+          itemName?: string;
+        }> = [];
+
+        for (const line of dto.items) {
+          const inventoryItem = await tx.inventoryItem.findUnique({
+            where: { id: line.inventoryItemId },
+            select: {
+              id: true,
+              name: true,
+              unit: true,
+              batchTracking: true,
+              unitCost: true,
+            },
           });
-
-          if (defaultBatch.quantity < remaining) {
-            throw new BadRequestException(`Insufficient stock in DEFAULT batch (available: ${defaultBatch.quantity})`);
+          if (!inventoryItem) {
+            throw new NotFoundException(
+              `Inventory item ${line.inventoryItemId} not found`,
+            );
           }
 
-          const newQty = defaultBatch.quantity - remaining;
-          await tx.inventoryBatch.update({
-            where: { id: defaultBatch.id },
-            data: { quantity: { decrement: remaining }, isActive: newQty > 0 },
+          const unitCost = line.unitCost ?? toNum(inventoryItem.unitCost);
+          const expiryDate = line.expiryDate ? new Date(line.expiryDate) : null;
+
+          const received = await this.movements.receive(tx, {
+            itemId: line.inventoryItemId,
+            locationId: dto.locationId,
+            quantity: line.quantity,
+            unitCost,
+            batchNumber: line.batchNumber,
+            expiryDate,
+            type: StockLedgerType.STOCK_IN,
+            referenceType: 'STOCK_IN',
+            referenceId: created.id,
+            notes: dto.notes ?? null,
+            performedById,
+            links: { stockInId: created.id },
+            requireBatchDetails: inventoryItem.batchTracking,
+            itemName: inventoryItem.name,
           });
 
-          // Recalculate location stock
-          const agg = await tx.inventoryBatch.aggregate({
-            where: { itemId: item.inventoryItemId, locationId: dto.locationId, isActive: true },
-            _sum: { quantity: true },
-          });
-          const calculatedQty = agg._sum.quantity ?? 0;
-          await tx.inventoryLocationStock.upsert({
-            where: { itemId_locationId: { itemId: item.inventoryItemId, locationId: dto.locationId } },
-            create: { itemId: item.inventoryItemId, locationId: dto.locationId, quantity: calculatedQty, minQuantity: 0 },
-            update: { quantity: calculatedQty },
-          });
+          const lineTotal = line.quantity * unitCost;
+          totalValue += lineTotal;
 
-          // Ledger entry
-          const qtyAfter = calculatedQty;
-          const qtyBefore = qtyAfter + remaining;
-          await tx.inventoryLedger.create({
+          await tx.stockInItem.create({
             data: {
-              ledgerCode: genCode('ILG'),
-              itemId: item.inventoryItemId,
-              locationId: dto.locationId,
-              batchId: defaultBatch.id,
-              type: StockLedgerType.STOCK_OUT,
-              quantityBefore: qtyBefore,
-              quantityChange: -remaining,
-              quantityAfter: qtyAfter,
+              stockInId: created.id,
+              inventoryItemId: line.inventoryItemId,
+              itemName: line.itemName ?? inventoryItem.name,
+              unit: line.unit ?? inventoryItem.unit,
+              quantity: line.quantity,
               unitCost,
-              totalValue: remaining * unitCost,
-              referenceType: 'DIRECT_STOCK_OUT',
-              referenceId: outCode,
-              notes: `Direct stock out: ${remaining} units${dto.notes ? ` — ${dto.notes}` : ''}`,
-              performedById,
+              totalCost: Number(lineTotal.toFixed(2)),
+              batchNumber: line.batchNumber?.trim() || null,
+              expiryDate,
             },
           });
 
-          totalValue += remaining * unitCost;
-          deductedItems.push({ inventoryItemId: item.inventoryItemId, quantity: remaining, unitCost, batchId: defaultBatch.id, itemName: inventoryItem.name });
-        } else {
-          // ── Batch-tracked: deduct using FEFO/FIFO/MANUAL ──────────
-          const distributionStrategy = item.distributionStrategy ?? 'FEFO';
-          let sourceBatches: { id: string; batchNumber: string | null; quantity: number; expiryDate: Date | null }[];
-
-          if (distributionStrategy === 'MANUAL' && item.selectedBatchNumber) {
-            const batch = await tx.inventoryBatch.findFirst({
-              where: { itemId: item.inventoryItemId, locationId: dto.locationId, batchNumber: item.selectedBatchNumber, isActive: true, quantity: { gt: 0 } },
-              select: { id: true, batchNumber: true, quantity: true, expiryDate: true },
-            });
-            if (!batch) throw new BadRequestException(`Batch "${item.selectedBatchNumber}" not found or has no stock`);
-            if (batch.quantity < remaining) throw new BadRequestException(`Batch "${item.selectedBatchNumber}" only has ${batch.quantity} units, requested ${remaining}`);
-            sourceBatches = [batch];
-          } else {
-            sourceBatches = await tx.inventoryBatch.findMany({
-              where: { itemId: item.inventoryItemId, locationId: dto.locationId, isActive: true, quantity: { gt: 0 } },
-              orderBy: distributionStrategy === 'FIFO'
-                ? [{ receivedAt: 'asc' }]
-                : [{ expiryDate: 'asc' }, { receivedAt: 'asc' }],
-              select: { id: true, batchNumber: true, quantity: true, expiryDate: true },
-            });
-          }
-
-          if (sourceBatches.length === 0) throw new BadRequestException('No active batches with stock found');
-
-          const ledgerEntries: { batchId: string; qty: number }[] = [];
-          for (const batch of sourceBatches) {
-            if (remaining <= 0) break;
-            const deductQty = Math.min(remaining, batch.quantity);
-            const newBatchQty = batch.quantity - deductQty;
-            await tx.inventoryBatch.update({
-              where: { id: batch.id },
-              data: { quantity: { decrement: deductQty }, isActive: newBatchQty > 0 },
-            });
-            ledgerEntries.push({ batchId: batch.id, qty: deductQty });
-            remaining -= deductQty;
-          }
-
-          if (remaining > 0) throw new BadRequestException(`Could not fulfill full quantity. Shortfall: ${remaining} units`);
-
-          // Recalculate location stock
-          const agg = await tx.inventoryBatch.aggregate({
-            where: { itemId: item.inventoryItemId, locationId: dto.locationId, isActive: true },
-            _sum: { quantity: true },
-          });
-          const calculatedQty = agg._sum.quantity ?? 0;
-          await tx.inventoryLocationStock.upsert({
-            where: { itemId_locationId: { itemId: item.inventoryItemId, locationId: dto.locationId } },
-            create: { itemId: item.inventoryItemId, locationId: dto.locationId, quantity: calculatedQty, minQuantity: 0 },
-            update: { quantity: calculatedQty },
-          });
-
-          // Write one ledger entry per batch drawn
-          for (const entry of ledgerEntries) {
-            const qtyAfterEntry = calculatedQty;
-            const qtyBeforeEntry = qtyAfterEntry + entry.qty;
-            await tx.inventoryLedger.create({
-              data: {
-                ledgerCode: genCode('ILG'),
-                itemId: item.inventoryItemId,
-                locationId: dto.locationId,
-                batchId: entry.batchId,
-                type: StockLedgerType.STOCK_OUT,
-                quantityBefore: qtyBeforeEntry,
-                quantityChange: -entry.qty,
-                quantityAfter: qtyAfterEntry,
-                unitCost,
-                totalValue: entry.qty * unitCost,
-                referenceType: 'DIRECT_STOCK_OUT',
-                referenceId: outCode,
-                notes: `Direct stock out: ${entry.qty} units${dto.notes ? ` — ${dto.notes}` : ''}`,
-                performedById,
-              },
-            });
-            totalValue += entry.qty * unitCost;
-          }
-
-          deductedItems.push({
-            inventoryItemId: item.inventoryItemId,
-            quantity: item.quantity,
+          items.push({
+            inventoryItemId: line.inventoryItemId,
+            quantity: line.quantity,
             unitCost,
-            batchId: ledgerEntries[0]?.batchId ?? '',
+            batchId: received.batchId,
             itemName: inventoryItem.name,
           });
         }
-      }
 
-      return { outCode, totalValue, items: deductedItems };
-    });
+        await tx.stockIn.update({
+          where: { id: created.id },
+          data: { totalValue: Number(totalValue.toFixed(2)) },
+        });
+
+        return {
+          id: created.id,
+          code: created.inCode,
+          totalValue: Number(totalValue.toFixed(2)),
+          items,
+        };
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        maxWait: 5000,
+        timeout: 20000,
+      },
+    );
 
     return {
-      code: txResult.outCode,
-      type: 'OUT',
+      id: doc.id,
+      code: doc.code,
+      type: 'IN' as const,
       locationId: dto.locationId,
-      totalValue: txResult.totalValue,
-      items: txResult.items,
+      totalValue: doc.totalValue,
+      items: doc.items,
       notes: dto.notes,
       timestamp: new Date(),
     };
   }
 
   // ───────────────────────────────────────────────────────────────────────────
-  // HISTORY — queries ledger for DIRECT_STOCK_IN and DIRECT_STOCK_OUT
+  // DIRECT STOCK OUT
+  //
+  // Persisted as a StockOut document. This endpoint used to write nothing but
+  // ledger rows, duplicating StockOutService's logic with its own subtly
+  // different copy; now there is one issue document in the system whichever
+  // screen raised it.
+  // ───────────────────────────────────────────────────────────────────────────
+
+  async stockOut(dto: DirectStockOutDto, performedById?: string) {
+    if (!dto.items?.length) {
+      throw new BadRequestException(
+        'A stock-out needs at least one line item.',
+      );
+    }
+
+    const doc = await this.prisma.$transaction(
+      async (tx) => {
+        const location = await tx.location.findUnique({
+          where: { id: dto.locationId },
+          select: { id: true },
+        });
+        if (!location) throw new NotFoundException('Location not found');
+
+        const created = await tx.stockOut.create({
+          data: {
+            outCode: await this.docNum.next('DSO', tx),
+            locationId: dto.locationId,
+            category: StockOutCategory.GENERAL_USE,
+            reason: 'Direct stock out',
+            notes: dto.notes,
+            performedById,
+            totalValue: 0,
+          },
+        });
+
+        let totalValue = 0;
+        const items: Array<{
+          inventoryItemId: string;
+          quantity: number;
+          unitCost: number;
+          batchId: string;
+          itemName?: string;
+        }> = [];
+
+        for (const line of dto.items) {
+          const inventoryItem = await tx.inventoryItem.findUnique({
+            where: { id: line.inventoryItemId },
+            select: {
+              id: true,
+              name: true,
+              unit: true,
+              batchTracking: true,
+            },
+          });
+          if (!inventoryItem) {
+            throw new NotFoundException(
+              `Inventory item ${line.inventoryItemId} not found`,
+            );
+          }
+
+          const { draws, totalCost } = await this.movements.issue(tx, {
+            itemId: line.inventoryItemId,
+            locationId: dto.locationId,
+            quantity: line.quantity,
+            strategy: inventoryItem.batchTracking
+              ? (line.distributionStrategy ?? 'FEFO')
+              : 'FEFO',
+            selectedBatchNumber: line.selectedBatchNumber,
+            type: StockLedgerType.STOCK_OUT,
+            referenceType: 'STOCK_OUT',
+            referenceId: created.id,
+            notes: dto.notes ?? null,
+            performedById,
+            links: { stockOutId: created.id },
+            itemName: inventoryItem.name,
+          });
+
+          totalValue += totalCost;
+
+          await tx.stockOutItem.create({
+            data: {
+              stockOutId: created.id,
+              inventoryItemId: line.inventoryItemId,
+              itemName: line.itemName ?? inventoryItem.name,
+              unit: inventoryItem.unit,
+              quantity: line.quantity,
+              unitCost:
+                line.quantity > 0
+                  ? Number((totalCost / line.quantity).toFixed(2))
+                  : 0,
+              totalCost: Number(totalCost.toFixed(2)),
+              distributionStrategy: line.distributionStrategy ?? 'FEFO',
+              batchNumber:
+                draws
+                  .map((d) => d.batchNumber)
+                  .filter(Boolean)
+                  .join(', ') || null,
+            },
+          });
+
+          items.push({
+            inventoryItemId: line.inventoryItemId,
+            quantity: line.quantity,
+            unitCost:
+              line.quantity > 0
+                ? Number((totalCost / line.quantity).toFixed(2))
+                : 0,
+            batchId: draws[0]?.batchId ?? '',
+            itemName: inventoryItem.name,
+          });
+        }
+
+        await tx.stockOut.update({
+          where: { id: created.id },
+          data: { totalValue: Number(totalValue.toFixed(2)) },
+        });
+
+        return {
+          id: created.id,
+          code: created.outCode,
+          totalValue: Number(totalValue.toFixed(2)),
+          items,
+        };
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        maxWait: 5000,
+        timeout: 20000,
+      },
+    );
+
+    return {
+      id: doc.id,
+      code: doc.code,
+      type: 'OUT' as const,
+      locationId: dto.locationId,
+      totalValue: doc.totalValue,
+      items: doc.items,
+      notes: dto.notes,
+      timestamp: new Date(),
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // VOID
+  // ───────────────────────────────────────────────────────────────────────────
+
+  async voidStockIn(id: string, reason: string, performedById?: string) {
+    if (!reason?.trim()) {
+      throw new BadRequestException('A void reason is required.');
+    }
+
+    return this.prisma.$transaction(
+      async (tx) => {
+        const existing = await tx.stockIn.findUnique({
+          where: { id },
+          select: { id: true, status: true, inCode: true },
+        });
+        if (!existing) throw new NotFoundException('Stock-in not found');
+        if (existing.status === StockDocumentStatus.VOID) {
+          throw new ConflictException(
+            `Stock-in ${existing.inCode} is already void.`,
+          );
+        }
+
+        const claimed = await tx.stockIn.updateMany({
+          where: { id, status: StockDocumentStatus.ACTIVE },
+          data: {
+            status: StockDocumentStatus.VOID,
+            voidedAt: new Date(),
+            voidedById: performedById ?? null,
+            voidReason: reason.trim(),
+          },
+        });
+        if (claimed.count !== 1) {
+          throw new ConflictException(
+            'Stock-in was voided by someone else first.',
+          );
+        }
+
+        // Taking a receipt back out can fail if the stock has since been
+        // issued — reverseDocument says so explicitly rather than driving the
+        // batch negative.
+        await this.movements.reverseDocument(tx, {
+          referenceType: 'STOCK_IN',
+          referenceId: id,
+          reversalReferenceType: 'STOCK_IN_VOID',
+          reason: reason.trim(),
+          performedById,
+          links: { stockInId: id },
+        });
+
+        return tx.stockIn.findUniqueOrThrow({
+          where: { id },
+          include: { items: true, location: true },
+        });
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        maxWait: 5000,
+        timeout: 20000,
+      },
+    );
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // HISTORY — reads the documents, not a reconstruction of the ledger
+  //
+  // This used to page over InventoryLedger rows and then group them by
+  // reference, so `total` counted ledger rows while `data` held transactions:
+  // a page of 20 rows could return 7 records and the page count was wrong for
+  // any multi-line movement. Now that both directions have header tables, the
+  // documents themselves are the thing being paged.
   // ───────────────────────────────────────────────────────────────────────────
 
   async getHistory(query: {
@@ -362,98 +386,153 @@ export class DirectStockService {
     page?: number;
     limit?: number;
   }) {
-    const { search, locationId, type, startDate, endDate, page = 1, limit = 20 } = query;
-    const skip = (page - 1) * limit;
+    const {
+      search,
+      locationId,
+      type,
+      startDate,
+      endDate,
+      page = 1,
+      limit = 20,
+    } = query;
 
-    const referenceTypes = type === 'IN'
-      ? ['DIRECT_STOCK_IN']
-      : type === 'OUT'
-        ? ['DIRECT_STOCK_OUT']
-        : ['DIRECT_STOCK_IN', 'DIRECT_STOCK_OUT'];
+    const createdAt =
+      startDate || endDate
+        ? {
+            ...(startDate ? { gte: new Date(startDate) } : {}),
+            ...(endDate
+              ? { lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)) }
+              : {}),
+          }
+        : undefined;
 
-    const where: Prisma.InventoryLedgerWhereInput = {
-      referenceType: { in: referenceTypes },
+    const wantIn = type !== 'OUT';
+    const wantOut = type !== 'IN';
+
+    const inWhere: Prisma.StockInWhereInput = {
       ...(locationId && { locationId }),
-      ...(startDate || endDate ? {
-        createdAt: {
-          ...(startDate ? { gte: new Date(startDate) } : {}),
-          ...(endDate ? { lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)) } : {}),
-        },
-      } : {}),
-      ...(search ? {
-        OR: [
-          { referenceId: { contains: search, mode: 'insensitive' } },
-          { notes: { contains: search, mode: 'insensitive' } },
-          { item: { name: { contains: search, mode: 'insensitive' } } },
-        ],
-      } : {}),
+      ...(createdAt && { createdAt }),
+      ...(search
+        ? {
+            OR: [
+              { inCode: { contains: search, mode: 'insensitive' } },
+              { notes: { contains: search, mode: 'insensitive' } },
+              {
+                items: {
+                  some: {
+                    itemName: { contains: search, mode: 'insensitive' },
+                  },
+                },
+              },
+            ],
+          }
+        : {}),
     };
 
-    // Group by referenceId to get transaction-level records
-    const [ledgerEntries, total] = await Promise.all([
-      this.prisma.inventoryLedger.findMany({
-        where,
+    const outWhere: Prisma.StockOutWhereInput = {
+      ...(locationId && { locationId }),
+      ...(createdAt && { createdAt }),
+      ...(search
+        ? {
+            OR: [
+              { outCode: { contains: search, mode: 'insensitive' } },
+              { notes: { contains: search, mode: 'insensitive' } },
+              {
+                items: {
+                  some: {
+                    itemName: { contains: search, mode: 'insensitive' },
+                  },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const include = {
+      location: { select: { id: true, name: true } },
+      items: {
         include: {
-          item: { select: { id: true, name: true, itemCode: true, unit: true, uom: true } },
-          location: { select: { id: true, name: true } },
-          batch: { select: { id: true, batchNumber: true, expiryDate: true } },
+          inventoryItem: {
+            select: {
+              id: true,
+              name: true,
+              itemCode: true,
+              unit: true,
+              uom: true,
+            },
+          },
         },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.inventoryLedger.count({ where }),
+      },
+    } as const;
+
+    // Both directions live in separate tables, so a combined page is built by
+    // taking the first page*limit of each, merging on timestamp and slicing.
+    // Totals are exact counts, not a guess.
+    const take = page * limit;
+
+    const [ins, outs, inTotal, outTotal] = await Promise.all([
+      wantIn
+        ? this.prisma.stockIn.findMany({
+            where: inWhere,
+            include,
+            orderBy: { createdAt: 'desc' },
+            take,
+          })
+        : Promise.resolve([]),
+      wantOut
+        ? this.prisma.stockOut.findMany({
+            where: outWhere,
+            include,
+            orderBy: { createdAt: 'desc' },
+            take,
+          })
+        : Promise.resolve([]),
+      wantIn
+        ? this.prisma.stockIn.count({ where: inWhere })
+        : Promise.resolve(0),
+      wantOut
+        ? this.prisma.stockOut.count({ where: outWhere })
+        : Promise.resolve(0),
     ]);
 
-    // Group entries by referenceId to form transactions
-    const transactionMap = new Map<string, {
-      code: string;
-      type: 'IN' | 'OUT';
-      locationId: string;
-      locationName?: string;
-      totalValue: number;
-      timestamp: Date;
-      notes?: string;
-      items: any[];
-      performedById?: string;
-    }>();
+    const mapDoc = (doc: any, docType: 'IN' | 'OUT', code: string) => ({
+      id: doc.id,
+      code,
+      type: docType,
+      status: doc.status,
+      locationId: doc.locationId,
+      locationName: doc.location?.name,
+      totalValue: toNum(doc.totalValue),
+      timestamp: doc.createdAt,
+      notes: doc.notes ?? undefined,
+      performedById: doc.performedById ?? undefined,
+      voidedAt: doc.voidedAt ?? undefined,
+      voidReason: doc.voidReason ?? undefined,
+      items: (doc.items ?? []).map((it: any) => ({
+        itemId: it.inventoryItemId,
+        itemName: it.itemName ?? it.inventoryItem?.name,
+        itemCode: it.inventoryItem?.itemCode,
+        unit: it.unit ?? it.inventoryItem?.unit,
+        uom: it.inventoryItem?.uom,
+        quantityChange: docType === 'IN' ? it.quantity : -it.quantity,
+        unitCost: toNum(it.unitCost),
+        totalValue: toNum(it.totalCost),
+        batchNumber: it.batchNumber ?? undefined,
+        expiryDate: it.expiryDate ?? undefined,
+      })),
+    });
 
-    for (const entry of ledgerEntries) {
-      const refType = entry.referenceType;
-      const refId = entry.referenceId ?? '';
-      const txType = refType === 'DIRECT_STOCK_IN' ? 'IN' as const : 'OUT' as const;
+    const merged = [
+      ...ins.map((d: any) => mapDoc(d, 'IN', d.inCode)),
+      ...outs.map((d: any) => mapDoc(d, 'OUT', d.outCode)),
+    ].sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
 
-      if (!transactionMap.has(refId)) {
-        transactionMap.set(refId, {
-          code: refId,
-          type: txType,
-          locationId: entry.locationId,
-          locationName: entry.location?.name,
-          totalValue: 0,
-          timestamp: entry.createdAt,
-          notes: entry.notes?.replace(/^Direct stock (in|out): \d+ units? — /, '') ?? entry.notes ?? undefined,
-          items: [],
-          performedById: entry.performedById ?? undefined,
-        });
-      }
-
-      const tx = transactionMap.get(refId)!;
-      tx.items.push({
-        itemId: entry.itemId,
-        itemName: (entry as any).item?.name,
-        itemCode: (entry as any).item?.itemCode,
-        unit: (entry as any).item?.unit,
-        uom: (entry as any).item?.uom,
-        quantityChange: entry.quantityChange,
-        unitCost: entry.unitCost,
-        totalValue: entry.totalValue,
-        batchNumber: (entry as any).batch?.batchNumber,
-        expiryDate: (entry as any).batch?.expiryDate,
-      });
-      tx.totalValue += toNum(entry.totalValue ?? 0);
-    }
-
-    const data = Array.from(transactionMap.values());
+    const total = inTotal + outTotal;
+    const data = merged.slice((page - 1) * limit, (page - 1) * limit + limit);
 
     return {
       data,
@@ -461,14 +540,10 @@ export class DirectStockService {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.max(1, Math.ceil(total / limit)),
       },
     };
   }
-
-  // ───────────────────────────────────────────────────────────────────────────
-  // LOCATION STOCK — items with available stock for the stock-out form
-  // ───────────────────────────────────────────────────────────────────────────
 
   async getLocationStock(locationId: string) {
     const stocks = await this.prisma.inventoryLocationStock.findMany({
@@ -513,12 +588,29 @@ export class DirectStockService {
         where: { itemId_locationId: { itemId, locationId } },
         select: { quantity: true },
       });
-      return { batchTracking: false, batches: [{ id: 'DEFAULT', batchNumber: null, quantity: stock?.quantity ?? 0, expiryDate: null, receivedAt: null }] };
+      return {
+        batchTracking: false,
+        batches: [
+          {
+            id: 'DEFAULT',
+            batchNumber: null,
+            quantity: stock?.quantity ?? 0,
+            expiryDate: null,
+            receivedAt: null,
+          },
+        ],
+      };
     }
 
     const batches = await this.prisma.inventoryBatch.findMany({
       where: { itemId, locationId, isActive: true, quantity: { gt: 0 } },
-      select: { id: true, batchNumber: true, quantity: true, expiryDate: true, receivedAt: true },
+      select: {
+        id: true,
+        batchNumber: true,
+        quantity: true,
+        expiryDate: true,
+        receivedAt: true,
+      },
       orderBy: [{ expiryDate: 'asc' }, { receivedAt: 'asc' }],
     });
 
@@ -530,17 +622,35 @@ export class DirectStockService {
   // ───────────────────────────────────────────────────────────────────────────
 
   async getStats(locationId?: string) {
-    const baseWhereIn: Prisma.InventoryLedgerWhereInput = { referenceType: 'DIRECT_STOCK_IN', ...(locationId ? { locationId } : {}) };
-    const baseWhereOut: Prisma.InventoryLedgerWhereInput = { referenceType: 'DIRECT_STOCK_OUT', ...(locationId ? { locationId } : {}) };
+    const baseWhereIn: Prisma.InventoryLedgerWhereInput = {
+      referenceType: 'DIRECT_STOCK_IN',
+      ...(locationId ? { locationId } : {}),
+    };
+    const baseWhereOut: Prisma.InventoryLedgerWhereInput = {
+      referenceType: 'DIRECT_STOCK_OUT',
+      ...(locationId ? { locationId } : {}),
+    };
 
     const [totalInValue, totalOutValue, todayIn, todayOut] = await Promise.all([
-      this.prisma.inventoryLedger.aggregate({ where: baseWhereIn, _sum: { totalValue: true } }),
-      this.prisma.inventoryLedger.aggregate({ where: baseWhereOut, _sum: { totalValue: true } }),
-      this.prisma.inventoryLedger.count({
-        where: { ...baseWhereIn, createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
+      this.prisma.inventoryLedger.aggregate({
+        where: baseWhereIn,
+        _sum: { totalValue: true },
+      }),
+      this.prisma.inventoryLedger.aggregate({
+        where: baseWhereOut,
+        _sum: { totalValue: true },
       }),
       this.prisma.inventoryLedger.count({
-        where: { ...baseWhereOut, createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
+        where: {
+          ...baseWhereIn,
+          createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+        },
+      }),
+      this.prisma.inventoryLedger.count({
+        where: {
+          ...baseWhereOut,
+          createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+        },
       }),
     ]);
 

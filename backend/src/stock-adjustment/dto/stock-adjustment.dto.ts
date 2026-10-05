@@ -5,10 +5,10 @@ import {
   IsArray,
   ValidateNested,
   IsNumber,
-  IsPositive,
   IsInt,
   Min,
   IsNotEmpty,
+  ArrayMinSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { StockAdjustmentReason } from '@prisma/client';
@@ -71,6 +71,7 @@ export class CreateStockAdjustmentDto {
   notes?: string;
 
   @IsArray()
+  @ArrayMinSize(1, { message: 'At least one line item is required' })
   @ValidateNested({ each: true })
   @Type(() => AdjustmentItemDto)
   items: AdjustmentItemDto[];

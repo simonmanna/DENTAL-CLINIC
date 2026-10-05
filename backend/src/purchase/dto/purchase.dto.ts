@@ -10,12 +10,13 @@ import {
   ValidateNested,
   Min,
   IsInt,
+  ArrayMinSize,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
 import {
   PurchaseOrderStatus,
-  PaymentMethod,       // ← was PurchasePaymentMethod
+  PaymentMethod, // ← was PurchasePaymentMethod
   StockAdjustmentReason,
   WasteCategory,
   DeliveryStatus,
@@ -23,7 +24,6 @@ import {
   StockLedgerType,
   PaymentTerms,
 } from '@prisma/client';
-
 
 // ── Purchase Order Items ──────────────────────────────────────────────────────
 
@@ -120,16 +120,18 @@ export class CreatePurchaseOrderDto {
   internalNotes?: string | null;
 
   @IsArray()
+  @ArrayMinSize(1, { message: 'At least one line item is required' })
   @ValidateNested({ each: true })
   @Type(() => CreatePOItemDto)
   items: CreatePOItemDto[];
 
-  @IsOptional()
-  @IsEnum(PurchaseOrderStatus)
-  status?: PurchaseOrderStatus;
+  // `status` is deliberately absent. Accepting it here let a caller POST an
+  // order that was already APPROVED, skipping the submit → approve sequence
+  // and with it the segregation-of-duties check. A new order is always DRAFT;
+  // it moves through PATCH /orders/:id/submit and /approve.
 
   @IsOptional()
-  @IsEnum(PaymentTerms)  // ← Change from PurchasePaymentTerms to PaymentTerms
+  @IsEnum(PaymentTerms)
   paymentTerms?: PaymentTerms;
 }
 
@@ -221,6 +223,7 @@ export class CreateDeliveryDto {
   notes?: string;
 
   @IsArray()
+  @ArrayMinSize(1, { message: 'At least one line item is required' })
   @ValidateNested({ each: true })
   @Type(() => CreateDeliveryItemDto)
   items: CreateDeliveryItemDto[];
@@ -318,6 +321,7 @@ export class CreateStockAdjustmentDto {
   notes?: string;
 
   @IsArray()
+  @ArrayMinSize(1, { message: 'At least one line item is required' })
   @ValidateNested({ each: true })
   @Type(() => CreateAdjustmentItemDto)
   items: CreateAdjustmentItemDto[];
@@ -381,6 +385,7 @@ export class CreateWasteRecordDto {
   disposalDate?: string;
 
   @IsArray()
+  @ArrayMinSize(1, { message: 'At least one line item is required' })
   @ValidateNested({ each: true })
   @Type(() => CreateWasteItemDto)
   items: CreateWasteItemDto[];

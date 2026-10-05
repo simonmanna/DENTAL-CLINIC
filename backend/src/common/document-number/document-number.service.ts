@@ -18,18 +18,26 @@ import { PrismaService } from '../../prisma/prisma.service';
 import type { Prisma } from '@prisma/client';
 
 export type DocPrefix =
-  | 'PAT'   // Patient
-  | 'APT'   // Appointment
-  | 'VIS'   // Visit
-  | 'TP'    // Treatment Plan
-  | 'INV'   // Invoice
-  | 'RCPT'  // Receipt
-  | 'RX'    // Prescription
-  | 'PAY'   // Payment
-  | 'LE'    // Ledger Entry
-  | 'SE'    // Session Edit
-  | 'EXP'   // Expense
-  | 'PO';   // Purchase Order
+  | 'PAT' // Patient
+  | 'APT' // Appointment
+  | 'VIS' // Visit
+  | 'TP' // Treatment Plan
+  | 'INV' // Invoice
+  | 'RCPT' // Receipt
+  | 'RX' // Prescription
+  | 'PAY' // Payment
+  | 'LE' // Ledger Entry
+  | 'SE' // Session Edit
+  | 'EXP' // Expense
+  | 'PO' // Purchase Order
+  | 'DEL' // Goods-received delivery
+  | 'ADJ' // Stock adjustment
+  | 'SO' // Stock out
+  | 'DSI' // Direct stock in
+  | 'DSO' // Direct stock out
+  | 'TRF' // Stock transfer
+  | 'WST' // Waste record
+  | 'ILG'; // Inventory ledger entry
 
 type Db = PrismaService | Prisma.TransactionClient;
 

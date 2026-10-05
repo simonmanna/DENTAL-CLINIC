@@ -294,7 +294,6 @@ enum PurchaseOrderStatus {
   PARTIALLY_RECEIVED
   FULLY_RECEIVED
   CANCELLED
-  RECEIVED
 }
 
 enum PaymentTerms {
@@ -311,6 +310,7 @@ enum DeliveryStatus {
   PARTIAL
   COMPLETE
   RETURNED
+  VOID
 }
 
 enum StockAdjustmentReason {
@@ -347,6 +347,9 @@ enum StockLedgerType {
   OPENING_BALANCE // initial seeding of stock
   EXPIRY_WRITE_OFF // -qty written off for expired batch
   STOCK_OUT
+  STOCK_IN // +qty received without a purchase order
+  REVERSAL_IN // +qty undoing a previously posted issue
+  REVERSAL_OUT // -qty undoing a previously posted receipt
 }
 
 enum SessionType {
@@ -630,11 +633,11 @@ model ChartEntry {
   patientConditionId String?
   patientCondition   PatientCondition? @relation(fields: [patientConditionId], references: [id], onDelete: SetNull)
 
-  notes          String?
-  diagnosedAt    DateTime?
+  notes           String?
+  diagnosedAt     DateTime?
   conditionStatus PatientConditionStatus?
-  createdAt      DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
 
   // M-2: optimistic-lock token. Mutations (updateEntry / voidEntry /
   // supersedeEntry / updateCondition) bump it and may be gated on an
@@ -814,17 +817,17 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  staff            Staff?
-    auditLogs        AuditLog[]
-    expensesCreated  Expense[]         @relation("ExpenseCreatedBy")
-    expensesApproved Expense[]         @relation("ExpenseApprovedBy")
-    expensesDeleted  Expense[]         @relation("ExpenseDeletedBy")
-    suppliersCreated Supplier[]        @relation("SupplierCreatedBy")
-    suppliersUpdated Supplier[]        @relation("SupplierUpdatedBy")
-  ledgerEntries    InventoryLedger[] @relation("LedgerPerformedBy")
-stockMovements      StockMovement[]           @relation("StockMovementCreatedBy")
-  stockTransfers      StockTransfer[]
-  treatmentConsumptions TreatmentConsumption[]
+  staff                   Staff?
+  auditLogs               AuditLog[]
+  expensesCreated         Expense[]                @relation("ExpenseCreatedBy")
+  expensesApproved        Expense[]                @relation("ExpenseApprovedBy")
+  expensesDeleted         Expense[]                @relation("ExpenseDeletedBy")
+  suppliersCreated        Supplier[]               @relation("SupplierCreatedBy")
+  suppliersUpdated        Supplier[]               @relation("SupplierUpdatedBy")
+  ledgerEntries           InventoryLedger[]        @relation("LedgerPerformedBy")
+  stockMovements          StockMovement[]          @relation("StockMovementCreatedBy")
+  stockTransfers          StockTransfer[]
+  treatmentConsumptions   TreatmentConsumption[]
   notifications           Notification[]           @relation("UserNotifications")
   notificationsTriggered  Notification[]           @relation("NotificationActor")
   notificationPreferences NotificationPreference[] @relation("NotificationPreferences")
@@ -962,15 +965,16 @@ model Location {
   ledgerEntries    InventoryLedger[]
 
   transfersFrom StockTransfer[] @relation("TransferFrom")
-    transfersTo   StockTransfer[] @relation("TransferTo")
+  transfersTo   StockTransfer[] @relation("TransferTo")
 
-    stockOuts StockOut[]
+  stockOuts StockOut[]
+  stockIns  StockIn[]
 
-    // Back-relations for the expense/payment/credit-note audit/segmentation work.
-    expenses   Expense[]
+  // Back-relations for the expense/payment/credit-note audit/segmentation work.
+  expenses Expense[]
 
-    @@map("locations")
-  }
+  @@map("locations")
+}
 
 model Patient {
   id                 String    @id @default(cuid())
@@ -1022,7 +1026,7 @@ model Patient {
 
   chartEntries ChartEntry[]
 
-  patientConditions   PatientCondition[]
+  patientConditions     PatientCondition[]
   treatmentConsumptions TreatmentConsumption[]
 
   @@map("patients")
@@ -1267,7 +1271,7 @@ model Procedure {
   treatmentProcedures TreatmentProcedure[]
   visitProcedures     VisitProcedure[]
   invoiceItems        InvoiceItem[]
-  imagingRecords      ImagingRecord[]          @relation("ProcedureImaging")
+  imagingRecords      ImagingRecord[]           @relation("ProcedureImaging")
 
   @@index([categoryId])
   @@index([isActive])
@@ -1301,7 +1305,7 @@ model TreatmentPlan {
   procedures   TreatmentProcedure[]
   attachments  TreatmentAttachment[]
   chartEntries ChartEntry[]
-  invoices     Invoice[]             @relation("TreatmentPlanInvoices")
+  invoices     Invoice[]              @relation("TreatmentPlanInvoices")
   consumptions TreatmentConsumption[]
 
   @@map("treatment_plans")
@@ -1680,92 +1684,92 @@ model Payment {
   voidReason String?
 
   paidAt    DateTime @default(now())
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    receipts        Receipt[]
-    cashFlowEntries CashFlowEntry[]
-    creditNote      VendorCreditNote? @relation("VendorCreditNotePayment")
+  receipts        Receipt[]
+  cashFlowEntries CashFlowEntry[]
+  creditNote      VendorCreditNote? @relation("VendorCreditNotePayment")
 
-    @@index([type])
-    @@index([direction])
-    @@index([invoiceId])
-    @@index([purchaseOrderId])
-    @@index([expenseId])
-    @@index([status])
-    @@index([paidAt])
-    @@map("payments")
-  }
+  @@index([type])
+  @@index([direction])
+  @@index([invoiceId])
+  @@index([purchaseOrderId])
+  @@index([expenseId])
+  @@index([status])
+  @@index([paidAt])
+  @@map("payments")
+}
 
-  /// Vendor credit note — supplier-issued credit against a PurchaseOrder or an
-  /// Expense (e.g. returned defective goods, negotiated rebate, post-billing
-  /// discount). Mirrors Invoice/CreditNote symmetry in patient billing but on
-  /// the procurement side. Applied credits reduce the source document's
-  /// outstanding balance (and post `DR AP · CR Inventory/Cash` on GL).
-  ///
-  /// Lifecycle:
-  ///   DRAFT → APPROVED → APPLIED  (terminal once applied; voiding is a reversal
-  ///                               by posting an opposite Payment of type CREDIT_NOTE_REVERSAL).
-  ///
-  /// `creditNoteNumber` is generated via DocumentNumberService ('VCN' prefix).
-  model VendorCreditNote {
-    id              String                  @id @default(cuid())
-    creditNoteNumber String                 @unique
+/// Vendor credit note — supplier-issued credit against a PurchaseOrder or an
+/// Expense (e.g. returned defective goods, negotiated rebate, post-billing
+/// discount). Mirrors Invoice/CreditNote symmetry in patient billing but on
+/// the procurement side. Applied credits reduce the source document's
+/// outstanding balance (and post `DR AP · CR Inventory/Cash` on GL).
+///
+/// Lifecycle:
+///   DRAFT → APPROVED → APPLIED  (terminal once applied; voiding is a reversal
+///                               by posting an opposite Payment of type CREDIT_NOTE_REVERSAL).
+///
+/// `creditNoteNumber` is generated via DocumentNumberService ('VCN' prefix).
+model VendorCreditNote {
+  id               String @id @default(cuid())
+  creditNoteNumber String @unique
 
-    supplierId String
-    supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
 
-    // Optional link to the PO or Expense this credit is reducing. Exactly one
-    // is populated; the other is null. Enforced at service-layer because
-    // Prisma doesn't support multi-column XOR constraints cleanly.
-    purchaseOrderId String?
-    purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
-    expenseId       String?
-    expense         Expense?       @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+  // Optional link to the PO or Expense this credit is reducing. Exactly one
+  // is populated; the other is null. Enforced at service-layer because
+  // Prisma doesn't support multi-column XOR constraints cleanly.
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
+  expenseId       String?
+  expense         Expense?       @relation(fields: [expenseId], references: [id], onDelete: SetNull)
 
-    amount      Decimal                 @db.Decimal(12, 2)
-    currency    String                  @default("UGX")
-    exchangeRate Decimal                @default(1) @db.Decimal(10, 4)
-    baseAmount  Decimal                 @db.Decimal(12, 2)
+  amount       Decimal @db.Decimal(12, 2)
+  currency     String  @default("UGX")
+  exchangeRate Decimal @default(1) @db.Decimal(10, 4)
+  baseAmount   Decimal @db.Decimal(12, 2)
 
-    reason        String // free text: "Defective shipment", "Volume rebate", etc.
-    vendorRef     String? // supplier's reference number on the credit memo
-    documentDate  DateTime               @default(now())
-    status        VendorCreditNoteStatus @default(DRAFT)
+  reason       String // free text: "Defective shipment", "Volume rebate", etc.
+  vendorRef    String? // supplier's reference number on the credit memo
+  documentDate DateTime               @default(now())
+  status       VendorCreditNoteStatus @default(DRAFT)
 
-    approvedById String?
-    approvedAt   DateTime?
-    appliedAt    DateTime?
-    voidedAt     DateTime?
-    voidReason   String?
+  approvedById String?
+  approvedAt   DateTime?
+  appliedAt    DateTime?
+  voidedAt     DateTime?
+  voidReason   String?
 
-    // The resulting Payment that physically moves the credit onto the books.
-    // Created on APPLY via PaymentsService.createCreditNotePayment; null while
-    // the credit note is in DRAFT/APPROVED.
-    paymentId String? @unique
-    payment   Payment? @relation("VendorCreditNotePayment", fields: [paymentId], references: [id], onDelete: SetNull)
+  // The resulting Payment that physically moves the credit onto the books.
+  // Created on APPLY via PaymentsService.createCreditNotePayment; null while
+  // the credit note is in DRAFT/APPROVED.
+  paymentId String?  @unique
+  payment   Payment? @relation("VendorCreditNotePayment", fields: [paymentId], references: [id], onDelete: SetNull)
 
-    // Audit actors (denormalised on AuditLog rows; FKs for drill-down).
-    createdById String
-    updatedById String?
+  // Audit actors (denormalised on AuditLog rows; FKs for drill-down).
+  createdById String
+  updatedById String?
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    @@index([supplierId])
-    @@index([status])
-    @@index([documentDate])
-    @@index([purchaseOrderId])
-    @@index([expenseId])
-    @@map("vendor_credit_notes")
-  }
+  @@index([supplierId])
+  @@index([status])
+  @@index([documentDate])
+  @@index([purchaseOrderId])
+  @@index([expenseId])
+  @@map("vendor_credit_notes")
+}
 
-  enum VendorCreditNoteStatus {
-    DRAFT
-    APPROVED
-    APPLIED
-    VOIDED
-  }
+enum VendorCreditNoteStatus {
+  DRAFT
+  APPROVED
+  APPLIED
+  VOIDED
+}
 
 model EMRRecord {
   id            String       @id @default(cuid())
@@ -1998,7 +2002,7 @@ model PrescriptionItem {
 }
 
 model Supplier {
-  id            String    @id @default(cuid())
+  id            String   @id @default(cuid())
   name          String
   contactPerson String?
   phone         String?
@@ -2006,26 +2010,26 @@ model Supplier {
   address       String?
   notes         String?
   taxId         String?
-  paymentTerms  String?    @default("NET_30")
-  creditLimit   Decimal    @default(0) @db.Decimal(12, 2)
-  isActive      Boolean   @default(true)
-  version       Int       @default(0) // optimistic-lock counter
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  paymentTerms  String?  @default("NET_30")
+  creditLimit   Decimal  @default(0) @db.Decimal(12, 2)
+  isActive      Boolean  @default(true)
+  version       Int      @default(0) // optimistic-lock counter
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Audit-actor relations (defence-in-depth — denormalised userName on AuditLog
   // already survives user deletion, but these FKs let us drill-down the
   // supplier's history through the supplier itself).
-  createdById   String?
-  createdBy     User?     @relation("SupplierCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedById   String?
-  updatedBy     User?     @relation("SupplierUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdById String?
+  createdBy   User?   @relation("SupplierCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById String?
+  updatedBy   User?   @relation("SupplierUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
-  expenses          Expense[]
-  inventoryItems    InventoryItem[]
-  purchaseOrders    PurchaseOrder[]
-  creditNotes       VendorCreditNote[]
-  assets            FixedAsset[]
+  expenses       Expense[]
+  inventoryItems InventoryItem[]
+  purchaseOrders PurchaseOrder[]
+  creditNotes    VendorCreditNote[]
+  assets         FixedAsset[]
 
   @@index([isActive])
   @@index([name])
@@ -2066,10 +2070,17 @@ enum InventoryType {
 
 enum StockTransferStatus {
   DRAFT
-  PENDING
-  IN_TRANSIT
   COMPLETED
   CANCELLED
+  REVERSED // completed, then undone by a compensating movement
+}
+
+// Lifecycle of a stock document that cannot be deleted once it has moved
+// stock. A mis-keyed document is VOIDed, which posts the inverse movement and
+// leaves both the original and the reversal in the ledger.
+enum StockDocumentStatus {
+  ACTIVE
+  VOID
 }
 
 model InventoryItem {
@@ -2104,6 +2115,7 @@ model InventoryItem {
   ledgerEntries        InventoryLedger[]
   stockTransferItems   StockTransferItem[]
   stockOutItems        StockOutItem[]
+  stockInItems         StockInItem[]
 
   @@map("inventory_items")
 }
@@ -2197,8 +2209,14 @@ model Delivery {
   invoiceNumber   String?
   notes           String?
   attachments     String[]
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+
+  // Void tracking — see StockOut for the rationale.
+  voidedAt   DateTime?
+  voidedById String?
+  voidReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   items            DeliveryItem[]
   InventoryLedgers InventoryLedger[]
@@ -2288,6 +2306,15 @@ model InventoryLedger {
   stockOut   StockOut? @relation(fields: [stockOutId], references: [id])
   stockOutId String?
 
+  stockIn   StockIn? @relation(fields: [stockInId], references: [id])
+  stockInId String?
+
+  // A reversal row points at the row it undoes, so a voided document's effect
+  // can be traced in both directions without parsing notes.
+  reversalOf   InventoryLedger? @relation("LedgerReversal", fields: [reversalOfId], references: [id], onDelete: SetNull)
+  reversalOfId String?          @unique
+  reversedBy   InventoryLedger? @relation("LedgerReversal")
+
   @@index([itemId])
   @@index([locationId])
   @@index([type])
@@ -2306,9 +2333,17 @@ model StockAdjustment {
   status         String                @default("PENDING")
   approvedById   String?
   approvedAt     DateTime?
+  approvalNotes  String? // reviewer's note — kept separate from the submitter's `notes`
   performedById  String?
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
+
+  // Void tracking — an APPROVED adjustment has already moved stock, so undoing
+  // it posts a compensating movement rather than editing history.
+  voidedAt   DateTime?
+  voidedById String?
+  voidReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   items            StockAdjustmentItem[]
   InventoryLedgers InventoryLedger[]
@@ -2378,8 +2413,14 @@ model WasteRecord {
   disposalMethod String?
   disposalDate   DateTime?
   attachments    String[]
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+
+  // Void tracking — see StockAdjustment.
+  voidedAt   DateTime?
+  voidedById String?
+  voidReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   items            WasteItem[]
   InventoryLedgers InventoryLedger[]
@@ -2407,6 +2448,28 @@ model WasteItem {
   createdAt       DateTime      @default(now())
 
   @@map("waste_items")
+}
+
+// Quarantine for inventory quantities that were already negative when the
+// non-negative CHECK constraints were introduced. The row preserves the figure
+// that was there before it was clamped to zero, so the clamp can be reconciled
+// against the ledger afterwards rather than being silently lost.
+//
+// Written only by migrations and by hand. Nothing in the application inserts
+// here; it is modelled so that `prisma migrate diff` stays clean.
+model InventoryQuantityAnomaly {
+  id          BigInt   @id @default(autoincrement())
+  sourceTable String
+  sourceId    String
+  itemId      String?
+  locationId  String?
+  batchNumber String?
+  oldQuantity Float
+  newQuantity Float
+  note        String?
+  detectedAt  DateTime @default(now())
+
+  @@map("inventory_quantity_anomalies")
 }
 
 model InventoryLocationStock {
@@ -2469,10 +2532,10 @@ model Expense {
   status      ExpenseStatus @default(APPROVED) // lifecycle status — defaults to APPROVED on creation
 
   // ── Payment progress (independent of lifecycle status) ───────────────
-  paymentStatus ExpensePaymentStatus @default(UNPAID)
-  amountPaid    Decimal              @default(0) @db.Decimal(10, 2)
-  balance       Decimal              @default(0) @db.Decimal(10, 2)
-  amountCredited Decimal             @default(0) @db.Decimal(10, 2) // sum of applied VendorCreditNote
+  paymentStatus  ExpensePaymentStatus @default(UNPAID)
+  amountPaid     Decimal              @default(0) @db.Decimal(10, 2)
+  balance        Decimal              @default(0) @db.Decimal(10, 2)
+  amountCredited Decimal              @default(0) @db.Decimal(10, 2) // sum of applied VendorCreditNote
 
   // ── NEW: optional supplier link ──────────────────────────────────────
   supplierId String?
@@ -3411,6 +3474,11 @@ model StockTransfer {
   performedById String?
   performedBy   User?   @relation(fields: [performedById], references: [id])
 
+  // Void tracking — see StockAdjustment.
+  voidedAt   DateTime?
+  voidedById String?
+  voidReason String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -3536,9 +3604,9 @@ model PatientCondition {
   diagnosedAt DateTime @default(now())
 
   // ── Condition lifecycle resolution ────────────────────────────────────
-  resolvedAt              DateTime?
-  resolvedByProcedureId   String?
-  resolvedByProcedure     TreatmentProcedure? @relation("ResolvedByProcedure", fields: [resolvedByProcedureId], references: [id], onDelete: SetNull)
+  resolvedAt            DateTime?
+  resolvedByProcedureId String?
+  resolvedByProcedure   TreatmentProcedure? @relation("ResolvedByProcedure", fields: [resolvedByProcedureId], references: [id], onDelete: SetNull)
 
   // ── Optional backlink to a treatment procedure ────────────────────────
   relatedProcedureId String?
@@ -3671,6 +3739,67 @@ model ProcedureSessionEdit {
   @@map("procedure_session_edits")
 }
 
+// Goods received without a purchase order — an opening count, a donation, a
+// walk-in purchase, a correction of a short receipt.
+//
+// This used to have no header at all: the service wrote only InventoryLedger
+// rows whose `referenceId` held a generated code string rather than a foreign
+// key, so there was no document to open, reprint or void, and the history
+// screen had to reverse-engineer receipts by grouping ledger rows.
+model StockIn {
+  id         String   @id @default(cuid())
+  inCode     String   @unique // e.g. DSI-26-0001
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  reason        String?
+  notes         String?
+  performedById String?
+
+  totalValue Decimal @default(0) @db.Decimal(10, 2) // Σ (qty × unitCost)
+
+  // ── Void tracking ──────────────────────────────────────────────────────
+  status     StockDocumentStatus @default(ACTIVE)
+  voidedAt   DateTime?
+  voidedById String?
+  voidReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items         StockInItem[]
+  ledgerEntries InventoryLedger[]
+
+  @@index([locationId])
+  @@index([createdAt])
+  @@map("stock_ins")
+}
+
+model StockInItem {
+  id        String  @id @default(cuid())
+  stockInId String
+  stockIn   StockIn @relation(fields: [stockInId], references: [id], onDelete: Cascade)
+
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+
+  itemName  String
+  unit      String
+  quantity  Float
+  unitCost  Decimal @default(0) @db.Decimal(10, 2)
+  totalCost Decimal @default(0) @db.Decimal(10, 2)
+
+  batchNumber String?
+  expiryDate  DateTime?
+
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([stockInId])
+  @@index([inventoryItemId])
+  @@map("stock_in_items")
+}
+
 model StockOut {
   id         String   @id @default(cuid())
   outCode    String   @unique // e.g. SO-2025-0001
@@ -3683,6 +3812,14 @@ model StockOut {
   performedById String? // who issued the stock
 
   totalValue Decimal @default(0) @db.Decimal(10, 2) // Σ (qty × unitCost)
+
+  // ── Void tracking ──────────────────────────────────────────────────────
+  // Stock documents are never deleted. Voiding posts the inverse movement and
+  // leaves the original rows in place, so the ledger still explains the stock.
+  status     StockDocumentStatus @default(ACTIVE)
+  voidedAt   DateTime?
+  voidedById String?
+  voidReason String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3785,22 +3922,22 @@ model NotificationPreference {
 }
 
 model TreatmentConsumption {
-  id              String   @id @default(cuid())
-  consumptionCode String   @unique
+  id              String         @id @default(cuid())
+  consumptionCode String         @unique
   treatmentPlanId String?
   treatmentPlan   TreatmentPlan? @relation(fields: [treatmentPlanId], references: [id], onDelete: SetNull)
   patientId       String?
-  patient         Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
-  itemType        String   // "DRUG" | "INVENTORY"
+  patient         Patient?       @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  itemType        String // "DRUG" | "INVENTORY"
   itemId          String
   itemName        String
   quantity        Float
-  unitCost        Decimal  @db.Decimal(10, 2)
-  totalCost       Decimal  @db.Decimal(10, 2)
+  unitCost        Decimal        @db.Decimal(10, 2)
+  totalCost       Decimal        @db.Decimal(10, 2)
   notes           String?
   performedById   String?
-  performedBy     User?    @relation(fields: [performedById], references: [id], onDelete: SetNull)
-  createdAt       DateTime @default(now())
+  performedBy     User?          @relation(fields: [performedById], references: [id], onDelete: SetNull)
+  createdAt       DateTime       @default(now())
 
   @@index([treatmentPlanId])
   @@index([patientId])

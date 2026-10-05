@@ -8,6 +8,7 @@ import {
   IsEnum,
   MinLength,
   IsDateString,
+  ArrayMinSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -47,6 +48,7 @@ export class DirectStockInDto {
   locationId: string;
 
   @IsArray()
+  @ArrayMinSize(1, { message: 'At least one line item is required' })
   @ValidateNested({ each: true })
   @Type(() => DirectStockInItemDto)
   items: DirectStockInItemDto[];
@@ -88,6 +90,7 @@ export class DirectStockOutDto {
   locationId: string;
 
   @IsArray()
+  @ArrayMinSize(1, { message: 'At least one line item is required' })
   @ValidateNested({ each: true })
   @Type(() => DirectStockOutItemDto)
   items: DirectStockOutItemDto[];

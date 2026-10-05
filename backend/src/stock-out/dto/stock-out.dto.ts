@@ -7,6 +7,7 @@ import {
   IsEnum,
   Min,
   IsNotEmpty,
+  ArrayMinSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { StockOutCategory } from '@prisma/client';
@@ -73,6 +74,7 @@ export class CreateStockOutDto {
   notes?: string;
 
   @IsArray()
+  @ArrayMinSize(1, { message: 'At least one line item is required' })
   @ValidateNested({ each: true })
   @Type(() => StockOutItemDto)
   items: StockOutItemDto[];

@@ -58,6 +58,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { ClinicSettingsModule } from './clinic-settings/clinic-settings.module';
 import { SequenceModule } from './common/sequence/sequence.module';
 import { DocumentNumberModule } from './common/document-number/document-number.module';
+import { StockMovementModule } from './common/inventory/stock-movement.module';
 import { GeneralLedgerModule } from './general-ledger/general-ledger.module';
 import { SupplierPaymentsModule } from './supplier-payments/supplier-payments.module';
 import { TreatmentConsumptionsModule } from './treatment-consumptions/treatment-consumptions.module';
@@ -79,6 +80,7 @@ import { FilesModule } from './files/files.module';
     PrismaModule,
     SequenceModule,
     DocumentNumberModule,
+    StockMovementModule,
     AuthModule,
     PatientsModule,
     AppointmentsModule,

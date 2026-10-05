@@ -8,7 +8,6 @@ import {
   Body,
   Param,
   Query,
-  UseGuards,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -20,13 +19,20 @@ import {
   CreateInventoryCategoryDto,
   UpdateInventoryCategoryDto,
 } from './dto/inventory.dto';
-// import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-// import { RolesGuard } from '../auth/roles.guard';
+// // import { RolesGuard } from '../auth/roles.guard';
 
 import { StockLedgerType } from '@prisma/client';
+import { Roles } from '../auth/decorators/roles.decorator';
 
+// Role gating.
+//
+// The global APP_GUARD chain authenticates every request, but RolesGuard is a
+// no-op on a route carrying no @Roles metadata — so before this, any
+// authenticated user at all could move stock. Writes are restricted to the
+// roles that are accountable for inventory; reads stay open to any
+// authenticated member of staff, matching PurchaseController. SUPER_ADMIN and
+// ADMIN bypass every gate by design (see RolesGuard).
 @Controller('inventory')
-// @UseGuards(JwtAuthGuard, RolesGuard)
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 
@@ -102,6 +108,7 @@ export class InventoryController {
   // ═══════════════════════════════════════════════════════════════════════════
 
   @Post('categories')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'PHARMACIST')
   @HttpCode(HttpStatus.CREATED)
   async createCategory(@Body() dto: CreateInventoryCategoryDto) {
     return this.inventoryService.createCategory(dto);
@@ -114,6 +121,7 @@ export class InventoryController {
   }
 
   @Put('categories/:id')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'PHARMACIST')
   async updateCategory(
     @Param('id') id: string,
     @Body() dto: UpdateInventoryCategoryDto,
@@ -122,6 +130,7 @@ export class InventoryController {
   }
 
   @Delete('categories/:id')
+  @Roles('SUPER_ADMIN', 'ADMIN')
   @HttpCode(HttpStatus.OK)
   async deleteCategory(@Param('id') id: string) {
     return this.inventoryService.deleteCategory(id);
@@ -158,6 +167,7 @@ export class InventoryController {
   }
 
   @Post()
+  @Roles('SUPER_ADMIN', 'ADMIN', 'PHARMACIST')
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() dto: CreateInventoryItemDto) {
     return this.inventoryService.create(dto);
@@ -170,11 +180,13 @@ export class InventoryController {
   }
 
   @Put(':id')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'PHARMACIST')
   async update(@Param('id') id: string, @Body() dto: UpdateInventoryItemDto) {
     return this.inventoryService.update(id, dto);
   }
 
   @Patch(':id/deactivate')
+  @Roles('SUPER_ADMIN', 'ADMIN')
   @HttpCode(HttpStatus.OK)
   async deactivate(@Param('id') id: string) {
     return this.inventoryService.deactivate(id);

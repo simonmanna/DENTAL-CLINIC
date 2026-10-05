@@ -6,7 +6,6 @@ import {
   Param,
   Body,
   Query,
-  UseGuards,
   Request,
   HttpCode,
   HttpStatus,
@@ -15,14 +14,20 @@ import { StockAdjustmentService } from './stock-adjustment.service';
 import {
   CreateStockAdjustmentDto,
   ApproveAdjustmentDto,
-  StockAdjustmentFilterDto,
 } from './dto/stock-adjustment.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-// import { RolesGuard } from '../auth/guards/roles.guard';
-// import { Roles } from '../auth/decorators/roles.decorator';
-
-//@UseGuards(JwtAuthGuard, RolesGuard)
-//@UseGuards(JwtAuthGuard)
+import { Roles } from '../auth/decorators/roles.decorator';
+// Role gating.
+//
+// The global APP_GUARD chain authenticates every request, but RolesGuard is a
+// no-op on a route carrying no @Roles metadata — so before this, any
+// authenticated user at all could move stock. Writes are restricted to the
+// roles that are accountable for inventory; reads stay open to any
+// authenticated member of staff, matching PurchaseController. SUPER_ADMIN and
+// ADMIN bypass every gate by design (see RolesGuard).
+//
+// Approval is narrower than creation: an adjustment is the one write that can
+// create or destroy stock with no supporting document, and the service also
+// refuses an approver who raised it.
 @Controller('adjustments')
 export class StockAdjustmentController {
   constructor(private readonly service: StockAdjustmentService) {}
@@ -64,6 +69,7 @@ export class StockAdjustmentController {
 
   // POST /inventory/adjustments
   @Post()
+  @Roles('SUPER_ADMIN', 'ADMIN', 'PHARMACIST')
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreateStockAdjustmentDto, @Request() req: any) {
     // In production use req.user.id from JWT
@@ -73,6 +79,7 @@ export class StockAdjustmentController {
 
   // PATCH /inventory/adjustments/:id/approve
   @Patch(':id/approve')
+  @Roles('SUPER_ADMIN', 'ADMIN')
   approve(
     @Param('id') id: string,
     @Body() dto: ApproveAdjustmentDto,
@@ -82,8 +89,20 @@ export class StockAdjustmentController {
     return this.service.approve(id, dto, approvedById);
   }
 
+  // PATCH /adjustments/:id/void — undoes an APPROVED adjustment
+  @Patch(':id/void')
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  void(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+    @Request() req: any,
+  ) {
+    return this.service.void(id, reason, req.user?.id);
+  }
+
   // PATCH /inventory/adjustments/:id/reject
   @Patch(':id/reject')
+  @Roles('SUPER_ADMIN', 'ADMIN')
   reject(
     @Param('id') id: string,
     @Body() body: { notes?: string },

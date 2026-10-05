@@ -7,6 +7,7 @@ import {
   IsNumber,
   Min,
   IsDateString,
+  ArrayMinSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { StockTransferStatus, UnitOfMeasure } from '@prisma/client';
@@ -64,9 +65,11 @@ export class CreateStockTransferDto {
   @IsString()
   toLocationId: string;
 
-  @IsOptional()
-  @IsEnum(StockTransferStatus)
-  status?: StockTransferStatus;
+  // `status` is deliberately absent. Accepting it here let a caller create a
+  // transfer that was already COMPLETED — the stock never moved, so the source
+  // kept quantity it had supposedly shipped and the destination was never
+  // credited. A new transfer is always DRAFT; it moves through
+  // PATCH /stock-transfers/:id/complete, which is what performs the movement.
 
   @IsOptional()
   @IsDateString()
@@ -81,15 +84,17 @@ export class CreateStockTransferDto {
   internalNotes?: string;
 
   @IsArray()
+  @ArrayMinSize(1, { message: 'At least one line item is required' })
   @ValidateNested({ each: true })
   @Type(() => StockTransferItemDto)
   items: StockTransferItemDto[];
 }
 
 export class UpdateStockTransferDto {
-  @IsOptional()
-  @IsEnum(StockTransferStatus)
-  status?: StockTransferStatus;
+  // `status` is deliberately absent here as well. PUT /stock-transfers/:id
+  // spread the payload straight onto the row, so sending status: COMPLETED
+  // marked a DRAFT transfer complete without moving any stock. Completion and
+  // cancellation have their own endpoints, which do the work.
 
   @IsOptional()
   @IsDateString()
@@ -105,6 +110,7 @@ export class UpdateStockTransferDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMinSize(1, { message: 'At least one line item is required' })
   @ValidateNested({ each: true })
   @Type(() => StockTransferItemDto)
   items?: StockTransferItemDto[];

@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   Query,
@@ -13,21 +14,42 @@ import {
   DirectStockOutDto,
   DirectStockQueryDto,
 } from './dto/direct-stock.dto';
+import { Roles } from '../auth/decorators/roles.decorator';
 
+// Role gating.
+//
+// The global APP_GUARD chain authenticates every request, but RolesGuard is a
+// no-op on a route carrying no @Roles metadata — so before this, any
+// authenticated user at all could move stock. Writes are restricted to the
+// roles that are accountable for inventory; reads stay open to any
+// authenticated member of staff, matching PurchaseController. SUPER_ADMIN and
+// ADMIN bypass every gate by design (see RolesGuard).
 @Controller('direct-stock')
 export class DirectStockController {
   constructor(private readonly directStockService: DirectStockService) {}
 
   @Post('in')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'PHARMACIST')
   async stockIn(@Body() dto: DirectStockInDto, @Req() req: any) {
     const userId = req.user?.id;
     return this.directStockService.stockIn(dto, userId);
   }
 
   @Post('out')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'PHARMACIST')
   async stockOut(@Body() dto: DirectStockOutDto, @Req() req: any) {
     const userId = req.user?.id;
     return this.directStockService.stockOut(dto, userId);
+  }
+
+  @Patch('in/:id/void')
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  async voidStockIn(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+    @Req() req: any,
+  ) {
+    return this.directStockService.voidStockIn(id, reason, req.user?.id);
   }
 
   @Get('history')

@@ -21,8 +21,6 @@ import {
   ApprovePurchaseOrderDto,
   CreateDeliveryDto,
   CreatePurchasePaymentDto,
-  CreateStockAdjustmentDto,
-  CreateWasteRecordDto,
   PurchaseOrderQueryDto,
   InventoryLedgerQueryDto,
 } from './dto/purchase.dto';
@@ -106,6 +104,16 @@ export class PurchaseController {
   }
 
   // ── Payments ───────────────────────────────────────────────────────────────
+  @Patch('deliveries/:id/void')
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  voidDelivery(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+    @Request() req: any,
+  ) {
+    return this.purchaseService.voidDelivery(id, reason, req.user.id);
+  }
+
   @Get('orders/:id/payments')
   getPayments(@Param('id') id: string) {
     return this.purchaseService.getPurchasePayments(id);
@@ -125,48 +133,15 @@ export class PurchaseController {
     );
   }
 
-  // ── Stock Adjustments ──────────────────────────────────────────────────────
-  @Get('adjustments')
-  getAdjustments(
-    @Query('locationId') locationId?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.purchaseService.getStockAdjustments(
-      locationId,
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
-    );
-  }
-
-  @Post('adjustments')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'PHARMACIST')
-  createAdjustment(
-    @Body() dto: CreateStockAdjustmentDto,
-    @Request() req: any,
-  ) {
-    return this.purchaseService.createStockAdjustment(dto, req.user.id);
-  }
-
-  // ── Waste Records ──────────────────────────────────────────────────────────
-  @Get('waste')
-  getWaste(
-    @Query('locationId') locationId?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.purchaseService.getWasteRecords(
-      locationId,
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
-    );
-  }
-
-  @Post('waste')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'PHARMACIST')
-  createWaste(@Body() dto: CreateWasteRecordDto, @Request() req: any) {
-    return this.purchaseService.createWasteRecord(dto, req.user.id);
-  }
+  // ── Stock Adjustments and Waste Records ────────────────────────────────────
+  //
+  // Moved out of this controller. Both used to be served here by a second,
+  // divergent implementation in PurchaseService that wrote location stock
+  // without touching the batch rows the rest of the system treats as truth,
+  // and applied with no approval step. Use the owning modules:
+  //
+  //    /adjustments   StockAdjustmentController  (batch-aware, PENDING → APPROVED)
+  //    /waste         WasteController            (batch-aware, PENDING → APPROVED)
 
   // ── Inventory Ledger (replaces /stock-logs) ────────────────────────────────
   @Get('inventory-ledger')

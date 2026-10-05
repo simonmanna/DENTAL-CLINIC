@@ -160,38 +160,12 @@ export const useCreatePurchasePayment = () => {
   });
 };
 
-// ─── Stock Adjustments ────────────────────────────────────
-export const useStockAdjustments = (params?: any) =>
-  useQuery({
-    queryKey: ["purchases", "adjustments", params],
-    queryFn: () =>
-      api.get("/purchases/adjustments", { params }).then((r) => r.data),
-  });
-
-export const useCreateStockAdjustment = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: any) =>
-      api.post("/purchases/adjustments", data).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["purchases"] }),
-  });
-};
-
-// ─── Waste ────────────────────────────────────────────────
-export const useWasteRecords = (params?: any) =>
-  useQuery({
-    queryKey: ["purchases", "waste", params],
-    queryFn: () => api.get("/purchases/waste", { params }).then((r) => r.data),
-  });
-
-export const useCreateWasteRecord = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: any) =>
-      api.post("/purchases/waste", data).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["purchases"] }),
-  });
-};
+// ─── Stock Adjustments and Waste ──────────────────────────
+// Removed. These hooks pointed at /purchases/adjustments and /purchases/waste,
+// a second implementation of stock mutation that wrote location stock without
+// the batch rows and applied with no approval step. Nothing in the app called
+// them. Use services/adjustments.api.ts and lib/api/waste.api.ts, which talk to
+// the batch-aware, approval-gated modules.
 
 // ─── Stock Logs ───────────────────────────────────────────
 export const useStockLogs = (params?: any) =>

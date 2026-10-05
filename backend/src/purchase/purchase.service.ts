@@ -14,8 +14,6 @@ import {
   StockLedgerType,
   UnitOfMeasure,
   DeliveryStatus,
-  PaymentType,
-  CashFlowDirection,
 } from '@prisma/client';
 import {
   CreatePurchaseOrderDto,
@@ -23,15 +21,13 @@ import {
   ApprovePurchaseOrderDto,
   CreateDeliveryDto,
   CreatePurchasePaymentDto,
-  CreateStockAdjustmentDto,
-  CreateWasteRecordDto,
   PurchaseOrderQueryDto,
   InventoryLedgerQueryDto,
   CreateDeliveryItemDto,
 } from './dto/purchase.dto';
 import { DocumentNumberService } from '../common/document-number/document-number.service';
+import { StockMovementService } from '../common/inventory/stock-movement.service';
 import { PaymentsService } from '../payments/payments.service';
-
 
 import Decimal from 'decimal.js';
 
@@ -43,10 +39,10 @@ function toNum(v: unknown): number {
   return isNaN(n) ? 0 : n;
 }
 
-function genCode(prefix: string) {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-  return `${prefix}-${new Date().getFullYear()}-${timestamp}${random}`;
+// Money is stored in Decimal(10,2) columns, so every figure that lands in one
+// is rounded to 2 dp here rather than letting the driver truncate silently.
+function money(d: Decimal): number {
+  return d.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber();
 }
 
 // ─────────────────────────────────────────────
@@ -65,6 +61,7 @@ export class PurchaseService {
     @Inject(forwardRef(() => PaymentsService))
     private readonly paymentsService: PaymentsService,
     private readonly docNum: DocumentNumberService,
+    private readonly movements: StockMovementService,
   ) {}
 
   // ─────────────────────────────────────────────
@@ -119,10 +116,101 @@ export class PurchaseService {
   }
 
   // ─────────────────────────────────────────────
+  // HELPER: Purchase-order totals — ONE Decimal pass, ONE tax basis
+  // ─────────────────────────────────────────────
+  //
+  //   subtotal = SUM(qty * unitCost - lineDiscount)
+  //   tax      = line tax if ANY line carries a taxPercent,
+  //              otherwise the header taxPercent applied to subtotal.
+  //              Never both — the old code folded line tax into `subtotal`
+  //              and then taxed that subtotal again (tax on tax).
+  //   total    = subtotal + tax - headerDiscount + shipping
+  //
+  // Line tax is charged on the line NET of its own discount, which is what a
+  // supplier invoice does.
+  private computeOrderTotals(
+    items: Array<{
+      quantityOrdered: number | string;
+      unitCost: number | string;
+      taxPercent?: number | string | null;
+      discount?: number | string | null;
+    }>,
+    header: {
+      taxPercent?: number | string | null;
+      discountAmount?: number | string | null;
+      shippingCost?: number | string | null;
+    },
+  ) {
+    const lines = items.map((item) => {
+      const gross = new Decimal(String(item.quantityOrdered ?? 0)).times(
+        new Decimal(String(item.unitCost ?? 0)),
+      );
+      const discount = new Decimal(String(item.discount ?? 0));
+      const net = gross.minus(discount);
+      const taxPercent = new Decimal(String(item.taxPercent ?? 0));
+      const tax = net.times(taxPercent.div(100));
+      return { net, tax, taxPercent };
+    });
+
+    const subtotal = lines.reduce((sum, l) => sum.plus(l.net), new Decimal(0));
+    const lineTax = lines.reduce((sum, l) => sum.plus(l.tax), new Decimal(0));
+    const usesLineTax = lines.some((l) => l.taxPercent.greaterThan(0));
+
+    const headerTaxPercent = new Decimal(String(header.taxPercent ?? 0));
+    const taxAmount = usesLineTax
+      ? lineTax
+      : subtotal.times(headerTaxPercent.div(100));
+
+    // Store the blended rate when the tax came from the lines, so the header
+    // field stays a faithful description of taxAmount instead of a second,
+    // independently applied rate.
+    const effectiveTaxPercent = usesLineTax
+      ? subtotal.isZero()
+        ? new Decimal(0)
+        : taxAmount.div(subtotal).times(100)
+      : headerTaxPercent;
+
+    const discountAmount = new Decimal(String(header.discountAmount ?? 0));
+    const shippingCost = new Decimal(String(header.shippingCost ?? 0));
+    const total = subtotal
+      .plus(taxAmount)
+      .minus(discountAmount)
+      .plus(shippingCost);
+
+    if (total.lessThan(0)) {
+      throw new BadRequestException(
+        `Order total would be negative (${total.toFixed(2)}). ` +
+          `Check the discount and shipping figures.`,
+      );
+    }
+
+    return {
+      subtotal: money(subtotal),
+      taxPercent: Number(
+        effectiveTaxPercent.toDecimalPlaces(2, Decimal.ROUND_HALF_UP),
+      ),
+      taxAmount: money(taxAmount),
+      discountAmount: money(discountAmount),
+      shippingCost: money(shippingCost),
+      total: money(total),
+      // Per-line totals, aligned with the chosen tax basis.
+      lineTotals: lines.map((l) =>
+        money(usesLineTax ? l.net.plus(l.tax) : l.net),
+      ),
+    };
+  }
+
+  // ─────────────────────────────────────────────
   // PURCHASE ORDERS
   // ─────────────────────────────────────────────
 
   async createPurchaseOrder(dto: CreatePurchaseOrderDto, userId: string) {
+    if (!dto.items?.length) {
+      throw new BadRequestException(
+        'A purchase order needs at least one line item.',
+      );
+    }
+
     const sanitizedItems = dto.items.map((item) => ({
       ...item,
       quantityOrdered: Number(item.quantityOrdered),
@@ -131,19 +219,20 @@ export class PurchaseService {
       discount: Number(item.discount || 0),
     }));
 
-    const subtotal = sanitizedItems.reduce((sum, item) => {
-      const lineTotal = item.quantityOrdered * item.unitCost;
-      const lineTax = lineTotal * (item.taxPercent / 100);
-      return sum + lineTotal + lineTax - item.discount;
-    }, 0);
-
-    const taxPercent = Number(dto.taxPercent || 0);
-    const taxAmount = subtotal * (taxPercent / 100);
-    const discountAmount = Number(dto.discountAmount || 0);
-    const shippingCost = Number(dto.shippingCost || 0);
-    const total = subtotal + taxAmount - discountAmount + shippingCost;
+    const totals = this.computeOrderTotals(sanitizedItems, dto);
 
     return this.prisma.$transaction(async (tx) => {
+      const supplier = await tx.supplier.findUnique({
+        where: { id: dto.supplierId },
+        select: { id: true, isActive: true, name: true },
+      });
+      if (!supplier) throw new NotFoundException('Supplier not found');
+      if (!supplier.isActive) {
+        throw new BadRequestException(
+          `Supplier "${supplier.name}" is inactive and cannot be ordered from.`,
+        );
+      }
+
       // Atomic document number — row-locks the (PO, year) counter inside this
       // transaction so two parallel creates cannot collide.
       const poNumber = await this.docNum.next('PO', tx);
@@ -158,14 +247,18 @@ export class PurchaseService {
           dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
           notes: dto.notes,
           internalNotes: dto.internalNotes,
-          status: dto.status || 'DRAFT',
-          taxPercent,
-          taxAmount,
-          discountAmount,
-          shippingCost,
-          subtotal,
-          total,
-          balance: total,
+          // Always DRAFT. The status is NOT client-settable: accepting it from
+          // the payload let a caller POST an already-APPROVED order and skip
+          // both the submit→approve sequence and the segregation-of-duties
+          // check in approvePurchaseOrder.
+          status: PurchaseOrderStatus.DRAFT,
+          taxPercent: totals.taxPercent,
+          taxAmount: totals.taxAmount,
+          discountAmount: totals.discountAmount,
+          shippingCost: totals.shippingCost,
+          subtotal: totals.subtotal,
+          total: totals.total,
+          balance: totals.total,
           paymentStatus: 'UNPAID',
           supplierId: dto.supplierId,
           locationId: dto.locationId,
@@ -173,33 +266,24 @@ export class PurchaseService {
         },
       });
 
-      if (sanitizedItems.length > 0) {
-        await tx.purchaseOrderItem.createMany({
-          data: sanitizedItems.map((item) => {
-            const itemSubtotal = item.quantityOrdered * item.unitCost;
-            const itemTax = itemSubtotal * (item.taxPercent / 100);
-            const itemTotal = itemSubtotal + itemTax - item.discount;
-            return {
-              purchaseOrderId: po.id,
-              itemName: item.itemName,
-              unit: item.unit,
-              uom: item.uom || 'PIECES',
-              quantityOrdered: item.quantityOrdered,
-              quantityReceived: 0,
-              unitCost: item.unitCost,
-              taxPercent: item.taxPercent,
-              discount: item.discount,
-              total: itemTotal,
-              batchNumber: item.batchNumber || null,
-              expiryDate: item.expiryDate
-                ? new Date(item.expiryDate)
-                : undefined,
-              notes: item.notes || null,
-              inventoryItemId: item.inventoryItemId || null,
-            };
-          }),
-        });
-      }
+      await tx.purchaseOrderItem.createMany({
+        data: sanitizedItems.map((item, idx) => ({
+          purchaseOrderId: po.id,
+          itemName: item.itemName,
+          unit: item.unit,
+          uom: item.uom || 'PIECES',
+          quantityOrdered: item.quantityOrdered,
+          quantityReceived: 0,
+          unitCost: item.unitCost,
+          taxPercent: item.taxPercent,
+          discount: item.discount,
+          total: totals.lineTotals[idx],
+          batchNumber: item.batchNumber || null,
+          expiryDate: item.expiryDate ? new Date(item.expiryDate) : undefined,
+          notes: item.notes || null,
+          inventoryItemId: item.inventoryItemId || null,
+        })),
+      });
 
       return tx.purchaseOrder.findUnique({
         where: { id: po.id },
@@ -238,19 +322,19 @@ export class PurchaseService {
       ...(status && { status: status as PurchaseOrderStatus }),
       ...(dateFrom || dateTo
         ? {
-          createdAt: {
-            gte: dateFrom ? new Date(dateFrom) : undefined,
-            lte: dateTo ? new Date(dateTo) : undefined,
-          },
-        }
+            createdAt: {
+              gte: dateFrom ? new Date(dateFrom) : undefined,
+              lte: dateTo ? new Date(dateTo) : undefined,
+            },
+          }
         : {}),
       ...(search
         ? {
-          OR: [
-            { poNumber: { contains: search, mode: 'insensitive' } },
-            { supplier: { name: { contains: search, mode: 'insensitive' } } },
-          ],
-        }
+            OR: [
+              { poNumber: { contains: search, mode: 'insensitive' } },
+              { supplier: { name: { contains: search, mode: 'insensitive' } } },
+            ],
+          }
         : {}),
     };
 
@@ -336,42 +420,65 @@ export class PurchaseService {
   }
 
   async updatePurchaseOrder(id: string, dto: UpdatePurchaseOrderDto) {
-    const po = await this.prisma.purchaseOrder.findUnique({
-      where: { id },
-      include: { items: true },
-    });
+    const { items, ...rest } = dto as any;
 
-    if (!po) throw new NotFoundException('Purchase order not found');
-    if (po.status !== 'DRAFT') {
-      throw new BadRequestException('Only DRAFT orders can be edited');
-    }
+    // UpdatePurchaseOrderDto is a PartialType of the create DTO, so `status`
+    // is absent from it by construction — but this method spreads `updateData`
+    // straight onto the row, so the field is dropped here as well rather than
+    // relying on that. Status moves only through submit / approve / cancel.
+    const updateData = { ...rest };
+    delete updateData.status;
 
-    const { items, ...updateData } = dto;
+    return this.prisma.$transaction(
+      async (tx) => {
+        // Read the order INSIDE the transaction. Reading it outside left a
+        // window in which the order could be submitted between the DRAFT check
+        // and the write, so an in-flight approval could be edited underneath.
+        const po = await tx.purchaseOrder.findUnique({
+          where: { id },
+          include: { items: true },
+        });
+        if (!po) throw new NotFoundException('Purchase order not found');
+        if (po.status !== PurchaseOrderStatus.DRAFT) {
+          throw new BadRequestException('Only DRAFT orders can be edited');
+        }
 
-    return this.prisma.$transaction(async (tx) => {
-      if (items) {
-        await tx.purchaseOrderItem.deleteMany({
-          where: { purchaseOrderId: id },
+        // Recompute totals on EVERY path. The previous no-items branch spread
+        // taxPercent / discountAmount / shippingCost straight onto the row and
+        // left `total` and `balance` describing the old figures.
+        const sourceItems = items
+          ? items.map((item: any) => ({
+              ...item,
+              quantityOrdered: Number(item.quantityOrdered),
+              unitCost: Number(item.unitCost),
+              taxPercent: Number(item.taxPercent ?? 0),
+              discount: Number(item.discount ?? 0),
+            }))
+          : po.items.map((item) => ({
+              quantityOrdered: toNum(item.quantityOrdered),
+              unitCost: toNum(item.unitCost),
+              taxPercent: toNum(item.taxPercent),
+              discount: toNum(item.discount),
+            }));
+
+        if (items && sourceItems.length === 0) {
+          throw new BadRequestException(
+            'A purchase order needs at least one line item.',
+          );
+        }
+
+        const totals = this.computeOrderTotals(sourceItems, {
+          taxPercent: updateData.taxPercent ?? toNum(po.taxPercent),
+          discountAmount: updateData.discountAmount ?? toNum(po.discountAmount),
+          shippingCost: updateData.shippingCost ?? toNum(po.shippingCost),
         });
 
-        const subtotal = items.reduce((sum, item) => {
-          const lineTotal = item.quantityOrdered * item.unitCost;
-          const lineTax = lineTotal * ((item.taxPercent ?? 0) / 100);
-          return sum + lineTotal + lineTax - (item.discount ?? 0);
-        }, 0);
-
-        const taxPercent = toNum(updateData.taxPercent ?? po.taxPercent);
-        const taxAmount = subtotal * (taxPercent / 100);
-        const discountAmount = toNum(updateData.discountAmount ?? po.discountAmount);
-        const shippingCost = toNum(updateData.shippingCost ?? po.shippingCost);
-        const total = subtotal + taxAmount - discountAmount + shippingCost;
-
-        await tx.purchaseOrderItem.createMany({
-          data: items.map((item) => {
-            const itemSubtotal = item.quantityOrdered * item.unitCost;
-            const itemTax = itemSubtotal * ((item.taxPercent ?? 0) / 100);
-            const itemTotal = itemSubtotal + itemTax - (item.discount ?? 0);
-            return {
+        if (items) {
+          await tx.purchaseOrderItem.deleteMany({
+            where: { purchaseOrderId: id },
+          });
+          await tx.purchaseOrderItem.createMany({
+            data: sourceItems.map((item: any, idx: number) => ({
               purchaseOrderId: id,
               itemName: item.itemName,
               unit: item.unit,
@@ -379,29 +486,52 @@ export class PurchaseService {
               quantityOrdered: item.quantityOrdered,
               quantityReceived: 0,
               unitCost: item.unitCost,
-              taxPercent: item.taxPercent ?? 0,
-              discount: item.discount ?? 0,
-              total: itemTotal,
-              batchNumber: item.batchNumber,
+              taxPercent: item.taxPercent,
+              discount: item.discount,
+              total: totals.lineTotals[idx],
+              batchNumber: item.batchNumber ?? null,
               expiryDate: item.expiryDate
                 ? new Date(item.expiryDate)
                 : undefined,
-              notes: item.notes,
+              notes: item.notes ?? null,
               inventoryItemId: item.inventoryItemId || null,
-            };
-          }),
-        });
+            })),
+          });
+        }
 
-        return tx.purchaseOrder.update({
-          where: { id },
+        // Guarded write: still DRAFT, still the version we read. Loses the
+        // race rather than clobbering a concurrent edit.
+        const applied = await tx.purchaseOrder.updateMany({
+          where: {
+            id,
+            status: PurchaseOrderStatus.DRAFT,
+            version: po.version,
+          },
           data: {
             ...updateData,
-            subtotal,
-            taxAmount,
-            total,
-            balance: total - toNum(po.amountPaid),
-            updatedAt: new Date(),
+            subtotal: totals.subtotal,
+            taxPercent: totals.taxPercent,
+            taxAmount: totals.taxAmount,
+            discountAmount: totals.discountAmount,
+            shippingCost: totals.shippingCost,
+            total: totals.total,
+            balance: this.remainingBalance(
+              totals.total,
+              toNum(po.amountPaid),
+              toNum(po.amountCredited),
+            ),
+            version: { increment: 1 },
           },
+        });
+
+        if (applied.count !== 1) {
+          throw new ConflictException(
+            'Purchase order changed while you were editing it. Reload and retry.',
+          );
+        }
+
+        return tx.purchaseOrder.findUnique({
+          where: { id },
           include: {
             items: {
               include: {
@@ -412,42 +542,58 @@ export class PurchaseService {
             location: true,
           },
         });
-      }
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
 
-      return tx.purchaseOrder.update({
-        where: { id },
-        data: { ...updateData, updatedAt: new Date() },
-        include: {
-          items: {
-            include: {
-              inventoryItem: { select: { id: true, name: true, unit: true } },
-            },
-          },
-          supplier: true,
-          location: true,
-        },
-      });
-    });
+  // Outstanding supplier balance. Credit notes settle the order just as cash
+  // does, so they belong in the subtraction — the old `total - amountPaid`
+  // overstated what was still owed on any credited order.
+  private remainingBalance(
+    total: number,
+    amountPaid: number,
+    amountCredited: number,
+  ): number {
+    const remaining = new Decimal(String(total))
+      .minus(new Decimal(String(amountPaid)))
+      .minus(new Decimal(String(amountCredited)));
+    return money(Decimal.max(remaining, new Decimal(0)));
   }
 
   async submitPurchaseOrder(id: string, userId?: string) {
     return this.prisma.$transaction(async (tx) => {
       const po = await tx.purchaseOrder.findUnique({ where: { id } });
       if (!po) throw new NotFoundException('Purchase order not found');
-      if (po.status !== 'DRAFT') {
+      if (po.status !== PurchaseOrderStatus.DRAFT) {
         throw new BadRequestException('Only DRAFT orders can be submitted');
       }
       const submitter = userId ?? po.createdById;
-      const submitted = await tx.purchaseOrder.update({
-        where: { id },
+
+      // The status is re-asserted in the WHERE clause so the transition itself
+      // is the thing that races, not a read taken before it. A second
+      // concurrent submit matches 0 rows and is rejected instead of silently
+      // re-stamping submittedAt / submittedById.
+      const applied = await tx.purchaseOrder.updateMany({
+        where: { id, status: PurchaseOrderStatus.DRAFT },
         data: {
-          status: 'SUBMITTED',
+          status: PurchaseOrderStatus.SUBMITTED,
           submittedById: submitter,
           submittedAt: new Date(),
           version: { increment: 1 },
         },
+      });
+      if (applied.count !== 1) {
+        throw new ConflictException(
+          'Purchase order is no longer a DRAFT — it may already have been submitted.',
+        );
+      }
+
+      const submitted = await tx.purchaseOrder.findUniqueOrThrow({
+        where: { id },
         include: { supplier: true, items: true },
       });
+
       await tx.auditLog.create({
         data: {
           action: 'SUBMIT',
@@ -472,7 +618,7 @@ export class PurchaseService {
     return this.prisma.$transaction(async (tx) => {
       const po = await tx.purchaseOrder.findUnique({ where: { id } });
       if (!po) throw new NotFoundException('Purchase order not found');
-      if (po.status !== 'SUBMITTED') {
+      if (po.status !== PurchaseOrderStatus.SUBMITTED) {
         throw new BadRequestException('Only SUBMITTED orders can be approved');
       }
       // Segregation of duties — approver cannot be the submitter or the creator.
@@ -481,17 +627,28 @@ export class PurchaseService {
           'Approver cannot be the same user as the submitter or creator (segregation of duties).',
         );
       }
-      const approved = await tx.purchaseOrder.update({
-        where: { id },
+
+      const applied = await tx.purchaseOrder.updateMany({
+        where: { id, status: PurchaseOrderStatus.SUBMITTED },
         data: {
-          status: 'APPROVED',
+          status: PurchaseOrderStatus.APPROVED,
           approvedById: userId,
           approvedAt: new Date(),
           approvalNotes: dto.approvalNotes,
           version: { increment: 1 },
         },
+      });
+      if (applied.count !== 1) {
+        throw new ConflictException(
+          'Purchase order is no longer SUBMITTED — it may already have been approved.',
+        );
+      }
+
+      const approved = await tx.purchaseOrder.findUniqueOrThrow({
+        where: { id },
         include: { supplier: true, items: true },
       });
+
       await tx.auditLog.create({
         data: {
           action: 'APPROVE',
@@ -510,20 +667,40 @@ export class PurchaseService {
   }
 
   async cancelPurchaseOrder(id: string, userId?: string, reason?: string) {
+    const CANCELLABLE: PurchaseOrderStatus[] = [
+      PurchaseOrderStatus.DRAFT,
+      PurchaseOrderStatus.SUBMITTED,
+      PurchaseOrderStatus.APPROVED,
+      PurchaseOrderStatus.PARTIALLY_RECEIVED,
+    ];
+
     return this.prisma.$transaction(async (tx) => {
       const po = await tx.purchaseOrder.findUnique({ where: { id } });
       if (!po) throw new NotFoundException('Purchase order not found');
-      if (['FULLY_RECEIVED', 'CANCELLED'].includes(po.status)) {
-        throw new BadRequestException('Cannot cancel this order');
+      if (!CANCELLABLE.includes(po.status)) {
+        throw new BadRequestException(
+          `Cannot cancel an order that is ${po.status}.`,
+        );
       }
-      const cancelled = await tx.purchaseOrder.update({
-        where: { id },
+
+      const applied = await tx.purchaseOrder.updateMany({
+        where: { id, status: { in: CANCELLABLE } },
         data: {
-          status: 'CANCELLED',
+          status: PurchaseOrderStatus.CANCELLED,
           version: { increment: 1 },
         },
+      });
+      if (applied.count !== 1) {
+        throw new ConflictException(
+          'Purchase order changed before it could be cancelled. Reload and retry.',
+        );
+      }
+
+      const cancelled = await tx.purchaseOrder.findUniqueOrThrow({
+        where: { id },
         include: { supplier: true, items: true },
       });
+
       await tx.auditLog.create({
         data: {
           action: 'CANCEL',
@@ -541,7 +718,6 @@ export class PurchaseService {
     });
   }
 
-
   // ─────────────────────────────────────────────
   // DELIVERIES
   // ─────────────────────────────────────────────
@@ -553,6 +729,15 @@ export class PurchaseService {
       );
     }
 
+    // Only an approved order can be received against. The previous guard
+    // blocked just CANCELLED and FULLY_RECEIVED, so stock could be taken in
+    // against a DRAFT or SUBMITTED order — and calculatePurchaseOrderStatus
+    // would then stamp it APPROVED with nobody having approved it.
+    const RECEIVABLE: PurchaseOrderStatus[] = [
+      PurchaseOrderStatus.APPROVED,
+      PurchaseOrderStatus.PARTIALLY_RECEIVED,
+    ];
+
     return this.prisma.$transaction(
       async (tx) => {
         const po = await tx.purchaseOrder.findUnique({
@@ -561,16 +746,18 @@ export class PurchaseService {
         });
 
         if (!po) throw new NotFoundException('Purchase order not found');
-        if (po.status === 'CANCELLED') {
+        if (!RECEIVABLE.includes(po.status)) {
           throw new BadRequestException(
-            'Cannot deliver to a cancelled purchase order',
+            `Cannot receive against a ${po.status} purchase order. ` +
+              `The order must be APPROVED first.`,
           );
         }
-        if (po.status === 'FULLY_RECEIVED') {
-          throw new ConflictException(
-            'Purchase order is already fully received',
-          );
-        }
+
+        const location = await tx.location.findUnique({
+          where: { id: dto.locationId },
+          select: { id: true },
+        });
+        if (!location) throw new NotFoundException('Location not found');
 
         if (dto.supplierRef) {
           const existing = await tx.delivery.findFirst({
@@ -588,7 +775,7 @@ export class PurchaseService {
 
         const delivery = await tx.delivery.create({
           data: {
-            deliveryCode: genCode('DEL'),
+            deliveryCode: await this.docNum.next('DEL', tx),
             purchaseOrderId: dto.purchaseOrderId,
             locationId: dto.locationId,
             deliveryDate: dto.deliveryDate
@@ -597,23 +784,72 @@ export class PurchaseService {
             supplierRef: dto.supplierRef,
             invoiceNumber: dto.invoiceNumber,
             notes: dto.notes,
-            status: dto.status || DeliveryStatus.COMPLETE,
+            // Set below from what was actually accepted vs delivered. Taking
+            // it from the payload let a caller mark a short delivery COMPLETE.
+            status: DeliveryStatus.PENDING,
             receivedById: userId,
           },
         });
 
-        await Promise.all(
-          dto.items.map((item) =>
-            this.processDeliveryItem(tx, {
-              deliveryId: delivery.id,
-              item,
-              poItems: po.items,
-              locationId: dto.locationId,
-              purchaseOrderId: po.id,
-              userId,
-            }),
-          ),
+        // Running total received per PO item, seeded from the database.
+        //
+        // Two things forced this. First, the lines were processed with
+        // Promise.all: concurrent lines for the same inventory item each read
+        // the batch sum and then wrote an ABSOLUTE location quantity, so one
+        // line's receipt was lost. Second, each line wrote quantityReceived as
+        // an absolute computed from the `poItem` snapshot taken before the
+        // loop, so two lines against the same PO item (a legitimate split
+        // across batch numbers) made the second overwrite the first.
+        //
+        // Sequential processing fixes the first. This map fixes the second:
+        // the cumulative cap is checked against it, and it is what gets
+        // written, so a split delivery accumulates instead of overwriting.
+        const receivedSoFar = new Map<string, Decimal>(
+          po.items.map((it) => [
+            it.id,
+            new Decimal(it.quantityReceived.toString()),
+          ]),
         );
+
+        for (const item of dto.items) {
+          await this.processDeliveryItem(tx, {
+            deliveryId: delivery.id,
+            item,
+            poItems: po.items,
+            receivedSoFar,
+            locationId: dto.locationId,
+            purchaseOrderId: po.id,
+            userId,
+          });
+        }
+
+        // Derive the delivery's own status from its lines: everything
+        // accepted is COMPLETE, nothing accepted is RETURNED, anything in
+        // between is PARTIAL.
+        const lines = await tx.deliveryItem.findMany({
+          where: { deliveryId: delivery.id },
+          select: { quantityDelivered: true, quantityAccepted: true },
+        });
+        const delivered = lines.reduce(
+          (sum, l) => sum.plus(new Decimal(l.quantityDelivered.toString())),
+          new Decimal(0),
+        );
+        const accepted = lines.reduce(
+          (sum, l) => sum.plus(new Decimal(l.quantityAccepted.toString())),
+          new Decimal(0),
+        );
+        const deliveryStatus = accepted.lessThanOrEqualTo(
+          DELIVERY_CONFIG.EPSILON,
+        )
+          ? DeliveryStatus.RETURNED
+          : delivered.minus(accepted).lessThanOrEqualTo(DELIVERY_CONFIG.EPSILON)
+            ? DeliveryStatus.COMPLETE
+            : DeliveryStatus.PARTIAL;
+
+        await tx.delivery.update({
+          where: { id: delivery.id },
+          data: { status: deliveryStatus },
+        });
 
         const finalStatus = await this.calculatePurchaseOrderStatus(tx, po.id);
         await tx.purchaseOrder.update({
@@ -633,7 +869,6 @@ export class PurchaseService {
                     name: true,
                     unit: true,
                     uom: true,
-                    // ✅ Include locationStocks instead of quantity
                     locationStocks: {
                       where: { locationId: dto.locationId },
                       select: { quantity: true },
@@ -650,7 +885,7 @@ export class PurchaseService {
       {
         isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
         maxWait: 5000,
-        timeout: 10000,
+        timeout: 15000,
       },
     );
   }
@@ -661,13 +896,21 @@ export class PurchaseService {
       deliveryId: string;
       item: CreateDeliveryItemDto;
       poItems: any[];
+      receivedSoFar: Map<string, Decimal>;
       locationId: string;
       purchaseOrderId: string;
       userId: string;
     },
   ) {
-    const { deliveryId, item, poItems, locationId, purchaseOrderId, userId } =
-      params;
+    const {
+      deliveryId,
+      item,
+      poItems,
+      receivedSoFar,
+      locationId,
+      purchaseOrderId,
+      userId,
+    } = params;
 
     const poItem = poItems.find((i) => i.id === item.purchaseOrderItemId);
     if (!poItem) {
@@ -682,7 +925,9 @@ export class PurchaseService {
     }
 
     const ordered = new Decimal(poItem.quantityOrdered.toString());
-    const previouslyReceived = new Decimal(poItem.quantityReceived.toString());
+    const previouslyReceived =
+      receivedSoFar.get(poItem.id) ??
+      new Decimal(poItem.quantityReceived.toString());
     const nowReceiving = new Decimal(String(item.quantityAccepted || 0));
     const maxAllowed = ordered.minus(previouslyReceived);
     const maxWithTolerance = maxAllowed.times(
@@ -692,8 +937,8 @@ export class PurchaseService {
     if (nowReceiving.greaterThan(maxWithTolerance)) {
       throw new BadRequestException(
         `Cannot accept ${nowReceiving} for "${poItem.itemName}". ` +
-        `Maximum allowed: ${maxAllowed.toFixed(4)} ` +
-        `(+${DELIVERY_CONFIG.MAX_OVER_DELIVERY_PCT.times(100)}% tolerance = ${maxWithTolerance.toFixed(2)})`,
+          `Maximum allowed: ${maxAllowed.toFixed(4)} ` +
+          `(+${DELIVERY_CONFIG.MAX_OVER_DELIVERY_PCT.times(100)}% tolerance = ${maxWithTolerance.toFixed(2)})`,
       );
     }
 
@@ -736,6 +981,7 @@ export class PurchaseService {
       where: { id: item.purchaseOrderItemId },
       data: { quantityReceived: newTotalReceived.toNumber() },
     });
+    receivedSoFar.set(poItem.id, newTotalReceived);
 
     if (nowReceiving.greaterThan(0)) {
       await this.updateStockOnReceipt(tx, {
@@ -785,6 +1031,17 @@ export class PurchaseService {
    *
    *  ✅ InventoryLocationStock.quantity is CALCULATED from batches, not directly updated
    */
+  /**
+   * Book an accepted delivery line into stock.
+   *
+   * The arithmetic that used to live here — upsert the batch, re-sum the
+   * location, write a ledger row with an "approximate" before/after — now
+   * lives in StockMovementService, alongside the same operation as performed
+   * by stock-in, transfers and adjustments. Two things changed in the move:
+   * the batch's cost is blended rather than overwritten, so existing on-hand
+   * is no longer revalued at the newest price; and the ledger row carries the
+   * real running balance instead of an approximation.
+   */
   private async updateStockOnReceipt(
     tx: Prisma.TransactionClient,
     params: {
@@ -803,7 +1060,6 @@ export class PurchaseService {
     const {
       inventoryItemId,
       locationId,
-      purchaseOrderId,
       deliveryId,
       quantityAccepted,
       unitCost,
@@ -813,512 +1069,144 @@ export class PurchaseService {
       userId,
     } = params;
 
-    const qtyNum = quantityAccepted.toNumber();
-    const totalValue = quantityAccepted
-      .times(new Decimal(String(unitCost)))
-      .toNumber();
-
-    // ── Fetch item to check batchTracking flag ─────────────────────────────
     const item = await tx.inventoryItem.findUnique({
       where: { id: inventoryItemId },
       select: { id: true, name: true, batchTracking: true },
     });
-
-    if (!item)
+    if (!item) {
       throw new NotFoundException(
         `Inventory item ${inventoryItemId} not found`,
       );
-
-    // ── VALIDATION: Enforce batch details if batchTracking is enabled ──────
-    if (item.batchTracking) {
-      if (!batchNumber || batchNumber.trim() === '') {
-        throw new BadRequestException(
-          `Item "${item.name}" has batch tracking enabled. Batch number is required.`,
-        );
-      }
-      if (!expiryDate) {
-        throw new BadRequestException(
-          `Item "${item.name}" has batch tracking enabled. Expiry date is required.`,
-        );
-      }
     }
 
-    // ── Resolve batch identifier ───────────────────────────────────────────
-    const resolvedBatchNumber = item.batchTracking
-      ? batchNumber!.trim()
-      : 'DEFAULT';
+    const qtyNum = quantityAccepted.toNumber();
 
-    // ── 1. Handle InventoryBatch (batch-level truth) ───────────────────────
-    let batchId: string;
-
-    if (item.batchTracking) {
-      // ✅ BATCH TRACKING ENABLED: Create NEW batch row for each distinct batch
-      const existingBatch = await tx.inventoryBatch.findUnique({
-        where: {
-          itemId_locationId_batchNumber: {
-            itemId: inventoryItemId,
-            locationId,
-            batchNumber: resolvedBatchNumber,
-          },
-        },
-        select: { id: true, quantity: true },
-      });
-
-      if (existingBatch) {
-        const updated = await tx.inventoryBatch.update({
-          where: { id: existingBatch.id },
-          data: {
-            quantity: { increment: qtyNum },
-            unitCost,
-            ...(expiryDate && { expiryDate }),
-            isActive: true,
-          },
-          select: { id: true },
-        });
-        batchId = updated.id;
-      } else {
-        const created = await tx.inventoryBatch.create({
-          data: {
-            itemId: inventoryItemId,
-            locationId,
-            batchNumber: resolvedBatchNumber,
-            expiryDate,
-            quantity: qtyNum,
-            unitCost,
-            isActive: true,
-          },
-          select: { id: true },
-        });
-        batchId = created.id;
-      }
-    } else {
-      // ❌ NO BATCH TRACKING: Use ONE implicit "DEFAULT" batch per item+location
-      const existingDefaultBatch = await tx.inventoryBatch.findUnique({
-        where: {
-          itemId_locationId_batchNumber: {
-            itemId: inventoryItemId,
-            locationId,
-            batchNumber: 'DEFAULT',
-          },
-        },
-        select: { id: true, quantity: true },
-      });
-
-      if (existingDefaultBatch) {
-        const updated = await tx.inventoryBatch.update({
-          where: { id: existingDefaultBatch.id },
-          data: {
-            quantity: { increment: qtyNum },
-            unitCost,
-            isActive: true,
-          },
-          select: { id: true },
-        });
-        batchId = updated.id;
-      } else {
-        const created = await tx.inventoryBatch.create({
-          data: {
-            itemId: inventoryItemId,
-            locationId,
-            batchNumber: 'DEFAULT',
-            expiryDate: null,
-            quantity: qtyNum,
-            unitCost,
-            isActive: true,
-          },
-          select: { id: true },
-        });
-        batchId = created.id;
-      }
-    }
-
-    // ── 2. RECALCULATE InventoryLocationStock from batch sums ─────────────
-    // ✅ This ensures location stock ALWAYS matches the sum of active batches
-    const batchSum = await tx.inventoryBatch.aggregate({
-      where: {
-        itemId: inventoryItemId,
-        locationId,
-        isActive: true,
-      },
-      _sum: { quantity: true },
-    });
-
-    const calculatedLocationQty = batchSum._sum.quantity ?? 0;
-
-    // Upsert location stock with CALCULATED value (not increment)
-    await tx.inventoryLocationStock.upsert({
-      where: {
-        itemId_locationId: { itemId: inventoryItemId, locationId },
-      },
-      create: {
-        itemId: inventoryItemId,
-        locationId,
-        quantity: calculatedLocationQty,
-        minQuantity: 0,
-      },
-      update: {
-        quantity: calculatedLocationQty, // ✅ Set to calculated sum, not increment
-      },
-    });
-
-    // ── 3. Write InventoryLedger entry ────────────────────────────────────
-    const locationQtyBefore = calculatedLocationQty - qtyNum; // Approximate for ledger
-
-    await tx.inventoryLedger.create({
-      data: {
-        ledgerCode: genCode('ILG'),
-        itemId: inventoryItemId,
-        locationId,
-        batchId,
-        type: StockLedgerType.PURCHASE_RECEIPT,
-        quantityBefore: locationQtyBefore,
-        quantityChange: qtyNum,
-        quantityAfter: calculatedLocationQty,
-        unitCost,
-        totalValue,
-        referenceType: 'DELIVERY',
-        referenceId: deliveryId,
-        notes: `Purchase receipt: ${qtyNum} ${itemUnit} @ ${unitCost}`,
-        performedById: userId,
-        deliveryId,
-      },
+    const { batchId } = await this.movements.receive(tx, {
+      itemId: inventoryItemId,
+      locationId,
+      quantity: qtyNum,
+      unitCost,
+      batchNumber,
+      expiryDate,
+      type: StockLedgerType.PURCHASE_RECEIPT,
+      referenceType: 'DELIVERY',
+      referenceId: deliveryId,
+      notes: `Purchase receipt: ${qtyNum} ${itemUnit} @ ${unitCost}`,
+      performedById: userId,
+      links: { deliveryId },
+      requireBatchDetails: item.batchTracking,
+      itemName: item.name,
     });
 
     return batchId;
   }
+  // ───────────────────────────────────────────────────────────────────────────
+  // VOID A DELIVERY — takes the received stock back out and un-receives the PO
+  //
+  // A mis-keyed goods receipt used to be permanent: there was no void path
+  // anywhere in the module, so the only remedy was a stock adjustment, which
+  // left the purchase order still claiming the quantity had arrived and the
+  // supplier still owed for it.
+  // ───────────────────────────────────────────────────────────────────────────
 
-  // private async updateStockOnReceipt(
-  //   tx: Prisma.TransactionClient,
-  //   params: {
-  //     inventoryItemId: string;
-  //     locationId: string;
-  //     purchaseOrderId: string;
-  //     deliveryId: string;
-  //     quantityAccepted: Decimal;
-  //     unitCost: number;
-  //     batchNumber: string | null;
-  //     expiryDate: Date | null;
-  //     itemUnit: string;
-  //     userId: string;
-  //   },
-  // ) {
-  //   const {
-  //     inventoryItemId,
-  //     locationId,
-  //     purchaseOrderId,
-  //     deliveryId,
-  //     quantityAccepted,
-  //     unitCost,
-  //     batchNumber,
-  //     expiryDate,
-  //     itemUnit,
-  //     userId,
-  //   } = params;
+  async voidDelivery(id: string, reason: string, userId: string) {
+    if (!reason?.trim()) {
+      throw new BadRequestException('A void reason is required.');
+    }
 
-  //   const qtyNum = quantityAccepted.toNumber();
-  //   const totalValue = quantityAccepted
-  //     .times(new Decimal(String(unitCost)))
-  //     .toNumber();
+    return this.prisma.$transaction(
+      async (tx) => {
+        const delivery = await tx.delivery.findUnique({
+          where: { id },
+          include: { items: true },
+        });
+        if (!delivery) throw new NotFoundException('Delivery not found');
+        if (delivery.status === DeliveryStatus.VOID) {
+          throw new ConflictException(
+            `Delivery ${delivery.deliveryCode} is already void.`,
+          );
+        }
 
-  //   // ── Fetch item to check batchTracking flag ─────────────────────────────
-  //   const item = await tx.inventoryItem.findUnique({
-  //     where: { id: inventoryItemId },
-  //     select: { id: true, name: true, batchTracking: true },
-  //   });
+        const claimed = await tx.delivery.updateMany({
+          where: { id, status: { not: DeliveryStatus.VOID } },
+          data: {
+            status: DeliveryStatus.VOID,
+            voidedAt: new Date(),
+            voidedById: userId,
+            voidReason: reason.trim(),
+          },
+        });
+        if (claimed.count !== 1) {
+          throw new ConflictException(
+            'Delivery was voided by someone else first.',
+          );
+        }
 
-  //   if (!item)
-  //     throw new NotFoundException(
-  //       `Inventory item ${inventoryItemId} not found`,
-  //     );
+        // Put the stock back out. Refuses if it has already been consumed.
+        await this.movements.reverseDocument(tx, {
+          referenceType: 'DELIVERY',
+          referenceId: id,
+          reversalReferenceType: 'DELIVERY_VOID',
+          reason: reason.trim(),
+          performedById: userId,
+          links: { deliveryId: id },
+        });
 
-  //   // ── VALIDATION: Enforce batch details if batchTracking is enabled ──────
-  //   if (item.batchTracking) {
-  //     if (!batchNumber || batchNumber.trim() === '') {
-  //       throw new BadRequestException(
-  //         `Item "${item.name}" has batch tracking enabled. Batch number is required.`,
-  //       );
-  //     }
-  //     if (!expiryDate) {
-  //       throw new BadRequestException(
-  //         `Item "${item.name}" has batch tracking enabled. Expiry date is required.`,
-  //       );
-  //     }
-  //   }
+        // Un-receive the purchase order lines this delivery had credited.
+        for (const line of delivery.items) {
+          const accepted = new Decimal(line.quantityAccepted.toString());
+          if (accepted.lessThanOrEqualTo(0)) continue;
 
-  //   // ── Resolve batch identifier ───────────────────────────────────────────
-  //   // If batchTracking is OFF, use implicit "DEFAULT" batch key
-  //   const resolvedBatchNumber = item.batchTracking
-  //     ? batchNumber!.trim()
-  //     : 'DEFAULT';
+          const poItem = await tx.purchaseOrderItem.findUnique({
+            where: { id: line.purchaseOrderItemId },
+            select: { id: true, quantityReceived: true },
+          });
+          if (!poItem) continue;
 
-  //   // ── 1. Handle InventoryBatch (batch-level truth) ───────────────────────
-  //   let batchId: string;
+          const remaining = Decimal.max(
+            new Decimal(poItem.quantityReceived.toString()).minus(accepted),
+            new Decimal(0),
+          );
+          await tx.purchaseOrderItem.update({
+            where: { id: poItem.id },
+            data: { quantityReceived: remaining.toNumber() },
+          });
+        }
 
-  //   if (item.batchTracking) {
-  //     // ✅ BATCH TRACKING ENABLED: Create NEW batch row for each distinct batch
-  //     const existingBatch = await tx.inventoryBatch.findUnique({
-  //       where: {
-  //         itemId_locationId_batchNumber: {
-  //           itemId: inventoryItemId,
-  //           locationId,
-  //           batchNumber: resolvedBatchNumber,
-  //         },
-  //       },
-  //       select: { id: true, quantity: true },
-  //     });
+        const finalStatus = await this.calculatePurchaseOrderStatus(
+          tx,
+          delivery.purchaseOrderId,
+        );
+        await tx.purchaseOrder.update({
+          where: { id: delivery.purchaseOrderId },
+          data: { status: finalStatus },
+        });
 
-  //     if (existingBatch) {
-  //       // Update existing batch
-  //       const updated = await tx.inventoryBatch.update({
-  //         where: { id: existingBatch.id },
-  //         data: {
-  //           quantity: { increment: qtyNum },
-  //           unitCost,
-  //           ...(expiryDate && { expiryDate }),
-  //           isActive: true,
-  //         },
-  //         select: { id: true },
-  //       });
-  //       batchId = updated.id;
-  //     } else {
-  //       // Create new batch row
-  //       const created = await tx.inventoryBatch.create({
-  //         data: {
-  //           itemId: inventoryItemId,
-  //           locationId,
-  //           batchNumber: resolvedBatchNumber,
-  //           expiryDate,
-  //           quantity: qtyNum,
-  //           unitCost,
-  //           isActive: true,
-  //         },
-  //         select: { id: true },
-  //       });
-  //       batchId = created.id;
-  //     }
-  //   } else {
-  //     // ❌ NO BATCH TRACKING: Use ONE implicit "DEFAULT" batch per item+location
-  //     const existingDefaultBatch = await tx.inventoryBatch.findUnique({
-  //       where: {
-  //         itemId_locationId_batchNumber: {
-  //           itemId: inventoryItemId,
-  //           locationId,
-  //           batchNumber: 'DEFAULT',
-  //         },
-  //       },
-  //       select: { id: true, quantity: true },
-  //     });
+        await tx.auditLog.create({
+          data: {
+            action: 'VOID',
+            module: 'PURCHASE_ORDERS',
+            entityType: 'Delivery',
+            recordId: id,
+            oldData: delivery,
+            reason: reason.trim(),
+            userId,
+            userName: null,
+          },
+        });
 
-  //     if (existingDefaultBatch) {
-  //       // UPDATE existing null-batch row
-  //       const updated = await tx.inventoryBatch.update({
-  //         where: { id: existingDefaultBatch.id },
-  //         data: {
-  //           quantity: { increment: qtyNum },
-  //           unitCost, // update cost to latest
-  //           isActive: true,
-  //           // Do NOT set expiryDate for non-batch-tracked items
-  //         },
-  //         select: { id: true },
-  //       });
-  //       batchId = updated.id;
-  //     } else {
-  //       // CREATE new implicit batch row
-  //       const created = await tx.inventoryBatch.create({
-  //         data: {
-  //           itemId: inventoryItemId,
-  //           locationId,
-  //           batchNumber: 'DEFAULT', // implicit key
-  //           expiryDate: null, // no expiry for non-batch items
-  //           quantity: qtyNum,
-  //           unitCost,
-  //           isActive: true,
-  //         },
-  //         select: { id: true },
-  //       });
-  //       batchId = created.id;
-  //     }
-  //   }
-
-  //   // ── 2. Upsert InventoryLocationStock (location summary) ───────────────
-  //   const existingLocationStock = await tx.inventoryLocationStock.findUnique({
-  //     where: {
-  //       itemId_locationId: { itemId: inventoryItemId, locationId },
-  //     },
-  //     select: { id: true, quantity: true },
-  //   });
-
-  //   if (existingLocationStock) {
-  //     await tx.inventoryLocationStock.update({
-  //       where: { id: existingLocationStock.id },
-  //       data: { quantity: { increment: qtyNum } },
-  //     });
-  //   } else {
-  //     await tx.inventoryLocationStock.create({
-  //       data: {
-  //         itemId: inventoryItemId,
-  //         locationId,
-  //         quantity: qtyNum,
-  //         minQuantity: 0,
-  //       },
-  //     });
-  //   }
-
-  //   // ── 3. Write InventoryLedger entry ────────────────────────────────────
-  //   const locationQtyBefore = existingLocationStock
-  //     ? new Decimal(existingLocationStock.quantity.toString())
-  //     : new Decimal('0');
-
-  //   await tx.inventoryLedger.create({
-  //     data: {
-  //       ledgerCode: genCode('ILG'),
-  //       itemId: inventoryItemId,
-  //       locationId,
-  //       batchId, // link to the resolved batch (real or DEFAULT)
-  //       type: StockLedgerType.PURCHASE_RECEIPT,
-  //       quantityBefore: locationQtyBefore.toNumber(),
-  //       quantityChange: qtyNum,
-  //       quantityAfter: locationQtyBefore.plus(quantityAccepted).toNumber(),
-  //       unitCost,
-  //       totalValue,
-  //       referenceType: 'DELIVERY',
-  //       referenceId: deliveryId,
-  //       notes: `Purchase receipt: ${qtyNum} ${itemUnit} @ ${unitCost}`,
-  //       performedById: userId,
-  //       deliveryId,
-  //     },
-  //   });
-
-  //   return batchId;
-  // }
-  // private async updateStockOnReceipt(
-  //   tx: Prisma.TransactionClient,
-  //   params: {
-  //     inventoryItemId: string;
-  //     locationId: string;
-  //     purchaseOrderId: string;
-  //     deliveryId: string;
-  //     quantityAccepted: Decimal;
-  //     unitCost: number;
-  //     batchNumber: string | null;
-  //     expiryDate: Date | null;
-  //     itemUnit: string;
-  //     userId: string;
-  //   },
-  // ) {
-  //   const {
-  //     inventoryItemId,
-  //     locationId,
-  //     purchaseOrderId,
-  //     deliveryId,
-  //     quantityAccepted,
-  //     unitCost,
-  //     batchNumber,
-  //     expiryDate,
-  //     itemUnit,
-  //     userId,
-  //   } = params;
-
-  //   const qtyNum = quantityAccepted.toNumber();
-  //   const totalValue = quantityAccepted.times(new Decimal(String(unitCost))).toNumber();
-
-  //   // ❌ REMOVED: Reading/updating global inventoryItem.quantity
-  //   // const currentItem = await tx.inventoryItem.findUnique({...});
-
-  //   // ── 1. Upsert InventoryBatch (batch-level truth) ───────────────────────
-  //   const resolvedBatchNumber = batchNumber || 'DEFAULT';
-
-  //   const existingBatch = await tx.inventoryBatch.findUnique({
-  //     where: {
-  //       itemId_locationId_batchNumber: {
-  //         itemId: inventoryItemId,
-  //         locationId,
-  //         batchNumber: resolvedBatchNumber,
-  //       },
-  //     },
-  //     select: { id: true, quantity: true },
-  //   });
-
-  //   let batch: { id: string; quantity: number };
-
-  //   if (existingBatch) {
-  //     batch = await tx.inventoryBatch.update({
-  //       where: { id: existingBatch.id },
-  //       data: {
-  //         quantity: { increment: qtyNum },
-  //         unitCost,
-  //         ...(expiryDate ? { expiryDate } : {}),
-  //         isActive: true,
-  //       },
-  //       select: { id: true, quantity: true },
-  //     });
-  //   } else {
-  //     batch = await tx.inventoryBatch.create({
-  //       data: {
-  //         itemId: inventoryItemId,
-  //         locationId,
-  //         batchNumber: resolvedBatchNumber,
-  //         expiryDate,
-  //         quantity: qtyNum,
-  //         unitCost,
-  //         isActive: true,
-  //       },
-  //       select: { id: true, quantity: true },
-  //     });
-  //   }
-
-  //   // ── 2. Upsert InventoryLocationStock (location summary) ───────────────
-  //   const existingLocationStock = await tx.inventoryLocationStock.findUnique({
-  //     where: {
-  //       itemId_locationId: {
-  //         itemId: inventoryItemId,
-  //         locationId,
-  //       },
-  //     },
-  //     select: { id: true, quantity: true }, // ✅ Select id for update
-  //   });
-
-  //   if (existingLocationStock) {
-  //     await tx.inventoryLocationStock.update({
-  //       where: { id: existingLocationStock.id }, // ✅ Use id for update
-  //       data: { quantity: { increment: qtyNum } },
-  //     });
-  //   } else {
-  //     await tx.inventoryLocationStock.create({
-  //       data: {
-  //         itemId: inventoryItemId,
-  //         locationId,
-  //         quantity: qtyNum,
-  //         minQuantity: 0,
-  //       },
-  //     });
-  //   }
-
-  //   // ── 3. Write InventoryLedger entry ────────────────────────────────────
-  //   const locationQtyBefore = existingLocationStock
-  //     ? new Decimal(existingLocationStock.quantity.toString())
-  //     : new Decimal('0');
-
-  //   await tx.inventoryLedger.create({
-  //     data: {
-  //       ledgerCode: genCode('ILG'),
-  //       itemId: inventoryItemId,
-  //       locationId,
-  //       batchId: batch.id,
-  //       type: StockLedgerType.PURCHASE_RECEIPT,
-  //       quantityBefore: locationQtyBefore.toNumber(),
-  //       quantityChange: qtyNum,
-  //       quantityAfter: locationQtyBefore.plus(quantityAccepted).toNumber(),
-  //       unitCost,
-  //       totalValue,
-  //       referenceType: 'DELIVERY',
-  //       referenceId: deliveryId,
-  //       notes: `Purchase receipt: ${qtyNum} ${itemUnit} @ ${unitCost}`,
-  //       performedById: userId,
-  //       deliveryId,
-  //     },
-  //   });
-  // }
+        return tx.delivery.findUniqueOrThrow({
+          where: { id },
+          include: { items: true, purchaseOrder: true, location: true },
+        });
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        maxWait: 5000,
+        timeout: 20000,
+      },
+    );
+  }
 
   private async calculatePurchaseOrderStatus(
     tx: Prisma.TransactionClient,
@@ -1343,6 +1231,10 @@ export class PurchaseService {
       return PurchaseOrderStatus.FULLY_RECEIVED;
     if (checks.some((c) => c.isPartial || c.isComplete))
       return PurchaseOrderStatus.PARTIALLY_RECEIVED;
+    // Nothing is outstanding against this order any more — it is back to
+    // being an approved order awaiting delivery. Receiving is gated on
+    // APPROVED / PARTIALLY_RECEIVED, so this can no longer promote an
+    // unapproved order the way it used to.
     return PurchaseOrderStatus.APPROVED;
   }
 
@@ -1412,310 +1304,43 @@ export class PurchaseService {
   }
 
   async getPurchasePayments(purchaseOrderId: string) {
-  // Query the unified payments table, filtered to this PO
-  return this.prisma.payment.findMany({
-    where: { purchaseOrderId },
-    orderBy: { paidAt: 'desc' },
-  });
-  }
-
-
-  async createStockAdjustment(dto: CreateStockAdjustmentDto, userId: string) {
-    return this.prisma.$transaction(async (tx) => {
-      const adjustment = await tx.stockAdjustment.create({
-        data: {
-          adjustmentCode: genCode('ADJ'),
-          locationId: dto.locationId,
-          reason: dto.reason,
-          notes: dto.notes,
-          status: 'APPROVED',
-          approvedById: userId,
-          approvedAt: new Date(),
-          performedById: userId,
-          items: {
-            create: dto.items.map((item) => ({
-              inventoryItem: { connect: { id: item.inventoryItemId } },
-              itemName: item.itemName,
-              unit: item.unit,
-              quantitySystem: item.quantitySystem,
-              quantityActual: item.quantityActual,
-              quantityDifference: item.quantityActual - item.quantitySystem,
-              unitCost: item.unitCost ?? 0,
-              batchNumber: item.batchNumber,
-              notes: item.notes,
-            })),
-          },
-        },
-        include: { items: true },
-      });
-
-      for (const adjItem of adjustment.items) {
-        const diff = adjItem.quantityDifference;
-        if (diff === 0) continue;
-        if (!adjItem.inventoryItemId) continue;
-
-        // ❌ REMOVED: Global inventoryItem.quantity update
-        // await tx.inventoryItem.update({ where: { id: adjItem.inventoryItemId }, data: { quantity: { increment: diff } } });
-
-        // ── Update location stock summary ────────────────────────────────
-        const locationStock = await tx.inventoryLocationStock.findUnique({
-          where: {
-            itemId_locationId: {
-              itemId: adjItem.inventoryItemId,
-              locationId: dto.locationId,
-            },
-          },
-          select: { id: true, quantity: true },
-        });
-
-        if (locationStock) {
-          await tx.inventoryLocationStock.update({
-            where: { id: locationStock.id },
-            data: { quantity: { increment: diff } },
-          });
-        } else if (diff > 0) {
-          await tx.inventoryLocationStock.create({
-            data: {
-              itemId: adjItem.inventoryItemId,
-              locationId: dto.locationId,
-              quantity: diff,
-              minQuantity: 0,
-            },
-          });
-        }
-
-        // ── Write ledger entry ───────────────────────────────────────────
-        const qtyBefore = new Decimal(
-          locationStock?.quantity?.toString() || '0',
-        );
-        const ledgerType =
-          diff > 0
-            ? StockLedgerType.ADJUSTMENT_IN
-            : StockLedgerType.ADJUSTMENT_OUT;
-
-        await tx.inventoryLedger.create({
-          data: {
-            ledgerCode: genCode('ILG'),
-            itemId: adjItem.inventoryItemId,
-            locationId: dto.locationId,
-            type: ledgerType,
-            quantityBefore: qtyBefore.toNumber(),
-            quantityChange: diff,
-            quantityAfter: qtyBefore.plus(new Decimal(String(diff))).toNumber(),
-            unitCost: toNum(adjItem.unitCost),
-            totalValue: Math.abs(diff) * toNum(adjItem.unitCost),
-            referenceType: 'ADJUSTMENT',
-            referenceId: adjustment.id,
-            notes: `Stock adjustment: ${dto.reason}`,
-            performedById: userId,
-            stockAdjustmentId: adjustment.id,
-          },
-        });
-      }
-
-      return adjustment;
+    // Query the unified payments table, filtered to this PO
+    return this.prisma.payment.findMany({
+      where: { purchaseOrderId },
+      orderBy: { paidAt: 'desc' },
     });
   }
 
-  async getStockAdjustments(locationId?: string, page = 1, limit = 20) {
-    const skip = (page - 1) * limit;
-    const where: Prisma.StockAdjustmentWhereInput = locationId
-      ? { locationId }
-      : {};
-
-    const [data, total] = await Promise.all([
-      this.prisma.stockAdjustment.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          location: { select: { id: true, name: true } },
-          items: true,
-        },
-      }),
-      this.prisma.stockAdjustment.count({ where }),
-    ]);
-
-    return { data, total, page, limit, pages: Math.ceil(total / limit) };
-  }
-
-  // ─────────────────────────────────────────────
-  // WASTE RECORDS
-  // ─────────────────────────────────────────────
-
-  async createWasteRecord(dto: CreateWasteRecordDto, userId: string) {
-    return this.prisma.$transaction(async (tx) => {
-      let totalValue = 0;
-      const itemsWithCost = dto.items.map((item) => {
-        const totalCost = item.quantity * (item.unitCost ?? 0);
-        totalValue += totalCost;
-        return { ...item, totalCost };
-      });
-
-      const waste = await tx.wasteRecord.create({
-        data: {
-          wasteCode: genCode('WST'),
-          locationId: dto.locationId,
-          category: dto.category,
-          notes: dto.notes,
-          witnessName: dto.witnessName,
-          disposalMethod: dto.disposalMethod,
-          disposalDate: dto.disposalDate
-            ? new Date(dto.disposalDate)
-            : undefined,
-          reportedById: userId,
-          approvedById: userId,
-          approvedAt: new Date(),
-          totalValue,
-          items: {
-            create: itemsWithCost.map((item) => ({
-              itemType: 'INVENTORY',
-              inventoryItem: { connect: { id: item.inventoryItemId } },
-              itemName: item.itemName,
-              unit: item.unit,
-              quantity: item.quantity,
-              unitCost: item.unitCost ?? 0,
-              totalCost: item.totalCost,
-              batchNumber: item.batchNumber,
-              expiryDate: item.expiryDate
-                ? new Date(item.expiryDate)
-                : undefined,
-              reason: item.reason,
-            })),
-          },
-        },
-        include: { items: true },
-      });
-
-      for (const wasteItem of waste.items) {
-        if (!wasteItem.inventoryItemId) continue;
-
-        // ❌ REMOVED: Global inventoryItem.quantity update
-        // await tx.inventoryItem.update({ where: { id: wasteItem.inventoryItemId }, data: { quantity: { decrement: wasteItem.quantity } } });
-
-        // ── Decrement location stock summary ─────────────────────────────
-        const locationStock = await tx.inventoryLocationStock.findUnique({
-          where: {
-            itemId_locationId: {
-              itemId: wasteItem.inventoryItemId,
-              locationId: dto.locationId,
-            },
-          },
-          select: { id: true, quantity: true },
-        });
-
-        if (locationStock) {
-          await tx.inventoryLocationStock.update({
-            where: { id: locationStock.id },
-            data: { quantity: { decrement: wasteItem.quantity } },
-          });
-        }
-
-        // ── Decrement batch quantity (FIFO) ─────────────────────────────
-        if (wasteItem.batchNumber) {
-          const batch = await tx.inventoryBatch.findUnique({
-            where: {
-              itemId_locationId_batchNumber: {
-                itemId: wasteItem.inventoryItemId,
-                locationId: dto.locationId,
-                batchNumber: wasteItem.batchNumber,
-              },
-            },
-            select: { id: true, quantity: true },
-          });
-
-          if (batch) {
-            const newBatchQty = batch.quantity - wasteItem.quantity;
-            await tx.inventoryBatch.update({
-              where: { id: batch.id },
-              data: {
-                quantity: { decrement: wasteItem.quantity },
-                isActive: newBatchQty > 0,
-              },
-            });
-          }
-        } else {
-          const oldestBatch = await tx.inventoryBatch.findFirst({
-            where: {
-              itemId: wasteItem.inventoryItemId,
-              locationId: dto.locationId,
-              isActive: true,
-              quantity: { gt: 0 },
-            },
-            orderBy: [{ expiryDate: 'asc' }, { receivedAt: 'asc' }],
-            select: { id: true, quantity: true },
-          });
-
-          if (oldestBatch) {
-            const newBatchQty = oldestBatch.quantity - wasteItem.quantity;
-            await tx.inventoryBatch.update({
-              where: { id: oldestBatch.id },
-              data: {
-                quantity: { decrement: wasteItem.quantity },
-                isActive: newBatchQty > 0,
-              },
-            });
-          }
-        }
-
-        // ── Write ledger entry ───────────────────────────────────────────
-        const qtyBefore = new Decimal(
-          locationStock?.quantity?.toString() || '0',
-        );
-
-        await tx.inventoryLedger.create({
-          data: {
-            ledgerCode: genCode('ILG'),
-            itemId: wasteItem.inventoryItemId,
-            locationId: dto.locationId,
-            type: StockLedgerType.WASTE,
-            quantityBefore: qtyBefore.toNumber(),
-            quantityChange: -wasteItem.quantity,
-            quantityAfter: qtyBefore
-              .minus(new Decimal(String(wasteItem.quantity)))
-              .toNumber(),
-            unitCost: toNum(wasteItem.unitCost),
-            totalValue: wasteItem.quantity * toNum(wasteItem.unitCost),
-            referenceType: 'WASTE',
-            referenceId: waste.id,
-            notes: `Waste recorded: ${dto.category}`,
-            performedById: userId,
-            wasteRecordId: waste.id,
-          },
-        });
-      }
-
-      return waste;
-    });
-  }
-
-  async getWasteRecords(locationId?: string, page = 1, limit = 20) {
-    const skip = (page - 1) * limit;
-    const where: Prisma.WasteRecordWhereInput = locationId
-      ? { locationId }
-      : {};
-
-    const [data, total] = await Promise.all([
-      this.prisma.wasteRecord.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          location: { select: { id: true, name: true } },
-          items: true,
-        },
-      }),
-      this.prisma.wasteRecord.count({ where }),
-    ]);
-
-    return { data, total, page, limit, pages: Math.ceil(total / limit) };
-  }
-
-  // ─────────────────────────────────────────────
-  // INVENTORY LEDGER
-  // ─────────────────────────────────────────────
+  // ───────────────────────────────────────────────────────────────────────────
+  // STOCK ADJUSTMENTS and WASTE RECORDS — removed from this service.
+  //
+  // Both lived here as a second, divergent implementation of stock mutation:
+  //
+  //  * createStockAdjustment wrote InventoryLocationStock.quantity directly
+  //    with `{ increment: diff }` and never touched InventoryBatch. Every
+  //    other path in the system treats batch rows as the truth and recomputes
+  //    location stock as SUM(active batches), so the next movement of that
+  //    item silently discarded the adjustment. It also applied immediately,
+  //    with no approval, while StockAdjustmentService requires PENDING →
+  //    APPROVED.
+  //
+  //  * createWasteRecord checked no availability at all, decremented location
+  //    stock directly, and decremented a batch only when one happened to
+  //    match — leaving the two out of step whenever it did not.
+  //
+  // Use the owning modules instead, both batch-aware and approval-gated:
+  //
+  //    POST   /adjustments          StockAdjustmentService.create
+  //    PATCH  /adjustments/:id/approve
+  //    GET    /adjustments
+  //
+  //    POST   /waste               WasteService.create
+  //    PATCH  /waste/:id/approve
+  //    GET    /waste
+  //
+  // The inventory ledger reader below stays: it is read-only and spans every
+  // movement type, whatever wrote it.
+  // ───────────────────────────────────────────────────────────────────────────
 
   async getInventoryLedger(query: InventoryLedgerQueryDto) {
     const {
@@ -1740,11 +1365,11 @@ export class PurchaseService {
       ...(referenceType && { referenceType }),
       ...(dateFrom || dateTo
         ? {
-          createdAt: {
-            gte: dateFrom ? new Date(dateFrom) : undefined,
-            lte: dateTo ? new Date(dateTo) : undefined,
-          },
-        }
+            createdAt: {
+              gte: dateFrom ? new Date(dateFrom) : undefined,
+              lte: dateTo ? new Date(dateTo) : undefined,
+            },
+          }
         : {}),
     };
 

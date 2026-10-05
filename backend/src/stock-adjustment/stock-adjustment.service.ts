@@ -2,8 +2,11 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { DocumentNumberService } from '../common/document-number/document-number.service';
+import { StockMovementService } from '../common/inventory/stock-movement.service';
 import {
   CreateStockAdjustmentDto,
   ApproveAdjustmentDto,
@@ -21,18 +24,15 @@ function toNum(v: unknown): number {
 
 @Injectable()
 export class StockAdjustmentService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly docNum: DocumentNumberService,
+    private readonly movements: StockMovementService,
+  ) {}
 
   // ─────────────────────────────────────────────────────────────────────────
   // HELPERS
   // ─────────────────────────────────────────────────────────────────────────
-
-  private generateLedgerCode(): string {
-    return `INVL-${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2, 7)
-      .toUpperCase()}`;
-  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // LIST
@@ -152,51 +152,67 @@ export class StockAdjustmentService {
   // ─────────────────────────────────────────────────────────────────────────
 
   async create(dto: CreateStockAdjustmentDto, performedById: string) {
-    const location = await this.prisma.location.findUnique({
-      where: { id: dto.locationId },
-    });
-    if (!location) throw new NotFoundException('Location not found');
+    if (!dto.items?.length) {
+      throw new BadRequestException(
+        'A stock adjustment needs at least one line item.',
+      );
+    }
 
-    const enrichedItems = await Promise.all(
-      dto.items.map(async (item) => {
-        const stock = await this.prisma.inventoryLocationStock.findFirst({
+    return this.prisma.$transaction(async (tx) => {
+      const location = await tx.location.findUnique({
+        where: { id: dto.locationId },
+        select: { id: true },
+      });
+      if (!location) throw new NotFoundException('Location not found');
+
+      const enrichedItems: any[] = [];
+      for (const item of dto.items) {
+        if (!item.inventoryItemId) {
+          throw new BadRequestException(
+            `Line "${item.itemName}" has no inventory item attached.`,
+          );
+        }
+
+        const stock = await tx.inventoryLocationStock.findUnique({
           where: {
-            itemId: item.inventoryItemId,
-            locationId: dto.locationId,
+            itemId_locationId: {
+              itemId: item.inventoryItemId,
+              locationId: dto.locationId,
+            },
           },
+          select: { quantity: true },
         });
         const systemQty = stock?.quantity ?? 0;
-        const difference = item.quantityActual - systemQty;
 
-        return {
+        enrichedItems.push({
           itemType: 'INVENTORY',
           inventoryItem: { connect: { id: item.inventoryItemId } },
           itemName: item.itemName,
           unit: item.unit,
+          // Both figures are a snapshot for the reviewer to look at. The
+          // difference that actually gets applied is recomputed at approve
+          // time against the then-current system quantity — see approve().
           quantitySystem: systemQty,
           quantityActual: item.quantityActual,
-          quantityDifference: difference,
+          quantityDifference: item.quantityActual - systemQty,
           unitCost: item.unitCost,
           batchNumber: item.batchNumber ?? null,
           notes: item.notes ?? null,
-        };
-      }),
-    );
+        });
+      }
 
-    const count = await this.prisma.stockAdjustment.count();
-    const adjustmentCode = `ADJ-${String(count + 1).padStart(5, '0')}`;
-
-    return this.prisma.stockAdjustment.create({
-      data: {
-        adjustmentCode,
-        locationId: dto.locationId,
-        reason: dto.reason,
-        notes: dto.notes,
-        status: 'PENDING',
-        performedById,
-        items: { create: enrichedItems },
-      },
-      include: { location: true, items: true },
+      return tx.stockAdjustment.create({
+        data: {
+          adjustmentCode: await this.docNum.next('ADJ', tx),
+          locationId: dto.locationId,
+          reason: dto.reason,
+          notes: dto.notes,
+          status: 'PENDING',
+          performedById,
+          items: { create: enrichedItems },
+        },
+        include: { location: true, items: true },
+      });
     });
   }
 
@@ -205,387 +221,259 @@ export class StockAdjustmentService {
   // ─────────────────────────────────────────────────────────────────────────
 
   async approve(id: string, dto: ApproveAdjustmentDto, approvedById: string) {
-    const adjustment = await this.prisma.stockAdjustment.findUnique({
-      where: { id },
-      include: {
-        items: true,
-        location: true,
-      },
-    });
-
-    if (!adjustment) throw new NotFoundException('Adjustment not found');
-    if (adjustment.status !== 'PENDING') {
-      throw new BadRequestException(
-        `Adjustment is already ${adjustment.status}. Only PENDING adjustments can be approved.`,
-      );
-    }
-
-    await this.prisma.$transaction(async (tx) => {
-      for (const item of adjustment.items) {
-        const diff = item.quantityDifference; // actual - system
-        if (diff === 0) continue;
-        if (!item.inventoryItemId) continue;
-
-        // ── Fetch item to check batchTracking flag ─────────────────────
-        const inventoryItem = await tx.inventoryItem.findUnique({
-          where: { id: item.inventoryItemId },
-          select: { id: true, name: true, batchTracking: true, unitCost: true },
+    await this.prisma.$transaction(
+      async (tx) => {
+        const adjustment = await tx.stockAdjustment.findUnique({
+          where: { id },
+          include: { items: true, location: true },
         });
-        if (!inventoryItem) continue;
 
-        const unitCost = toNum(inventoryItem.unitCost ?? item.unitCost);
-
-        // ── CASE 1: Batch Tracking DISABLED ────────────────────────────
-        // ── CASE 1: Batch Tracking DISABLED ────────────────────────────
-        if (!inventoryItem.batchTracking) {
-          await this.handleNonBatchAdjustment(tx, {
-            itemId: item.inventoryItemId!,
-            locationId: adjustment.locationId,
-            diff,
-            unitCost,
-            referenceId: adjustment.id,
-            performedById: approvedById,
-            reason: adjustment.reason,
-            notes: item.notes ?? undefined, // ✅ Convert null → undefined
-          });
-          continue;
+        if (!adjustment) throw new NotFoundException('Adjustment not found');
+        if (adjustment.status !== 'PENDING') {
+          throw new BadRequestException(
+            `Adjustment is already ${adjustment.status}. Only PENDING adjustments can be approved.`,
+          );
         }
 
-        // ── CASE 2: Batch Tracking ENABLED ─────────────────────────────
-        await this.handleBatchAdjustment(tx, {
-          itemId: item.inventoryItemId!,
-          locationId: adjustment.locationId,
-          diff,
-          unitCost,
-          referenceId: adjustment.id,
-          performedById: approvedById,
-          reason: adjustment.reason,
-          notes: item.notes ?? undefined, // ✅ Convert null → undefined
-          // ✅ Use correct field names from DTO
-          selectedBatchId: (item as any).batchId, // Cast if needed, or add to type
-          selectedBatchNumber: item.batchNumber ?? undefined, // ✅ Convert null → undefined
-          distributionStrategy: (item as any).distributionStrategy ?? 'FEFO',
-        });
-      }
+        // Segregation of duties — whoever raised the count cannot be the one
+        // who signs it off. A stock adjustment is the one write in the system
+        // that can create or destroy inventory with no corresponding document,
+        // so it gets the same treatment as a purchase order approval.
+        if (
+          adjustment.performedById &&
+          adjustment.performedById === approvedById
+        ) {
+          throw new BadRequestException(
+            'Approver cannot be the same user who raised the adjustment (segregation of duties).',
+          );
+        }
 
-      // ── Mark adjustment APPROVED ─────────────────────────────────────
-      await tx.stockAdjustment.update({
-        where: { id },
-        data: {
-          status: 'APPROVED',
-          approvedById,
-          approvedAt: new Date(),
-          notes: dto.notes ?? null, // ✅ Use 'notes', not 'approvalNotes'
-        },
-      });
-    });
+        // Claim the transition with the expected status in the WHERE clause,
+        // before any stock is touched. Checking the status in a prior read and
+        // then writing it left a window in which two concurrent approvals both
+        // saw PENDING and both applied the movement.
+        const claimed = await tx.stockAdjustment.updateMany({
+          where: { id, status: 'PENDING' },
+          data: {
+            status: 'APPROVED',
+            approvedById,
+            approvedAt: new Date(),
+            // The reviewer's note goes in its own column. It used to be
+            // written to `notes`, overwriting the explanation the submitter
+            // had entered there.
+            approvalNotes: dto.notes ?? null,
+          },
+        });
+        if (claimed.count !== 1) {
+          throw new ConflictException(
+            'Adjustment is no longer PENDING — it may already have been approved.',
+          );
+        }
+
+        for (const item of adjustment.items) {
+          if (!item.inventoryItemId) continue;
+
+          const inventoryItem = await tx.inventoryItem.findUnique({
+            where: { id: item.inventoryItemId },
+            select: {
+              id: true,
+              name: true,
+              batchTracking: true,
+              unitCost: true,
+            },
+          });
+          if (!inventoryItem) continue;
+
+          // Recompute the delta against the CURRENT system quantity.
+          //
+          // The stored quantityDifference was calculated when the count was
+          // raised. Applying it as a delta later lands the item wherever
+          // "current + stale delta" happens to fall, which for a cycle count
+          // is the one thing it must not do: the point of the count is that
+          // on-hand ends up at the figure that was physically counted. If a
+          // sale or receipt moved the item between raise and approve, the old
+          // code silently produced a third number that matched neither.
+          const stock = await tx.inventoryLocationStock.findUnique({
+            where: {
+              itemId_locationId: {
+                itemId: item.inventoryItemId,
+                locationId: adjustment.locationId,
+              },
+            },
+            select: { quantity: true },
+          });
+          const systemQty = stock?.quantity ?? 0;
+          const diff = item.quantityActual - systemQty;
+
+          // Persist what was actually applied, so the approved record explains
+          // the movement the ledger shows rather than the one first proposed.
+          await tx.stockAdjustmentItem.update({
+            where: { id: item.id },
+            data: {
+              quantitySystem: systemQty,
+              quantityDifference: diff,
+            },
+          });
+
+          if (diff === 0) continue;
+
+          // A count correction is an ordinary movement in one direction or
+          // the other. Both used to be hand-rolled here, with their own batch
+          // walking and their own ledger arithmetic; they now go through the
+          // shared path so the running balance and the costing match every
+          // other document.
+          if (diff > 0) {
+            await this.movements.receive(tx, {
+              itemId: item.inventoryItemId,
+              locationId: adjustment.locationId,
+              quantity: diff,
+              unitCost: toNum(item.unitCost) || toNum(inventoryItem.unitCost),
+              // A positive correction on a batch-tracked item needs somewhere
+              // to land. The reviewer's chosen batch wins; otherwise the
+              // adjustment gets a batch named after itself, so the stock is
+              // traceable to the count that created it.
+              batchNumber: inventoryItem.batchTracking
+                ? (item.batchNumber ?? `ADJ-${adjustment.adjustmentCode}`)
+                : null,
+              expiryDate: null,
+              type: StockLedgerType.ADJUSTMENT_IN,
+              referenceType: 'ADJUSTMENT',
+              referenceId: adjustment.id,
+              notes: `Adjustment (${adjustment.reason})${item.notes ? ` — ${item.notes}` : ''}`,
+              performedById: approvedById,
+              links: { stockAdjustmentId: adjustment.id },
+              // Not `requireBatchDetails`: a cycle count must be able to book
+              // found stock without inventing an expiry date for it.
+              requireBatchDetails: false,
+              itemName: inventoryItem.name,
+            });
+          } else {
+            await this.movements.issue(tx, {
+              itemId: item.inventoryItemId,
+              locationId: adjustment.locationId,
+              quantity: Math.abs(diff),
+              strategy: inventoryItem.batchTracking
+                ? ((item as any).distributionStrategy ?? 'FEFO')
+                : 'FEFO',
+              selectedBatchNumber: item.batchNumber ?? null,
+              // A shortfall found during a count may well be expired stock
+              // that was quietly thrown away, so those batches stay reachable.
+              allowExpired: true,
+              type: StockLedgerType.ADJUSTMENT_OUT,
+              referenceType: 'ADJUSTMENT',
+              referenceId: adjustment.id,
+              notes: `Adjustment (${adjustment.reason})${item.notes ? ` — ${item.notes}` : ''}`,
+              performedById: approvedById,
+              links: { stockAdjustmentId: adjustment.id },
+              itemName: inventoryItem.name,
+            });
+          }
+        }
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        maxWait: 5000,
+        timeout: 15000,
+      },
+    );
 
     return this.findOne(id);
   }
 
-  private async handleNonBatchAdjustment(
-    tx: Prisma.TransactionClient,
-    params: {
-      itemId: string;
-      locationId: string;
-      diff: number;
-      unitCost: number;
-      referenceId: string;
-      performedById: string;
-      reason: string;
-      notes?: string | null;
-    },
-  ) {
-    const {
-      itemId,
-      locationId,
-      diff,
-      unitCost,
-      referenceId,
-      performedById,
-      reason,
-      notes,
-    } = params;
+  // ───────────────────────────────────────────────────────────────────────────
+  // VOID — undoes an APPROVED adjustment by posting the opposite movement
+  // ───────────────────────────────────────────────────────────────────────────
 
-    // ── 1. Upsert DEFAULT batch (batchNumber = 'DEFAULT') ─────────────
-    const defaultBatch = await tx.inventoryBatch.upsert({
-      where: {
-        itemId_locationId_batchNumber: {
-          itemId,
-          locationId,
-          batchNumber: 'DEFAULT',
-        },
-      },
-      create: {
-        itemId,
-        locationId,
-        batchNumber: 'DEFAULT',
-        quantity: Math.max(0, diff), // Don't create negative batch
-        unitCost,
-        isActive: diff > 0,
-        expiryDate: null, // No expiry for non-batch items
-      },
-      update: {
-        quantity: { increment: diff },
-        unitCost, // Update to latest cost
-        isActive: diff > 0, // Keep active if qty > 0
-      },
-      select: { id: true, quantity: true },
-    });
-
-    // ── 2. Upsert location stock (recalculated from batches) ───────────
-    // For non-batch: location stock = DEFAULT batch quantity
-    await tx.inventoryLocationStock.upsert({
-      where: { itemId_locationId: { itemId, locationId } },
-      create: {
-        itemId,
-        locationId,
-        quantity: defaultBatch.quantity,
-        minQuantity: 0,
-      },
-      update: { quantity: defaultBatch.quantity },
-    });
-
-    // ── 3. Write ledger entry ──────────────────────────────────────────
-    const qtyBefore = defaultBatch.quantity - diff;
-    await tx.inventoryLedger.create({
-      data: {
-        ledgerCode: this.generateLedgerCode(),
-        itemId,
-        locationId,
-        batchId: defaultBatch.id,
-        type:
-          diff > 0
-            ? StockLedgerType.ADJUSTMENT_IN
-            : StockLedgerType.ADJUSTMENT_OUT,
-        quantityBefore: Math.max(0, qtyBefore),
-        quantityChange: diff,
-        quantityAfter: defaultBatch.quantity,
-        unitCost,
-        totalValue: Math.abs(diff) * unitCost,
-        referenceType: 'ADJUSTMENT',
-        referenceId,
-        stockAdjustmentId: referenceId,
-        notes: `Adjustment (${reason}): ${diff} units${notes ? ` — ${notes}` : ''}`,
-        performedById,
-      },
-    });
-  }
-
-  private async handleBatchAdjustment(
-    tx: Prisma.TransactionClient,
-    params: {
-      itemId: string;
-      locationId: string;
-      diff: number;
-      unitCost: number;
-      referenceId: string;
-      performedById: string;
-      reason: string;
-      notes?: string;
-      selectedBatchId?: string;
-      selectedBatchNumber?: string;
-      distributionStrategy?: 'FEFO' | 'FIFO' | 'MANUAL';
-    },
-  ) {
-    const {
-      itemId,
-      locationId,
-      diff,
-      unitCost,
-      referenceId,
-      performedById,
-      reason,
-      notes,
-      selectedBatchId,
-      selectedBatchNumber,
-      distributionStrategy = 'FEFO',
-    } = params;
-
-    // ── Fetch all active batches for this item+location ────────────────
-    const batches = await tx.inventoryBatch.findMany({
-      where: {
-        itemId,
-        locationId,
-        isActive: true,
-        quantity: { gt: 0 },
-      },
-      orderBy:
-        distributionStrategy === 'FIFO'
-          ? [{ receivedAt: 'asc' }]
-          : [{ expiryDate: 'asc' }, { receivedAt: 'asc' }], // FEFO default
-      select: {
-        id: true,
-        batchNumber: true,
-        quantity: true,
-        expiryDate: true,
-        receivedAt: true,
-      },
-    });
-
-    let remainingAdjustment = diff;
-    let qtyBeforeTotal = 0;
-    let batchIdForLedger: string | null = null;
-
-    // ── CASE A: Manual batch selection ─────────────────────────────────
-    if (
-      distributionStrategy === 'MANUAL' &&
-      (selectedBatchId || selectedBatchNumber)
-    ) {
-      const targetBatch = selectedBatchId
-        ? await tx.inventoryBatch.findUnique({
-            where: { id: selectedBatchId },
-            select: { id: true, quantity: true, batchNumber: true }, // ✅ Add batchNumber
-          })
-        : await tx.inventoryBatch.findFirst({
-            where: {
-              itemId,
-              locationId,
-              batchNumber: selectedBatchNumber,
-            },
-            select: { id: true, quantity: true, batchNumber: true }, // ✅ Add batchNumber
-          });
-      if (!targetBatch) {
-        throw new BadRequestException(
-          `Selected batch not found for item ${itemId} at location ${locationId}`,
-        );
-      }
-
-      const newQty = targetBatch.quantity + remainingAdjustment;
-      if (newQty < 0) {
-        throw new BadRequestException(
-          `Cannot adjust batch "${targetBatch.batchNumber}" to negative quantity`,
-        );
-      }
-
-      await tx.inventoryBatch.update({
-        where: { id: targetBatch.id },
-        data: {
-          quantity: { increment: remainingAdjustment },
-          unitCost,
-          isActive: newQty > 0,
-        },
-      });
-
-      batchIdForLedger = targetBatch.id;
-      qtyBeforeTotal = targetBatch.quantity;
-      remainingAdjustment = 0;
+  async void(id: string, reason: string, performedById?: string) {
+    if (!reason?.trim()) {
+      throw new BadRequestException('A void reason is required.');
     }
-    // ── CASE B: Auto-distribution (FEFO/FIFO) ─────────────────────────
-    else {
-      if (batches.length === 0 && diff > 0) {
-        // No batches exist, create new one for positive adjustment
-        const newBatch = await tx.inventoryBatch.create({
-          data: {
-            itemId,
-            locationId,
-            batchNumber: `ADJ-${Date.now()}`, // Auto-generated batch code
-            quantity: diff,
-            unitCost,
-            isActive: true,
-            expiryDate: null, // User can update later via batch management
+
+    await this.prisma.$transaction(
+      async (tx) => {
+        const adjustment = await tx.stockAdjustment.findUnique({
+          where: { id },
+          select: {
+            id: true,
+            adjustmentCode: true,
+            status: true,
+            voidedAt: true,
           },
-          select: { id: true, quantity: true },
         });
-        batchIdForLedger = newBatch.id;
-        qtyBeforeTotal = 0;
-        remainingAdjustment = 0;
-      } else if (batches.length === 0 && diff < 0) {
-        throw new BadRequestException(
-          `Cannot reduce stock: no active batches found for item ${itemId} at location ${locationId}`,
-        );
-      } else {
-        // Distribute across batches in FEFO/FIFO order
-        for (const batch of batches) {
-          if (remainingAdjustment === 0) break;
-
-          const deductAmount =
-            diff < 0
-              ? Math.min(Math.abs(remainingAdjustment), batch.quantity) // Can't deduct more than batch has
-              : remainingAdjustment; // For positive, can add freely
-
-          const actualDeduct = diff < 0 ? -deductAmount : deductAmount;
-
-          await tx.inventoryBatch.update({
-            where: { id: batch.id },
-            data: {
-              quantity: { increment: actualDeduct },
-              unitCost, // Update cost to latest
-              isActive: batch.quantity + actualDeduct > 0,
-            },
-          });
-
-          if (!batchIdForLedger) batchIdForLedger = batch.id; // Track first batch for ledger
-          qtyBeforeTotal += batch.quantity;
-          remainingAdjustment -= actualDeduct;
-        }
-
-        if (remainingAdjustment !== 0 && diff < 0) {
+        if (!adjustment) throw new NotFoundException('Adjustment not found');
+        if (adjustment.status !== 'APPROVED') {
           throw new BadRequestException(
-            `Insufficient stock across all batches to fulfill adjustment of ${diff} units`,
+            `Only an APPROVED adjustment has moved stock. This one is ${adjustment.status} — reject it instead.`,
           );
         }
-      }
-    }
+        if (adjustment.voidedAt) {
+          throw new ConflictException(
+            `Adjustment ${adjustment.adjustmentCode} is already void.`,
+          );
+        }
 
-    // ── Recalculate location stock from batch sums ─────────────────────
-    const batchSum = await tx.inventoryBatch.aggregate({
-      where: { itemId, locationId, isActive: true },
-      _sum: { quantity: true },
-    });
-    const locationQty = batchSum._sum.quantity ?? 0;
+        const claimed = await tx.stockAdjustment.updateMany({
+          where: { id, status: 'APPROVED', voidedAt: null },
+          data: {
+            voidedAt: new Date(),
+            voidedById: performedById ?? null,
+            voidReason: reason.trim(),
+          },
+        });
+        if (claimed.count !== 1) {
+          throw new ConflictException(
+            'Adjustment was voided by someone else first.',
+          );
+        }
 
-    await tx.inventoryLocationStock.upsert({
-      where: { itemId_locationId: { itemId, locationId } },
-      create: { itemId, locationId, quantity: locationQty, minQuantity: 0 },
-      update: { quantity: locationQty },
-    });
-
-    // ── Write ledger entry ─────────────────────────────────────────────
-    const qtyAfter = locationQty;
-    const qtyBefore = qtyAfter - diff;
-
-    await tx.inventoryLedger.create({
-      data: {
-        ledgerCode: this.generateLedgerCode(),
-        itemId,
-        locationId,
-        batchId: batchIdForLedger,
-        type:
-          diff > 0
-            ? StockLedgerType.ADJUSTMENT_IN
-            : StockLedgerType.ADJUSTMENT_OUT,
-        quantityBefore: Math.max(0, qtyBefore),
-        quantityChange: diff,
-        quantityAfter: qtyAfter,
-        unitCost,
-        totalValue: Math.abs(diff) * unitCost,
-        referenceType: 'ADJUSTMENT',
-        referenceId,
-        stockAdjustmentId: referenceId,
-        notes: `Adjustment (${reason}): ${diff} units${notes ? ` — ${notes}` : ''}`,
-        performedById,
+        await this.movements.reverseDocument(tx, {
+          referenceType: 'ADJUSTMENT',
+          referenceId: id,
+          reversalReferenceType: 'ADJUSTMENT_VOID',
+          reason: reason.trim(),
+          performedById,
+          links: { stockAdjustmentId: id },
+        });
       },
-    });
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        maxWait: 5000,
+        timeout: 20000,
+      },
+    );
+
+    return this.findOne(id);
   }
 
   async reject(id: string, notes: string, rejectedById: string) {
-    const adjustment = await this.prisma.stockAdjustment.findUnique({
-      where: { id },
-    });
-    if (!adjustment) throw new NotFoundException('Adjustment not found');
-    if (adjustment.status !== 'PENDING') {
-      throw new BadRequestException('Only PENDING adjustments can be rejected');
-    }
+    return this.prisma.$transaction(async (tx) => {
+      const adjustment = await tx.stockAdjustment.findUnique({
+        where: { id },
+        select: { id: true, status: true },
+      });
+      if (!adjustment) throw new NotFoundException('Adjustment not found');
+      if (adjustment.status !== 'PENDING') {
+        throw new BadRequestException(
+          'Only PENDING adjustments can be rejected',
+        );
+      }
 
-    return this.prisma.stockAdjustment.update({
-      where: { id },
-      data: {
-        status: 'REJECTED',
-        approvedById: rejectedById,
-        approvedAt: new Date(),
-        notes: notes ?? null,
-      },
+      const applied = await tx.stockAdjustment.updateMany({
+        where: { id, status: 'PENDING' },
+        data: {
+          status: 'REJECTED',
+          approvedById: rejectedById,
+          approvedAt: new Date(),
+          approvalNotes: notes ?? null,
+        },
+      });
+      if (applied.count !== 1) {
+        throw new ConflictException(
+          'Adjustment is no longer PENDING — it may already have been actioned.',
+        );
+      }
+
+      return tx.stockAdjustment.findUniqueOrThrow({ where: { id } });
     });
   }
 

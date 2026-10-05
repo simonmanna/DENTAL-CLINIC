@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   Query,
@@ -11,7 +12,16 @@ import {
 } from '@nestjs/common';
 import { StockOutService } from './stock-out.service';
 import { CreateStockOutDto, QueryStockOutDto } from './dto/stock-out.dto';
+import { Roles } from '../auth/decorators/roles.decorator';
 
+// Role gating.
+//
+// The global APP_GUARD chain authenticates every request, but RolesGuard is a
+// no-op on a route carrying no @Roles metadata — so before this, any
+// authenticated user at all could move stock. Writes are restricted to the
+// roles that are accountable for inventory; reads stay open to any
+// authenticated member of staff, matching PurchaseController. SUPER_ADMIN and
+// ADMIN bypass every gate by design (see RolesGuard).
 @Controller('stock-out')
 export class StockOutController {
   constructor(private readonly stockOutService: StockOutService) {}
@@ -44,6 +54,18 @@ export class StockOutController {
   }
 
   // ─── Get one ──────────────────────────────────────────────────────────────
+  // Voiding posts the inverse movement and returns the stock. Restricted to
+  // the roles that can approve, not the ones that can issue.
+  @Patch(':id/void')
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  async void(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+    @Req() req: any,
+  ) {
+    return this.stockOutService.void(id, reason, req.user?.id);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.stockOutService.findOne(id);
@@ -51,6 +73,7 @@ export class StockOutController {
 
   // ─── Create ───────────────────────────────────────────────────────────────
   @Post()
+  @Roles('SUPER_ADMIN', 'ADMIN', 'PHARMACIST')
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() dto: CreateStockOutDto,
