@@ -45,17 +45,17 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const STATUS_BG: Record<string, string> = {
-  PLANNED: 'bg-blue-100 text-blue-700',
-  IN_PROGRESS: 'bg-amber-100 text-amber-700',
-  COMPLETED: 'bg-emerald-100 text-emerald-700',
-  CANCELLED: 'bg-red-100 text-red-700',
-  ON_HOLD: 'bg-slate-100 text-slate-600',
+  PLANNED: 'bg-primary-muted text-primary',
+  IN_PROGRESS: 'bg-warning-muted text-warning',
+  COMPLETED: 'bg-success-muted text-success',
+  CANCELLED: 'bg-danger-muted text-danger',
+  ON_HOLD: 'bg-muted text-muted-foreground',
   PENDING: 'bg-violet-100 text-violet-700',
-  SKIPPED: 'bg-orange-100 text-orange-700',
-  ARRIVED: 'bg-cyan-100 text-cyan-700',
-  OPEN: 'bg-sky-100 text-sky-700',
-  PAID: 'bg-emerald-100 text-emerald-700',
-  PARTIAL: 'bg-amber-100 text-amber-700',
+  SKIPPED: 'bg-warning-muted text-warning',
+  ARRIVED: 'bg-primary-muted text-primary',
+  OPEN: 'bg-primary-muted text-primary',
+  PAID: 'bg-success-muted text-success',
+  PARTIAL: 'bg-warning-muted text-warning',
 };
 
 // ─── Report type definitions ──────────────────────────────────────────────────
@@ -94,7 +94,7 @@ function shortDate(s?: string | null) {
 function Badge({ status }: { status: string }) {
   return (
     <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide uppercase',
-      STATUS_BG[status] ?? 'bg-slate-100 text-slate-600')}>
+      STATUS_BG[status] ?? 'bg-muted text-muted-foreground')}>
       {status.replace(/_/g, ' ')}
     </span>
   );
@@ -111,24 +111,24 @@ function KpiCard({
     <div className={cn(
       'relative overflow-hidden rounded-xl border px-4 py-2 flex flex-col gap-3',
       accent
-        ? 'bg-teal-600 border-teal-500 text-white'
-        : 'bg-white border-slate-100 shadow-sm',
+        ? 'bg-primary border-primary/60 text-white'
+        : 'bg-white border-border/60 shadow-sm',
     )}>
       {/* Changed items-start to items-center for vertical alignment */}
       <div className="flex items-center justify-between gap-4">
         
         {/* Left side: Icon and Label grouped together */}
         <div className="flex items-center gap-3">
-          <div className={cn('p-2 rounded-xl shrink-0', accent ? 'bg-white/20' : 'bg-teal-50')}>
-            <Icon className={cn('w-5 h-5', accent ? 'text-white' : 'text-teal-600')} />
+          <div className={cn('p-2 rounded-xl shrink-0', accent ? 'bg-white/20' : 'bg-primary-muted/60')}>
+            <Icon className={cn('w-5 h-5', accent ? 'text-white' : 'text-primary')} />
           </div>
 
           <div>
-            <p className={cn('text-xs font-medium', accent ? 'text-teal-100' : 'text-slate-500')}>
-              {title}: <span className={accent ? 'text-white' : 'text-slate-900'}>{value}</span>
+            <p className={cn('text-xs font-medium', accent ? 'text-primary/40' : 'text-muted-foreground')}>
+              {title}: <span className={accent ? 'text-white' : 'text-foreground'}>{value}</span>
             </p>
             {sub && (
-              <p className={cn('text-[10px] leading-tight font-medium', accent ? 'text-white/70' : 'text-slate-400')}>
+              <p className={cn('text-[10px] leading-tight font-medium', accent ? 'text-white/70' : 'text-muted-foreground/70')}>
                 {sub}
               </p>
             )}
@@ -138,9 +138,9 @@ function KpiCard({
         {/* Right side: Trend Indicator */}
         {trend && (
           <span className={cn('flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full shrink-0',
-            trend === 'up' ? (accent ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-700') :
-              trend === 'down' ? (accent ? 'bg-white/20 text-white' : 'bg-red-100 text-red-700') :
-                (accent ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'))}>
+            trend === 'up' ? (accent ? 'bg-white/20 text-white' : 'bg-success-muted text-success') :
+              trend === 'down' ? (accent ? 'bg-white/20 text-white' : 'bg-danger-muted text-danger') :
+                (accent ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'))}>
             {trend === 'up' ? <ArrowUpRight className="w-3 h-3" /> :
               trend === 'down' ? <ArrowDownRight className="w-3 h-3" /> :
                 <Minus className="w-3 h-3" />}
@@ -162,22 +162,22 @@ function KpiCard({
 //     <div className={cn(
 //       'relative overflow-hidden rounded-xl border px-4 py-2 flex flex-col gap-3',
 //       accent
-//         ? 'bg-teal-600 border-teal-500 text-white'
-//         : 'bg-white border-slate-100 shadow-sm',
+//         ? 'bg-primary border-primary/60 text-white'
+//         : 'bg-white border-border/60 shadow-sm',
 //     )}>
 //       <div className="flex items-start justify-between">
-//         <div className={cn('p-2 rounded-xl', accent ? 'bg-white/20' : 'bg-teal-50')}>
-//           <Icon className={cn('w-5 h-5', accent ? 'text-white' : 'text-teal-600')} />
+//         <div className={cn('p-2 rounded-xl', accent ? 'bg-white/20' : 'bg-primary-muted/60')}>
+//           <Icon className={cn('w-5 h-5', accent ? 'text-white' : 'text-primary')} />
 //         </div>
 
-//         <p className={cn('text-xs mt-0.5', accent ? 'text-teal-100' : 'text-slate-500')}>{title}: {value}</p>
-//         {sub && <p className={cn('text-xs mt-1 font-medium', accent ? 'text-white/70' : 'text-slate-400')}>{sub}</p>}
+//         <p className={cn('text-xs mt-0.5', accent ? 'text-primary/40' : 'text-muted-foreground')}>{title}: {value}</p>
+//         {sub && <p className={cn('text-xs mt-1 font-medium', accent ? 'text-white/70' : 'text-muted-foreground/70')}>{sub}</p>}
 
 //         {trend && (
 //           <span className={cn('flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full',
-//             trend === 'up' ? (accent ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-700') :
-//               trend === 'down' ? (accent ? 'bg-white/20 text-white' : 'bg-red-100 text-red-700') :
-//                 (accent ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'))}>
+//             trend === 'up' ? (accent ? 'bg-white/20 text-white' : 'bg-success-muted text-success') :
+//               trend === 'down' ? (accent ? 'bg-white/20 text-white' : 'bg-danger-muted text-danger') :
+//                 (accent ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'))}>
 //             {trend === 'up' ? <ArrowUpRight className="w-3 h-3" /> :
 //               trend === 'down' ? <ArrowDownRight className="w-3 h-3" /> :
 //                 <Minus className="w-3 h-3" />}
@@ -193,9 +193,9 @@ function SectionCard({ title, children, className, action }: {
   title: string; children: React.ReactNode; className?: string; action?: React.ReactNode;
 }) {
   return (
-    <div className={cn('bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden', className)}>
-      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-50">
-        <h3 className="text-sm font-semibold text-slate-700 tracking-wide">{title}</h3>
+    <div className={cn('bg-white border border-border/60 rounded-2xl shadow-sm overflow-hidden', className)}>
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border/40">
+        <h3 className="text-sm font-semibold text-foreground tracking-wide">{title}</h3>
         {action}
       </div>
       {children}
@@ -204,7 +204,7 @@ function SectionCard({ title, children, className, action }: {
 }
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={cn('animate-pulse bg-slate-100 rounded-lg', className)} />;
+  return <div className={cn('animate-pulse bg-muted rounded-lg', className)} />;
 }
 
 function LoadingSkeleton() {
@@ -224,8 +224,8 @@ function LoadingSkeleton() {
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3">
-      <FileText className="w-10 h-10 text-slate-200" />
+    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground/70 gap-3">
+      <FileText className="w-10 h-10 text-muted-foreground/40" />
       <p className="text-sm">{message}</p>
     </div>
   );
@@ -236,7 +236,7 @@ function EmptyState({ message }: { message: string }) {
 function ProgressBar({ value, max, color = '#0d9488' }: { value: number; max: number; color?: string }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
-    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
       <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
     </div>
   );
@@ -264,15 +264,15 @@ function CollapsibleRow({ children, detail }: { children: React.ReactNode; detai
   const [open, setOpen] = useState(false);
   return (
     <>
-      <tr className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setOpen(o => !o)}>
+      <tr className="hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setOpen(o => !o)}>
         {children}
-        <td className="px-4 py-3 text-slate-400">
+        <td className="px-4 py-3 text-muted-foreground/70">
           {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </td>
       </tr>
       {open && (
         <tr>
-          <td colSpan={999} className="bg-slate-50 px-6 py-4 border-b border-slate-100">
+          <td colSpan={999} className="bg-muted/50 px-6 py-4 border-b border-border/60">
             {detail}
           </td>
         </tr>
@@ -306,12 +306,12 @@ function FilterBar({
   onExport: () => void;
   isLoading: boolean;
 }) {
-  const inputCls = 'px-3 py-1 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 focus:outline-none bg-white transition-all';
+  const inputCls = 'px-3 py-1 text-sm border border-border rounded-xl focus:ring-2 focus:ring-primary/60 focus:border-primary/60 focus:outline-none bg-white transition-all';
   return (
-    <div className="bg-white border border-slate-100 rounded-xl shadow-sm px-4 py-0.5 flex flex-wrap gap-3 items-center">
-      <div className="flex items-center gap-2 text-slate-400">
+    <div className="bg-white border border-border/60 rounded-xl shadow-sm px-4 py-0.5 flex flex-wrap gap-3 items-center">
+      <div className="flex items-center gap-2 text-muted-foreground/70">
         <Filter className="w-4 h-4" />
-        <span className="text-xs font-medium text-slate-500">Filters</span>
+        <span className="text-xs font-medium text-muted-foreground">Filters</span>
       </div>
 
       {/* Period */}
@@ -325,7 +325,7 @@ function FilterBar({
         <>
           <input type="date" value={filters.startDate} onChange={e => onChange({ startDate: e.target.value, page: 1 })}
             className={inputCls} />
-          <span className="text-slate-300 text-sm">→</span>
+          <span className="text-muted-foreground/50 text-sm">→</span>
           <input type="date" value={filters.endDate} onChange={e => onChange({ endDate: e.target.value, page: 1 })}
             className={inputCls} />
         </>
@@ -350,9 +350,9 @@ function FilterBar({
       </select>
 
       <div className="ml-auto flex gap-2">
-        {isLoading && <RefreshCw className="w-4 h-4 text-teal-500 animate-spin self-center" />}
+        {isLoading && <RefreshCw className="w-4 h-4 text-primary animate-spin self-center" />}
         <button onClick={onExport}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground border border-border rounded-xl hover:bg-muted/50 transition-colors">
           <Download className="w-4 h-4" /> Export CSV
         </button>
       </div>
@@ -365,8 +365,8 @@ function FilterBar({
 const ChartTooltip = ({ active, payload, label, currency = false }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-lg px-3 py-2 text-xs">
-      <p className="font-semibold text-slate-700 mb-1">{label}</p>
+    <div className="bg-white border border-border rounded-xl shadow-lg px-3 py-2 text-xs">
+      <p className="font-semibold text-foreground mb-1">{label}</p>
       {payload.map((p: any, i: number) => (
         <p key={i} style={{ color: p.color }} className="flex gap-2">
           <span>{p.name}:</span>
@@ -382,13 +382,13 @@ const ChartTooltip = ({ active, payload, label, currency = false }: any) => {
 function Paginator({ page, totalPages, onChange }: { page: number; totalPages: number; onChange: (p: number) => void }) {
   if (totalPages <= 1) return null;
   return (
-    <div className="flex items-center justify-between px-5 py-3 border-t border-slate-50 text-xs text-slate-500">
+    <div className="flex items-center justify-between px-5 py-3 border-t border-border/40 text-xs text-muted-foreground">
       <span>Page {page} of {totalPages}</span>
       <div className="flex gap-2">
         <button disabled={page <= 1} onClick={() => onChange(page - 1)}
-          className="px-3 py-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors">Prev</button>
+          className="px-3 py-1.5 rounded-lg border border-border disabled:opacity-40 hover:bg-muted/50 transition-colors">Prev</button>
         <button disabled={page >= totalPages} onClick={() => onChange(page + 1)}
-          className="px-3 py-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors">Next</button>
+          className="px-3 py-1.5 rounded-lg border border-border disabled:opacity-40 hover:bg-muted/50 transition-colors">Next</button>
       </div>
     </div>
   );
@@ -428,8 +428,8 @@ function PatientVisitsPanel({ report, onPageChange }: { report: PatientVisitsRep
               {statusEntries.map(([st, c], i) => (
                 <div key={st} className="flex items-center gap-1.5 text-xs">
                   <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: STATUS_COLORS[st] ?? PIE_COLORS[i] }} />
-                  <span className="text-slate-600">{st.replace(/_/g, ' ')}</span>
-                  <span className="font-bold text-slate-800">{c}</span>
+                  <span className="text-muted-foreground">{st.replace(/_/g, ' ')}</span>
+                  <span className="font-bold text-foreground">{c}</span>
                 </div>
               ))}
             </div>
@@ -439,21 +439,21 @@ function PatientVisitsPanel({ report, onPageChange }: { report: PatientVisitsRep
         {/* Revenue vs Collected bars */}
         <SectionCard title="Revenue vs Collected">
           <div className="p-4 space-y-3">
-            <div className="flex justify-between text-xs text-slate-500 mb-1">
+            <div className="flex justify-between text-xs text-muted-foreground mb-1">
               <span>Collected</span>
-              <span className="font-semibold text-slate-700">
+              <span className="font-semibold text-foreground">
                 {s.totalRevenue > 0 ? Math.round((s.totalCollected / s.totalRevenue) * 100) : 0}% of billed
               </span>
             </div>
             <ProgressBar value={s.totalCollected} max={s.totalRevenue} color={TEAL} />
             <div className="grid grid-cols-2 gap-4 mt-4">
-              <div className="p-3 rounded-xl bg-teal-50 text-center">
-                <p className="text-lg font-bold text-teal-700">{formatCurrency(s.totalCollected)}</p>
-                <p className="text-xs text-teal-600 mt-0.5">Collected</p>
+              <div className="p-3 rounded-xl bg-primary-muted/60 text-center">
+                <p className="text-lg font-bold text-primary">{formatCurrency(s.totalCollected)}</p>
+                <p className="text-xs text-primary mt-0.5">Collected</p>
               </div>
-              <div className="p-3 rounded-xl bg-red-50 text-center">
-                <p className="text-lg font-bold text-red-600">{formatCurrency(s.totalRevenue - s.totalCollected)}</p>
-                <p className="text-xs text-red-500 mt-0.5">Outstanding</p>
+              <div className="p-3 rounded-xl bg-danger-muted/60 text-center">
+                <p className="text-lg font-bold text-danger">{formatCurrency(s.totalRevenue - s.totalCollected)}</p>
+                <p className="text-xs text-danger mt-0.5">Outstanding</p>
               </div>
             </div>
           </div>
@@ -465,9 +465,9 @@ function PatientVisitsPanel({ report, onPageChange }: { report: PatientVisitsRep
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-slate-100">
+              <tr className="border-b border-border/60">
                 {['Visit Code', 'Patient', 'Dentist', 'Procedures', 'Status', 'Payment', 'Total', 'Date'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left font-semibold text-slate-500 whitespace-nowrap">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
                 ))}
                 <th className="px-4 py-3" />
               </tr>
@@ -480,38 +480,38 @@ function PatientVisitsPanel({ report, onPageChange }: { report: PatientVisitsRep
                 <CollapsibleRow key={v.visitId} detail={
                   <div className="space-y-2">
                     {v.diagnosis.length > 0 && (
-                      <div><span className="text-xs font-semibold text-slate-500 mr-2">Diagnoses:</span>
-                        {v.diagnosis.map((d, i) => <span key={i} className="mr-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-[10px] font-medium">{d}</span>)}
+                      <div><span className="text-xs font-semibold text-muted-foreground mr-2">Diagnoses:</span>
+                        {v.diagnosis.map((d, i) => <span key={i} className="mr-1 px-2 py-0.5 bg-primary-muted/60 text-primary rounded-full text-[10px] font-medium">{d}</span>)}
                       </div>
                     )}
                     {v.procedures.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {v.procedures.map((p, i) => (
-                          <span key={i} className="px-2 py-0.5 bg-teal-50 text-teal-700 rounded-full text-[10px] font-medium">
+                          <span key={i} className="px-2 py-0.5 bg-primary-muted/60 text-primary rounded-full text-[10px] font-medium">
                             {p.name} — {formatCurrency(p.cost)}
                           </span>
                         ))}
                       </div>
                     )}
-                    {v.followUpDate && <p className="text-xs text-slate-500">Follow-up: <span className="font-medium text-slate-700">{shortDate(v.followUpDate)}</span></p>}
+                    {v.followUpDate && <p className="text-xs text-muted-foreground">Follow-up: <span className="font-medium text-foreground">{shortDate(v.followUpDate)}</span></p>}
                   </div>
                 }>
-                  <td className="px-4 py-3 font-mono font-semibold text-teal-600">{v.visitCode}</td>
+                  <td className="px-4 py-3 font-mono font-semibold text-primary">{v.visitCode}</td>
                   <td className="px-4 py-3">
-                    <p className="font-medium text-slate-800">{v.patientName}</p>
-                    <p className="text-slate-400">{v.patientCode}</p>
+                    <p className="font-medium text-foreground">{v.patientName}</p>
+                    <p className="text-muted-foreground/70">{v.patientCode}</p>
                   </td>
-                  <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{v.dentistName}</td>
+                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{v.dentistName}</td>
                   <td className="px-4 py-3 text-center">
-                    <span className="px-2 py-0.5 bg-slate-100 rounded-full font-semibold text-slate-700">{v.procedureCount}</span>
+                    <span className="px-2 py-0.5 bg-muted rounded-full font-semibold text-foreground">{v.procedureCount}</span>
                   </td>
                   <td className="px-4 py-3"><Badge status={v.status} /></td>
                   <td className="px-4 py-3"><Badge status={v.paymentStatus} /></td>
                   <td className="px-4 py-3">
-                    <p className="font-semibold text-slate-800">{formatCurrency(v.totalCost)}</p>
-                    {v.balance > 0 && <p className="text-red-500 text-[10px]">Bal: {formatCurrency(v.balance)}</p>}
+                    <p className="font-semibold text-foreground">{formatCurrency(v.totalCost)}</p>
+                    {v.balance > 0 && <p className="text-danger text-[10px]">Bal: {formatCurrency(v.balance)}</p>}
                   </td>
-                  <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{shortDate(v.createdAt)}</td>
+                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{shortDate(v.createdAt)}</td>
                 </CollapsibleRow>
               ))}
             </tbody>
@@ -544,11 +544,11 @@ function TreatmentHistoryPanel({ report, onPageChange }: { report: TreatmentHist
           <div className="p-4">
             {statusEntries.map(([st, count], i) => (
               <div key={st} className="flex items-center gap-3 mb-3">
-                <span className="w-24 text-xs text-slate-500 capitalize shrink-0">{st.replace(/_/g, ' ')}</span>
+                <span className="w-24 text-xs text-muted-foreground capitalize shrink-0">{st.replace(/_/g, ' ')}</span>
                 <div className="flex-1">
                   <ProgressBar value={count} max={s.totalPlans} color={STATUS_COLORS[st] ?? PIE_COLORS[i]} />
                 </div>
-                <span className="text-xs font-bold text-slate-700 w-8 text-right">{count}</span>
+                <span className="text-xs font-bold text-foreground w-8 text-right">{count}</span>
               </div>
             ))}
           </div>
@@ -558,20 +558,20 @@ function TreatmentHistoryPanel({ report, onPageChange }: { report: TreatmentHist
           <div className="p-4 space-y-4">
             <div>
               <div className="flex justify-between text-xs mb-1">
-                <span className="text-slate-500">Estimated</span>
-                <span className="font-semibold text-slate-700">{formatCurrency(s.totalEstimatedCost)}</span>
+                <span className="text-muted-foreground">Estimated</span>
+                <span className="font-semibold text-foreground">{formatCurrency(s.totalEstimatedCost)}</span>
               </div>
-              <div className="h-2 rounded-full bg-blue-100">
-                <div className="h-2 rounded-full bg-blue-500" style={{ width: '100%' }} />
+              <div className="h-2 rounded-full bg-primary-muted">
+                <div className="h-2 rounded-full bg-primary" style={{ width: '100%' }} />
               </div>
             </div>
             <div>
               <div className="flex justify-between text-xs mb-1">
-                <span className="text-slate-500">Actual</span>
-                <span className="font-semibold text-slate-700">{formatCurrency(s.totalActualCost)}</span>
+                <span className="text-muted-foreground">Actual</span>
+                <span className="font-semibold text-foreground">{formatCurrency(s.totalActualCost)}</span>
               </div>
-              <div className="h-2 rounded-full bg-teal-100">
-                <div className="h-2 rounded-full bg-teal-500" style={{
+              <div className="h-2 rounded-full bg-primary-muted">
+                <div className="h-2 rounded-full bg-primary" style={{
                   width: `${s.totalEstimatedCost > 0 ? Math.min(100, (s.totalActualCost / s.totalEstimatedCost) * 100) : 0}%`
                 }} />
               </div>
@@ -584,9 +584,9 @@ function TreatmentHistoryPanel({ report, onPageChange }: { report: TreatmentHist
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-slate-100">
+              <tr className="border-b border-border/60">
                 {['Plan', 'Patient', 'Dentist', 'Procedures', 'Sessions', 'Completion', 'Est. Cost', 'Status', 'Created'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left font-semibold text-slate-500 whitespace-nowrap">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
                 ))}
                 <th />
               </tr>
@@ -598,46 +598,46 @@ function TreatmentHistoryPanel({ report, onPageChange }: { report: TreatmentHist
               {report.data.map(plan => (
                 <CollapsibleRow key={plan.planId} detail={
                   <div className="space-y-3">
-                    <p className="text-xs font-semibold text-slate-600">{plan.planTitle}</p>
-                    {plan.diagnosis && <p className="text-xs text-slate-500">Diagnosis: <span className="text-slate-700">{plan.diagnosis}</span></p>}
+                    <p className="text-xs font-semibold text-muted-foreground">{plan.planTitle}</p>
+                    {plan.diagnosis && <p className="text-xs text-muted-foreground">Diagnosis: <span className="text-foreground">{plan.diagnosis}</span></p>}
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                       {plan.procedures.map(p => (
                         <div key={p.id} className={cn(
                           'p-2 rounded-xl border text-[10px] space-y-1',
-                          p.status === 'COMPLETED' ? 'border-emerald-200 bg-emerald-50' :
-                            p.status === 'IN_PROGRESS' ? 'border-amber-200 bg-amber-50' :
-                              'border-slate-200 bg-slate-50',
+                          p.status === 'COMPLETED' ? 'border-success/25 bg-success-muted/60' :
+                            p.status === 'IN_PROGRESS' ? 'border-warning/25 bg-warning-muted/60' :
+                              'border-border bg-muted/50',
                         )}>
-                          <p className="font-semibold text-slate-700">{p.name}</p>
+                          <p className="font-semibold text-foreground">{p.name}</p>
                           <div className="flex items-center justify-between">
                             <Badge status={p.status} />
-                            <span className="text-slate-500">{p.completedSessions}/{p.sessionCount} sess.</span>
+                            <span className="text-muted-foreground">{p.completedSessions}/{p.sessionCount} sess.</span>
                           </div>
-                          <p className="text-slate-500">{formatCurrency(p.totalPrice)}</p>
+                          <p className="text-muted-foreground">{formatCurrency(p.totalPrice)}</p>
                         </div>
                       ))}
                     </div>
                   </div>
                 }>
-                  <td className="px-4 py-3 font-mono font-semibold text-teal-600">{plan.planCode}</td>
+                  <td className="px-4 py-3 font-mono font-semibold text-primary">{plan.planCode}</td>
                   <td className="px-4 py-3">
-                    <p className="font-medium text-slate-800">{plan.patientName}</p>
-                    <p className="text-slate-400">{plan.patientCode}</p>
+                    <p className="font-medium text-foreground">{plan.patientName}</p>
+                    <p className="text-muted-foreground/70">{plan.patientCode}</p>
                   </td>
-                  <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{plan.dentistName}</td>
-                  <td className="px-4 py-3 text-center font-semibold text-slate-700">{plan.totalProcedures}</td>
+                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{plan.dentistName}</td>
+                  <td className="px-4 py-3 text-center font-semibold text-foreground">{plan.totalProcedures}</td>
                   <td className="px-4 py-3 text-center">
-                    <span className="text-slate-700">{plan.completedSessions}/{plan.totalSessions}</span>
+                    <span className="text-foreground">{plan.completedSessions}/{plan.totalSessions}</span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <Ring pct={plan.completionRate} size={32} stroke={3} />
-                      <span className="font-semibold text-slate-700">{plan.completionRate}%</span>
+                      <span className="font-semibold text-foreground">{plan.completionRate}%</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 font-medium text-slate-700">{formatCurrency(plan.estimatedCost)}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">{formatCurrency(plan.estimatedCost)}</td>
                   <td className="px-4 py-3"><Badge status={plan.planStatus} /></td>
-                  <td className="px-4 py-3 text-slate-500">{shortDate(plan.createdAt)}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{shortDate(plan.createdAt)}</td>
                 </CollapsibleRow>
               ))}
             </tbody>
@@ -714,13 +714,13 @@ function PlanVsCompletedPanel({ report }: { report: PlanVsCompletedReport }) {
       <SectionCard title="Session Status Breakdown">
         <div className="p-5 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {Object.entries(s.sessionsByStatus).map(([st, count]) => (
-            <div key={st} className="text-center p-3 rounded-xl border border-slate-100 bg-slate-50">
+            <div key={st} className="text-center p-3 rounded-xl border border-border/60 bg-muted/50">
               <div className="w-8 h-8 rounded-full mx-auto mb-2 flex items-center justify-center"
                 style={{ backgroundColor: `${STATUS_COLORS[st] ?? '#94a3b8'}20` }}>
                 <span className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS[st] ?? '#94a3b8' }} />
               </div>
-              <p className="text-lg font-bold text-slate-800">{count}</p>
-              <p className="text-[10px] text-slate-500 mt-0.5">{st.replace(/_/g, ' ')}</p>
+              <p className="text-lg font-bold text-foreground">{count}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{st.replace(/_/g, ' ')}</p>
             </div>
           ))}
         </div>
@@ -731,27 +731,27 @@ function PlanVsCompletedPanel({ report }: { report: PlanVsCompletedReport }) {
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-slate-100">
+              <tr className="border-b border-border/60">
                 {['Procedure', 'Planned', 'Completed', 'In Progress', 'Cancelled', 'Completion Rate', 'Revenue'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left font-semibold text-slate-500">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left font-semibold text-muted-foreground">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {report.procedureComparison.map((p, i) => (
-                <tr key={i} className="border-b border-slate-50 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-800">{p.name}</td>
-                  <td className="px-4 py-3 text-slate-600">{p.planned}</td>
-                  <td className="px-4 py-3 text-emerald-600 font-semibold">{p.completed}</td>
-                  <td className="px-4 py-3 text-amber-600">{p.inProgress}</td>
-                  <td className="px-4 py-3 text-red-500">{p.cancelled}</td>
+                <tr key={i} className="border-b border-border/40 hover:bg-muted/50">
+                  <td className="px-4 py-3 font-medium text-foreground">{p.name}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{p.planned}</td>
+                  <td className="px-4 py-3 text-success font-semibold">{p.completed}</td>
+                  <td className="px-4 py-3 text-warning">{p.inProgress}</td>
+                  <td className="px-4 py-3 text-danger">{p.cancelled}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <ProgressBar value={p.completionRate} max={100} />
-                      <span className="font-semibold text-slate-700 w-10 text-right">{p.completionRate}%</span>
+                      <span className="font-semibold text-foreground w-10 text-right">{p.completionRate}%</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 font-medium text-slate-700">{formatCurrency(p.totalRevenue)}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">{formatCurrency(p.totalRevenue)}</td>
                 </tr>
               ))}
             </tbody>
@@ -809,8 +809,8 @@ function ProcedureSessionsPanel({ report, onPageChange }: { report: ProcedureSes
               {Object.entries(s.byStatus).map(([k, v], i) => (
                 <div key={k} className="flex items-center gap-1.5 text-xs">
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: STATUS_COLORS[k] ?? PIE_COLORS[i] }} />
-                  <span className="text-slate-600">{k.replace(/_/g, ' ')}</span>
-                  <span className="font-bold text-slate-800">{v}</span>
+                  <span className="text-muted-foreground">{k.replace(/_/g, ' ')}</span>
+                  <span className="font-bold text-foreground">{v}</span>
                 </div>
               ))}
             </div>
@@ -822,9 +822,9 @@ function ProcedureSessionsPanel({ report, onPageChange }: { report: ProcedureSes
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-slate-100">
+              <tr className="border-b border-border/60">
                 {['#', 'Session', 'Procedure', 'Plan', 'Patient', 'Dentist', 'Status', 'Ledger', 'Date'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left font-semibold text-slate-500 whitespace-nowrap">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -833,22 +833,22 @@ function ProcedureSessionsPanel({ report, onPageChange }: { report: ProcedureSes
                 <tr><td colSpan={9}><EmptyState message="No sessions found for this period" /></td></tr>
               )}
               {report.data.map((s, i) => (
-                <tr key={s.sessionId} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3 text-slate-400">{i + 1 + (report.pagination.page - 1) * report.pagination.limit}</td>
+                <tr key={s.sessionId} className="border-b border-border/40 hover:bg-muted/50 transition-colors">
+                  <td className="px-4 py-3 text-muted-foreground/70">{i + 1 + (report.pagination.page - 1) * report.pagination.limit}</td>
                   <td className="px-4 py-3">
-                    <p className="font-semibold text-slate-700">{s.sessionLabel ?? `Session ${s.sessionNumber}`}</p>
-                    {s.performedNotes && <p className="text-slate-400 truncate max-w-[160px]">{s.performedNotes}</p>}
+                    <p className="font-semibold text-foreground">{s.sessionLabel ?? `Session ${s.sessionNumber}`}</p>
+                    {s.performedNotes && <p className="text-muted-foreground/70 truncate max-w-[160px]">{s.performedNotes}</p>}
                   </td>
-                  <td className="px-4 py-3 text-slate-700">{s.procedureName}</td>
-                  <td className="px-4 py-3 font-mono text-teal-600">{s.planCode}</td>
+                  <td className="px-4 py-3 text-foreground">{s.procedureName}</td>
+                  <td className="px-4 py-3 font-mono text-primary">{s.planCode}</td>
                   <td className="px-4 py-3">
-                    <p className="font-medium text-slate-800">{s.patientName}</p>
-                    <p className="text-slate-400">{s.patientCode}</p>
+                    <p className="font-medium text-foreground">{s.patientName}</p>
+                    <p className="text-muted-foreground/70">{s.patientCode}</p>
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{s.dentistName}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{s.dentistName}</td>
                   <td className="px-4 py-3"><Badge status={s.status} /></td>
                   <td className="px-4 py-3"><Badge status={s.ledgerStatus} /></td>
-                  <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{shortDate(s.performedDate ?? s.createdAt)}</td>
+                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{shortDate(s.performedDate ?? s.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -909,23 +909,23 @@ function ProcedureOutcomesPanel({ report }: { report: ProcedureOutcomesReport })
 
       {report.retreatmentCandidates.length > 0 && (
         <SectionCard title={`Re-treatment Candidates (${report.retreatmentCandidates.length})`}
-          action={<span className="flex items-center gap-1 text-xs text-amber-600 font-medium"><AlertTriangle className="w-3.5 h-3.5" /> Review recommended</span>}>
+          action={<span className="flex items-center gap-1 text-xs text-warning font-medium"><AlertTriangle className="w-3.5 h-3.5" /> Review recommended</span>}>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-slate-100">
+                <tr className="border-b border-border/60">
                   {['Patient ID', 'Procedure', 'Times Done'].map(h => (
-                    <th key={h} className="px-5 py-3 text-left font-semibold text-slate-500">{h}</th>
+                    <th key={h} className="px-5 py-3 text-left font-semibold text-muted-foreground">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {report.retreatmentCandidates.map((r, i) => (
-                  <tr key={i} className="border-b border-slate-50 hover:bg-amber-50/50 transition-colors">
-                    <td className="px-5 py-3 font-mono text-slate-600">{r.patientId.slice(0, 12)}…</td>
-                    <td className="px-5 py-3 text-slate-800 font-medium">{r.procedureName}</td>
+                  <tr key={i} className="border-b border-border/40 hover:bg-warning-muted/50 transition-colors">
+                    <td className="px-5 py-3 font-mono text-muted-foreground">{r.patientId.slice(0, 12)}…</td>
+                    <td className="px-5 py-3 text-foreground font-medium">{r.procedureName}</td>
                     <td className="px-5 py-3">
-                      <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-full font-bold">{r.count}×</span>
+                      <span className="px-2 py-1 bg-warning-muted text-warning rounded-full font-bold">{r.count}×</span>
                     </td>
                   </tr>
                 ))}
@@ -939,24 +939,24 @@ function ProcedureOutcomesPanel({ report }: { report: ProcedureOutcomesReport })
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-slate-100">
+              <tr className="border-b border-border/60">
                 {['Procedure', 'Code', 'Completions', 'Avg Sessions Used', 'Planned Cost', 'Actual Cost'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left font-semibold text-slate-500 whitespace-nowrap">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {report.byProcedure.map((p, i) => (
-                <tr key={i} className="border-b border-slate-50 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-800">{p.name}</td>
-                  <td className="px-4 py-3 font-mono text-slate-500">{p.code ?? '—'}</td>
+                <tr key={i} className="border-b border-border/40 hover:bg-muted/50">
+                  <td className="px-4 py-3 font-medium text-foreground">{p.name}</td>
+                  <td className="px-4 py-3 font-mono text-muted-foreground">{p.code ?? '—'}</td>
                   <td className="px-4 py-3">
-                    <span className="px-2 py-0.5 bg-teal-50 text-teal-700 rounded-full font-bold">{p.count}</span>
+                    <span className="px-2 py-0.5 bg-primary-muted/60 text-primary rounded-full font-bold">{p.count}</span>
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{p.avgSessionsUsed.toFixed(1)}</td>
-                  <td className="px-4 py-3 text-slate-700">{formatCurrency(p.totalPlannedCost)}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{p.avgSessionsUsed.toFixed(1)}</td>
+                  <td className="px-4 py-3 text-foreground">{formatCurrency(p.totalPlannedCost)}</td>
                   <td className="px-4 py-3">
-                    <span className={cn('font-semibold', p.totalActualCost > p.totalPlannedCost ? 'text-red-600' : 'text-emerald-600')}>
+                    <span className={cn('font-semibold', p.totalActualCost > p.totalPlannedCost ? 'text-danger' : 'text-success')}>
                       {formatCurrency(p.totalActualCost)}
                     </span>
                   </td>
@@ -992,7 +992,7 @@ function DentalChartPanel({ report, onPageChange }: { report: DentalChartStatusR
     const intensity = cnt / maxCount;
     const bg = cnt === 0 ? '#f8fafc' : `rgba(13,148,136,${0.1 + intensity * 0.85})`;
     return (
-      <div title={`Tooth ${n}: ${cnt} issues`} className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-[9px] font-bold cursor-pointer transition-transform hover:scale-110"
+      <div title={`Tooth ${n}: ${cnt} issues`} className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-[9px] font-bold cursor-pointer transition-transform hover:scale-110"
         style={{ backgroundColor: bg, color: intensity > 0.5 ? '#fff' : '#475569' }}>
         {n}
       </div>
@@ -1025,8 +1025,8 @@ function DentalChartPanel({ report, onPageChange }: { report: DentalChartStatusR
               {s.toothStatusDistribution.map((t, i) => (
                 <div key={t.status} className="flex items-center gap-1 text-[10px]">
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                  <span className="text-slate-600">{t.status.replace(/_/g, ' ')}</span>
-                  <span className="font-bold text-slate-800">{t.count}</span>
+                  <span className="text-muted-foreground">{t.status.replace(/_/g, ' ')}</span>
+                  <span className="font-bold text-foreground">{t.count}</span>
                 </div>
               ))}
             </div>
@@ -1039,14 +1039,14 @@ function DentalChartPanel({ report, onPageChange }: { report: DentalChartStatusR
             {report.pathologicalPatients.slice(0, 8).map((p, i) => (
               <div key={p.patientId} className="flex items-center gap-3">
                 <span className={cn('w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center text-white',
-                  i === 0 ? 'bg-red-500' : i === 1 ? 'bg-orange-400' : 'bg-slate-400')}>{i + 1}</span>
+                  i === 0 ? 'bg-danger' : i === 1 ? 'bg-warning/80' : 'bg-muted-foreground/70')}>{i + 1}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-slate-800 truncate">{p.patientName}</p>
-                  <p className="text-[10px] text-slate-400">{p.patientCode}</p>
+                  <p className="text-xs font-medium text-foreground truncate">{p.patientName}</p>
+                  <p className="text-[10px] text-muted-foreground/70">{p.patientCode}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <ProgressBar value={p.pathologyCount} max={report.pathologicalPatients[0]?.pathologyCount ?? 1} color="#ef4444" />
-                  <span className="text-xs font-bold text-red-600 w-6 text-right">{p.pathologyCount}</span>
+                  <span className="text-xs font-bold text-danger w-6 text-right">{p.pathologyCount}</span>
                 </div>
               </div>
             ))}
@@ -1058,28 +1058,28 @@ function DentalChartPanel({ report, onPageChange }: { report: DentalChartStatusR
       {/* Tooth heatmap */}
       <SectionCard title="Dental Heatmap — Pathology Distribution">
         <div className="p-5">
-          <p className="text-xs text-slate-400 mb-4">Darker = more pathologies recorded. Hover a tooth for count.</p>
+          <p className="text-xs text-muted-foreground/70 mb-4">Darker = more pathologies recorded. Hover a tooth for count.</p>
           <div className="flex flex-col items-center gap-1">
-            <p className="text-[10px] font-semibold text-slate-400 mb-1 tracking-widest uppercase">Upper</p>
+            <p className="text-[10px] font-semibold text-muted-foreground/70 mb-1 tracking-widest uppercase">Upper</p>
             <div className="flex gap-1">
               {upperRight.map(n => <ToothCell key={n} num={n} />)}
               <span className="w-3" />
               {upperLeft.map(n => <ToothCell key={n} num={n} />)}
             </div>
-            <div className="w-full border-t border-dashed border-slate-200 my-2" />
+            <div className="w-full border-t border-dashed border-border my-2" />
             <div className="flex gap-1">
               {lowerRight.reverse().map(n => <ToothCell key={n} num={n} />)}
               <span className="w-3" />
               {lowerLeft.map(n => <ToothCell key={n} num={n} />)}
             </div>
-            <p className="text-[10px] font-semibold text-slate-400 mt-1 tracking-widest uppercase">Lower</p>
+            <p className="text-[10px] font-semibold text-muted-foreground/70 mt-1 tracking-widest uppercase">Lower</p>
           </div>
           <div className="flex items-center gap-2 justify-center mt-4">
-            <span className="text-[10px] text-slate-400">Low</span>
+            <span className="text-[10px] text-muted-foreground/70">Low</span>
             {[0.1, 0.3, 0.5, 0.7, 0.9].map(op => (
               <div key={op} className="w-5 h-4 rounded" style={{ backgroundColor: `rgba(13,148,136,${op})` }} />
             ))}
-            <span className="text-[10px] text-slate-400">High</span>
+            <span className="text-[10px] text-muted-foreground/70">High</span>
           </div>
         </div>
       </SectionCard>
@@ -1089,29 +1089,29 @@ function DentalChartPanel({ report, onPageChange }: { report: DentalChartStatusR
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-slate-100">
+              <tr className="border-b border-border/60">
                 {['Patient', 'Tooth', 'Type', 'Label', 'Condition Code', 'Visit', 'Date'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left font-semibold text-slate-500">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left font-semibold text-muted-foreground">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {report.recentChartEntries.map(e => (
-                <tr key={e.id} className="border-b border-slate-50 hover:bg-slate-50">
+                <tr key={e.id} className="border-b border-border/40 hover:bg-muted/50">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-slate-800">{e.patientName}</p>
-                    <p className="text-slate-400">{e.patientCode}</p>
+                    <p className="font-medium text-foreground">{e.patientName}</p>
+                    <p className="text-muted-foreground/70">{e.patientCode}</p>
                   </td>
                   <td className="px-4 py-3">
                     {e.toothNumber
-                      ? <span className="px-2 py-0.5 bg-teal-50 text-teal-700 rounded-lg font-bold">{e.toothNumber}</span>
-                      : <span className="text-slate-300">—</span>}
+                      ? <span className="px-2 py-0.5 bg-primary-muted/60 text-primary rounded-lg font-bold">{e.toothNumber}</span>
+                      : <span className="text-muted-foreground/50">—</span>}
                   </td>
                   <td className="px-4 py-3"><Badge status={e.type} /></td>
-                  <td className="px-4 py-3 font-medium text-slate-700">{e.label}</td>
-                  <td className="px-4 py-3 font-mono text-slate-500">{e.conditionCode ?? '—'}</td>
-                  <td className="px-4 py-3 font-mono text-teal-600">{e.visitCode ?? '—'}</td>
-                  <td className="px-4 py-3 text-slate-500">{shortDate(e.createdAt)}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">{e.label}</td>
+                  <td className="px-4 py-3 font-mono text-muted-foreground">{e.conditionCode ?? '—'}</td>
+                  <td className="px-4 py-3 font-mono text-primary">{e.visitCode ?? '—'}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{shortDate(e.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -1191,9 +1191,9 @@ function DiagnosisTrendsPanel({ report }: { report: DiagnosisTrendsReport }) {
           <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
             {report.icdCodeBreakdown.map((c, i) => (
               <div key={i} className="flex items-center gap-3">
-                <span className="font-mono text-xs text-slate-500 w-16 shrink-0">{c.code}</span>
+                <span className="font-mono text-xs text-muted-foreground w-16 shrink-0">{c.code}</span>
                 <ProgressBar value={c.count} max={report.icdCodeBreakdown[0]?.count ?? 1} />
-                <span className="text-xs font-bold text-slate-700 w-8 text-right">{c.count}</span>
+                <span className="text-xs font-bold text-foreground w-8 text-right">{c.count}</span>
               </div>
             ))}
             {report.icdCodeBreakdown.length === 0 && <EmptyState message="No ICD codes recorded" />}
@@ -1205,18 +1205,18 @@ function DiagnosisTrendsPanel({ report }: { report: DiagnosisTrendsReport }) {
           <div className="overflow-x-auto max-h-64 overflow-y-auto">
             <table className="w-full text-xs">
               <thead className="sticky top-0 bg-white">
-                <tr className="border-b border-slate-100">
-                  <th className="px-4 py-3 text-left font-semibold text-slate-500">Dentist</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-500">Visits w/ Dx</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-500">Unique Dx</th>
+                <tr className="border-b border-border/60">
+                  <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Dentist</th>
+                  <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Visits w/ Dx</th>
+                  <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Unique Dx</th>
                 </tr>
               </thead>
               <tbody>
                 {report.diagnosisByDentist.map((d, i) => (
-                  <tr key={i} className="border-b border-slate-50 hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium text-slate-800">{d.dentistName}</td>
-                    <td className="px-4 py-3 text-teal-600 font-bold">{d.totalVisitsWithDx}</td>
-                    <td className="px-4 py-3 text-slate-600">{d.uniqueDiagnoses}</td>
+                  <tr key={i} className="border-b border-border/40 hover:bg-muted/50">
+                    <td className="px-4 py-3 font-medium text-foreground">{d.dentistName}</td>
+                    <td className="px-4 py-3 text-primary font-bold">{d.totalVisitsWithDx}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{d.uniqueDiagnoses}</td>
                   </tr>
                 ))}
                 {report.diagnosisByDentist.length === 0 && (
@@ -1234,19 +1234,19 @@ function DiagnosisTrendsPanel({ report }: { report: DiagnosisTrendsReport }) {
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-slate-100">
-                  <th className="px-4 py-3 text-left font-semibold text-slate-500">Condition Code</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-500">Label</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-500">Count</th>
+                <tr className="border-b border-border/60">
+                  <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Condition Code</th>
+                  <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Label</th>
+                  <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Count</th>
                   <th className="px-4 py-3">Distribution</th>
                 </tr>
               </thead>
               <tbody>
                 {report.chartConditions.slice(0, 15).map((c, i) => (
-                  <tr key={i} className="border-b border-slate-50 hover:bg-slate-50">
-                    <td className="px-4 py-3 font-mono text-slate-500">{c.conditionCode ?? '—'}</td>
-                    <td className="px-4 py-3 font-medium text-slate-800">{c.label}</td>
-                    <td className="px-4 py-3 font-bold text-teal-600">{c.count}</td>
+                  <tr key={i} className="border-b border-border/40 hover:bg-muted/50">
+                    <td className="px-4 py-3 font-mono text-muted-foreground">{c.conditionCode ?? '—'}</td>
+                    <td className="px-4 py-3 font-medium text-foreground">{c.label}</td>
+                    <td className="px-4 py-3 font-bold text-primary">{c.count}</td>
                     <td className="px-4 py-3 w-40">
                       <ProgressBar value={c.count} max={report.chartConditions[0]?.count ?? 1} />
                     </td>
@@ -1317,43 +1317,43 @@ function DentistActivityPanel({ report }: { report: DentistActivityReport }) {
       {/* Dentist cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {report.dentists.map((d, i) => (
-          <div key={d.dentistId} className="bg-white border border-slate-100 rounded-2xl shadow-sm p-5">
+          <div key={d.dentistId} className="bg-white border border-border/60 rounded-2xl shadow-sm p-5">
             <div className="flex items-start gap-4 mb-4">
               <div className={cn('w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0',
-                i === 0 ? 'bg-yellow-400' : i === 1 ? 'bg-slate-400' : 'bg-teal-500')}>
+                i === 0 ? 'bg-warning/80' : i === 1 ? 'bg-muted-foreground/70' : 'bg-primary')}>
                 {i + 1}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-slate-800">{d.dentistName}</p>
-                <p className="text-xs text-slate-400">{d.specialization ?? 'General Dentistry'}</p>
+                <p className="font-semibold text-foreground">{d.dentistName}</p>
+                <p className="text-xs text-muted-foreground/70">{d.specialization ?? 'General Dentistry'}</p>
               </div>
               <div className="text-right">
-                <p className="text-lg font-bold text-teal-600">{formatCurrency(d.totalRevenue)}</p>
-                <p className="text-[10px] text-slate-400">Revenue</p>
+                <p className="text-lg font-bold text-primary">{formatCurrency(d.totalRevenue)}</p>
+                <p className="text-[10px] text-muted-foreground/70">Revenue</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 text-center border-t border-slate-50 pt-4">
+            <div className="grid grid-cols-3 gap-3 text-center border-t border-border/40 pt-4">
               <div>
                 <div className="flex justify-center mb-1">
                   <Ring pct={d.visitCompletionRate} size={40} stroke={3} />
                 </div>
-                <p className="text-[10px] text-slate-500">Visits</p>
-                <p className="text-xs font-bold text-slate-700">{d.totalVisits} total</p>
+                <p className="text-[10px] text-muted-foreground">Visits</p>
+                <p className="text-xs font-bold text-foreground">{d.totalVisits} total</p>
               </div>
               <div>
                 <div className="flex justify-center mb-1">
                   <Ring pct={d.sessionCompletionRate} size={40} stroke={3} />
                 </div>
-                <p className="text-[10px] text-slate-500">Sessions</p>
-                <p className="text-xs font-bold text-slate-700">{d.totalSessions} total</p>
+                <p className="text-[10px] text-muted-foreground">Sessions</p>
+                <p className="text-xs font-bold text-foreground">{d.totalSessions} total</p>
               </div>
               <div>
                 <div className="flex justify-center mb-1">
                   <Ring pct={d.planCompletionRate} size={40} stroke={3} />
                 </div>
-                <p className="text-[10px] text-slate-500">Plans</p>
-                <p className="text-xs font-bold text-slate-700">{d.totalPlans} total</p>
+                <p className="text-[10px] text-muted-foreground">Plans</p>
+                <p className="text-xs font-bold text-foreground">{d.totalPlans} total</p>
               </div>
             </div>
           </div>
@@ -1427,17 +1427,17 @@ export function ClinicalReportsPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground/70 mb-1">
             <span>Reports</span>
             <ChevronRight className="w-3 h-3" />
-            <span className="text-teal-600 font-medium">Clinical Reports</span>
+            <span className="text-primary font-medium">Clinical Reports</span>
           </div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Clinical Reports</h2>
-          {/* <p className="text-sm text-slate-500 mt-0.5">Treatment intelligence, session tracking & clinical insights</p> */}
+          <h2 className="text-2xl font-bold text-foreground tracking-tight">Clinical Reports</h2>
+          {/* <p className="text-sm text-muted-foreground mt-0.5">Treatment intelligence, session tracking & clinical insights</p> */}
         </div>
         <button onClick={() => refetch()}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
-          <RefreshCw className={cn('w-4 h-4', isLoading && 'animate-spin text-teal-500')} />
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground border border-border rounded-xl hover:bg-muted/50 transition-colors">
+          <RefreshCw className={cn('w-4 h-4', isLoading && 'animate-spin text-primary')} />
           Refresh
         </button>
       </div>
@@ -1454,11 +1454,11 @@ export function ClinicalReportsPage() {
               className={cn(
                 'flex flex-col items-center gap-1 p-1 rounded-2xl border text-center transition-all duration-200 group',
                 active
-                  ? 'bg-teal-600 border-teal-500 text-white shadow-lg shadow-teal-100'
-                  : 'bg-white border-slate-100 text-slate-600 hover:border-teal-200 hover:bg-teal-50/50 shadow-sm',
+                  ? 'bg-primary border-primary/60 text-white shadow-lg shadow-teal-100'
+                  : 'bg-white border-border/60 text-muted-foreground hover:border-primary/25 hover:bg-primary-muted/50 shadow-sm',
               )}>
-              <Icon className={cn('w-5 h-5 transition-transform group-hover:scale-110', active ? 'text-white' : 'text-teal-600')} />
-              <span className={cn('text-[11px] font-semibold leading-tight', active ? 'text-white' : 'text-slate-700')}>
+              <Icon className={cn('w-5 h-5 transition-transform group-hover:scale-110', active ? 'text-white' : 'text-primary')} />
+              <span className={cn('text-[11px] font-semibold leading-tight', active ? 'text-white' : 'text-foreground')}>
                 {rt.label}
               </span>
             </button>
@@ -1467,11 +1467,11 @@ export function ClinicalReportsPage() {
       </div>
 
       {/* Active report description */}
-      {/* <div className="flex items-center gap-3 px-4 py-3 bg-teal-50 border border-teal-100 rounded-xl">
-        <activeTypeDef.icon className="w-4 h-4 text-teal-600 shrink-0" />
+      {/* <div className="flex items-center gap-3 px-4 py-3 bg-primary-muted/60 border border-primary/20 rounded-xl">
+        <activeTypeDef.icon className="w-4 h-4 text-primary shrink-0" />
         <div>
-          <span className="text-sm font-semibold text-teal-800">{activeTypeDef.label}</span>
-          <span className="text-xs text-teal-600 ml-2">— {activeTypeDef.desc}</span>
+          <span className="text-sm font-semibold text-primary">{activeTypeDef.label}</span>
+          <span className="text-xs text-primary ml-2">— {activeTypeDef.desc}</span>
         </div>
       </div> */}
 
@@ -1489,15 +1489,15 @@ export function ClinicalReportsPage() {
 
       {isError && (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center">
-            <X className="w-7 h-7 text-red-400" />
+          <div className="w-14 h-14 rounded-2xl bg-danger-muted/60 flex items-center justify-center">
+            <X className="w-7 h-7 text-danger/70" />
           </div>
           <div className="text-center">
-            <p className="font-semibold text-slate-700">Failed to load report</p>
-            <p className="text-sm text-slate-400 mt-1">Check your connection and try again</p>
+            <p className="font-semibold text-foreground">Failed to load report</p>
+            <p className="text-sm text-muted-foreground/70 mt-1">Check your connection and try again</p>
           </div>
           <button onClick={() => refetch()}
-            className="px-5 py-2 bg-teal-600 text-white text-sm font-medium rounded-xl hover:bg-teal-700 transition-colors">
+            className="px-5 py-2 bg-primary text-white text-sm font-medium rounded-xl hover:bg-primary transition-colors">
             Retry
           </button>
         </div>

@@ -24,22 +24,22 @@ export function SupplierStats() {
       title: 'Total Suppliers',
       value: stats?.total || 0,
       icon: Building2,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
+      color: 'text-primary',
+      bgColor: 'bg-primary-muted',
     },
     {
       title: 'Active Suppliers',
       value: stats?.active || 0,
       icon: CheckCircle2,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
+      color: 'text-success',
+      bgColor: 'bg-success-muted',
     },
     {
       title: 'Inactive Suppliers',
       value: stats?.inactive || 0,
       icon: XCircle,
-      color: 'text-red-600',
-      bgColor: 'bg-red-100',
+      color: 'text-danger',
+      bgColor: 'bg-danger-muted',
     },
   ];
 

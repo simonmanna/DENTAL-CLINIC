@@ -123,12 +123,12 @@ const UPPER_TEETH = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27,
 const LOWER_TEETH = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
 
 const STATUS_META: Record<TxStatus, { label: string; color: string; bg: string; border: string; dot: string; btnClass: string }> = {
-  PLANNED: { label: "Planned", color: "text-slate-600", bg: "bg-slate-50", border: "border-slate-200", dot: "bg-slate-400", btnClass: "bg-slate-600 hover:bg-slate-700" },
-  IN_PROGRESS: { label: "In Progress", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200", dot: "bg-blue-500", btnClass: "bg-blue-600 hover:bg-blue-700" },
-  COMPLETED: { label: "Completed", color: "text-green-700", bg: "bg-green-50", border: "border-green-200", dot: "bg-green-500", btnClass: "bg-green-600 hover:bg-green-700" },
-  ON_HOLD: { label: "On Hold", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", dot: "bg-amber-500", btnClass: "bg-amber-500 hover:bg-amber-600" },
-  CANCELLED: { label: "Cancelled", color: "text-red-600", bg: "bg-red-50", border: "border-red-200", dot: "bg-red-400", btnClass: "bg-red-500 hover:bg-red-600" },
-  REFERRED: { label: "On Hold", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", dot: "bg-amber-500", btnClass: "bg-amber-500 hover:bg-amber-600" },
+  PLANNED: { label: "Planned", color: "text-muted-foreground", bg: "bg-muted/50", border: "border-border", dot: "bg-muted-foreground/70", btnClass: "bg-muted-foreground hover:bg-foreground" },
+  IN_PROGRESS: { label: "In Progress", color: "text-primary", bg: "bg-primary-muted/60", border: "border-primary/25", dot: "bg-primary", btnClass: "bg-primary hover:bg-primary" },
+  COMPLETED: { label: "Completed", color: "text-success", bg: "bg-success-muted/60", border: "border-success/25", dot: "bg-success", btnClass: "bg-success hover:bg-success" },
+  ON_HOLD: { label: "On Hold", color: "text-warning", bg: "bg-warning-muted/60", border: "border-warning/25", dot: "bg-warning", btnClass: "bg-warning hover:bg-warning" },
+  CANCELLED: { label: "Cancelled", color: "text-danger", bg: "bg-danger-muted/60", border: "border-danger/25", dot: "bg-danger/80", btnClass: "bg-danger hover:bg-danger" },
+  REFERRED: { label: "On Hold", color: "text-warning", bg: "bg-warning-muted/60", border: "border-warning/25", dot: "bg-warning", btnClass: "bg-warning hover:bg-warning" },
 };
 
 function cn(...c: (string | boolean | undefined | null)[]) {
@@ -181,12 +181,12 @@ import { api } from "@/lib/api/client";
 
 function StatusBadge({ status }: { status: TxStatus }) {
   const styles: Record<TxStatus, string> = {
-    PLANNED: "bg-slate-100 text-slate-700 border-slate-200",
-    IN_PROGRESS: "bg-blue-50 text-blue-700 border-blue-200",
-    COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    ON_HOLD: "bg-amber-50 text-amber-700 border-amber-200",
-    CANCELLED: "bg-red-50 text-red-700 border-red-200",
-    REFERRED: "bg-red-50 text-red-700 border-red-200",
+    PLANNED: "bg-muted text-foreground border-border",
+    IN_PROGRESS: "bg-primary-muted/60 text-primary border-primary/25",
+    COMPLETED: "bg-success-muted/60 text-success border-success/25",
+    ON_HOLD: "bg-warning-muted/60 text-warning border-warning/25",
+    CANCELLED: "bg-danger-muted/60 text-danger border-danger/25",
+    REFERRED: "bg-danger-muted/60 text-danger border-danger/25",
   };
 
   const labels: Record<TxStatus, string> = {
@@ -200,7 +200,7 @@ function StatusBadge({ status }: { status: TxStatus }) {
 
   return (
     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${styles[status]}`}>
-      <span className={`w-2 h-2 rounded-full ${status === 'COMPLETED' ? 'bg-emerald-500' : status === 'IN_PROGRESS' ? 'bg-blue-500' : status === 'ON_HOLD' ? 'bg-amber-500' : status === 'CANCELLED' ? 'bg-red-500' : 'bg-slate-400'}`} />
+      <span className={`w-2 h-2 rounded-full ${status === 'COMPLETED' ? 'bg-success' : status === 'IN_PROGRESS' ? 'bg-primary' : status === 'ON_HOLD' ? 'bg-warning' : status === 'CANCELLED' ? 'bg-danger' : 'bg-muted-foreground/70'}`} />
       {labels[status]}
     </span>
   );
@@ -437,7 +437,7 @@ export function ProcedureDetailDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 backdrop-blur-sm p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-[#0369a1] text-white">
@@ -447,15 +447,15 @@ export function ProcedureDetailDialog({
             </div>
             <div>
               <h3 className="text-xl font-semibold">{proc.procedure.name}</h3>
-              <div className="flex items-center gap-3 mt-1 text-sm text-slate-300">
+              <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground/50">
                 <span className="flex items-center gap-1">
                   <Grid3X3 className="w-3 h-3" />
                   {getCategoryName(proc.procedure.category)}
                 </span>
                 {proc.procedure.code && (
                   <>
-                    <span className="text-slate-500">|</span>
-                    <span className="font-mono text-blue-300">{proc.procedure.code}</span>
+                    <span className="text-muted-foreground">|</span>
+                    <span className="font-mono text-primary/60">{proc.procedure.code}</span>
                   </>
                 )}
               </div>
@@ -464,16 +464,16 @@ export function ProcedureDetailDialog({
           <div className="flex items-center gap-3">
             <div className="text-right mr-4">
               <p className="text-2xl font-bold text-white">{currency} {fmt(totalCost)}</p>
-              <p className="text-xs text-slate-400 uppercase tracking-wide">Total Cost</p>
+              <p className="text-xs text-muted-foreground/70 uppercase tracking-wide">Total Cost</p>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors">
+            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg text-muted-foreground/70 hover:text-white transition-colors">
               <X className="w-6 h-6" />
             </button>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-1 px-6 py-3 bg-slate-50 border-b border-slate-200">
+        <div className="flex items-center gap-1 px-6 py-3 bg-muted/50 border-b border-border">
           {[
             { id: 'overview', label: 'Overview', icon: FileText },
             // { id: 'chart', label: 'Dental Chart', icon: Grid3X3 },
@@ -486,8 +486,8 @@ export function ProcedureDetailDialog({
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
                 activeTab === tab.id
-                  ? "bg-white text-blue-600 shadow-sm border border-slate-200"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
+                  ? "bg-white text-primary shadow-sm border border-border"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               )}
             >
               <tab.icon className="w-4 h-4" />
@@ -497,20 +497,20 @@ export function ProcedureDetailDialog({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
+        <div className="flex-1 overflow-y-auto p-6 bg-muted/50">
           {activeTab === 'overview' && (
             <div className="grid grid-cols-3 gap-6">
               <div className="col-span-2 space-y-6">
-                <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-                  <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-slate-500" />
-                    <h3 className="text-sm font-semibold text-slate-700">Treatment Details</h3>
+                <div className="bg-white rounded-lg shadow-sm border border-border overflow-hidden">
+                  <div className="px-4 py-3 bg-muted/50 border-b border-border flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-muted-foreground" />
+                    <h3 className="text-sm font-semibold text-foreground">Treatment Details</h3>
                   </div>
                   <div className="p-4">
                     <div className="grid grid-cols-2 gap-8">
                       <div className="space-y-4">
-                        <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                          <span className="text-sm text-slate-500">Procedure Status</span>
+                        <div className="flex justify-between items-center py-2 border-b border-border/60">
+                          <span className="text-sm text-muted-foreground">Procedure Status</span>
                           {!readOnly ? (
                             <div className="flex items-center gap-2">
                               <StatusBadge status={proc.status} />
@@ -518,7 +518,7 @@ export function ProcedureDetailDialog({
                                 value={proc.status}
                                 onChange={(e) => handleStatusUpdate(e.target.value as TxStatus)}
                                 disabled={updatingStatus}
-                                className="text-sm rounded-lg border border-slate-300 px-2 py-1 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="text-sm rounded-lg border border-input px-2 py-1 bg-white focus:ring-2 focus:ring-primary/60 focus:border-primary/60"
                               >
                                 <option value="PLANNED">Planned</option>
                                 <option value="IN_PROGRESS">In Progress</option>
@@ -526,59 +526,59 @@ export function ProcedureDetailDialog({
                                 <option value="ON_HOLD">On Hold</option>
                                 <option value="CANCELLED">Cancelled</option>
                               </select> */}
-                              {updatingStatus && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
+                              {updatingStatus && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
                             </div>
                           ) : (
                             <StatusBadge status={proc.status} />
                           )}
                         </div>
-                        <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                          <span className="text-sm text-slate-500">Session Type</span>
-                          <span className="text-sm font-medium text-slate-800">
+                        <div className="flex justify-between items-center py-2 border-b border-border/60">
+                          <span className="text-sm text-muted-foreground">Session Type</span>
+                          <span className="text-sm font-medium text-foreground">
                             {isMultiSession ? `Multi-Session (${proc.sessionCount} planned)` : 'Single Session'}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                          <span className="text-sm text-slate-500">Billing Type</span>
-                          <span className="text-sm font-medium text-slate-800">
+                        <div className="flex justify-between items-center py-2 border-b border-border/60">
+                          <span className="text-sm text-muted-foreground">Billing Type</span>
+                          <span className="text-sm font-medium text-foreground">
                             {proc.billingType === 'PAY_PARTIALLY' ? 'Pay Per Visit' : 'Full Upfront'}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                          <span className="text-sm text-slate-500">Payment Status</span>
+                        <div className="flex justify-between items-center py-2 border-b border-border/60">
+                          <span className="text-sm text-muted-foreground">Payment Status</span>
                           <span className={cn(
                             "text-xs font-medium px-2.5 py-0.5 rounded-full border",
-                            proc.paymentStatus === 'PAID' ? "bg-green-100 text-green-700 border-green-200" :
-                              proc.paymentStatus === 'PARTIALLY_PAID' ? "bg-amber-100 text-amber-700 border-amber-200" :
-                                "bg-slate-100 text-slate-700 border-slate-200"
+                            proc.paymentStatus === 'PAID' ? "bg-success-muted text-success border-success/25" :
+                              proc.paymentStatus === 'PARTIALLY_PAID' ? "bg-warning-muted text-warning border-warning/25" :
+                                "bg-muted text-foreground border-border"
                           )}>
                             {proc.paymentStatus || 'OPEN'}
                           </span>
                         </div>
                       </div>
                       <div className="space-y-4">
-                        <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                          <span className="text-sm text-slate-500">Procedure Visit Group</span>
-                          <span className="text-sm font-medium text-slate-800">Visit {proc.visitGroup}</span>
+                        <div className="flex justify-between items-center py-2 border-b border-border/60">
+                          <span className="text-sm text-muted-foreground">Procedure Visit Group</span>
+                          <span className="text-sm font-medium text-foreground">Visit {proc.visitGroup}</span>
                         </div>
-                        <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                          <span className="text-sm text-slate-500">Teeth</span>
-                          <span className="text-sm font-mono font-medium text-slate-800">
+                        <div className="flex justify-between items-center py-2 border-b border-border/60">
+                          <span className="text-sm text-muted-foreground">Teeth</span>
+                          <span className="text-sm font-mono font-medium text-foreground">
                             {currentTeeth.length > 0 ? currentTeeth.join(', ') : '—'}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                          <span className="text-sm text-slate-500">Surfaces</span>
+                        <div className="flex justify-between items-center py-2 border-b border-border/60">
+                          <span className="text-sm text-muted-foreground">Surfaces</span>
                           <span
-                            className="text-sm font-mono font-medium text-slate-800"
+                            className="text-sm font-mono font-medium text-foreground"
                             title={formatSurfacesLong(currentSurfaces)}
                           >
                             {abbrev || '—'}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                          <span className="text-sm text-slate-500">Estimated Price</span>
-                          <span className="text-sm font-mono font-bold text-slate-800">
+                        <div className="flex justify-between items-center py-2 border-b border-border/60">
+                          <span className="text-sm text-muted-foreground">Estimated Price</span>
+                          <span className="text-sm font-mono font-bold text-foreground">
                             {fmt(totalCost)}
                           </span>
                         </div>
@@ -589,44 +589,44 @@ export function ProcedureDetailDialog({
 
                 {proc.performedNotes && (
                   <div className="bg-white rounded-lg shadow-sm border-l-4 border-l-amber-400 overflow-hidden">
-                    <div className="px-4 py-3 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-amber-600" />
-                      <h3 className="text-sm font-semibold text-amber-800">Clinical Notes</h3>
+                    <div className="px-4 py-3 bg-warning-muted/60 border-b border-warning/20 flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-warning" />
+                      <h3 className="text-sm font-semibold text-warning">Clinical Notes</h3>
                     </div>
                     <div className="p-4">
-                      <p className="text-slate-700 text-sm leading-relaxed">{proc.performedNotes}</p>
+                      <p className="text-foreground text-sm leading-relaxed">{proc.performedNotes}</p>
                     </div>
                   </div>
                 )}
               </div>
 
               <div className="space-y-6">
-                <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-                  <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-slate-500" />
-                    <h3 className="text-sm font-semibold text-slate-700">Quick Stats</h3>
+                <div className="bg-white rounded-lg shadow-sm border border-border overflow-hidden">
+                  <div className="px-4 py-3 bg-muted/50 border-b border-border flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                    <h3 className="text-sm font-semibold text-foreground">Quick Stats</h3>
                   </div>
                   <div className="p-4 space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-500">Treatment Sessions</span>
-                      <span className="text-lg font-bold text-slate-800">{completedSessions}/{totalSessions}</span>
+                      <span className="text-sm text-muted-foreground">Treatment Sessions</span>
+                      <span className="text-lg font-bold text-foreground">{completedSessions}/{totalSessions}</span>
                     </div>
-                    <div className="w-full bg-slate-200 rounded-full h-2">
+                    <div className="w-full bg-muted rounded-full h-2">
                       <div
-                        className="bg-green-500 h-2 rounded-full transition-all"
+                        className="bg-success h-2 rounded-full transition-all"
                         style={{ width: `${totalSessions > 0 ? (completedSessions / totalSessions) * 100 : 0}%` }}
                       />
                     </div>
-                    <div className="pt-2 border-t border-slate-100">
+                    <div className="pt-2 border-t border-border/60">
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm text-slate-500">Next Session</span>
-                        <span className="text-lg font-bold text-blue-600">#{nextSessionNumber}</span>
+                        <span className="text-sm text-muted-foreground">Next Session</span>
+                        <span className="text-lg font-bold text-primary">#{nextSessionNumber}</span>
                       </div>
                     </div>
-                    <div className="pt-2 border-t border-slate-100 space-y-2">
+                    <div className="pt-2 border-t border-border/60 space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-slate-500">Estimated</span>
-                        <span className="text-sm font-mono font-medium text-slate-700">{fmt(totalCost)}</span>
+                        <span className="text-xs text-muted-foreground">Estimated</span>
+                        <span className="text-sm font-mono font-medium text-foreground">{fmt(totalCost)}</span>
                       </div>
 
                     </div>
@@ -636,7 +636,7 @@ export function ProcedureDetailDialog({
                 {!readOnly && proc.status !== 'CANCELLED' && proc.status !== 'COMPLETED' && (
                   <button
                     onClick={onContinueTreatment}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-medium rounded-lg shadow-lg shadow-emerald-500/30 hover:from-emerald-600 hover:to-emerald-700 transition-all"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-success to-success text-white font-medium rounded-lg shadow-lg shadow-emerald-500/30 hover:from-success hover:to-success transition-all"
                   >
                     <Play className="w-5 h-5" />
                     Continue Treatment
@@ -667,11 +667,11 @@ export function ProcedureDetailDialog({
                             <div className="flex items-center gap-4 flex-1">
                               <div className={cn(
                                 "w-12 h-12 rounded-xl flex items-center justify-center shrink-0",
-                                session.status === 'COMPLETED' ? "bg-green-100" : "bg-blue-100"
+                                session.status === 'COMPLETED' ? "bg-success-muted" : "bg-primary-muted"
                               )}>
                                 {session.status === 'COMPLETED' ?
-                                  <CheckCircle className="w-6 h-6 text-green-600" /> :
-                                  <span className="text-xl font-bold text-blue-600">{session.sessionNumber}</span>
+                                  <CheckCircle className="w-6 h-6 text-success" /> :
+                                  <span className="text-xl font-bold text-primary">{session.sessionNumber}</span>
                                 }
                               </div>
 
@@ -680,11 +680,11 @@ export function ProcedureDetailDialog({
                                   <div className="space-y-3">
                                     <div className="grid grid-cols-3 gap-3">
                                       <div>
-                                        <label className="text-xs font-medium text-slate-500">Status</label>
+                                        <label className="text-xs font-medium text-muted-foreground">Status</label>
                                         <select
                                           value={sessionFormData.status}
                                           onChange={(e) => setSessionFormData({ ...sessionFormData, status: e.target.value })}
-                                          className="w-full mt-1 text-sm rounded-lg border border-slate-300 px-3 py-2"
+                                          className="w-full mt-1 text-sm rounded-lg border border-input px-3 py-2"
                                         >
                                           <option value="PENDING">Pending</option>
                                           <option value="IN_PROGRESS">In Progress</option>
@@ -693,44 +693,44 @@ export function ProcedureDetailDialog({
                                         </select>
                                       </div>
                                       <div>
-                                        <label className="text-xs font-medium text-slate-500">Date</label>
+                                        <label className="text-xs font-medium text-muted-foreground">Date</label>
                                         <input
                                           type="date"
                                           value={sessionFormData.performedDate}
                                           onChange={(e) => setSessionFormData({ ...sessionFormData, performedDate: e.target.value })}
-                                          className="w-full mt-1 text-sm rounded-lg border border-slate-300 px-3 py-2"
+                                          className="w-full mt-1 text-sm rounded-lg border border-input px-3 py-2"
                                         />
                                       </div>
                                       <div>
-                                        <label className="text-xs font-medium text-slate-500">Price (UGX)</label>
+                                        <label className="text-xs font-medium text-muted-foreground">Price (UGX)</label>
                                         <input
                                           type="number"
                                           value={sessionFormData.sessionCost}
                                           onChange={(e) => setSessionFormData({ ...sessionFormData, sessionCost: e.target.value })}
-                                          className="w-full mt-1 text-sm rounded-lg border border-slate-300 px-3 py-2"
+                                          className="w-full mt-1 text-sm rounded-lg border border-input px-3 py-2"
                                         />
                                       </div>
                                     </div>
                                     <div>
-                                      <label className="text-xs font-medium text-slate-500">Notes</label>
+                                      <label className="text-xs font-medium text-muted-foreground">Notes</label>
                                       <textarea
                                         value={sessionFormData.performedNotes}
                                         onChange={(e) => setSessionFormData({ ...sessionFormData, performedNotes: e.target.value })}
                                         rows={2}
-                                        className="w-full mt-1 text-sm rounded-lg border border-slate-300 px-3 py-2 resize-none"
+                                        className="w-full mt-1 text-sm rounded-lg border border-input px-3 py-2 resize-none"
                                         placeholder="Enter session notes..."
                                       />
                                     </div>
                                     <div className="flex gap-2">
                                       <button
                                         onClick={() => saveSessionChanges(session.id)}
-                                        className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
+                                        className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary"
                                       >
                                         Save Changes
                                       </button>
                                       <button
                                         onClick={cancelSessionEdit}
-                                        className="px-4 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50"
+                                        className="px-4 py-2 bg-white border border-input text-foreground text-sm font-medium rounded-lg hover:bg-muted/50"
                                       >
                                         Cancel
                                       </button>
@@ -739,19 +739,19 @@ export function ProcedureDetailDialog({
                                 ) : (
                                   <>
                                     <div className="flex items-center gap-3">
-                                      <p className="font-semibold text-slate-800">{session.sessionLabel || `Session ${session.sessionNumber}`}</p>
+                                      <p className="font-semibold text-foreground">{session.sessionLabel || `Session ${session.sessionNumber}`}</p>
                                       <span className={cn(
                                         "text-xs px-2 py-0.5 rounded-full font-medium",
-                                        session.status === 'COMPLETED' ? "bg-green-100 text-green-700" :
-                                          session.status === 'IN_PROGRESS' ? "bg-blue-100 text-blue-700" :
-                                              "bg-slate-100 text-slate-600"
+                                        session.status === 'COMPLETED' ? "bg-success-muted text-success" :
+                                          session.status === 'IN_PROGRESS' ? "bg-primary-muted text-primary" :
+                                              "bg-muted text-muted-foreground"
                                       )}>
                                         {session.status.replace('_', ' ')}
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-3 mt-1">
                                       {session.performedDate && (
-                                        <span className="text-xs text-slate-500 flex items-center gap-1">
+                                        <span className="text-xs text-muted-foreground flex items-center gap-1">
                                           <Clock className="w-3 h-3" />
                                           {new Date(session.performedDate).toLocaleDateString()}
                                         </span>
@@ -759,7 +759,7 @@ export function ProcedureDetailDialog({
 
                                     </div>
                                     {session.performedNotes && (
-                                      <p className="mt-2 text-sm text-slate-600 bg-slate-50 p-2 rounded">{session.performedNotes}</p>
+                                      <p className="mt-2 text-sm text-muted-foreground bg-muted/50 p-2 rounded">{session.performedNotes}</p>
                                     )}
                                   </>
                                 )}
@@ -772,7 +772,7 @@ export function ProcedureDetailDialog({
                                 {/* Audit badge */}
                                 {session.edits?.length > 0 && (
                                   <span
-                                    className="text-[10px] text-slate-400 flex items-center gap-0.5 mr-1"
+                                    className="text-[10px] text-muted-foreground/70 flex items-center gap-0.5 mr-1"
                                     title={`Edited ${session.edits.length} time(s)`}
                                   >
                                     <Edit3 className="w-3 h-3" /> Edited
@@ -781,14 +781,14 @@ export function ProcedureDetailDialog({
 
                                 <button
                                   onClick={() => setEditTarget(session)}
-                                  className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                  className="p-2 text-muted-foreground/70 hover:text-primary hover:bg-primary-muted/60 rounded-lg transition-colors"
                                   title="Edit session (audited)"
                                 >
                                   <Edit3 className="w-4 h-4" />
                                 </button>
                                 <button
                                   onClick={() => setVoidTarget(session)}
-                                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  className="p-2 text-muted-foreground/70 hover:text-danger hover:bg-danger-muted/60 rounded-lg transition-colors"
                                   title="Delete session (reverses all side effects)"
                                 >
                                   <X className="w-4 h-4" />
@@ -798,7 +798,7 @@ export function ProcedureDetailDialog({
 
                             {/* Show deleted/voided badge for cancelled sessions */}
                             {session.status === 'CANCELLED' && (
-                              <span className="text-[10px] font-medium text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-200 ml-4">
+                              <span className="text-[10px] font-medium text-danger bg-danger-muted/60 px-2 py-0.5 rounded-full border border-danger/25 ml-4">
                                 Deleted
                               </span>
                             )}
@@ -810,10 +810,10 @@ export function ProcedureDetailDialog({
                   })}
                 </div>
               ) : (
-                <div className="text-center py-16 bg-white rounded-xl border border-dashed border-slate-300">
-                  <Layers className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                  <p className="text-slate-500 font-medium">No sessions recorded yet</p>
-                  <p className="text-sm text-slate-400 mt-1">Click "Continue Treatment" to add the first session</p>
+                <div className="text-center py-16 bg-white rounded-xl border border-dashed border-input">
+                  <Layers className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
+                  <p className="text-muted-foreground font-medium">No sessions recorded yet</p>
+                  <p className="text-sm text-muted-foreground/70 mt-1">Click "Continue Treatment" to add the first session</p>
                 </div>
               )}
 
@@ -821,7 +821,7 @@ export function ProcedureDetailDialog({
                 <div className="flex justify-center pt-4">
                   <button
                     onClick={onContinueTreatment}
-                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-medium rounded-lg shadow-lg shadow-emerald-500/30 hover:from-emerald-600 hover:to-emerald-700 transition-all"
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-success to-success text-white font-medium rounded-lg shadow-lg shadow-emerald-500/30 hover:from-success hover:to-success transition-all"
                   >
                     <Play className="w-5 h-5" />
                     Continue Treatment — Session #{nextSessionNumber}
@@ -835,26 +835,26 @@ export function ProcedureDetailDialog({
             <div className="grid grid-cols-2 gap-4">
               {proc.procedure.inputs?.length > 0 ? (
                 proc.procedure.inputs.map((input, idx) => (
-                  <div key={idx} className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 flex items-center justify-between">
+                  <div key={idx} className="bg-white rounded-lg shadow-sm border border-border p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
                         <Package className="w-5 h-5 text-purple-600" />
                       </div>
                       <div>
-                        <p className="font-medium text-slate-800">{input.inventoryItem.name}</p>
-                        <p className="text-xs text-slate-500">{input.inventoryItem.category}</p>
+                        <p className="font-medium text-foreground">{input.inventoryItem.name}</p>
+                        <p className="text-xs text-muted-foreground">{input.inventoryItem.category}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-slate-700">× {input.quantityUsed}</p>
-                      <p className="text-xs text-slate-500">{input.inventoryItem.unit}</p>
+                      <p className="font-medium text-foreground">× {input.quantityUsed}</p>
+                      <p className="text-xs text-muted-foreground">{input.inventoryItem.unit}</p>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="col-span-2 text-center py-16 bg-white rounded-xl border border-dashed border-slate-300">
-                  <Package className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                  <p className="text-slate-500">No default materials for this procedure</p>
+                <div className="col-span-2 text-center py-16 bg-white rounded-xl border border-dashed border-input">
+                  <Package className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
+                  <p className="text-muted-foreground">No default materials for this procedure</p>
                 </div>
               )}
             </div>
@@ -892,10 +892,10 @@ export function ProcedureDetailDialog({
         />
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-white border-t border-slate-200 flex justify-end gap-3">
+        <div className="px-6 py-4 bg-white border-t border-border flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-white border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors"
+            className="px-4 py-2 bg-white border border-input text-foreground font-medium rounded-lg hover:bg-muted/50 transition-colors"
           >
             Close
           </button>

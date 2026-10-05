@@ -51,20 +51,20 @@ export function PharmacySalesFilters({ onFilterChange, onReset, locations = [] }
       <div className="flex flex-wrap items-center gap-2">
         {/* Search Input - Main Filter */}
         <div className="relative w-full md:w-64">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground/70" />
           <Input 
             placeholder="Search patient or code..." 
             onChange={(e) => handleFilterChange('patientId', e.target.value)}
-            className="pl-9 h-9 text-sm bg-white shadow-sm border-slate-200 focus-visible:ring-primary/20"
+            className="pl-9 h-9 text-sm bg-white shadow-sm border-border focus-visible:ring-primary/20"
           />
         </div>
 
         {/* Location Dropdown */}
         {locations.length > 0 && (
           <Select onValueChange={(v) => handleFilterChange('locationId', v)}>
-            <SelectTrigger className="w-[140px] h-9 text-sm bg-white border-slate-200">
+            <SelectTrigger className="w-[140px] h-9 text-sm bg-white border-border">
               <div className="flex items-center gap-2 truncate">
-                <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                <MapPin className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
                 <SelectValue placeholder="Location" />
               </div>
             </SelectTrigger>
@@ -79,9 +79,9 @@ export function PharmacySalesFilters({ onFilterChange, onReset, locations = [] }
 
         {/* Type Dropdown */}
         <Select onValueChange={(v) => handleFilterChange('saleType', v as SaleType)}>
-          <SelectTrigger className="w-[130px] h-9 text-sm bg-white border-slate-200">
+          <SelectTrigger className="w-[130px] h-9 text-sm bg-white border-border">
             <div className="flex items-center gap-2 truncate">
-              <Tag className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+              <Tag className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
               <SelectValue placeholder="Type" />
             </div>
           </SelectTrigger>
@@ -94,9 +94,9 @@ export function PharmacySalesFilters({ onFilterChange, onReset, locations = [] }
 
         {/* Status Dropdown */}
         <Select onValueChange={(v) => handleFilterChange('status', v as PharmacySaleStatus)}>
-          <SelectTrigger className="w-[140px] h-9 text-sm bg-white border-slate-200">
+          <SelectTrigger className="w-[140px] h-9 text-sm bg-white border-border">
             <div className="flex items-center gap-2 truncate">
-              <ListFilter className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+              <ListFilter className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
               <SelectValue placeholder="Status" />
             </div>
           </SelectTrigger>
@@ -111,11 +111,11 @@ export function PharmacySalesFilters({ onFilterChange, onReset, locations = [] }
         </Select>
 
         {/* Unified Date Range (Visual) */}
-        <div className="flex items-center bg-white border border-slate-200 rounded-md h-9 px-1">
+        <div className="flex items-center bg-white border border-border rounded-md h-9 px-1">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" className="h-7 px-2 text-xs font-normal hover:bg-slate-100">
-                <CalendarIcon className="mr-2 h-3 w-3 text-slate-400" />
+              <Button variant="ghost" className="h-7 px-2 text-xs font-normal hover:bg-muted">
+                <CalendarIcon className="mr-2 h-3 w-3 text-muted-foreground/70" />
                 {dateFrom ? format(dateFrom, 'MMM d') : 'From'}
               </Button>
             </PopoverTrigger>
@@ -127,10 +127,10 @@ export function PharmacySalesFilters({ onFilterChange, onReset, locations = [] }
               />
             </PopoverContent>
           </Popover>
-          <div className="h-4 w-[1px] bg-slate-200 mx-0.5" />
+          <div className="h-4 w-[1px] bg-muted mx-0.5" />
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" className="h-7 px-2 text-xs font-normal hover:bg-slate-100">
+              <Button variant="ghost" className="h-7 px-2 text-xs font-normal hover:bg-muted">
                 {dateTo ? format(dateTo, 'MMM d') : 'To'}
               </Button>
             </PopoverTrigger>
@@ -151,7 +151,7 @@ export function PharmacySalesFilters({ onFilterChange, onReset, locations = [] }
             variant="ghost" 
             size="sm" 
             onClick={clearAll} 
-            className="h-9 px-3 text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+            className="h-9 px-3 text-muted-foreground hover:text-danger hover:bg-danger-muted/60 transition-colors"
           >
             <X className="h-4 w-4 mr-1.5" />
             Reset
@@ -162,17 +162,17 @@ export function PharmacySalesFilters({ onFilterChange, onReset, locations = [] }
       {/* Active Filter Badges - Slim Version */}
       {activeFilters.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 pt-1">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Active:</span>
+          <span className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-wider mr-1">Active:</span>
           {activeFilters.map((filter) => (
             <Badge 
               key={filter} 
               variant="secondary" 
-              className="bg-slate-100 text-slate-600 border-none hover:bg-slate-200 px-2 py-0 h-5 text-[11px] font-medium transition-all"
+              className="bg-muted text-muted-foreground border-none hover:bg-muted px-2 py-0 h-5 text-[11px] font-medium transition-all"
             >
               {filter.replace(/([A-Z])/g, ' $1').trim()}
               <button 
                 onClick={() => handleFilterChange(filter as keyof SalesFilters, undefined)}
-                className="ml-1.5 rounded-full hover:bg-slate-300 p-0.5"
+                className="ml-1.5 rounded-full hover:bg-border p-0.5"
               >
                 <X className="h-2.5 w-2.5" />
               </button>

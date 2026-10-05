@@ -101,18 +101,18 @@ export const CATEGORY_LABELS: Record<AssetCategory, string> = {
 };
 
 export const STATUS_CONFIG: Record<AssetStatus, { label: string; color: string; bg: string }> = {
-  ACTIVE:            { label: 'Active',            color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
-  IDLE:              { label: 'Idle',              color: 'text-slate-600',   bg: 'bg-slate-50 border-slate-200' },
-  UNDER_MAINTENANCE: { label: 'Maintenance',       color: 'text-amber-700',  bg: 'bg-amber-50 border-amber-200' },
-  DISPOSED:          { label: 'Disposed',          color: 'text-red-600',    bg: 'bg-red-50 border-red-200' },
-  LOST:              { label: 'Lost',              color: 'text-red-700',    bg: 'bg-red-50 border-red-200' },
-  LEASED:            { label: 'Leased',            color: 'text-blue-700',   bg: 'bg-blue-50 border-blue-200' },
+  ACTIVE:            { label: 'Active',            color: 'text-success', bg: 'bg-success-muted/60 border-success/25' },
+  IDLE:              { label: 'Idle',              color: 'text-muted-foreground',   bg: 'bg-muted/50 border-border' },
+  UNDER_MAINTENANCE: { label: 'Maintenance',       color: 'text-warning',  bg: 'bg-warning-muted/60 border-warning/25' },
+  DISPOSED:          { label: 'Disposed',          color: 'text-danger',    bg: 'bg-danger-muted/60 border-danger/25' },
+  LOST:              { label: 'Lost',              color: 'text-danger',    bg: 'bg-danger-muted/60 border-danger/25' },
+  LEASED:            { label: 'Leased',            color: 'text-primary',   bg: 'bg-primary-muted/60 border-primary/25' },
 };
 
 export const CONDITION_CONFIG: Record<AssetCondition, { label: string; color: string }> = {
-  EXCELLENT: { label: 'Excellent', color: 'text-emerald-600' },
-  GOOD:      { label: 'Good',     color: 'text-green-600' },
-  FAIR:      { label: 'Fair',     color: 'text-amber-600' },
-  POOR:      { label: 'Poor',     color: 'text-orange-600' },
-  SCRAP:     { label: 'Scrap',    color: 'text-red-600' },
+  EXCELLENT: { label: 'Excellent', color: 'text-success' },
+  GOOD:      { label: 'Good',     color: 'text-success' },
+  FAIR:      { label: 'Fair',     color: 'text-warning' },
+  POOR:      { label: 'Poor',     color: 'text-warning' },
+  SCRAP:     { label: 'Scrap',    color: 'text-danger' },
 };

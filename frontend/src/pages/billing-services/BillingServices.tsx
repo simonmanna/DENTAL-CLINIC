@@ -109,21 +109,21 @@ export default function BillingServicesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 p-2 space-y-2">
+    <div className="min-h-screen bg-muted/50 p-2 space-y-2">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white p-2 rounded-xl border border-sky-100 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white p-2 rounded-xl border border-primary/20 shadow-sm">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-sky-600" />
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Sparkles className="h-6 w-6 text-primary" />
             Billing Services
           </h1>
-          <p className="text-slate-500 mt-1">
+          <p className="text-muted-foreground mt-1">
             Manage consultation fees, procedures, and service pricing
           </p>
         </div>
         <Button 
           onClick={() => setIsFormOpen(true)}
-          className="bg-sky-600 hover:bg-sky-700 text-white shadow-md shadow-sky-200"
+          className="bg-primary hover:bg-primary text-white shadow-md shadow-sky-200"
         >
           <Plus className="mr-2 h-4 w-4" />
           Add Service
@@ -150,8 +150,8 @@ export default function BillingServicesPage() {
         }
       }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="border-b border-slate-100 pb-4">
-            <DialogTitle className="text-xl text-sky-900">
+          <DialogHeader className="border-b border-border/60 pb-4">
+            <DialogTitle className="text-xl text-primary">
               {editingService ? 'Edit Billing Service' : 'Create Billing Service'}
             </DialogTitle>
           </DialogHeader>
@@ -182,7 +182,7 @@ export default function BillingServicesPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-danger hover:bg-danger"
             >
               Delete
             </AlertDialogAction>

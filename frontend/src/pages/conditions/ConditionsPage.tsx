@@ -87,9 +87,9 @@ const AREA_LABELS: Record<string, string> = {
 };
 
 const AREA_VARIANTS: Record<string, string> = {
-  Tooth: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  Root: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-  Arch: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  Tooth: "bg-primary-muted text-primary",
+  Root: "bg-warning-muted text-warning",
+  Arch: "bg-success-muted text-success",
   Quadrant: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
   "Soft Tissue": "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300",
 };
@@ -361,7 +361,7 @@ const { data: conditions = [], isLoading } = useQuery({
                   <TableRow key={condition.id} className="group">
                     <TableCell className="font-mono text-xs">
                       {!condition.isSystem && (
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 mr-2" />
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary mr-2" />
                       )}
                       {condition.snodentCode || <span className="text-muted-foreground">—</span>}
                     </TableCell>
@@ -383,7 +383,7 @@ const { data: conditions = [], isLoading } = useQuery({
                         </Badge>
                       </div>
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-blue-600 dark:text-blue-400">
+                    <TableCell className="font-mono text-xs text-primary dark:text-primary/70">
                       {condition.icd10Code || "—"}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground truncate max-w-[200px]">
@@ -408,7 +408,7 @@ const { data: conditions = [], isLoading } = useQuery({
                             onClick={() => toggleFavouriteMutation.mutate(condition.id)}
                           >
                             {condition.isFavourite ? (
-                              <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                              <Star className="h-3.5 w-3.5 fill-warning text-warning" />
                             ) : (
                               <StarOff className="h-3.5 w-3.5 text-muted-foreground" />
                             )}

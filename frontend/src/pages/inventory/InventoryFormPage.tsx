@@ -222,27 +222,27 @@ export default function InventoryFormPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 px-0 mx-0">
+    <div className="flex flex-col min-h-screen bg-muted/50 px-0 mx-0">
       {/* ── AdminLTE Style Header ── */}
-      <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-0 py-3 flex items-center justify-between shadow-sm">
+      <div className="sticky top-0 z-10 bg-white border-b border-border px-0 py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate(-1)}
-            className="text-slate-500 hover:text-sky-600 hover:bg-sky-50"
+            className="text-muted-foreground hover:text-primary hover:bg-primary-muted/60"
           >
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </Button>
-          <div className="h-8 w-[1px] bg-slate-200 mx-1" />
+          <div className="h-8 w-[1px] bg-muted mx-1" />
           <div>
-            <h1 className="text-xl font-bold text-slate-800">
+            <h1 className="text-xl font-bold text-foreground">
               {isEdit ? "Edit Item" : "Create New Item"}
             </h1>
-            <nav className="flex text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+            <nav className="flex text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wider">
               <span>Inventory</span>
               <span className="mx-2">/</span>
-              <span className="text-sky-600">
+              <span className="text-primary">
                 {isEdit ? form.itemCode : "New Record"}
               </span>
             </nav>
@@ -260,7 +260,7 @@ export default function InventoryFormPage() {
           <Button
             onClick={handleSubmit}
             disabled={loading}
-            className="bg-sky-600 hover:bg-sky-700 text-white shadow-sm px-6"
+            className="bg-primary hover:bg-primary text-white shadow-sm px-6"
           >
             {loading ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -288,10 +288,10 @@ export default function InventoryFormPage() {
             {/* Left Column: Primary Details */}
             <div className="lg:col-span-2 space-y-2 px-0 mx-0">
               {/* General Information Card */}
-              <Card className="border-none shadow-md ring-1 ring-slate-200">
-                <CardHeader className="border-b border-slate-50 bg-slate-50/50 rounded-t-lg border-t-4 border-t-sky-500">
-                  <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-700 uppercase tracking-wide">
-                    <Info className="h-4 w-4 text-sky-600" /> General
+              <Card className="border-none shadow-md ring-1 ring-border">
+                <CardHeader className="border-b border-border/40 bg-muted/50 rounded-t-lg border-t-4 border-t-sky-500">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground uppercase tracking-wide">
+                    <Info className="h-4 w-4 text-primary" /> General
                     Information
                   </CardTitle>
                 </CardHeader>
@@ -300,7 +300,7 @@ export default function InventoryFormPage() {
                     <div className="space-y-2 md:col-span-2">
                       <Label
                         htmlFor="name"
-                        className="text-slate-600 font-semibold"
+                        className="text-muted-foreground font-semibold"
                       >
                         Item Display Name
                       </Label>
@@ -309,14 +309,14 @@ export default function InventoryFormPage() {
                         value={form.name}
                         onChange={(e) => set("name", e.target.value)}
                         placeholder="Enter full descriptive name..."
-                        className={`focus-visible:ring-sky-500 ${fieldErrors.name ? "border-red-500" : "border-slate-200"}`}
+                        className={`focus-visible:ring-primary/60 ${fieldErrors.name ? "border-danger/60" : "border-border"}`}
                       />
                     </div>
 
                     <div className="space-y-2">
                       <Label
                         htmlFor="itemCode"
-                        className="text-slate-600 font-semibold"
+                        className="text-muted-foreground font-semibold"
                       >
                         Internal Sku / Code
                       </Label>
@@ -327,13 +327,13 @@ export default function InventoryFormPage() {
                           set("itemCode", e.target.value.toUpperCase())
                         }
                         placeholder="SKU-XXXX"
-                        className="font-mono bg-slate-50 border-slate-200"
+                        className="font-mono bg-muted/50 border-border"
                         disabled={isEdit}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-slate-600 font-semibold">
+                      <Label className="text-muted-foreground font-semibold">
                         Classification
                       </Label>
                       <Select
@@ -342,7 +342,7 @@ export default function InventoryFormPage() {
                           set("categoryId", v === "NONE" ? "" : v)
                         }
                       >
-                        <SelectTrigger className="border-slate-200">
+                        <SelectTrigger className="border-border">
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
@@ -357,7 +357,7 @@ export default function InventoryFormPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-slate-600 font-semibold">
+                      <Label className="text-muted-foreground font-semibold">
                         Inventory Type
                       </Label>
                       <Select
@@ -386,7 +386,7 @@ export default function InventoryFormPage() {
                     <div className="space-y-2 md:col-span-2">
                       <Label
                         htmlFor="description"
-                        className="text-slate-600 font-semibold"
+                        className="text-muted-foreground font-semibold"
                       >
                         Notes & Description
                       </Label>
@@ -395,7 +395,7 @@ export default function InventoryFormPage() {
                         value={form.description}
                         onChange={(e) => set("description", e.target.value)}
                         rows={3}
-                        className="resize-none border-slate-200 focus-visible:ring-sky-500"
+                        className="resize-none border-border focus-visible:ring-primary/60"
                       />
                     </div>
                   </div>
@@ -403,31 +403,31 @@ export default function InventoryFormPage() {
               </Card>
 
               {/* Inventory & Stock Card */}
-              <Card className="border-none shadow-md ring-1 ring-slate-200 overflow-hidden">
-                <CardHeader className="border-b border-slate-50 bg-slate-50/50 border-t-4 border-t-sky-500">
-                  <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-700 uppercase tracking-wide">
-                    <BarChart3 className="h-4 w-4 text-sky-600" /> Stock &
+              <Card className="border-none shadow-md ring-1 ring-border overflow-hidden">
+                <CardHeader className="border-b border-border/40 bg-muted/50 border-t-4 border-t-sky-500">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground uppercase tracking-wide">
+                    <BarChart3 className="h-4 w-4 text-primary" /> Stock &
                     Measurement
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                    <div className="space-y-4 px-4 py-3 bg-sky-50/30 rounded-lg border border-sky-100">
+                    <div className="space-y-4 px-4 py-3 bg-primary-muted/30 rounded-lg border border-primary/20">
                       <div className="space-y-2">
-                        <Label className="text-sky-900 font-bold">
+                        <Label className="text-primary font-bold">
                           Standard Unit of Measure
                         </Label>
                         <Select
                           value={form.uom}
                           onValueChange={(v) => set("uom", v as UnitOfMeasure)}
                         >
-                          <SelectTrigger className="bg-white border-sky-200">
+                          <SelectTrigger className="bg-white border-primary/25">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             {UOM_GROUPS.map((group) => (
                               <React.Fragment key={group.label}>
-                                <div className="px-2 py-1 text-[10px] font-black text-slate-400 uppercase">
+                                <div className="px-2 py-1 text-[10px] font-black text-muted-foreground/70 uppercase">
                                   {group.label}
                                 </div>
                                 {group.items.map((uom) => (
@@ -441,21 +441,21 @@ export default function InventoryFormPage() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sky-900 font-bold">
+                        <Label className="text-primary font-bold">
                           Display Label
                         </Label>
                         <Input
                           value={form.unit}
                           onChange={(e) => set("unit", e.target.value)}
                           placeholder="e.g. Box of 50"
-                          className="bg-white border-sky-200"
+                          className="bg-white border-primary/25"
                         />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4">
                       <div className="space-y-2">
-                        <Label className="text-slate-600 font-semibold">
+                        <Label className="text-muted-foreground font-semibold">
                           Minimum Threshold
                         </Label>
                         <Input
@@ -463,40 +463,40 @@ export default function InventoryFormPage() {
                           value={form.minQuantity}
                           onChange={(e) => set("minQuantity", e.target.value)}
                         />
-                        <p className="text-[10px] text-slate-400 italic">
+                        <p className="text-[10px] text-muted-foreground/70 italic">
                           Triggers low-stock alerts
                         </p>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-slate-600 font-semibold">
+                        <Label className="text-muted-foreground font-semibold">
                           Unit Cost (UGX)
                         </Label>
                         <Input
                           type="number"
                           value={form.unitCost}
                           onChange={(e) => set("unitCost", e.target.value)}
-                          className="font-semibold text-sky-700"
+                          className="font-semibold text-primary"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-slate-600 font-semibold">
+                      <Label className="text-muted-foreground font-semibold">
                         Batch Tracking
                       </Label>
-                      <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                      <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border">
                         <div>
-                          <p className="text-sm font-medium text-slate-700">
+                          <p className="text-sm font-medium text-foreground">
                             Enable batch/lot tracking
                           </p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-muted-foreground">
                             Track items by batch number and expiry
                           </p>
                         </div>
                         <Switch
                           checked={form.batchTracking}
                           onCheckedChange={(v) => set("batchTracking", v)}
-                          className="data-[state=checked]:bg-sky-600"
+                          className="data-[state=checked]:bg-primary"
                         />
                       </div>
                     </div>
@@ -508,15 +508,15 @@ export default function InventoryFormPage() {
             {/* Right Column: Logistics & Status */}
             <div className="space-y-8">
               {/* Supplier & Location */}
-              <Card className="border-none shadow-md ring-1 ring-slate-200">
-                <CardHeader className="border-b border-slate-50 bg-slate-50/50 border-t-4 border-t-sky-500">
-                  <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-700 uppercase tracking-wide">
-                    <Truck className="h-4 w-4 text-sky-600" /> Logistics
+              <Card className="border-none shadow-md ring-1 ring-border">
+                <CardHeader className="border-b border-border/40 bg-muted/50 border-t-4 border-t-sky-500">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground uppercase tracking-wide">
+                    <Truck className="h-4 w-4 text-primary" /> Logistics
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-slate-600 font-semibold text-xs">
+                    <Label className="text-muted-foreground font-semibold text-xs">
                       Primary Supplier
                     </Label>
                     <Select
@@ -539,7 +539,7 @@ export default function InventoryFormPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-slate-600 font-semibold text-xs">
+                    <Label className="text-muted-foreground font-semibold text-xs">
                       Warehouse Location
                     </Label>
                     <Input
@@ -552,28 +552,28 @@ export default function InventoryFormPage() {
               </Card>
 
               {/* Visibility Status */}
-              <Card className="border-none shadow-md ring-1 ring-slate-200 overflow-hidden">
-                <CardHeader className="border-b border-slate-50 bg-slate-50/50 border-t-4 border-t-sky-500">
-                  <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-700 uppercase tracking-wide">
-                    <Activity className="h-4 w-4 text-sky-600" /> Status
+              <Card className="border-none shadow-md ring-1 ring-border overflow-hidden">
+                <CardHeader className="border-b border-border/40 bg-muted/50 border-t-4 border-t-sky-500">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground uppercase tracking-wide">
+                    <Activity className="h-4 w-4 text-primary" /> Status
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6">
                   <div
-                    className={`p-4 rounded-lg flex items-center justify-between transition-colors ${form.isActive ? "bg-emerald-50" : "bg-slate-100"}`}
+                    className={`p-4 rounded-lg flex items-center justify-between transition-colors ${form.isActive ? "bg-success-muted/60" : "bg-muted"}`}
                   >
                     <div>
-                      <p className="text-sm font-bold text-slate-700">
+                      <p className="text-sm font-bold text-foreground">
                         {form.isActive ? "Active" : "Archived"}
                       </p>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-tight">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-tight">
                         Visibility in System
                       </p>
                     </div>
                     <Switch
                       checked={form.isActive}
                       onCheckedChange={(v) => set("isActive", v)}
-                      className="data-[state=checked]:bg-emerald-500"
+                      className="data-[state=checked]:bg-success"
                     />
                   </div>
                 </CardContent>
@@ -581,7 +581,7 @@ export default function InventoryFormPage() {
 
               {/* Total Value Widget (AdminLTE style info box) */}
               {Number(form.quantity) > 0 && (
-                <div className="bg-sky-600 rounded-lg shadow-md p-4 text-white flex items-center gap-4">
+                <div className="bg-primary rounded-lg shadow-md p-4 text-white flex items-center gap-4">
                   <div className="p-3 bg-white/20 rounded-lg">
                     <Package className="h-6 w-6" />
                   </div>

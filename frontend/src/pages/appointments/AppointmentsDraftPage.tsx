@@ -113,13 +113,13 @@ const TYPE_COLOR: Record<
     bg: "#EFF6FF",
     border: "#3B82F6",
     text: "#1E40AF",
-    pill: "bg-blue-100 text-blue-700",
+    pill: "bg-primary-muted text-primary",
   },
   CLEANING: {
     bg: "#ECFDF5",
     border: "#10B981",
     text: "#065F46",
-    pill: "bg-emerald-100 text-emerald-700",
+    pill: "bg-success-muted text-success",
   },
   FILLING: {
     bg: "#F5F3FF",
@@ -131,19 +131,19 @@ const TYPE_COLOR: Record<
     bg: "#FEF2F2",
     border: "#EF4444",
     text: "#991B1B",
-    pill: "bg-red-100 text-red-700",
+    pill: "bg-danger-muted text-danger",
   },
   ROOT_CANAL: {
     bg: "#FFFBEB",
     border: "#F59E0B",
     text: "#92400E",
-    pill: "bg-amber-100 text-amber-700",
+    pill: "bg-warning-muted text-warning",
   },
   ORTHODONTIC: {
     bg: "#ECFEFF",
     border: "#06B6D4",
     text: "#155E75",
-    pill: "bg-cyan-100 text-cyan-700",
+    pill: "bg-primary-muted text-primary",
   },
   CROWN: {
     bg: "#FDF4FF",
@@ -161,31 +161,31 @@ const TYPE_COLOR: Record<
     bg: "#F0FDF4",
     border: "#22C55E",
     text: "#166534",
-    pill: "bg-green-100 text-green-700",
+    pill: "bg-success-muted text-success",
   },
   WHITENING: {
     bg: "#FFFAF0",
     border: "#F97316",
     text: "#9A3412",
-    pill: "bg-orange-100 text-orange-700",
+    pill: "bg-warning-muted text-warning",
   },
   EMERGENCY: {
     bg: "#FEF2F2",
     border: "#DC2626",
     text: "#7F1D1D",
-    pill: "bg-red-100 text-red-800",
+    pill: "bg-danger-muted text-danger",
   },
   FOLLOW_UP: {
     bg: "#F8FAFC",
     border: "#64748B",
     text: "#334155",
-    pill: "bg-slate-100 text-slate-700",
+    pill: "bg-muted text-foreground",
   },
   X_RAY: {
     bg: "#F0F9FF",
     border: "#0EA5E9",
     text: "#0C4A6E",
-    pill: "bg-sky-100 text-sky-700",
+    pill: "bg-primary-muted text-primary",
   },
   PEDIATRIC: {
     bg: "#FDF2F8",
@@ -197,7 +197,7 @@ const TYPE_COLOR: Record<
     bg: "#F1F5F9",
     border: "#94A3B8",
     text: "#475569",
-    pill: "bg-slate-100 text-slate-600",
+    pill: "bg-muted text-muted-foreground",
   },
 };
 
@@ -229,7 +229,7 @@ function SortTh({
         "px-4 py-3 text-left text-xs font-bold uppercase tracking-wider cursor-pointer select-none whitespace-nowrap group transition-colors",
         active
           ? "text-indigo-700 bg-indigo-50"
-          : "text-slate-500 hover:text-slate-700 hover:bg-slate-50",
+          : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
       )}
     >
       <div className="flex items-center gap-1.5">
@@ -271,12 +271,12 @@ function AptRow({
   return (
     <tr
       className={cn(
-        "group border-b border-slate-100 cursor-pointer transition-all duration-150",
+        "group border-b border-border/60 cursor-pointer transition-all duration-150",
         selected
           ? "bg-indigo-50/80 border-indigo-200"
           : isPast
-            ? "bg-amber-50/30 hover:bg-amber-50/60"
-            : "hover:bg-slate-50",
+            ? "bg-warning-muted/30 hover:bg-warning-muted/60"
+            : "hover:bg-muted/50",
       )}
     >
       {/* Draft indicator stripe */}
@@ -290,11 +290,11 @@ function AptRow({
       {/* # / Code */}
       <td className="px-4 py-3.5 whitespace-nowrap">
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-bold text-slate-400 font-mono">
+          <span className="text-xs font-bold text-muted-foreground/70 font-mono">
             {apt.appointmentCode}
           </span>
           {apt.isWalkIn && (
-            <span className="text-[9px] font-bold uppercase tracking-wider text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded w-fit">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-warning bg-warning-muted px-1.5 py-0.5 rounded w-fit">
               Walk-in
             </span>
           )}
@@ -308,14 +308,14 @@ function AptRow({
             {initials(apt.patient.firstName, apt.patient.lastName)}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-slate-900 truncate">
+            <p className="text-sm font-bold text-foreground truncate">
               {apt.patient.firstName} {apt.patient.lastName}
             </p>
-            <p className="text-xs text-slate-400 font-mono">
+            <p className="text-xs text-muted-foreground/70 font-mono">
               {apt.patient.patientCode}
             </p>
             {apt.patient.phone && (
-              <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+              <p className="text-xs text-muted-foreground/70 flex items-center gap-1 mt-0.5">
                 <Phone className="w-3 h-3" /> {apt.patient.phone}
               </p>
             )}
@@ -345,17 +345,17 @@ function AptRow({
           <span
             className={cn(
               "text-sm font-bold",
-              isPast ? "text-amber-700" : "text-slate-800",
+              isPast ? "text-warning" : "text-foreground",
             )}
           >
             {format(scheduledDt, "MMM d, yyyy")}
           </span>
-          <span className="text-xs text-slate-400 flex items-center gap-1">
+          <span className="text-xs text-muted-foreground/70 flex items-center gap-1">
             <Clock className="w-3 h-3" />
             {format(scheduledDt, "h:mm a")} · {apt.duration}min
           </span>
           {isPast && (
-            <span className="text-[10px] font-bold text-amber-600 flex items-center gap-1">
+            <span className="text-[10px] font-bold text-warning flex items-center gap-1">
               <AlertTriangle className="w-3 h-3" />
               Overdue
             </span>
@@ -366,14 +366,14 @@ function AptRow({
       {/* Dentist */}
       <td className="px-4 py-3.5 whitespace-nowrap">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center text-[10px] font-bold text-emerald-700 shrink-0">
+          <div className="w-7 h-7 rounded-full bg-success-muted flex items-center justify-center text-[10px] font-bold text-success shrink-0">
             {initials(apt.dentist.firstName, apt.dentist.lastName)}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-800 truncate">
+            <p className="text-sm font-semibold text-foreground truncate">
               Dr. {apt.dentist.lastName}
             </p>
-            <p className="text-xs text-slate-400 truncate">
+            <p className="text-xs text-muted-foreground/70 truncate">
               {apt.dentist.specialization || "General Dentistry"}
             </p>
           </div>
@@ -384,18 +384,18 @@ function AptRow({
       <td className="px-4 py-3.5 max-w-[180px]">
         {apt.chiefComplaint ? (
           <p
-            className="text-xs text-slate-600 truncate"
+            className="text-xs text-muted-foreground truncate"
             title={apt.chiefComplaint}
           >
             {apt.chiefComplaint}
           </p>
         ) : (
-          <span className="text-xs text-slate-300 italic">—</span>
+          <span className="text-xs text-muted-foreground/50 italic">—</span>
         )}
       </td>
 
       {/* Created (recency) */}
-      <td className="px-4 py-3.5 whitespace-nowrap text-xs text-slate-400">
+      <td className="px-4 py-3.5 whitespace-nowrap text-xs text-muted-foreground/70">
         {apt.createdAt ? (
           <span title={format(parseISO(apt.createdAt), "PPpp")}>
             {formatDistanceToNow(parseISO(apt.createdAt), { addSuffix: true })}
@@ -414,14 +414,14 @@ function AptRow({
         <div className="flex items-center gap-1 opacity-100 transition-opacity">
           <button
             onClick={onView}
-            className="p-1.5 rounded-lg hover:bg-indigo-100 text-slate-400 hover:text-indigo-700 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-indigo-100 text-muted-foreground/70 hover:text-indigo-700 transition-colors"
             title="View details"
           >
             <Eye className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={onEdit}
-            className="p-1.5 rounded-lg hover:bg-indigo-100 text-slate-400 hover:text-indigo-700 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-indigo-100 text-muted-foreground/70 hover:text-indigo-700 transition-colors"
             title="Edit appointment"
           >
             <Pencil className="w-3.5 h-3.5" />
@@ -433,7 +433,7 @@ function AptRow({
               e.stopPropagation(); // ← Prevent event bubbling to <tr>
               onDelete();
             }}
-            className="p-1.5 rounded-lg hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-danger-muted text-muted-foreground/70 hover:text-danger transition-colors"
             title="Delete draft"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -472,26 +472,26 @@ function DetailDrawer({
   const isPast = scheduledDt < new Date();
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 w-[400px] bg-white shadow-2xl border-l border-slate-200 flex flex-col">
+    <div className="fixed inset-y-0 right-0 z-50 w-[400px] bg-white shadow-2xl border-l border-border flex flex-col">
       <div className="h-1.5 w-full" style={{ background: colors.border }} />
 
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border/60 bg-muted/50">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-white shadow-sm border border-slate-200">
-            <FileText className="w-4 h-4 text-slate-500" />
+          <div className="p-2 rounded-lg bg-white shadow-sm border border-border">
+            <FileText className="w-4 h-4 text-muted-foreground" />
           </div>
           <div>
-            <p className="text-sm font-bold text-slate-900 font-mono">
+            <p className="text-sm font-bold text-foreground font-mono">
               {apt.appointmentCode}
             </p>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground border border-border">
+                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/70" />
                 DRAFT
               </span>
               {isPast && (
-                <span className="text-[10px] font-bold text-amber-600 flex items-center gap-1">
+                <span className="text-[10px] font-bold text-warning flex items-center gap-1">
                   <AlertTriangle className="w-3 h-3" /> Overdue
                 </span>
               )}
@@ -507,37 +507,37 @@ function DetailDrawer({
           </button>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-slate-200 transition-colors"
+            className="p-2 rounded-lg hover:bg-muted transition-colors"
           >
-            <X className="w-4 h-4 text-slate-400" />
+            <X className="w-4 h-4 text-muted-foreground/70" />
           </button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-5 space-y-4">
         {/* Patient */}
-        <div className="bg-gradient-to-br from-slate-50 to-white rounded-xl p-4 border border-slate-200">
+        <div className="bg-gradient-to-br from-muted/50 to-white rounded-xl p-4 border border-border">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center text-sm font-bold text-indigo-700 shrink-0">
               {initials(apt.patient.firstName, apt.patient.lastName)}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-slate-900">
+              <p className="font-bold text-foreground">
                 {apt.patient.firstName} {apt.patient.lastName}
               </p>
-              <p className="text-xs text-slate-400 font-mono">
+              <p className="text-xs text-muted-foreground/70 font-mono">
                 {apt.patient.patientCode}
               </p>
               {apt.patient.gender && (
-                <p className="text-xs text-slate-400 capitalize mt-0.5">
+                <p className="text-xs text-muted-foreground/70 capitalize mt-0.5">
                   {apt.patient.gender}
                 </p>
               )}
             </div>
           </div>
           {apt.patient.phone && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-slate-600 bg-white rounded-lg px-3 py-2 border border-slate-200">
-              <Phone className="w-4 h-4 text-slate-400" />
+            <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground bg-white rounded-lg px-3 py-2 border border-border">
+              <Phone className="w-4 h-4 text-muted-foreground/70" />
               <span className="font-medium">{apt.patient.phone}</span>
             </div>
           )}
@@ -549,14 +549,14 @@ function DetailDrawer({
             className={cn(
               "p-3 rounded-xl border",
               isPast
-                ? "bg-amber-50 border-amber-200"
-                : "bg-blue-50 border-blue-200",
+                ? "bg-warning-muted/60 border-warning/25"
+                : "bg-primary-muted/60 border-primary/25",
             )}
           >
             <div
               className={cn(
                 "flex items-center gap-1.5 mb-1 text-xs font-bold uppercase tracking-wide",
-                isPast ? "text-amber-600" : "text-blue-600",
+                isPast ? "text-warning" : "text-primary",
               )}
             >
               <Clock className="w-3.5 h-3.5" /> Schedule
@@ -564,7 +564,7 @@ function DetailDrawer({
             <p
               className={cn(
                 "text-sm font-bold",
-                isPast ? "text-amber-800" : "text-blue-800",
+                isPast ? "text-warning" : "text-primary",
               )}
             >
               {format(scheduledDt, "MMM d, yyyy")}
@@ -572,7 +572,7 @@ function DetailDrawer({
             <p
               className={cn(
                 "text-xs",
-                isPast ? "text-amber-600" : "text-blue-600",
+                isPast ? "text-warning" : "text-primary",
               )}
             >
               {format(scheduledDt, "h:mm")}–{format(endDt, "h:mm a")} ·{" "}
@@ -580,14 +580,14 @@ function DetailDrawer({
             </p>
           </div>
 
-          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
-            <div className="flex items-center gap-1.5 mb-1 text-xs font-bold uppercase tracking-wide text-emerald-600">
+          <div className="p-3 rounded-xl bg-success-muted/60 border border-success/25">
+            <div className="flex items-center gap-1.5 mb-1 text-xs font-bold uppercase tracking-wide text-success">
               <Stethoscope className="w-3.5 h-3.5" /> Dentist
             </div>
-            <p className="text-sm font-bold text-emerald-800">
+            <p className="text-sm font-bold text-success">
               Dr. {apt.dentist.lastName}
             </p>
-            <p className="text-xs text-emerald-600">
+            <p className="text-xs text-success">
               {apt.dentist.specialization || "General Dentistry"}
             </p>
           </div>
@@ -605,7 +605,7 @@ function DetailDrawer({
             <Tag className="w-4 h-4" style={{ color: colors.text }} />
           </div>
           <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+            <p className="text-xs font-bold text-muted-foreground/70 uppercase tracking-wide">
               Appointment Type
             </p>
             <p className="text-sm font-bold" style={{ color: colors.text }}>
@@ -616,11 +616,11 @@ function DetailDrawer({
 
         {/* Chief Complaint */}
         {apt.chiefComplaint && (
-          <div className="p-3 rounded-xl bg-amber-50 border border-amber-200">
-            <p className="text-xs font-bold text-amber-700 uppercase tracking-wide mb-1">
+          <div className="p-3 rounded-xl bg-warning-muted/60 border border-warning/25">
+            <p className="text-xs font-bold text-warning uppercase tracking-wide mb-1">
               Chief Complaint
             </p>
-            <p className="text-sm text-amber-900 leading-relaxed">
+            <p className="text-sm text-warning leading-relaxed">
               {apt.chiefComplaint}
             </p>
           </div>
@@ -628,11 +628,11 @@ function DetailDrawer({
 
         {/* Notes */}
         {apt.notes && (
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">
+          <div className="p-3 rounded-xl bg-muted/50 border border-border">
+            <p className="text-xs font-bold text-muted-foreground/70 uppercase tracking-wide mb-1">
               Notes
             </p>
-            <p className="text-sm text-slate-700 leading-relaxed">
+            <p className="text-sm text-foreground leading-relaxed">
               {apt.notes}
             </p>
           </div>
@@ -640,7 +640,7 @@ function DetailDrawer({
 
         {/* Created / Updated */}
         {apt.createdAt && (
-          <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+          <div className="flex items-center justify-between text-xs text-muted-foreground/70 px-1">
             <span>
               Created{" "}
               {formatDistanceToNow(parseISO(apt.createdAt), {
@@ -660,7 +660,7 @@ function DetailDrawer({
       </div>
 
       {/* Actions */}
-      <div className="p-4 border-t border-slate-200 bg-slate-50/80 space-y-2">
+      <div className="p-4 border-t border-border bg-muted/80 space-y-2">
         <button
           onClick={onConfirm}
           disabled={loading}
@@ -672,7 +672,7 @@ function DetailDrawer({
         <button
           onClick={onArrive}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-blue-50 text-blue-700 text-sm font-semibold hover:bg-blue-100 border border-blue-200 transition-colors disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary-muted/60 text-primary text-sm font-semibold hover:bg-primary-muted border border-primary/25 transition-colors disabled:opacity-50"
         >
           <User className="w-4 h-4" />
           Mark as Arrived
@@ -680,7 +680,7 @@ function DetailDrawer({
         <button
           onClick={onCancel}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-red-600 text-sm font-medium hover:bg-red-50 transition-colors border border-transparent hover:border-red-200"
+          className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-danger text-sm font-medium hover:bg-danger-muted/60 transition-colors border border-transparent hover:border-danger/25"
         >
           <XCircle className="w-4 h-4" /> Cancel Appointment
         </button>
@@ -708,17 +708,17 @@ const STATUS_CFG: Record<
 > = {
   DRAFT: {
     label: "Draft",
-    bg: "bg-slate-100",
-    text: "text-slate-600",
-    dot: "bg-slate-400",
-    border: "border-slate-300",
+    bg: "bg-muted",
+    text: "text-muted-foreground",
+    dot: "bg-muted-foreground/70",
+    border: "border-input",
   },
   SCHEDULED: {
     label: "Scheduled",
-    bg: "bg-blue-50",
-    text: "text-blue-700",
-    dot: "bg-blue-500",
-    border: "border-blue-200",
+    bg: "bg-primary-muted/60",
+    text: "text-primary",
+    dot: "bg-primary",
+    border: "border-primary/25",
   },
   CONFIRMED: {
     label: "Confirmed",
@@ -729,10 +729,10 @@ const STATUS_CFG: Record<
   },
   ARRIVED: {
     label: "Arrived",
-    bg: "bg-amber-50",
-    text: "text-amber-700",
-    dot: "bg-amber-500",
-    border: "border-amber-200",
+    bg: "bg-warning-muted/60",
+    text: "text-warning",
+    dot: "bg-warning",
+    border: "border-warning/25",
   },
   IN_PROGRESS: {
     label: "In Progress",
@@ -743,31 +743,31 @@ const STATUS_CFG: Record<
   },
   COMPLETED: {
     label: "Completed",
-    bg: "bg-emerald-50",
-    text: "text-emerald-700",
-    dot: "bg-emerald-500",
-    border: "border-emerald-200",
+    bg: "bg-success-muted/60",
+    text: "text-success",
+    dot: "bg-success",
+    border: "border-success/25",
   },
   CANCELLED: {
     label: "Cancelled",
-    bg: "bg-red-50",
-    text: "text-red-600",
-    dot: "bg-red-500",
-    border: "border-red-200",
+    bg: "bg-danger-muted/60",
+    text: "text-danger",
+    dot: "bg-danger",
+    border: "border-danger/25",
   },
   NO_SHOW: {
     label: "No Show",
-    bg: "bg-slate-100",
-    text: "text-slate-600",
-    dot: "bg-slate-400",
-    border: "border-slate-200",
+    bg: "bg-muted",
+    text: "text-muted-foreground",
+    dot: "bg-muted-foreground/70",
+    border: "border-border",
   },
   RESCHEDULED: {
     label: "Rescheduled",
-    bg: "bg-orange-50",
-    text: "text-orange-700",
-    dot: "bg-orange-500",
-    border: "border-orange-200",
+    bg: "bg-warning-muted/60",
+    text: "text-warning",
+    dot: "bg-warning",
+    border: "border-warning/25",
   },
 };
 
@@ -859,8 +859,8 @@ function EditModal({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Status pills */}
-        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+        <div className="p-3 bg-muted/50 rounded-xl border border-border">
+          <p className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest mb-2">
             Status
           </p>
           <div className="flex flex-wrap gap-2">
@@ -875,14 +875,14 @@ function EditModal({
                   className={cn(
                     "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all",
                     active
-                      ? `${cfg.bg} ${cfg.text} ${cfg.border} shadow-sm ring-2 ring-offset-1 ring-slate-300`
-                      : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50",
+                      ? `${cfg.bg} ${cfg.text} ${cfg.border} shadow-sm ring-2 ring-offset-1 ring-input`
+                      : "bg-white text-muted-foreground border-border hover:bg-muted/50",
                   )}
                 >
                   <span
                     className={cn(
                       "w-1.5 h-1.5 rounded-full",
-                      active ? cfg.dot : "bg-slate-300",
+                      active ? cfg.dot : "bg-border",
                     )}
                   />
                   {cfg.label}
@@ -893,19 +893,19 @@ function EditModal({
         </div>
 
         {/* Patient (locked) */}
-        <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200">
+        <div className="flex items-center gap-3 px-4 py-3 bg-muted/50 rounded-xl border border-border">
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center text-xs font-bold text-indigo-700 shrink-0">
             {initials(apt.patient.firstName, apt.patient.lastName)}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-slate-900">
+            <p className="text-sm font-bold text-foreground">
               {apt.patient.firstName} {apt.patient.lastName}
             </p>
-            <p className="text-xs text-slate-400 font-mono">
+            <p className="text-xs text-muted-foreground/70 font-mono">
               {apt.patient.patientCode}
             </p>
           </div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-white px-2 py-1 rounded border border-slate-200">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 bg-white px-2 py-1 rounded border border-border">
             Locked
           </span>
         </div>
@@ -947,25 +947,25 @@ function EditModal({
         <div className="grid grid-cols-3 gap-4">
           <FormField label="Date" required>
             <div className="relative">
-              <CalendarDays className="absolute left-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
+              <CalendarDays className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground/70 pointer-events-none" />
               <input
                 type="date"
                 value={form.date}
                 onChange={handleDateChange}
                 required
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-9 pr-3 py-2 text-sm border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </FormField>
           <FormField label="Time" required>
             <div className="relative">
-              <Clock className="absolute left-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
+              <Clock className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground/70 pointer-events-none" />
               <input
                 type="time"
                 value={form.time}
                 onChange={handleTimeChange}
                 required
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-9 pr-3 py-2 text-sm border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </FormField>
@@ -1010,18 +1010,18 @@ function EditModal({
         )}
 
         {/* Walk-in */}
-        <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors">
+        <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-border hover:bg-muted/50 transition-colors">
           <input
             type="checkbox"
             checked={form.isWalkIn}
             onChange={(e) => p("isWalkIn", e.target.checked)}
-            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            className="w-4 h-4 rounded border-input text-indigo-600 focus:ring-indigo-500"
           />
           <div>
-            <p className="text-sm font-semibold text-slate-700">
+            <p className="text-sm font-semibold text-foreground">
               Walk-in appointment
             </p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground/70">
               Patient arrived without a prior booking
             </p>
           </div>
@@ -1035,7 +1035,7 @@ function EditModal({
               value={form.chiefComplaint}
               onChange={(e) => p("chiefComplaint", e.target.value)}
               placeholder="Reason for visit…"
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 text-sm border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </FormField>
           <FormField label="Notes">
@@ -1044,12 +1044,12 @@ function EditModal({
               onChange={(e) => p("notes", e.target.value)}
               rows={2}
               placeholder="Additional notes…"
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              className="w-full px-3 py-2 text-sm border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
             />
           </FormField>
         </div>
 
-        <div className="flex justify-end gap-3 pt-3 border-t border-slate-200">
+        <div className="flex justify-end gap-3 pt-3 border-t border-border">
           <Button
             variant="outline"
             type="button"
@@ -1282,19 +1282,19 @@ export function DraftAppointmentsPage() {
   const uniqueTypes = [...new Set(raw.map((a) => a.type))].sort();
 
   return (
-    <div className="flex flex-col h-[calc(100vh-0px)] bg-slate-50 overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-0px)] bg-muted/50 overflow-hidden">
       {/* ── Top Bar ── */}
-      <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3 shrink-0 shadow-sm">
+      <div className="bg-white border-b border-border px-4 py-3 flex items-center gap-3 shrink-0 shadow-sm">
         {/* Title */}
         <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-slate-100 rounded-lg">
-            <ClipboardList className="w-4 h-4 text-slate-600" />
+          <div className="p-2 bg-muted rounded-lg">
+            <ClipboardList className="w-4 h-4 text-muted-foreground" />
           </div>
           <div>
-            <h1 className="text-sm font-bold text-slate-900 leading-none">
+            <h1 className="text-sm font-bold text-foreground leading-none">
               Draft Appointments
             </h1>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-muted-foreground/70 mt-0.5">
               Pending review & confirmation
             </p>
           </div>
@@ -1302,11 +1302,11 @@ export function DraftAppointmentsPage() {
 
         {/* Count badges */}
         <div className="flex items-center gap-2">
-          <span className="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-full border border-slate-200">
+          <span className="px-2.5 py-1 bg-muted text-foreground text-xs font-bold rounded-full border border-border">
             {appointments.length} draft{appointments.length !== 1 ? "s" : ""}
           </span>
           {overdueCount > 0 && (
-            <span className="px-2.5 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full border border-amber-200 flex items-center gap-1">
+            <span className="px-2.5 py-1 bg-warning-muted text-warning text-xs font-bold rounded-full border border-warning/25 flex items-center gap-1">
               <AlertTriangle className="w-3 h-3" /> {overdueCount} overdue
             </span>
           )}
@@ -1316,18 +1316,18 @@ export function DraftAppointmentsPage() {
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
+          <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground/70 pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search patient, code, phone…"
-            className="pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-slate-50"
+            className="pl-9 pr-4 py-2 text-sm border border-border rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-muted/50"
           />
           {search && (
             <button
               onClick={() => setSearch("")}
-              className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+              className="absolute right-2.5 top-2.5 text-muted-foreground/70 hover:text-muted-foreground"
             >
               <X className="w-4 h-4" />
             </button>
@@ -1336,11 +1336,11 @@ export function DraftAppointmentsPage() {
 
         {/* Dentist filter */}
         <div className="relative">
-          <Filter className="absolute left-2.5 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
+          <Filter className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground/70 pointer-events-none" />
           <select
             value={filterDentist}
             onChange={(e) => setFilterDentist(e.target.value)}
-            className="pl-8 pr-8 py-2 text-xs border border-slate-200 rounded-lg bg-white text-slate-700 focus:ring-2 focus:ring-indigo-300 focus:outline-none font-medium"
+            className="pl-8 pr-8 py-2 text-xs border border-border rounded-lg bg-white text-foreground focus:ring-2 focus:ring-indigo-300 focus:outline-none font-medium"
           >
             <option value="all">All Dentists</option>
             {dentists.map((d: Dentist) => (
@@ -1355,7 +1355,7 @@ export function DraftAppointmentsPage() {
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          className="px-3 py-2 text-xs border border-slate-200 rounded-lg bg-white text-slate-700 focus:ring-2 focus:ring-indigo-300 focus:outline-none font-medium"
+          className="px-3 py-2 text-xs border border-border rounded-lg bg-white text-foreground focus:ring-2 focus:ring-indigo-300 focus:outline-none font-medium"
         >
           <option value="all">All Types</option>
           {uniqueTypes.map((t) => (
@@ -1369,7 +1369,7 @@ export function DraftAppointmentsPage() {
         <button
           onClick={() => qc.invalidateQueries({ queryKey: ["drafts"] })}
           className={cn(
-            "p-2 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors border border-transparent hover:border-slate-200",
+            "p-2 rounded-lg hover:bg-muted text-muted-foreground/70 transition-colors border border-transparent hover:border-border",
             isFetching && "animate-spin",
           )}
         >
@@ -1383,21 +1383,21 @@ export function DraftAppointmentsPage() {
           <div className="flex items-center justify-center h-full">
             <div className="flex flex-col items-center gap-3">
               <LoadingSpinner />
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-muted-foreground/70">
                 Loading draft appointments…
               </p>
             </div>
           </div>
         ) : appointments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full gap-4 text-slate-400">
-            <div className="p-6 bg-slate-100 rounded-full">
-              <FileText className="w-12 h-12 text-slate-300" />
+          <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground/70">
+            <div className="p-6 bg-muted rounded-full">
+              <FileText className="w-12 h-12 text-muted-foreground/50" />
             </div>
             <div className="text-center">
-              <p className="text-base font-semibold text-slate-500">
+              <p className="text-base font-semibold text-muted-foreground">
                 No draft appointments
               </p>
-              <p className="text-sm text-slate-400 mt-1">
+              <p className="text-sm text-muted-foreground/70 mt-1">
                 {search || filterType !== "all" || filterDentist !== "all"
                   ? "Try adjusting your filters"
                   : "All appointments are confirmed or scheduled"}
@@ -1418,10 +1418,10 @@ export function DraftAppointmentsPage() {
           </div>
         ) : (
           <table className="w-full border-collapse">
-            <thead className="sticky top-0 z-10 bg-white border-b-2 border-slate-200 shadow-sm">
+            <thead className="sticky top-0 z-10 bg-white border-b-2 border-border shadow-sm">
               <tr>
                 <th className="w-1 p-0" />
-                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
                   Code
                 </th>
                 <SortTh
@@ -1448,7 +1448,7 @@ export function DraftAppointmentsPage() {
                   sort={sort}
                   onSort={toggleSort}
                 />
-                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Chief Complaint
                 </th>
                 <SortTh
@@ -1457,7 +1457,7 @@ export function DraftAppointmentsPage() {
                   sort={sort}
                   onSort={toggleSort}
                 />
-                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500 w-16">
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground w-16">
                   Actions
                 </th>
               </tr>
@@ -1493,18 +1493,18 @@ export function DraftAppointmentsPage() {
 
       {/* ── Footer count ── */}
       {!isLoading && appointments.length > 0 && (
-        <div className="bg-white border-t border-slate-200 px-4 py-2 flex items-center justify-between shrink-0">
-          <span className="text-xs text-slate-400">
+        <div className="bg-white border-t border-border px-4 py-2 flex items-center justify-between shrink-0">
+          <span className="text-xs text-muted-foreground/70">
             Showing{" "}
-            <span className="font-bold text-slate-600">
+            <span className="font-bold text-muted-foreground">
               {appointments.length}
             </span>{" "}
-            of <span className="font-bold text-slate-600">{raw.length}</span>{" "}
+            of <span className="font-bold text-muted-foreground">{raw.length}</span>{" "}
             draft appointments
           </span>
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-muted-foreground/70">
             Sorted by{" "}
-            <span className="font-semibold text-slate-600 capitalize">
+            <span className="font-semibold text-muted-foreground capitalize">
               {sort.field === "createdAt" ? "date created" : sort.field}
             </span>{" "}
             ({sort.dir === "desc" ? "newest first" : "oldest first"})

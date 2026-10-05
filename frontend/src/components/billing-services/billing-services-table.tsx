@@ -66,14 +66,14 @@ export function BillingServicesTable({
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
-      CONSULTATION: 'bg-blue-100 text-blue-800 border-blue-200',
+      CONSULTATION: 'bg-primary-muted text-primary border-primary/25',
       PROCEDURE: 'bg-indigo-100 text-indigo-800 border-indigo-200',
       DIAGNOSTIC: 'bg-purple-100 text-purple-800 border-purple-200',
-      SURGICAL: 'bg-red-100 text-red-800 border-red-200',
-      PREVENTIVE: 'bg-green-100 text-green-800 border-green-200',
-      MEDICATION: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      SURGICAL: 'bg-danger-muted text-danger border-danger/25',
+      PREVENTIVE: 'bg-success-muted text-success border-success/25',
+      MEDICATION: 'bg-warning-muted text-warning border-warning/25',
     };
-    return colors[category] || 'bg-slate-100 text-slate-800 border-slate-200';
+    return colors[category] || 'bg-muted text-foreground border-border';
   };
 
   const getTypeIcon = (type: string) => {
@@ -84,10 +84,10 @@ export function BillingServicesTable({
   return (
     <div className="space-y-4">
       {/* Filters Toolbar */}
-      <div className="bg-white p-4 rounded-lg border border-sky-100 shadow-sm flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+      <div className="bg-white p-4 rounded-lg border border-primary/20 shadow-sm flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex gap-2 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
             <Input
               placeholder="Search services..."
               value={searchQuery}
@@ -95,12 +95,12 @@ export function BillingServicesTable({
                 setSearchQuery(e.target.value);
                 onSearch(e.target.value);
               }}
-              className="pl-9 border-slate-200 focus:border-sky-500 focus:ring-sky-500"
+              className="pl-9 border-border focus:border-primary/60 focus:ring-primary/60"
             />
           </div>
           <Select onValueChange={(val) => onFilterChange({ category: val })}>
-            <SelectTrigger className="w-[180px] border-slate-200">
-              <Filter className="h-4 w-4 mr-2 text-slate-500" />
+            <SelectTrigger className="w-[180px] border-border">
+              <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
@@ -114,48 +114,48 @@ export function BillingServicesTable({
           </Select>
         </div>
         
-        <div className="text-sm text-slate-500">
+        <div className="text-sm text-muted-foreground">
           Showing {services.length} services
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg border border-sky-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-lg border border-primary/20 shadow-sm overflow-hidden">
         <Table>
-          <TableHeader className="bg-sky-50/50">
-            <TableRow className="border-b border-sky-100 hover:bg-sky-50/80">
+          <TableHeader className="bg-primary-muted/50">
+            <TableRow className="border-b border-primary/20 hover:bg-primary-muted/80">
               <TableHead className="w-12"></TableHead>
-              <TableHead className="text-sky-900 font-semibold">
+              <TableHead className="text-primary font-semibold">
                 <div className="flex items-center gap-1">
                   Code & Name
-                  <ArrowUpDown className="h-3 w-3 text-sky-600" />
+                  <ArrowUpDown className="h-3 w-3 text-primary" />
                 </div>
               </TableHead>
-              <TableHead className="text-sky-900 font-semibold">Category</TableHead>
-              <TableHead className="text-sky-900 font-semibold text-right">Price (UGX)</TableHead>
-              <TableHead className="text-sky-900 font-semibold">Status</TableHead>
-              <TableHead className="text-sky-900 font-semibold text-right">Actions</TableHead>
+              <TableHead className="text-primary font-semibold">Category</TableHead>
+              <TableHead className="text-primary font-semibold text-right">Price (UGX)</TableHead>
+              <TableHead className="text-primary font-semibold">Status</TableHead>
+              <TableHead className="text-primary font-semibold text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-slate-500">
+                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
                   <div className="flex items-center justify-center gap-2">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-sky-600"></div>
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                     Loading services...
                   </div>
                 </TableCell>
               </TableRow>
             ) : services.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-slate-500">
+                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
                   <div className="flex flex-col items-center gap-2">
-                    <div className="p-4 bg-slate-50 rounded-full">
-                      <Search className="h-6 w-6 text-slate-400" />
+                    <div className="p-4 bg-muted/50 rounded-full">
+                      <Search className="h-6 w-6 text-muted-foreground/70" />
                     </div>
                     <p>No billing services found</p>
-                    <p className="text-sm text-slate-400">Try adjusting your search or filters</p>
+                    <p className="text-sm text-muted-foreground/70">Try adjusting your search or filters</p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -163,7 +163,7 @@ export function BillingServicesTable({
               services.map((service) => (
                 <TableRow 
                   key={service.id} 
-                  className="border-b border-slate-100 hover:bg-sky-50/30 transition-colors"
+                  className="border-b border-border/60 hover:bg-primary-muted/30 transition-colors"
                 >
                   <TableCell>
                     <Button
@@ -173,24 +173,24 @@ export function BillingServicesTable({
                       onClick={() => onToggleFavorite(service.id)}
                     >
                       {service.isFavorite ? (
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <Star className="h-4 w-4 fill-warning/70 text-warning/70" />
                       ) : (
-                        <StarOff className="h-4 w-4 text-slate-400" />
+                        <StarOff className="h-4 w-4 text-muted-foreground/70" />
                       )}
                     </Button>
                   </TableCell>
                   <TableCell>
                     <div>
-                      <div className="font-medium text-slate-900 flex items-center gap-2">
+                      <div className="font-medium text-foreground flex items-center gap-2">
                         {service.name}
                         {service.isFavorite && (
-                          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 text-xs">
+                          <Badge variant="secondary" className="bg-warning-muted text-warning text-xs">
                             Favorite
                           </Badge>
                         )}
                       </div>
-                      <div className="text-sm text-slate-500 flex items-center gap-2 mt-0.5">
-                        <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-xs">
+                      <div className="text-sm text-muted-foreground flex items-center gap-2 mt-0.5">
+                        <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-xs">
                           {service.serviceCode}
                         </span>
                         <span>•</span>
@@ -203,10 +203,10 @@ export function BillingServicesTable({
                       {service.category}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right font-mono text-slate-700">
+                  <TableCell className="text-right font-mono text-foreground">
                     {formatCurrency(service.price)}
                     {service.defaultTaxAmount > 0 && (
-                      <div className="text-xs text-slate-500">
+                      <div className="text-xs text-muted-foreground">
                         + {formatCurrency(service.defaultTaxAmount)} tax
                       </div>
                     )}
@@ -215,8 +215,8 @@ export function BillingServicesTable({
                     <Badge 
                       variant={service.isActive ? 'default' : 'secondary'}
                       className={service.isActive 
-                        ? 'bg-green-100 text-green-800 hover:bg-green-100 border-green-200' 
-                        : 'bg-slate-100 text-slate-600 border-slate-200'
+                        ? 'bg-success-muted text-success hover:bg-success-muted border-success/25' 
+                        : 'bg-muted text-muted-foreground border-border'
                       }
                     >
                       {service.isActive ? 'Active' : 'Inactive'}
@@ -231,17 +231,17 @@ export function BillingServicesTable({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem onClick={() => onEdit(service)} className="cursor-pointer">
-                          <Pencil className="mr-2 h-4 w-4 text-sky-600" />
+                          <Pencil className="mr-2 h-4 w-4 text-primary" />
                           Edit Service
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onDuplicate(service.id)} className="cursor-pointer">
-                          <Copy className="mr-2 h-4 w-4 text-slate-600" />
+                          <Copy className="mr-2 h-4 w-4 text-muted-foreground" />
                           Duplicate
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
                           onClick={() => onDelete(service.id)} 
-                          className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+                          className="cursor-pointer text-danger focus:text-danger focus:bg-danger-muted/60"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
                           Delete

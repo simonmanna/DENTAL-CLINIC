@@ -120,7 +120,7 @@ export function StaffSchedulePage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -129,7 +129,7 @@ export function StaffSchedulePage() {
     <div className="max-w-4xl mx-auto">
       {/* Message Banner */}
       {message && (
-        <div className={`mb-4 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+        <div className={`mb-4 p-4 rounded-lg ${message.type === 'success' ? 'bg-success-muted text-success' : 'bg-danger-muted text-danger'}`}>
           {message.text}
         </div>
       )}
@@ -139,13 +139,13 @@ export function StaffSchedulePage() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate(`/staff/${id}`)}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-muted rounded-lg transition-colors"
           >
-            <ChevronLeft className="w-5 h-5 text-slate-600" />
+            <ChevronLeft className="w-5 h-5 text-muted-foreground" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Manage Schedule</h1>
-            <p className="text-slate-500 text-sm">
+            <h1 className="text-2xl font-bold text-foreground">Manage Schedule</h1>
+            <p className="text-muted-foreground text-sm">
               {staff?.firstName} {staff?.lastName} • {staff?.staffCode}
             </p>
           </div>
@@ -155,7 +155,7 @@ export function StaffSchedulePage() {
           <button
             onClick={handleReset}
             disabled={!hasChanges}
-            className="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-2 px-4 py-2 border border-border text-muted-foreground rounded-lg hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <RotateCcw className="w-4 h-4" />
             Reset
@@ -163,7 +163,7 @@ export function StaffSchedulePage() {
           <button
             onClick={handleSubmit}
             disabled={!hasChanges || updateMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Save className="w-4 h-4" />
             {updateMutation.isPending ? 'Saving...' : 'Save Schedule'}
@@ -173,13 +173,13 @@ export function StaffSchedulePage() {
 
       {/* Stats Summary */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-          <div className="text-blue-600 text-sm font-medium mb-1">Working Days</div>
-          <div className="text-2xl font-bold text-blue-700">{getWorkingDaysCount()}/7 days</div>
+        <div className="bg-primary-muted/60 border border-primary/20 rounded-xl p-4">
+          <div className="text-primary text-sm font-medium mb-1">Working Days</div>
+          <div className="text-2xl font-bold text-primary">{getWorkingDaysCount()}/7 days</div>
         </div>
-        <div className="bg-green-50 border border-green-100 rounded-xl p-4">
-          <div className="text-green-600 text-sm font-medium mb-1">Weekly Hours</div>
-          <div className="text-2xl font-bold text-green-700">{getTotalHours()} hours</div>
+        <div className="bg-success-muted/60 border border-success/20 rounded-xl p-4">
+          <div className="text-success text-sm font-medium mb-1">Weekly Hours</div>
+          <div className="text-2xl font-bold text-success">{getTotalHours()} hours</div>
         </div>
         <div className="bg-purple-50 border border-purple-100 rounded-xl p-4">
           <div className="text-purple-600 text-sm font-medium mb-1">Avg Daily</div>
@@ -190,30 +190,30 @@ export function StaffSchedulePage() {
       </div>
 
       {/* Schedule Grid */}
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+      <div className="bg-white rounded-xl border border-border/60 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-border/60 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-blue-600" />
+            <div className="w-10 h-10 rounded-lg bg-primary-muted flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-slate-800">Weekly Schedule</h2>
-              <p className="text-sm text-slate-500">Set working hours for each day</p>
+              <h2 className="text-lg font-semibold text-foreground">Weekly Schedule</h2>
+              <p className="text-sm text-muted-foreground">Set working hours for each day</p>
             </div>
           </div>
-          <div className="text-sm text-slate-500">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 rounded-full">
+          <div className="text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-muted rounded-full">
               <Clock className="w-3.5 h-3.5" />
               Timezone: Local
             </span>
           </div>
         </div>
 
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-border/60">
           {schedules.map((schedule, index) => (
             <div 
               key={schedule.dayOfWeek} 
-              className={`p-6 transition-colors ${schedule.isWorking ? 'bg-white' : 'bg-slate-50/50'}`}
+              className={`p-6 transition-colors ${schedule.isWorking ? 'bg-white' : 'bg-muted/50'}`}
             >
               <div className="flex items-center gap-6">
                 {/* Day Info */}
@@ -222,7 +222,7 @@ export function StaffSchedulePage() {
                     <button
                       onClick={() => handleToggleWorking(index)}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        schedule.isWorking ? 'bg-blue-600' : 'bg-slate-200'
+                        schedule.isWorking ? 'bg-primary' : 'bg-muted'
                       }`}
                     >
                       <span
@@ -231,7 +231,7 @@ export function StaffSchedulePage() {
                         }`}
                       />
                     </button>
-                    <span className={`font-medium ${schedule.isWorking ? 'text-slate-800' : 'text-slate-400'}`}>
+                    <span className={`font-medium ${schedule.isWorking ? 'text-foreground' : 'text-muted-foreground/70'}`}>
                       {DAYS_OF_WEEK[schedule.dayOfWeek]}
                     </span>
                   </div>
@@ -242,24 +242,24 @@ export function StaffSchedulePage() {
                   {schedule.isWorking ? (
                     <>
                       <div className="flex items-center gap-2 flex-1">
-                        <Clock className="w-4 h-4 text-slate-400" />
+                        <Clock className="w-4 h-4 text-muted-foreground/70" />
                         <input
                           type="time"
                           value={schedule.startTime}
                           onChange={(e) => handleScheduleChange(index, 'startTime', e.target.value)}
-                          className="flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          className="flex-1 px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 text-sm"
                         />
-                        <span className="text-slate-400 font-medium">to</span>
+                        <span className="text-muted-foreground/70 font-medium">to</span>
                         <input
                           type="time"
                           value={schedule.endTime}
                           onChange={(e) => handleScheduleChange(index, 'endTime', e.target.value)}
-                          className="flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          className="flex-1 px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 text-sm"
                         />
                       </div>
                       
                       {/* Duration Badge */}
-                      <div className="px-3 py-1 bg-slate-100 rounded-full text-sm font-medium text-slate-600">
+                      <div className="px-3 py-1 bg-muted rounded-full text-sm font-medium text-muted-foreground">
                         {(() => {
                           const start = new Date(`2000-01-01T${schedule.startTime}`);
                           const end = new Date(`2000-01-01T${schedule.endTime}`);
@@ -271,14 +271,14 @@ export function StaffSchedulePage() {
                       {/* Copy to All Button */}
                       <button
                         onClick={() => handleCopyToAll(index)}
-                        className="text-xs text-blue-600 hover:text-blue-700 font-medium px-2 py-1 hover:bg-blue-50 rounded"
+                        className="text-xs text-primary hover:text-primary font-medium px-2 py-1 hover:bg-primary-muted/60 rounded"
                         title="Copy this schedule to all days"
                       >
                         Apply to All
                       </button>
                     </>
                   ) : (
-                    <div className="flex-1 text-slate-400 text-sm italic">
+                    <div className="flex-1 text-muted-foreground/70 text-sm italic">
                       Day off - Not scheduled for work
                     </div>
                   )}
@@ -289,9 +289,9 @@ export function StaffSchedulePage() {
         </div>
 
         {/* Footer Tips */}
-        <div className="p-4 bg-slate-50 border-t border-slate-100">
-          <div className="flex items-start gap-2 text-sm text-slate-600">
-            <Check className="w-4 h-4 text-green-500 mt-0.5" />
+        <div className="p-4 bg-muted/50 border-t border-border/60">
+          <div className="flex items-start gap-2 text-sm text-muted-foreground">
+            <Check className="w-4 h-4 text-success mt-0.5" />
             <p>Changes will take effect immediately for new appointments. Existing appointments will not be affected.</p>
           </div>
         </div>
@@ -305,10 +305,10 @@ export function StaffSchedulePage() {
             setSchedules(newSchedules);
             setHasChanges(true);
           }}
-          className="p-4 border border-dashed border-slate-300 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors text-left"
+          className="p-4 border border-dashed border-input rounded-xl text-muted-foreground hover:bg-muted/50 transition-colors text-left"
         >
           <div className="font-medium mb-1">Standard Week</div>
-          <div className="text-sm text-slate-400">Mon-Fri, 9AM-5PM</div>
+          <div className="text-sm text-muted-foreground/70">Mon-Fri, 9AM-5PM</div>
         </button>
         
         <button
@@ -322,10 +322,10 @@ export function StaffSchedulePage() {
             setSchedules(newSchedules);
             setHasChanges(true);
           }}
-          className="p-4 border border-dashed border-slate-300 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors text-left"
+          className="p-4 border border-dashed border-input rounded-xl text-muted-foreground hover:bg-muted/50 transition-colors text-left"
         >
           <div className="font-medium mb-1">Weekend Off</div>
-          <div className="text-sm text-slate-400">Mon-Fri only, 8AM-4PM</div>
+          <div className="text-sm text-muted-foreground/70">Mon-Fri only, 8AM-4PM</div>
         </button>
       </div>
     </div>

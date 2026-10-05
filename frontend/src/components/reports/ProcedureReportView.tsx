@@ -399,16 +399,16 @@ export const ProcedureReportView: React.FC<ProcedureReportViewProps> = ({ data }
                     <TableCell>{proc.unique_patients.toLocaleString()}</TableCell>
                     <TableCell>{formatCurrency(proc.avg_cost)}</TableCell>
                     <TableCell>
-                      <span className="text-green-600">{formatCurrency(proc.min_cost)}</span>
+                      <span className="text-success">{formatCurrency(proc.min_cost)}</span>
                       {' - '}
-                      <span className="text-red-600">{formatCurrency(proc.max_cost)}</span>
+                      <span className="text-danger">{formatCurrency(proc.max_cost)}</span>
                     </TableCell>
                     <TableCell className="font-bold">{formatCurrency(proc.total_revenue)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <div className="w-16 bg-gray-200 rounded-full h-2">
+                        <div className="w-16 bg-muted rounded-full h-2">
                           <div 
-                            className="bg-blue-600 h-2 rounded-full" 
+                            className="bg-primary h-2 rounded-full" 
                             style={{ width: `${Math.min(percentage, 100)}%` }}
                           />
                         </div>

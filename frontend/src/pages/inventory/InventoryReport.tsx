@@ -279,7 +279,7 @@ function StockIndicator({ qty, min }: { qty: number; min: number }) {
   const color = qty === 0 ? "#ef4444" : qty < min ? "#f59e0b" : "#10b981";
   return (
     <div className="flex items-center gap-2 min-w-[100px]">
-      <div className="w-14 h-1.5 bg-slate-100 rounded-full overflow-hidden flex-shrink-0">
+      <div className="w-14 h-1.5 bg-muted rounded-full overflow-hidden flex-shrink-0">
         <div
           className="h-full rounded-full transition-all"
           style={{ width: `${Math.min(pct, 100)}%`, background: color }}
@@ -306,7 +306,7 @@ function StatCard({
   icon?: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 px-4 py-2 flex gap-3 items-start shadow-sm">
+    <div className="bg-white rounded-xl border border-border px-4 py-2 flex gap-3 items-start shadow-sm">
       {icon && (
         <div
           className="mt-0.5 size-8 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -316,17 +316,17 @@ function StatCard({
         </div>
       )}
       <div className="min-w-0">
-        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider truncate">{label}</p>
-        <p className="text-xl font-bold text-slate-900 mt-0.5 tabular-nums">{value}</p>
-        {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">{label}</p>
+        <p className="text-xl font-bold text-foreground mt-0.5 tabular-nums">{value}</p>
+        {sub && <p className="text-xs text-muted-foreground/70 mt-0.5">{sub}</p>}
       </div>
     </div>
   );
 }
 
 function SortIcon({ col, sortBy, sortOrder }: { col: string; sortBy: string; sortOrder: SortOrder }) {
-  if (sortBy !== col) return <span className="ml-1 text-slate-300">↕</span>;
-  return <span className="ml-1 text-emerald-600">{sortOrder === "asc" ? "↑" : "↓"}</span>;
+  if (sortBy !== col) return <span className="ml-1 text-muted-foreground/50">↕</span>;
+  return <span className="ml-1 text-success">{sortOrder === "asc" ? "↑" : "↓"}</span>;
 }
 
 function Pagination({
@@ -340,7 +340,7 @@ function Pagination({
 
   return (
     <div className="flex items-center justify-between px-1 py-3">
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-muted-foreground">
         Showing <span className="font-medium">{(page - 1) * limit + 1}</span>–
         <span className="font-medium">{Math.min(page * limit, total)}</span>{" "}
         of <span className="font-medium">{total}</span>
@@ -354,7 +354,7 @@ function Pagination({
             key={label}
             onClick={() => onPage(target)}
             disabled={disabled}
-            className="px-2 py-1 text-xs rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+            className="px-2 py-1 text-xs rounded border border-border text-muted-foreground hover:bg-muted/50 disabled:opacity-40"
           >
             {label}
           </button>
@@ -364,8 +364,8 @@ function Pagination({
             key={p}
             onClick={() => onPage(p)}
             className={`px-2.5 py-1 text-xs rounded border ${p === page
-              ? "bg-emerald-600 border-emerald-600 text-white font-medium"
-              : "border-slate-200 text-slate-600 hover:bg-slate-50"
+              ? "bg-success border-success text-white font-medium"
+              : "border-border text-muted-foreground hover:bg-muted/50"
               }`}
           >
             {p}
@@ -379,7 +379,7 @@ function Pagination({
             key={label}
             onClick={() => onPage(target)}
             disabled={disabled}
-            className="px-2 py-1 text-xs rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+            className="px-2 py-1 text-xs rounded border border-border text-muted-foreground hover:bg-muted/50 disabled:opacity-40"
           >
             {label}
           </button>
@@ -392,8 +392,8 @@ function Pagination({
 function MiniDonut({ data, title }: { data: { name: string; value: number; color?: string }[]; title: string }) {
   if (!data.length) return null;
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{title}</p>
+    <div className="bg-white rounded-xl border border-border p-4 shadow-sm">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{title}</p>
       <ResponsiveContainer width="100%" height={160}>
         <PieChart>
           <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={68} paddingAngle={2}>
@@ -421,9 +421,9 @@ function DataTable<T extends { id?: string }>({
 }) {
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-48 text-slate-400">
+      <div className="flex items-center justify-center h-48 text-muted-foreground/70">
         <div className="flex items-center gap-3">
-          <div className="size-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+          <div className="size-5 border-2 border-success border-t-transparent rounded-full animate-spin" />
           <span className="text-sm">Loading report…</span>
         </div>
       </div>
@@ -431,7 +431,7 @@ function DataTable<T extends { id?: string }>({
   }
   if (!rows.length) {
     return (
-      <div className="flex flex-col items-center justify-center h-48 text-slate-400">
+      <div className="flex flex-col items-center justify-center h-48 text-muted-foreground/70">
         <span className="text-3xl mb-2">📦</span>
         <p className="text-sm font-medium">No records found</p>
         <p className="text-xs mt-1">Try adjusting your filters</p>
@@ -442,12 +442,12 @@ function DataTable<T extends { id?: string }>({
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-slate-200 bg-slate-50">
+          <tr className="border-b border-border bg-muted/50">
             {columns.map((col) => (
               <th
                 key={col.key}
                 onClick={() => col.sortable !== false && onSort(col.key)}
-                className={`px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap ${col.sortable !== false ? "cursor-pointer hover:text-slate-900 select-none" : ""}`}
+                className={`px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap ${col.sortable !== false ? "cursor-pointer hover:text-foreground select-none" : ""}`}
               >
                 {col.label}
                 {col.sortable !== false && (
@@ -457,11 +457,11 @@ function DataTable<T extends { id?: string }>({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-border/60">
           {rows.map((row, i) => (
-            <tr key={row.id ?? i} className="hover:bg-slate-50/60 transition-colors">
+            <tr key={row.id ?? i} className="hover:bg-muted/60 transition-colors">
               {columns.map((col) => (
-                <td key={col.key} className="px-3 py-2.5 text-slate-700 whitespace-nowrap">
+                <td key={col.key} className="px-3 py-2.5 text-foreground whitespace-nowrap">
                   {col.render(row as any)}
                 </td>
               ))}
@@ -479,7 +479,7 @@ const ITEM_COLUMNS: ColumnDef<ItemRow>[] = [
   {
     key: "itemCode",
     label: "Code",
-    render: (r) => <span className="font-mono text-xs text-slate-400">{r.itemCode}</span>,
+    render: (r) => <span className="font-mono text-xs text-muted-foreground/70">{r.itemCode}</span>,
     csv: (r) => r.itemCode,
   },
   {
@@ -487,9 +487,9 @@ const ITEM_COLUMNS: ColumnDef<ItemRow>[] = [
     label: "Item Name",
     render: (r) => (
       <div>
-        <p className="font-medium text-slate-900 max-w-[200px] truncate">{r.name}</p>
+        <p className="font-medium text-foreground max-w-[200px] truncate">{r.name}</p>
         {r.description && (
-          <p className="text-xs text-slate-400 max-w-[200px] truncate">{r.description}</p>
+          <p className="text-xs text-muted-foreground/70 max-w-[200px] truncate">{r.description}</p>
         )}
       </div>
     ),
@@ -505,14 +505,14 @@ const ITEM_COLUMNS: ColumnDef<ItemRow>[] = [
     key: "category",
     label: "Category",
     sortable: false,
-    render: (r) => r.category ? <Badge text={r.category.name} color={r.category.color ?? undefined} /> : <span className="text-slate-300">—</span>,
+    render: (r) => r.category ? <Badge text={r.category.name} color={r.category.color ?? undefined} /> : <span className="text-muted-foreground/50">—</span>,
     csv: (r) => r.category?.name ?? "",
   },
   {
     key: "supplier",
     label: "Supplier",
     sortable: false,
-    render: (r) => <span className="text-xs text-slate-500">{r.supplier?.name ?? "—"}</span>,
+    render: (r) => <span className="text-xs text-muted-foreground">{r.supplier?.name ?? "—"}</span>,
     csv: (r) => r.supplier?.name ?? "",
   },
   {
@@ -533,12 +533,12 @@ const ITEM_COLUMNS: ColumnDef<ItemRow>[] = [
 //     render: (r) => (
 //       <div className="flex flex-col gap-0.5 max-w-[140px]">
 //         {r.locationStocks.slice(0, 2).map((ls) => (
-//           <span key={ls.id} className="text-xs text-slate-500 truncate">
-//             {ls.location.name}: <span className="font-medium text-slate-700">{ls.quantity}</span>
+//           <span key={ls.id} className="text-xs text-muted-foreground truncate">
+//             {ls.location.name}: <span className="font-medium text-foreground">{ls.quantity}</span>
 //           </span>
 //         ))}
 //         {r.locationStocks.length > 2 && (
-//           <span className="text-xs text-slate-400">+{r.locationStocks.length - 2} more</span>
+//           <span className="text-xs text-muted-foreground/70">+{r.locationStocks.length - 2} more</span>
 //         )}
 //       </div>
 //     ),
@@ -551,12 +551,12 @@ const ITEM_COLUMNS: ColumnDef<ItemRow>[] = [
     render: (r) => (
       <div className="flex flex-col gap-0.5 max-w-[140px]">
         {(r.locationStocks ?? []).slice(0, 2).map((ls) => (
-          <span key={ls.id} className="text-xs text-slate-500 truncate">
-            {ls.location.name}: <span className="font-medium text-slate-700">{ls.quantity}</span>
+          <span key={ls.id} className="text-xs text-muted-foreground truncate">
+            {ls.location.name}: <span className="font-medium text-foreground">{ls.quantity}</span>
           </span>
         ))}
         {(r.locationStocks ?? []).length > 2 && (
-          <span className="text-xs text-slate-400">+{(r.locationStocks ?? []).length - 2} more</span>
+          <span className="text-xs text-muted-foreground/70">+{(r.locationStocks ?? []).length - 2} more</span>
         )}
       </div>
     ),
@@ -565,7 +565,7 @@ const ITEM_COLUMNS: ColumnDef<ItemRow>[] = [
 {
     key: "minQuantity",
     label: "Min Qty",
-    render: (r) => <span className="tabular-nums text-xs text-slate-500">{r.minQuantity} {r.unit}</span>,
+    render: (r) => <span className="tabular-nums text-xs text-muted-foreground">{r.minQuantity} {r.unit}</span>,
     csv: (r) => r.minQuantity,
   },
   {
@@ -577,14 +577,14 @@ const ITEM_COLUMNS: ColumnDef<ItemRow>[] = [
   {
     key: "stockValue",
     label: "Stock Value",
-    render: (r) => <span className="tabular-nums font-medium text-emerald-700">{fmtCurrency(r.stockValue)}</span>,
+    render: (r) => <span className="tabular-nums font-medium text-success">{fmtCurrency(r.stockValue)}</span>,
     csv: (r) => r.stockValue,
   },
   {
     key: "isActive",
     label: "Status",
     render: (r) => (
-      <span className={`text-xs font-medium ${r.isActive ? "text-emerald-600" : "text-slate-400"}`}>
+      <span className={`text-xs font-medium ${r.isActive ? "text-success" : "text-muted-foreground/70"}`}>
         {r.isActive ? "Active" : "Inactive"}
       </span>
     ),
@@ -594,7 +594,7 @@ const ITEM_COLUMNS: ColumnDef<ItemRow>[] = [
     key: "batchTracking",
     label: "Batch",
     render: (r) => (
-      <span className={`text-xs ${r.batchTracking ? "text-purple-600 font-medium" : "text-slate-300"}`}>
+      <span className={`text-xs ${r.batchTracking ? "text-purple-600 font-medium" : "text-muted-foreground/50"}`}>
         {r.batchTracking ? "Tracked" : "—"}
       </span>
     ),
@@ -603,7 +603,7 @@ const ITEM_COLUMNS: ColumnDef<ItemRow>[] = [
   {
     key: "createdAt",
     label: "Added",
-    render: (r) => <span className="text-xs text-slate-400">{fmtDate(r.createdAt)}</span>,
+    render: (r) => <span className="text-xs text-muted-foreground/70">{fmtDate(r.createdAt)}</span>,
     csv: (r) => fmtDate(r.createdAt),
   },
 ];
@@ -612,13 +612,13 @@ const LEDGER_COLUMNS: ColumnDef<LedgerRow>[] = [
   {
     key: "ledgerCode",
     label: "Code",
-    render: (r) => <span className="font-mono text-xs text-slate-400">{r.ledgerCode}</span>,
+    render: (r) => <span className="font-mono text-xs text-muted-foreground/70">{r.ledgerCode}</span>,
     csv: (r) => r.ledgerCode,
   },
   {
     key: "createdAt",
     label: "Date",
-    render: (r) => <span className="text-xs text-slate-500">{fmtDate(r.createdAt)}</span>,
+    render: (r) => <span className="text-xs text-muted-foreground">{fmtDate(r.createdAt)}</span>,
     csv: (r) => fmtDate(r.createdAt),
   },
   {
@@ -633,8 +633,8 @@ const LEDGER_COLUMNS: ColumnDef<LedgerRow>[] = [
     sortable: false,
     render: (r) => (
       <div>
-        <p className="font-medium text-slate-900 max-w-[180px] truncate">{r.item?.name ?? "—"}</p>
-        <p className="text-xs text-slate-400">{r.item?.itemCode}</p>
+        <p className="font-medium text-foreground max-w-[180px] truncate">{r.item?.name ?? "—"}</p>
+        <p className="text-xs text-muted-foreground/70">{r.item?.itemCode}</p>
       </div>
     ),
     csv: (r) => `${r.item?.name ?? ""} (${r.item?.itemCode ?? ""})`,
@@ -645,14 +645,14 @@ const LEDGER_COLUMNS: ColumnDef<LedgerRow>[] = [
     sortable: false,
     render: (r) => r.item?.category ? (
       <Badge text={r.item.category.name} color={r.item.category.color ?? undefined} />
-    ) : <span className="text-slate-300">—</span>,
+    ) : <span className="text-muted-foreground/50">—</span>,
     csv: (r) => r.item?.category?.name ?? "",
   },
   {
     key: "location",
     label: "Location",
     sortable: false,
-    render: (r) => <span className="text-xs text-slate-600">{r.location?.name ?? "—"}</span>,
+    render: (r) => <span className="text-xs text-muted-foreground">{r.location?.name ?? "—"}</span>,
     csv: (r) => r.location?.name ?? "",
   },
   {
@@ -660,7 +660,7 @@ const LEDGER_COLUMNS: ColumnDef<LedgerRow>[] = [
     label: "Qty Change",
     render: (r) => (
       <span
-        className={`tabular-nums font-semibold ${r.quantityChange > 0 ? "text-emerald-600" : "text-red-500"}`}
+        className={`tabular-nums font-semibold ${r.quantityChange > 0 ? "text-success" : "text-danger"}`}
       >
         {r.quantityChange > 0 ? "+" : ""}{r.quantityChange} {r.item?.unit ?? ""}
       </span>
@@ -670,13 +670,13 @@ const LEDGER_COLUMNS: ColumnDef<LedgerRow>[] = [
   {
     key: "quantityBefore",
     label: "Before",
-    render: (r) => <span className="tabular-nums text-xs text-slate-500">{r.quantityBefore}</span>,
+    render: (r) => <span className="tabular-nums text-xs text-muted-foreground">{r.quantityBefore}</span>,
     csv: (r) => r.quantityBefore,
   },
   {
     key: "quantityAfter",
     label: "After",
-    render: (r) => <span className="tabular-nums text-xs text-slate-500">{r.quantityAfter}</span>,
+    render: (r) => <span className="tabular-nums text-xs text-muted-foreground">{r.quantityAfter}</span>,
     csv: (r) => r.quantityAfter,
   },
   {
@@ -689,7 +689,7 @@ const LEDGER_COLUMNS: ColumnDef<LedgerRow>[] = [
     key: "totalValue",
     label: "Total Value",
     render: (r) => (
-      <span className={`tabular-nums font-medium ${r.quantityChange > 0 ? "text-emerald-700" : "text-red-600"}`}>
+      <span className={`tabular-nums font-medium ${r.quantityChange > 0 ? "text-success" : "text-danger"}`}>
         {fmtCurrency(r.totalValue)}
       </span>
     ),
@@ -699,8 +699,8 @@ const LEDGER_COLUMNS: ColumnDef<LedgerRow>[] = [
     key: "referenceType",
     label: "Source",
     render: (r) => r.referenceType ? (
-      <span className="text-xs text-slate-500">{r.referenceType}</span>
-    ) : <span className="text-slate-300">—</span>,
+      <span className="text-xs text-muted-foreground">{r.referenceType}</span>
+    ) : <span className="text-muted-foreground/50">—</span>,
     csv: (r) => r.referenceType ?? "",
   },
   {
@@ -711,10 +711,10 @@ const LEDGER_COLUMNS: ColumnDef<LedgerRow>[] = [
       <div>
         <span className="text-xs font-mono text-purple-600">{r.batch.batchNumber}</span>
         {r.batch.expiryDate && (
-          <p className="text-xs text-slate-400">Exp: {fmtDate(r.batch.expiryDate)}</p>
+          <p className="text-xs text-muted-foreground/70">Exp: {fmtDate(r.batch.expiryDate)}</p>
         )}
       </div>
-    ) : <span className="text-slate-300">—</span>,
+    ) : <span className="text-muted-foreground/50">—</span>,
     csv: (r) => r.batch?.batchNumber ?? "",
   },
   {
@@ -725,7 +725,7 @@ const LEDGER_COLUMNS: ColumnDef<LedgerRow>[] = [
       const name = r.performedByStaff
         ? `${r.performedByStaff.firstName} ${r.performedByStaff.lastName}`
         : r.performedBy?.email ?? "—";
-      return <span className="text-xs text-slate-500">{name}</span>;
+      return <span className="text-xs text-muted-foreground">{name}</span>;
     },
     csv: (r) =>
       r.performedByStaff
@@ -737,8 +737,8 @@ const LEDGER_COLUMNS: ColumnDef<LedgerRow>[] = [
     label: "Notes",
     sortable: false,
     render: (r) => r.notes ? (
-      <span className="text-xs text-slate-500 max-w-[120px] block truncate" title={r.notes}>{r.notes}</span>
-    ) : <span className="text-slate-300">—</span>,
+      <span className="text-xs text-muted-foreground max-w-[120px] block truncate" title={r.notes}>{r.notes}</span>
+    ) : <span className="text-muted-foreground/50">—</span>,
     csv: (r) => r.notes ?? "",
   },
 ];
@@ -785,22 +785,22 @@ function ItemFilterBar({
   onReset: () => void;
 }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-wrap gap-3 items-end shadow-sm">
+    <div className="bg-white border border-border rounded-xl p-4 flex flex-wrap gap-3 items-end shadow-sm">
       <div className="flex-1 min-w-48">
-        <label className="block text-xs font-medium text-slate-500 mb-1">Search</label>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">Search</label>
         <input
           value={filters.search}
           onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
           placeholder="Name, code, description…"
-          className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="w-full h-9 rounded-lg border border-border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-success/60"
         />
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">Type</label>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">Type</label>
         <select
           value={filters.type}
           onChange={(e) => setFilters((f) => ({ ...f, type: e.target.value }))}
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="h-9 rounded-lg border border-border px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-success/60"
         >
           <option value="">All types</option>
           <option value="MEDICINE">Medicine</option>
@@ -809,11 +809,11 @@ function ItemFilterBar({
         </select>
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">Status</label>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">Status</label>
         <select
           value={filters.isActive}
           onChange={(e) => setFilters((f) => ({ ...f, isActive: e.target.value }))}
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="h-9 rounded-lg border border-border px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-success/60"
         >
           <option value="">All</option>
           <option value="true">Active</option>
@@ -826,23 +826,23 @@ function ItemFilterBar({
           id="lowStock"
           checked={filters.lowStock}
           onChange={(e) => setFilters((f) => ({ ...f, lowStock: e.target.checked }))}
-          className="rounded border-slate-300 text-emerald-600"
+          className="rounded border-input text-success"
         />
-        <label htmlFor="lowStock" className="text-sm text-slate-600 select-none cursor-pointer whitespace-nowrap">
+        <label htmlFor="lowStock" className="text-sm text-muted-foreground select-none cursor-pointer whitespace-nowrap">
           Low stock only
         </label>
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">Rows</label>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">Rows</label>
         <select
           value={filters.limit}
           onChange={(e) => setFilters((f) => ({ ...f, limit: parseInt(e.target.value) }))}
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="h-9 rounded-lg border border-border px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-success/60"
         >
           {[10, 25, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
         </select>
       </div>
-      <button onClick={onReset} className="h-9 px-3 rounded-lg text-sm border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">Reset</button>
+      <button onClick={onReset} className="h-9 px-3 rounded-lg text-sm border border-border text-muted-foreground hover:bg-muted/50 transition-colors">Reset</button>
     </div>
   );
 }
@@ -857,22 +857,22 @@ function LedgerFilterBar({
   onReset: () => void;
 }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-wrap gap-3 items-end shadow-sm">
+    <div className="bg-white border border-border rounded-xl p-4 flex flex-wrap gap-3 items-end shadow-sm">
       <div className="flex-1 min-w-48">
-        <label className="block text-xs font-medium text-slate-500 mb-1">Search</label>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">Search</label>
         <input
           value={filters.search}
           onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
           placeholder="Item name, code, ledger code…"
-          className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="w-full h-9 rounded-lg border border-border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-success/60"
         />
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">Transaction Type</label>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">Transaction Type</label>
         <select
           value={filters.type}
           onChange={(e) => setFilters((f) => ({ ...f, type: e.target.value }))}
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="h-9 rounded-lg border border-border px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-success/60"
         >
           <option value="">All types</option>
           {Object.entries(LEDGER_TYPE_LABELS).map(([k, v]) => (
@@ -881,34 +881,34 @@ function LedgerFilterBar({
         </select>
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">From</label>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">From</label>
         <input
           type="date"
           value={filters.dateFrom}
           onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="h-9 rounded-lg border border-border px-2 text-sm focus:outline-none focus:ring-2 focus:ring-success/60"
         />
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">To</label>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">To</label>
         <input
           type="date"
           value={filters.dateTo}
           onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="h-9 rounded-lg border border-border px-2 text-sm focus:outline-none focus:ring-2 focus:ring-success/60"
         />
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">Rows</label>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">Rows</label>
         <select
           value={filters.limit}
           onChange={(e) => setFilters((f) => ({ ...f, limit: parseInt(e.target.value) }))}
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="h-9 rounded-lg border border-border px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-success/60"
         >
           {[10, 25, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
         </select>
       </div>
-      <button onClick={onReset} className="h-9 px-3 rounded-lg text-sm border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">Reset</button>
+      <button onClick={onReset} className="h-9 px-3 rounded-lg text-sm border border-border text-muted-foreground hover:bg-muted/50 transition-colors">Reset</button>
     </div>
   );
 }
@@ -1137,31 +1137,31 @@ export default function InventoryReports(): JSX.Element {
     <tbody>${result.data.map((row) => `<tr>${tab.columns.map((c) => `<td>${escapeHtml(String(c.csv ? c.csv(row) : ""))}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-muted/50">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4">
+      <div className="bg-white border-b border-border px-6 py-4">
         <div className="max-w-screen-2xl mx-auto">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">Inventory Reports</h1>
-              <p className="text-sm text-slate-500 mt-0.5">Items, stock levels &amp; ledger transactions</p>
+              <h1 className="text-xl font-bold text-foreground tracking-tight">Inventory Reports</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">Items, stock levels &amp; ledger transactions</p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowChart((v) => !v)}
-                className="px-3 py-2 text-sm rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center gap-1.5 transition-colors"
+                className="px-3 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted/50 flex items-center gap-1.5 transition-colors"
               >
                 {showChart ? "🙈 Hide Chart" : "📊 Show Chart"}
               </button>
               <button
                 onClick={handleExportCSV}
-                className="px-3 py-2 text-sm rounded-lg border border-emerald-600 text-emerald-700 hover:bg-emerald-50 flex items-center gap-1.5 font-medium transition-colors"
+                className="px-3 py-2 text-sm rounded-lg border border-success text-success hover:bg-success-muted/60 flex items-center gap-1.5 font-medium transition-colors"
               >
                 ⬇ Export CSV
               </button>
               <button
                 onClick={handlePrint}
-                className="px-3 py-2 text-sm rounded-lg bg-slate-800 text-white hover:bg-slate-700 flex items-center gap-1.5 font-medium transition-colors"
+                className="px-3 py-2 text-sm rounded-lg bg-foreground text-white hover:bg-foreground flex items-center gap-1.5 font-medium transition-colors"
               >
                 🖨 Print
               </button>
@@ -1175,14 +1175,14 @@ export default function InventoryReports(): JSX.Element {
                 key={t.id}
                 onClick={() => handleTabChange(t.id)}
                 className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === t.id
-                  ? "border-emerald-600 text-emerald-700"
-                  : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                  ? "border-success text-success"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-input"
                   }`}
               >
                 <span>{t.icon}</span>
                 {t.label}
                 {!loading && pagination.total > 0 && activeTab === t.id && (
-                  <span className="bg-emerald-100 text-emerald-700 text-xs rounded-full px-1.5 py-0.5 font-semibold tabular-nums">
+                  <span className="bg-success-muted text-success text-xs rounded-full px-1.5 py-0.5 font-semibold tabular-nums">
                     {pagination.total}
                   </span>
                 )}
@@ -1195,7 +1195,7 @@ export default function InventoryReports(): JSX.Element {
       {/* Body */}
       <div className="max-w-screen-2xl mx-auto px-2 py-2 space-y-2">
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
+          <div className="bg-danger-muted/60 border border-danger/25 text-danger px-4 py-3 rounded-lg text-sm">{error}</div>
         )}
 
         {/* Filters */}
@@ -1214,19 +1214,19 @@ export default function InventoryReports(): JSX.Element {
         )}
 
         {/* Table */}
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-            <p className="text-sm font-semibold text-slate-700">
+        <div className="bg-white border border-border rounded-xl shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/60">
+            <p className="text-sm font-semibold text-foreground">
               {tab.label}
               {!loading && pagination.total > 0 && (
-                <span className="ml-2 text-slate-400 font-normal text-xs">
+                <span className="ml-2 text-muted-foreground/70 font-normal text-xs">
                   {pagination.total.toLocaleString()} total
                 </span>
               )}
             </p>
             <button
               onClick={fetchReport}
-              className={`text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1 transition-colors ${loading ? "animate-pulse" : ""}`}
+              className={`text-xs text-muted-foreground/70 hover:text-muted-foreground flex items-center gap-1 transition-colors ${loading ? "animate-pulse" : ""}`}
             >
               🔄 {loading ? "Loading…" : "Refresh"}
             </button>
@@ -1241,7 +1241,7 @@ export default function InventoryReports(): JSX.Element {
             loading={loading}
           />
 
-          <div className="border-t border-slate-100 px-4">
+          <div className="border-t border-border/60 px-4">
             <Pagination
               page={pagination.page}
               totalPages={pagination.totalPages}

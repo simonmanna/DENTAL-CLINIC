@@ -373,25 +373,25 @@ export default function StockTransferFormPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-sky-600" />
+      <div className="min-h-screen bg-muted/50 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-muted/50">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
+      <div className="bg-white border-b border-border px-6 py-4 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-lg font-bold text-slate-900">
+            <h1 className="text-lg font-bold text-foreground">
               {isEdit ? "Edit Stock Transfer" : "New Stock Transfer"}
             </h1>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               {isEdit
                 ? "Update transfer details"
                 : "Move inventory between locations"}
@@ -409,7 +409,7 @@ export default function StockTransferFormPage() {
           </Button>
           <Button
             size="sm"
-            className="bg-sky-600 hover:bg-sky-700"
+            className="bg-primary hover:bg-primary"
             onClick={handleSubmit}
             disabled={saving}
           >
@@ -423,14 +423,14 @@ export default function StockTransferFormPage() {
         {/* Transfer Details */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-slate-400" />
+            <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-muted-foreground/70" />
               Transfer Details
             </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-xs text-slate-600">From Location *</Label>
+              <Label className="text-xs text-muted-foreground">From Location *</Label>
               <Select
                 value={form.fromLocationId || "SELECT"}
                 onValueChange={(v) =>
@@ -455,7 +455,7 @@ export default function StockTransferFormPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-slate-600">To Location *</Label>
+              <Label className="text-xs text-muted-foreground">To Location *</Label>
               <Select
                 value={form.toLocationId || "SELECT"}
                 onValueChange={(v) =>
@@ -480,9 +480,9 @@ export default function StockTransferFormPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-slate-600">Transfer Date *</Label>
+              <Label className="text-xs text-muted-foreground">Transfer Date *</Label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
                 <Input
                   type="date"
                   className="pl-9"
@@ -495,7 +495,7 @@ export default function StockTransferFormPage() {
             </div>
 
             <div className="md:col-span-3 space-y-1.5">
-              <Label className="text-xs text-slate-600">Notes</Label>
+              <Label className="text-xs text-muted-foreground">Notes</Label>
               <Textarea
                 placeholder="Optional notes about this transfer..."
                 value={form.notes}
@@ -511,8 +511,8 @@ export default function StockTransferFormPage() {
         {/* Items */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              <Package className="h-4 w-4 text-slate-400" />
+            <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Package className="h-4 w-4 text-muted-foreground/70" />
               Items to Transfer
             </CardTitle>
             <Button type="button" variant="outline" size="sm" onClick={addRow}>
@@ -522,7 +522,7 @@ export default function StockTransferFormPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {rows.length === 0 && (
-              <div className="text-center py-8 text-slate-500 text-sm">
+              <div className="text-center py-8 text-muted-foreground text-sm">
                 No items added. Click <strong>Add Item</strong> to begin.
               </div>
             )}
@@ -530,16 +530,16 @@ export default function StockTransferFormPage() {
             {rows.map((row, idx) => (
               <div
                 key={row._key}
-                className="border border-slate-200 rounded-lg p-4 space-y-3 bg-white"
+                className="border border-border rounded-lg p-4 space-y-3 bg-white"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-500">
+                  <span className="text-xs font-semibold text-muted-foreground">
                     Item #{idx + 1}
                   </span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    className="h-8 text-danger hover:text-danger hover:bg-danger-muted/60"
                     onClick={() => removeRow(row._key)}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -549,7 +549,7 @@ export default function StockTransferFormPage() {
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
                   {/* Item */}
                   <div className="md:col-span-5 space-y-1">
-                    <Label className="text-xs text-slate-600">Item *</Label>
+                    <Label className="text-xs text-muted-foreground">Item *</Label>
                     <Select
                       value={row.inventoryItemId || "SELECT"}
                       onValueChange={(v) => {
@@ -565,7 +565,7 @@ export default function StockTransferFormPage() {
                         {inventoryItems.map((item) => (
                           <SelectItem key={item.id} value={item.id}>
                             {item.name}{" "}
-                            <span className="text-slate-400">
+                            <span className="text-muted-foreground/70">
                               ({item.unit})
                             </span>
                           </SelectItem>
@@ -576,17 +576,17 @@ export default function StockTransferFormPage() {
 
                   {/* UOM */}
                   <div className="md:col-span-2 space-y-1">
-                    <Label className="text-xs text-slate-600">UOM</Label>
+                    <Label className="text-xs text-muted-foreground">UOM</Label>
                     <Input
                       value={row.uom}
                       disabled
-                      className="bg-slate-50 text-xs"
+                      className="bg-muted/50 text-xs"
                     />
                   </div>
 
                   {/* Qty Requested */}
                   <div className="md:col-span-2 space-y-1">
-                    <Label className="text-xs text-slate-600">
+                    <Label className="text-xs text-muted-foreground">
                       Qty Requested *
                     </Label>
                     <Input
@@ -605,7 +605,7 @@ export default function StockTransferFormPage() {
 
                   {/* Qty Transferred */}
                   <div className="md:col-span-3 space-y-1">
-                    <Label className="text-xs text-slate-600">
+                    <Label className="text-xs text-muted-foreground">
                       Qty Transferred
                     </Label>
                     <Input
@@ -625,16 +625,16 @@ export default function StockTransferFormPage() {
 
                 {/* Batch Tracking Panel */}
                 {row.batchTracking && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
+                  <div className="bg-warning-muted/60 border border-warning/25 rounded-lg p-3 mt-2">
                     <div className="flex items-center gap-2 mb-2">
-                      <Boxes className="h-4 w-4 text-amber-600" />
-                      <span className="text-xs font-semibold text-amber-800">
+                      <Boxes className="h-4 w-4 text-warning" />
+                      <span className="text-xs font-semibold text-warning">
                         Batch Tracking — Select distribution method
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="text-xs text-amber-700">Strategy:</span>
+                      <span className="text-xs text-warning">Strategy:</span>
                       <Select
                         value={row.distributionStrategy || "FEFO"}
                         onValueChange={(value: string) =>
@@ -661,7 +661,7 @@ export default function StockTransferFormPage() {
                       row.availableBatches &&
                       row.availableBatches.length > 0 && (
                         <div className="space-y-1 mb-3">
-                          <p className="text-xs font-medium text-amber-800">
+                          <p className="text-xs font-medium text-warning">
                             Batches will be consumed in this order:
                           </p>
                           <div className="space-y-1">
@@ -670,10 +670,10 @@ export default function StockTransferFormPage() {
                                 key={b.id}
                                 className="flex items-center justify-between text-xs bg-white/60 rounded px-2 py-1"
                               >
-                                <span className="font-medium text-amber-900">
+                                <span className="font-medium text-warning">
                                   {i + 1}. {b.batchNumber || "DEFAULT"}
                                 </span>
-                                <span className="text-amber-700">
+                                <span className="text-warning">
                                   Qty: {b.quantity}
                                   {b.expiryDate &&
                                     ` · Exp: ${fmtDate(b.expiryDate)}`}
@@ -712,7 +712,7 @@ export default function StockTransferFormPage() {
                                 >
                                   <div className="flex items-center justify-between w-full gap-4">
                                     <span>{b.batchNumber || "DEFAULT"}</span>
-                                    <span className="text-xs text-slate-400">
+                                    <span className="text-xs text-muted-foreground/70">
                                       Qty: {b.quantity}
                                       {b.expiryDate &&
                                         ` · Exp: ${fmtDate(b.expiryDate)}`}
@@ -723,7 +723,7 @@ export default function StockTransferFormPage() {
                             </SelectContent>
                           </Select>
                         ) : (
-                          <p className="text-xs text-amber-600">
+                          <p className="text-xs text-warning">
                             No active batches with stock found at this location.
                           </p>
                         )}

@@ -89,14 +89,14 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-    GENERAL_USE: 'bg-sky-100 text-sky-800',
-    CLINIC_PROCEDURE: 'bg-blue-100 text-blue-800',
+    GENERAL_USE: 'bg-primary-muted text-primary',
+    CLINIC_PROCEDURE: 'bg-primary-muted text-primary',
     TRAINING: 'bg-purple-100 text-purple-800',
-    DAMAGED: 'bg-red-100 text-red-800',
-    SAMPLE: 'bg-amber-100 text-amber-800',
-    EXPIRED_MINOR: 'bg-orange-100 text-orange-800',
-    TRANSFER_INFORMAL: 'bg-teal-100 text-teal-800',
-    OTHER: 'bg-gray-100 text-gray-700',
+    DAMAGED: 'bg-danger-muted text-danger',
+    SAMPLE: 'bg-warning-muted text-warning',
+    EXPIRED_MINOR: 'bg-warning-muted text-warning',
+    TRANSFER_INFORMAL: 'bg-primary-muted text-primary',
+    OTHER: 'bg-muted text-foreground',
 };
 
 // ─── Utility ─────────────────────────────────────────────────────────────────
@@ -208,15 +208,15 @@ export default function StockOutPage() {
 
     return (
         <TooltipProvider>
-            <div className="flex flex-col gap-6 p-1 min-h-screen bg-gray-50">
+            <div className="flex flex-col gap-6 p-1 min-h-screen bg-muted/50">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2 px-2">
-                            {/* <ArrowDownToLine className="h-6 w-6 text-sky-600" /> */}
+                        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2 px-2">
+                            {/* <ArrowDownToLine className="h-6 w-6 text-primary" /> */}
                             Stock Out
                         </h1>
-                        <p className="text-sm text-gray-500 mt-0.5 px-2">
+                        <p className="text-sm text-muted-foreground mt-0.5 px-2">
                             Record stock removals from inventory
                         </p>
                     </div>
@@ -233,7 +233,7 @@ export default function StockOutPage() {
                         <Button
                             size="sm"
                             onClick={() => setCreateOpen(true)}
-                            className="gap-1.5 bg-sky-600 hover:bg-sky-700"
+                            className="gap-1.5 bg-primary hover:bg-primary"
                         >
                             <Plus className="h-4 w-4" />
                             New Stock Out
@@ -244,22 +244,22 @@ export default function StockOutPage() {
                 {/* Stats cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <StatCard
-                        icon={<ClipboardList className="h-5 w-5 text-sky-600" />}
+                        icon={<ClipboardList className="h-5 w-5 text-primary" />}
                         label="Total Records"
                         value={statsLoading ? '—' : String(stats?.totalRecords ?? 0)}
-                        bg="bg-sky-50"
+                        bg="bg-primary-muted/60"
                     />
                     <StatCard
-                        icon={<TrendingDown className="h-5 w-5 text-red-500" />}
+                        icon={<TrendingDown className="h-5 w-5 text-danger" />}
                         label="Total Value Out"
                         value={statsLoading ? '—' : fmt(stats?.totalValue ?? 0)}
-                        bg="bg-red-50"
+                        bg="bg-danger-muted/60"
                     />
                     <StatCard
-                        icon={<Calendar className="h-5 w-5 text-amber-600" />}
+                        icon={<Calendar className="h-5 w-5 text-warning" />}
                         label="This Month"
                         value={statsLoading ? '—' : fmt(stats?.monthlyValue ?? 0)}
-                        bg="bg-amber-50"
+                        bg="bg-warning-muted/60"
                     />
                     <StatCard
                         icon={<Package className="h-5 w-5 text-purple-600" />}
@@ -270,14 +270,14 @@ export default function StockOutPage() {
                 </div>
 
                 {/* Filters */}
-                <div className="flex flex-wrap items-center gap-3 bg-white border border-gray-200 rounded-lg px-4 py-1">
+                <div className="flex flex-wrap items-center gap-3 bg-white border border-border rounded-lg px-4 py-1">
                     <div className="relative flex-1 min-w-[200px]">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
                         <Input
                             placeholder="Search by code, reason, item…"
                             value={search}
                             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                            className="pl-9 h-9 text-sm border-gray-200"
+                            className="pl-9 h-9 text-sm border-border"
                         />
                     </div>
 
@@ -286,7 +286,7 @@ export default function StockOutPage() {
                         onValueChange={(v) => { setFilterLocation(v === 'ALL' ? '' : v); setPage(1); }}
                     >
                         <SelectTrigger className="h-9 w-[180px] text-sm">
-                            <MapPin className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
+                            <MapPin className="h-3.5 w-3.5 mr-1.5 text-muted-foreground/70" />
                             <SelectValue placeholder="All locations" />
                         </SelectTrigger>
                         <SelectContent>
@@ -302,7 +302,7 @@ export default function StockOutPage() {
                         onValueChange={(v) => { setFilterCategory(v === 'ALL' ? '' : v); setPage(1); }}
                     >
                         <SelectTrigger className="h-9 w-[160px] text-sm">
-                            <Filter className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
+                            <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground/70" />
                             <SelectValue placeholder="Category" />
                         </SelectTrigger>
                         <SelectContent>
@@ -318,7 +318,7 @@ export default function StockOutPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => { setSearch(''); setFilterLocation(''); setFilterCategory(''); setPage(1); }}
-                            className="h-9 gap-1 text-gray-500"
+                            className="h-9 gap-1 text-muted-foreground"
                         >
                             <X className="h-3.5 w-3.5" /> Clear
                         </Button>
@@ -326,17 +326,17 @@ export default function StockOutPage() {
                 </div>
 
                 {/* Table */}
-                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <div className="bg-white border border-border rounded-lg overflow-hidden">
                     <Table>
                         <TableHeader>
-                            <TableRow className="bg-gray-50 border-b border-gray-200">
-                                <TableHead className="font-semibold text-gray-700 text-xs uppercase tracking-wider">Code</TableHead>
-                                <TableHead className="font-semibold text-gray-700 text-xs uppercase tracking-wider">Location</TableHead>
-                                <TableHead className="font-semibold text-gray-700 text-xs uppercase tracking-wider">Category</TableHead>
-                                <TableHead className="font-semibold text-gray-700 text-xs uppercase tracking-wider">Items</TableHead>
-                                <TableHead className="font-semibold text-gray-700 text-xs uppercase tracking-wider">Reason</TableHead>
-                                <TableHead className="font-semibold text-gray-700 text-xs uppercase tracking-wider text-right">Value</TableHead>
-                                <TableHead className="font-semibold text-gray-700 text-xs uppercase tracking-wider">Date</TableHead>
+                            <TableRow className="bg-muted/50 border-b border-border">
+                                <TableHead className="font-semibold text-foreground text-xs uppercase tracking-wider">Code</TableHead>
+                                <TableHead className="font-semibold text-foreground text-xs uppercase tracking-wider">Location</TableHead>
+                                <TableHead className="font-semibold text-foreground text-xs uppercase tracking-wider">Category</TableHead>
+                                <TableHead className="font-semibold text-foreground text-xs uppercase tracking-wider">Items</TableHead>
+                                <TableHead className="font-semibold text-foreground text-xs uppercase tracking-wider">Reason</TableHead>
+                                <TableHead className="font-semibold text-foreground text-xs uppercase tracking-wider text-right">Value</TableHead>
+                                <TableHead className="font-semibold text-foreground text-xs uppercase tracking-wider">Date</TableHead>
                                 <TableHead className="w-10" />
                             </TableRow>
                         </TableHeader>
@@ -344,12 +344,12 @@ export default function StockOutPage() {
                             {loading ? (
                                 <TableRow>
                                     <TableCell colSpan={8} className="text-center py-12">
-                                        <Loader2 className="h-5 w-5 animate-spin mx-auto text-gray-400" />
+                                        <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground/70" />
                                     </TableCell>
                                 </TableRow>
                             ) : records.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="text-center py-14 text-gray-400">
+                                    <TableCell colSpan={8} className="text-center py-14 text-muted-foreground/70">
                                         <ArrowDownToLine className="h-8 w-8 mx-auto mb-2 opacity-30" />
                                         <p className="text-sm">No stock out records found</p>
                                     </TableCell>
@@ -358,46 +358,46 @@ export default function StockOutPage() {
                                 records.map((rec) => (
                                     <TableRow
                                         key={rec.id}
-                                        className="hover:bg-gray-50 cursor-pointer transition-colors"
+                                        className="hover:bg-muted/50 cursor-pointer transition-colors"
                                         onClick={() => setDetailRecord(rec)}
                                     >
                                         <TableCell>
-                                            <span className="font-mono text-sm font-medium text-sky-700">
+                                            <span className="font-mono text-sm font-medium text-primary">
                                                 {rec.outCode}
                                             </span>
                                         </TableCell>
                                         <TableCell>
-                                            <span className="text-sm text-gray-700">{rec.location?.name}</span>
+                                            <span className="text-sm text-foreground">{rec.location?.name}</span>
                                         </TableCell>
                                         <TableCell>
-                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${CATEGORY_COLORS[rec.category] ?? 'bg-gray-100 text-gray-700'}`}>
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${CATEGORY_COLORS[rec.category] ?? 'bg-muted text-foreground'}`}>
                                                 {CATEGORY_LABELS[rec.category] ?? rec.category}
                                             </span>
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex flex-wrap gap-1 max-w-[200px]">
                                                 {rec.items?.slice(0, 2).map((item: any) => (
-                                                    <span key={item.id} className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                                                    <span key={item.id} className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
                                                         {item.itemName}
                                                     </span>
                                                 ))}
                                                 {(rec.items?.length ?? 0) > 2 && (
-                                                    <span className="text-xs text-gray-400">+{rec.items.length - 2}</span>
+                                                    <span className="text-xs text-muted-foreground/70">+{rec.items.length - 2}</span>
                                                 )}
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <span className="text-sm text-gray-500 truncate max-w-[140px] block">
+                                            <span className="text-sm text-muted-foreground truncate max-w-[140px] block">
                                                 {rec.reason ?? '—'}
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <span className="font-medium text-sm text-gray-900">
+                                            <span className="font-medium text-sm text-foreground">
                                                 {fmt(rec.totalValue ?? 0)}
                                             </span>
                                         </TableCell>
                                         <TableCell>
-                                            <span className="text-xs text-gray-500">
+                                            <span className="text-xs text-muted-foreground">
                                                 {rec.createdAt ? format(new Date(rec.createdAt), 'dd MMM yyyy') : '—'}
                                             </span>
                                         </TableCell>
@@ -410,7 +410,7 @@ export default function StockOutPage() {
                                                         className="h-7 w-7"
                                                         onClick={(e) => { e.stopPropagation(); setDetailRecord(rec); }}
                                                     >
-                                                        <Eye className="h-3.5 w-3.5 text-gray-400" />
+                                                        <Eye className="h-3.5 w-3.5 text-muted-foreground/70" />
                                                     </Button>
                                                 </TooltipTrigger>
                                                 <TooltipContent>View details</TooltipContent>
@@ -424,8 +424,8 @@ export default function StockOutPage() {
 
                     {/* Pagination */}
                     {meta.totalPages > 1 && (
-                        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50">
-                            <span className="text-xs text-gray-500">
+                        <div className="flex items-center justify-between px-4 py-3 border-t border-border/60 bg-muted/50">
+                            <span className="text-xs text-muted-foreground">
                                 {meta.total} records · Page {meta.page} of {meta.totalPages}
                             </span>
                             <div className="flex gap-1.5">
@@ -477,13 +477,13 @@ function StatCard({
     icon, label, value, bg,
 }: { icon: React.ReactNode; label: string; value: string; bg: string }) {
     return (
-        <Card className="border-gray-200 shadow-sm">
+        <Card className="border-border shadow-sm">
             <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-lg ${bg}`}>{icon}</div>
                     <div>
-                        <p className="text-xs text-gray-500 font-medium">{label}</p>
-                        <p className="text-lg font-bold text-gray-900 leading-tight">{value}</p>
+                        <p className="text-xs text-muted-foreground font-medium">{label}</p>
+                        <p className="text-lg font-bold text-foreground leading-tight">{value}</p>
                     </div>
                 </div>
             </CardContent>
@@ -645,9 +645,9 @@ function CreateStockOutDialog({
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
-                <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+                <DialogHeader className="px-6 pt-6 pb-4 border-b border-border/60 sticky top-0 bg-white z-10">
                     <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-                        <ArrowDownToLine className="h-5 w-5 text-sky-600" />
+                        <ArrowDownToLine className="h-5 w-5 text-primary" />
                         New Stock Out
                     </DialogTitle>
                 </DialogHeader>
@@ -656,8 +656,8 @@ function CreateStockOutDialog({
                     {/* Location + Category */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <Label className="text-sm font-medium text-gray-700">
-                                Location <span className="text-red-500">*</span>
+                            <Label className="text-sm font-medium text-foreground">
+                                Location <span className="text-danger">*</span>
                             </Label>
                             <Select value={locationId} onValueChange={setLocationId}>
                                 <SelectTrigger className="h-9">
@@ -672,7 +672,7 @@ function CreateStockOutDialog({
                         </div>
 
                         <div className="space-y-1.5">
-                            <Label className="text-sm font-medium text-gray-700">Category</Label>
+                            <Label className="text-sm font-medium text-foreground">Category</Label>
                             <Select value={category} onValueChange={setCategory}>
                                 <SelectTrigger className="h-9">
                                     <SelectValue />
@@ -688,7 +688,7 @@ function CreateStockOutDialog({
 
                     {/* Reason */}
                     <div className="space-y-1.5">
-                        <Label className="text-sm font-medium text-gray-700">Reason</Label>
+                        <Label className="text-sm font-medium text-foreground">Reason</Label>
                         <Input
                             placeholder="e.g. Clinic demonstration, Staff training, Used in procedure…"
                             value={reason}
@@ -700,8 +700,8 @@ function CreateStockOutDialog({
                     {/* Items */}
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                            <Label className="text-sm font-medium text-gray-700">
-                                Items <span className="text-red-500">*</span>
+                            <Label className="text-sm font-medium text-foreground">
+                                Items <span className="text-danger">*</span>
                             </Label>
                             <Button
                                 type="button"
@@ -720,9 +720,9 @@ function CreateStockOutDialog({
 
                         {/* Item picker dropdown */}
                         {showItemPicker && (
-                            <div className="border border-gray-200 rounded-lg bg-white shadow-lg p-3 space-y-2">
+                            <div className="border border-border rounded-lg bg-white shadow-lg p-3 space-y-2">
                                 <div className="relative">
-                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/70" />
                                     <Input
                                         autoFocus
                                         placeholder="Search items…"
@@ -731,9 +731,9 @@ function CreateStockOutDialog({
                                         className="pl-8 h-8 text-sm"
                                     />
                                 </div>
-                                <div className="max-h-48 overflow-y-auto divide-y divide-gray-50">
+                                <div className="max-h-48 overflow-y-auto divide-y divide-border/40">
                                     {filteredStock.length === 0 ? (
-                                        <p className="text-xs text-gray-400 py-3 text-center">
+                                        <p className="text-xs text-muted-foreground/70 py-3 text-center">
                                             {itemSearch ? 'No items match your search' : 'No items with stock available'}
                                         </p>
                                     ) : (
@@ -742,20 +742,20 @@ function CreateStockOutDialog({
                                                 key={s.id}
                                                 type="button"
                                                 onClick={() => addItem(s)}
-                                                className="w-full flex items-center justify-between px-2 py-2 hover:bg-sky-50 rounded text-left transition-colors group"
+                                                className="w-full flex items-center justify-between px-2 py-2 hover:bg-primary-muted/60 rounded text-left transition-colors group"
                                             >
                                                 <div>
-                                                    <span className="text-sm font-medium text-gray-800 group-hover:text-sky-700">
+                                                    <span className="text-sm font-medium text-foreground group-hover:text-primary">
                                                         {s.name}
                                                     </span>
-                                                    <span className="text-xs text-gray-400 ml-2">{s.itemCode}</span>
+                                                    <span className="text-xs text-muted-foreground/70 ml-2">{s.itemCode}</span>
                                                     {s.batchTracking && (
-                                                        <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+                                                        <span className="ml-2 text-xs bg-warning-muted text-warning px-1.5 py-0.5 rounded">
                                                             Batch
                                                         </span>
                                                     )}
                                                 </div>
-                                                <span className="text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded">
+                                                <span className="text-xs font-medium text-success bg-success-muted/60 px-2 py-0.5 rounded">
                                                     {s.availableQty} {s.unit}
                                                 </span>
                                             </button>
@@ -767,7 +767,7 @@ function CreateStockOutDialog({
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => setShowItemPicker(false)}
-                                        className="h-7 text-xs text-gray-500"
+                                        className="h-7 text-xs text-muted-foreground"
                                     >
                                         Close
                                     </Button>
@@ -790,15 +790,15 @@ function CreateStockOutDialog({
                         )}
 
                         {items.length === 0 && locationId && !showItemPicker && (
-                            <div className="border border-dashed border-gray-200 rounded-lg py-8 text-center">
-                                <Package className="h-6 w-6 text-gray-300 mx-auto mb-1.5" />
-                                <p className="text-sm text-gray-400">No items added yet</p>
+                            <div className="border border-dashed border-border rounded-lg py-8 text-center">
+                                <Package className="h-6 w-6 text-muted-foreground/50 mx-auto mb-1.5" />
+                                <p className="text-sm text-muted-foreground/70">No items added yet</p>
                                 <Button
                                     type="button"
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => setShowItemPicker(true)}
-                                    className="mt-2 text-sky-600 text-xs"
+                                    className="mt-2 text-primary text-xs"
                                 >
                                     + Add an item
                                 </Button>
@@ -808,7 +808,7 @@ function CreateStockOutDialog({
 
                     {/* Notes */}
                     <div className="space-y-1.5">
-                        <Label className="text-sm font-medium text-gray-700">Notes</Label>
+                        <Label className="text-sm font-medium text-foreground">Notes</Label>
                         <Textarea
                             placeholder="Additional notes (optional)…"
                             value={notes}
@@ -820,29 +820,29 @@ function CreateStockOutDialog({
 
                     {/* Total */}
                     {items.length > 0 && (
-                        <div className="flex justify-between items-center bg-sky-50 border border-sky-100 rounded-lg px-4 py-3">
-                            <span className="text-sm font-medium text-sky-700">
+                        <div className="flex justify-between items-center bg-primary-muted/60 border border-primary/20 rounded-lg px-4 py-3">
+                            <span className="text-sm font-medium text-primary">
                                 Total Stock Value Out
                             </span>
-                            <span className="text-lg font-bold text-sky-900">{fmt(totalValue)}</span>
+                            <span className="text-lg font-bold text-primary">{fmt(totalValue)}</span>
                         </div>
                     )}
 
                     {/* Errors */}
                     {errors.length > 0 && (
-                        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 space-y-1">
-                            <div className="flex items-center gap-1.5 text-red-700 text-sm font-medium">
+                        <div className="rounded-lg border border-danger/25 bg-danger-muted/60 px-4 py-3 space-y-1">
+                            <div className="flex items-center gap-1.5 text-danger text-sm font-medium">
                                 <AlertCircle className="h-4 w-4" />
                                 Please fix the following:
                             </div>
                             {errors.map((e, i) => (
-                                <p key={i} className="text-sm text-red-600 ml-5">• {e}</p>
+                                <p key={i} className="text-sm text-danger ml-5">• {e}</p>
                             ))}
                         </div>
                     )}
                 </div>
 
-                <DialogFooter className="px-6 py-4 border-t border-gray-100 sticky bottom-0 bg-white">
+                <DialogFooter className="px-6 py-4 border-t border-border/60 sticky bottom-0 bg-white">
                     <Button
                         variant="outline"
                         onClick={() => onOpenChange(false)}
@@ -854,7 +854,7 @@ function CreateStockOutDialog({
                     <Button
                         onClick={handleSubmit}
                         disabled={submitting || items.length === 0}
-                        className="gap-1.5 bg-sky-600 hover:bg-sky-700 text-sm"
+                        className="gap-1.5 bg-primary hover:bg-primary text-sm"
                     >
                         {submitting ? (
                             <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Processing…</>
@@ -883,19 +883,19 @@ function LineItemRow({
     const isBadQty = item.quantity <= 0;
 
     return (
-        <div className={`border rounded-lg p-3 space-y-2 transition-colors ${isOverQty || isBadQty ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
+        <div className={`border rounded-lg p-3 space-y-2 transition-colors ${isOverQty || isBadQty ? 'border-danger/25 bg-danger-muted/60' : 'border-border bg-muted/50'}`}>
             {/* Item name + remove */}
             <div className="flex items-start justify-between gap-2">
                 <div className="flex-1">
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-800">{item.itemName}</span>
+                        <span className="text-sm font-medium text-foreground">{item.itemName}</span>
                         {item.batchTracking && (
-                            <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+                            <span className="text-xs bg-warning-muted text-warning px-1.5 py-0.5 rounded">
                                 Batch tracked
                             </span>
                         )}
                     </div>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-muted-foreground/70">
                         Available: {item.availableQty} {item.unit} · {fmt(item.unitCost)}/{item.unit}
                     </span>
                 </div>
@@ -903,7 +903,7 @@ function LineItemRow({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 text-gray-400 hover:text-red-500"
+                    className="h-6 w-6 text-muted-foreground/70 hover:text-danger"
                     onClick={onRemove}
                 >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -914,7 +914,7 @@ function LineItemRow({
             <div className="grid grid-cols-3 gap-2">
                 {/* Quantity */}
                 <div className="space-y-1">
-                    <Label className="text-xs text-gray-500">Quantity</Label>
+                    <Label className="text-xs text-muted-foreground">Quantity</Label>
                     <Input
                         type="number"
                         min={0.001}
@@ -922,16 +922,16 @@ function LineItemRow({
                         max={item.availableQty}
                         value={item.quantity}
                         onChange={(e) => onChange({ quantity: parseFloat(e.target.value) || 0 })}
-                        className={`h-8 text-sm ${isOverQty || isBadQty ? 'border-red-300 focus:ring-red-200' : ''}`}
+                        className={`h-8 text-sm ${isOverQty || isBadQty ? 'border-danger/30 focus:ring-danger/25' : ''}`}
                     />
                     {isOverQty && (
-                        <p className="text-xs text-red-500">Exceeds available stock</p>
+                        <p className="text-xs text-danger">Exceeds available stock</p>
                     )}
                 </div>
 
                 {/* Strategy */}
                 <div className="space-y-1">
-                    <Label className="text-xs text-gray-500">Strategy</Label>
+                    <Label className="text-xs text-muted-foreground">Strategy</Label>
                     <Select
                         value={item.distributionStrategy}
                         onValueChange={(v: any) =>
@@ -952,10 +952,10 @@ function LineItemRow({
                 {/* Manual batch selector */}
                 {item.distributionStrategy === 'MANUAL' && item.batchTracking && (
                     <div className="space-y-1">
-                        <Label className="text-xs text-gray-500">Select Batch</Label>
+                        <Label className="text-xs text-muted-foreground">Select Batch</Label>
                         {item.loadingBatches ? (
                             <div className="h-8 flex items-center">
-                                <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground/70" />
                             </div>
                         ) : (
                             <Select
@@ -971,7 +971,7 @@ function LineItemRow({
                                             <span>
                                                 {b.batchNumber ?? 'DEFAULT'} · {b.quantity} units
                                                 {b.expiryDate && (
-                                                    <span className="text-gray-400 ml-1">
+                                                    <span className="text-muted-foreground/70 ml-1">
                                                         (exp {format(new Date(b.expiryDate), 'MMM yyyy')})
                                                     </span>
                                                 )}
@@ -990,7 +990,7 @@ function LineItemRow({
                 placeholder="Item notes (optional)"
                 value={item.notes ?? ''}
                 onChange={(e) => onChange({ notes: e.target.value || undefined })}
-                className="h-7 text-xs border-gray-200"
+                className="h-7 text-xs border-border"
             />
         </div>
     );
@@ -1012,16 +1012,16 @@ function StockOutDetailSheet({
     return (
         <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
             <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-                <SheetHeader className="pb-4 border-b border-gray-100">
+                <SheetHeader className="pb-4 border-b border-border/60">
                     <SheetTitle className="flex items-center gap-2">
-                        <ArrowDownToLine className="h-4 w-4 text-sky-600" />
+                        <ArrowDownToLine className="h-4 w-4 text-primary" />
                         {record.outCode}
                     </SheetTitle>
                     <div className="flex items-center gap-2 mt-1">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${CATEGORY_COLORS[record.category] ?? 'bg-gray-100 text-gray-700'}`}>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${CATEGORY_COLORS[record.category] ?? 'bg-muted text-foreground'}`}>
                             {CATEGORY_LABELS[record.category] ?? record.category}
                         </span>
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-muted-foreground/70">
                             {record.createdAt ? format(new Date(record.createdAt), 'dd MMM yyyy, HH:mm') : ''}
                         </span>
                     </div>
@@ -1031,48 +1031,48 @@ function StockOutDetailSheet({
                     {/* Meta */}
                     <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
-                            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Location</p>
-                            <p className="mt-0.5 text-gray-800">{record.location?.name ?? '—'}</p>
+                            <p className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider">Location</p>
+                            <p className="mt-0.5 text-foreground">{record.location?.name ?? '—'}</p>
                         </div>
                         <div>
-                            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Value</p>
-                            <p className="mt-0.5 font-semibold text-gray-900">{fmt(record.totalValue ?? 0)}</p>
+                            <p className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider">Total Value</p>
+                            <p className="mt-0.5 font-semibold text-foreground">{fmt(record.totalValue ?? 0)}</p>
                         </div>
                         {record.reason && (
                             <div className="col-span-2">
-                                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Reason</p>
-                                <p className="mt-0.5 text-gray-800">{record.reason}</p>
+                                <p className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider">Reason</p>
+                                <p className="mt-0.5 text-foreground">{record.reason}</p>
                             </div>
                         )}
                         {record.notes && (
                             <div className="col-span-2">
-                                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Notes</p>
-                                <p className="mt-0.5 text-gray-600 text-sm">{record.notes}</p>
+                                <p className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider">Notes</p>
+                                <p className="mt-0.5 text-muted-foreground text-sm">{record.notes}</p>
                             </div>
                         )}
                     </div>
 
                     {/* Items */}
                     <div>
-                        <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Items</p>
+                        <p className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider mb-2">Items</p>
                         <div className="space-y-2">
                             {record.items?.map((item: any) => (
                                 <div
                                     key={item.id}
-                                    className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-lg px-3 py-2.5"
+                                    className="flex items-center justify-between bg-muted/50 border border-border/60 rounded-lg px-3 py-2.5"
                                 >
                                     <div>
-                                        <p className="text-sm font-medium text-gray-800">{item.itemName}</p>
-                                        <p className="text-xs text-gray-400">
+                                        <p className="text-sm font-medium text-foreground">{item.itemName}</p>
+                                        <p className="text-xs text-muted-foreground/70">
                                             {item.distributionStrategy} · {item.unit}
                                             {item.batchNumber && ` · Batch: ${item.batchNumber}`}
                                         </p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-sm font-semibold text-gray-900">
+                                        <p className="text-sm font-semibold text-foreground">
                                             {item.quantity} {item.unit}
                                         </p>
-                                        <p className="text-xs text-gray-400">{fmt(item.totalCost)}</p>
+                                        <p className="text-xs text-muted-foreground/70">{fmt(item.totalCost)}</p>
                                     </div>
                                 </div>
                             ))}
@@ -1082,26 +1082,26 @@ function StockOutDetailSheet({
                     {/* Ledger entries */}
                     {record.ledgerEntries?.length > 0 && (
                         <div>
-                            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
+                            <p className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider mb-2">
                                 Ledger Entries
                             </p>
                             <div className="space-y-1.5">
                                 {record.ledgerEntries.map((entry: any) => (
                                     <div
                                         key={entry.id}
-                                        className="flex items-center justify-between text-xs bg-red-50 border border-red-100 rounded px-2.5 py-2"
+                                        className="flex items-center justify-between text-xs bg-danger-muted/60 border border-danger/20 rounded px-2.5 py-2"
                                     >
                                         <div>
-                                            <span className="font-mono text-red-700">{entry.ledgerCode}</span>
+                                            <span className="font-mono text-danger">{entry.ledgerCode}</span>
                                             {entry.batch?.batchNumber && (
-                                                <span className="ml-2 text-gray-500">· {entry.batch.batchNumber}</span>
+                                                <span className="ml-2 text-muted-foreground">· {entry.batch.batchNumber}</span>
                                             )}
                                         </div>
                                         <div className="text-right">
-                                            <span className="text-red-600 font-medium">
+                                            <span className="text-danger font-medium">
                                                 {entry.quantityChange} {entry.location?.name ?? ''}
                                             </span>
-                                            <span className="text-gray-400 ml-2">
+                                            <span className="text-muted-foreground/70 ml-2">
                                                 {entry.quantityBefore} → {entry.quantityAfter}
                                             </span>
                                         </div>

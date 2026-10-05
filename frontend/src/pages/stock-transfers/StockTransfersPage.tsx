@@ -137,18 +137,18 @@ export default function StockTransfersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-muted/50">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
+      <div className="bg-white border-b border-border px-6 py-4 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-lg font-bold text-slate-900">
+            <h1 className="text-lg font-bold text-foreground">
               Stock Transfers
             </h1>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               Move inventory between locations
             </p>
           </div>
@@ -167,7 +167,7 @@ export default function StockTransfersPage() {
           </Button>
           <Button
             size="sm"
-            className="bg-sky-600 hover:bg-sky-700"
+            className="bg-primary hover:bg-primary"
             onClick={() => navigate("/stock-transfers/new")}
           >
             <Plus className="h-4 w-4 mr-1" />
@@ -177,10 +177,10 @@ export default function StockTransfersPage() {
       </div>
 
       {/* Filters */}
-      <div className="px-6 py-4 bg-white border-b border-slate-200">
+      <div className="px-6 py-4 bg-white border-b border-border">
         <div className="flex flex-wrap gap-3 items-end">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-600">
+            <label className="text-xs font-semibold text-muted-foreground">
               Status
             </label>
             <Select
@@ -221,7 +221,7 @@ export default function StockTransfersPage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-600">
+            <label className="text-xs font-semibold text-muted-foreground">
               From Location
             </label>
             <Select
@@ -287,7 +287,7 @@ export default function StockTransfersPage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-600">
+            <label className="text-xs font-semibold text-muted-foreground">
               To Location
             </label>
             <Select
@@ -311,11 +311,11 @@ export default function StockTransfersPage() {
           </div>
 
           <div className="space-y-1.5 flex-1 min-w-48">
-            <label className="text-xs font-semibold text-slate-600">
+            <label className="text-xs font-semibold text-muted-foreground">
               Search
             </label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
               <Input
                 placeholder="Transfer code, notes..."
                 className="pl-9"
@@ -351,23 +351,23 @@ export default function StockTransfersPage() {
             {[...Array(5)].map((_, i) => (
               <div
                 key={i}
-                className="h-14 bg-slate-100 rounded-lg animate-pulse"
+                className="h-14 bg-muted rounded-lg animate-pulse"
               />
             ))}
           </div>
         ) : transfers.length === 0 ? (
           <Card className="p-8 text-center">
-            <Package className="h-12 w-12 mx-auto text-slate-300 mb-3" />
-            <p className="font-semibold text-slate-700">No transfers found</p>
-            <p className="text-sm text-slate-500 mt-1">
+            <Package className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+            <p className="font-semibold text-foreground">No transfers found</p>
+            <p className="text-sm text-muted-foreground mt-1">
               Create your first transfer to get started
             </p>
           </Card>
         ) : (
-          <div className="border border-slate-200 rounded-lg overflow-hidden">
+          <div className="border border-border rounded-lg overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow className="bg-slate-50">
+                <TableRow className="bg-muted/50">
                   <TableHead>Transfer</TableHead>
                   <TableHead>From → To</TableHead>
                   <TableHead>Date</TableHead>
@@ -380,16 +380,16 @@ export default function StockTransfersPage() {
                 {transfers.map((t) => (
                   <TableRow
                     key={t.id}
-                    className="hover:bg-slate-50 cursor-pointer"
+                    className="hover:bg-muted/50 cursor-pointer"
                     onClick={() => navigate(`/stock-transfers/${t.id}`)}
                   >
                     <TableCell>
                       <div>
-                        <p className="font-mono text-sm font-semibold text-slate-900">
+                        <p className="font-mono text-sm font-semibold text-foreground">
                           {t.transferCode}
                         </p>
                         {t.notes && (
-                          <p className="text-xs text-slate-500 truncate max-w-xs">
+                          <p className="text-xs text-muted-foreground truncate max-w-xs">
                             {t.notes}
                           </p>
                         )}
@@ -397,17 +397,17 @@ export default function StockTransfersPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5 text-sm">
-                        <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                        <span className="text-slate-700">
+                        <MapPin className="h-3.5 w-3.5 text-muted-foreground/70" />
+                        <span className="text-foreground">
                           {t.fromLocation.name}
                         </span>
-                        <ArrowRightLeft className="h-3 w-3 text-slate-400" />
-                        <span className="text-slate-700">
+                        <ArrowRightLeft className="h-3 w-3 text-muted-foreground/70" />
+                        <span className="text-foreground">
                           {t.toLocation.name}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-slate-600">
+                    <TableCell className="text-sm text-muted-foreground">
                       {fmtDate(t.transferDate)}
                     </TableCell>
                     <TableCell>
@@ -452,7 +452,7 @@ export default function StockTransfersPage() {
 
         {/* Pagination */}
         {meta.totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4 text-sm text-slate-600">
+          <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
             <p>
               Page {meta.page} of {meta.totalPages} ({meta.total} total)
             </p>

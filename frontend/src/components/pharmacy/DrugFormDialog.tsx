@@ -103,8 +103,8 @@ export function DrugFormDialog({ open, drug, onClose, onSaved }: Props) {
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-0">
           <DialogTitle className="flex items-center gap-2 text-lg">
-            <div className="p-1.5 bg-sky-100 rounded-lg">
-              <Pill className="w-5 h-5 text-sky-600" />
+            <div className="p-1.5 bg-primary-muted rounded-lg">
+              <Pill className="w-5 h-5 text-primary" />
             </div>
             {drug ? 'Edit Drug' : 'Add New Drug'}
           </DialogTitle>
@@ -115,14 +115,14 @@ export function DrugFormDialog({ open, drug, onClose, onSaved }: Props) {
           <div className="space-y-5 py-4">
             {/* Basic Info */}
             <section className="space-y-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Basic Information
               </h4>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2 space-y-1">
                   <Label htmlFor="name">
-                    Drug Name <span className="text-red-500">*</span>
+                    Drug Name <span className="text-danger">*</span>
                   </Label>
                   <Input
                     id="name"
@@ -144,7 +144,7 @@ export function DrugFormDialog({ open, drug, onClose, onSaved }: Props) {
 
                 <div className="space-y-1">
                   <Label htmlFor="categoryId">
-                    Category <span className="text-red-500">*</span>
+                    Category <span className="text-danger">*</span>
                   </Label>
                   <Input
                     id="categoryId"
@@ -209,7 +209,7 @@ export function DrugFormDialog({ open, drug, onClose, onSaved }: Props) {
 
             {/* Pricing & Stock */}
             <section className="space-y-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Pricing & Stock
               </h4>
 
@@ -248,11 +248,11 @@ export function DrugFormDialog({ open, drug, onClose, onSaved }: Props) {
 
               {/* Margin indicator */}
               {margin !== null && (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   Margin:{' '}
                   <span
                     className={
-                      Number(margin) > 0 ? 'text-emerald-600 font-semibold' : 'text-red-500 font-semibold'
+                      Number(margin) > 0 ? 'text-success font-semibold' : 'text-danger font-semibold'
                     }
                   >
                     {margin}%
@@ -273,7 +273,7 @@ export function DrugFormDialog({ open, drug, onClose, onSaved }: Props) {
 
             {/* Settings */}
             <section className="space-y-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Settings
               </h4>
 
@@ -281,7 +281,7 @@ export function DrugFormDialog({ open, drug, onClose, onSaved }: Props) {
                 <div className="flex items-center justify-between rounded-lg border p-3">
                   <div>
                     <p className="text-sm font-medium">Prescription Required</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-muted-foreground">
                       Drug cannot be sold without a valid prescription
                     </p>
                   </div>
@@ -295,7 +295,7 @@ export function DrugFormDialog({ open, drug, onClose, onSaved }: Props) {
                   <div className="flex items-center justify-between rounded-lg border p-3">
                     <div>
                       <p className="text-sm font-medium">Active</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         Inactive drugs are hidden from listings
                       </p>
                     </div>
@@ -311,7 +311,7 @@ export function DrugFormDialog({ open, drug, onClose, onSaved }: Props) {
         </ScrollArea>
 
         {/* Footer */}
-        <DialogFooter className="px-6 py-4 border-t bg-slate-50/50">
+        <DialogFooter className="px-6 py-4 border-t bg-muted/50">
           <Button variant="outline" onClick={onClose} disabled={saving}>
             Cancel
           </Button>

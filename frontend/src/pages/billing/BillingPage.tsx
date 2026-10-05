@@ -191,20 +191,20 @@ const STATUS_CONFIG: Record<
 > = {
   DRAFT: {
     label: "Draft",
-    color: "bg-slate-100 text-slate-600 border-slate-200",
-    dot: "bg-slate-400",
+    color: "bg-muted text-muted-foreground border-border",
+    dot: "bg-muted-foreground/70",
     row: "",
   },
   POSTED: {
     label: "Posted",
-    color: "bg-blue-100 text-blue-700 border-blue-200",
-    dot: "bg-blue-500",
+    color: "bg-primary-muted text-primary border-primary/25",
+    dot: "bg-primary",
     row: "",
   },
   VOID: {
     label: "Void",
-    color: "bg-slate-100 text-slate-400 border-slate-200",
-    dot: "bg-slate-300",
+    color: "bg-muted text-muted-foreground/70 border-border",
+    dot: "bg-border",
     row: "opacity-60",
   },
 };
@@ -215,33 +215,33 @@ const PAYMENT_STATUS_CONFIG: Record<
 > = {
   UNPAID: {
     label: "Unpaid",
-    color: "bg-slate-100 text-slate-600 border-slate-200",
-    dot: "bg-slate-400",
+    color: "bg-muted text-muted-foreground border-border",
+    dot: "bg-muted-foreground/70",
     row: "",
   },
   PARTIALLY_PAID: {
     label: "Partial",
-    color: "bg-amber-100 text-amber-700 border-amber-200",
-    dot: "bg-amber-500",
-    row: "bg-amber-50/40",
+    color: "bg-warning-muted text-warning border-warning/25",
+    dot: "bg-warning",
+    row: "bg-warning-muted/40",
   },
   PAID: {
     label: "Paid",
-    color: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    dot: "bg-emerald-500",
-    row: "bg-emerald-50/40",
+    color: "bg-success-muted text-success border-success/25",
+    dot: "bg-success",
+    row: "bg-success-muted/40",
   },
 };
 
 const ENTRY_TYPE_COLORS: Record<string, string> = {
-  PROCEDURE: "bg-blue-50 text-blue-700 border-blue-200",
-  DRUG: "bg-green-50 text-green-700 border-green-200",
+  PROCEDURE: "bg-primary-muted/60 text-primary border-primary/25",
+  DRUG: "bg-success-muted/60 text-success border-success/25",
   CONSULTATION: "bg-purple-50 text-purple-700 border-purple-200",
-  LAB: "bg-orange-50 text-orange-700 border-orange-200",
+  LAB: "bg-warning-muted/60 text-warning border-warning/25",
   IMAGING: "bg-pink-50 text-pink-700 border-pink-200",
-  SERVICE: "bg-slate-50 text-slate-700 border-slate-200",
-  OTHER: "bg-slate-50 text-slate-600 border-slate-200",
-  TREATMENT_PROCEDURE: "bg-blue-50 text-blue-700 border-blue-200",
+  SERVICE: "bg-muted/50 text-foreground border-border",
+  OTHER: "bg-muted/50 text-muted-foreground border-border",
+  TREATMENT_PROCEDURE: "bg-primary-muted/60 text-primary border-primary/25",
   TREATMENT_PROCEDURE_SESSION: "bg-indigo-50 text-indigo-700 border-indigo-200",
 };
 
@@ -251,7 +251,7 @@ function Spinner({ size = "sm" }: { size?: "sm" | "md" | "lg" }) {
   return (
     <Loader2
       className={cn(
-        "animate-spin text-blue-600",
+        "animate-spin text-primary",
         size === "sm" ? "w-4 h-4" : size === "md" ? "w-6 h-6" : "w-8 h-8"
       )}
     />
@@ -406,16 +406,16 @@ function StatsRow({
       primary: formatCurrency(stats.currencyTotals.UGX?.total || 0, "UGX"),
       secondary: formatCurrency(stats.currencyTotals.USD?.total || 0, "USD"),
       icon: <Receipt className="w-5 h-5" />,
-      color: "text-blue-600",
-      bg: "bg-blue-50 border-blue-200",
+      color: "text-primary",
+      bg: "bg-primary-muted/60 border-primary/25",
     },
     {
       label: "Paid",
       primary: formatCurrency(stats.currencyTotals.UGX?.paid || 0, "UGX"),
       secondary: formatCurrency(stats.currencyTotals.USD?.paid || 0, "USD"),
       icon: <CheckCircle className="w-5 h-5" />,
-      color: "text-emerald-600",
-      bg: "bg-emerald-50 border-emerald-200",
+      color: "text-success",
+      bg: "bg-success-muted/60 border-success/25",
     },
     {
       label: "Outstanding",
@@ -428,8 +428,8 @@ function StatsRow({
         "USD"
       ),
       icon: <AlertTriangle className="w-5 h-5" />,
-      color: "text-amber-600",
-      bg: "bg-amber-50 border-amber-200",
+      color: "text-warning",
+      bg: "bg-warning-muted/60 border-warning/25",
     },
     {
       label: "Invoices",
@@ -453,7 +453,7 @@ function StatsRow({
         >
           <div className={cn("shrink-0", c.color)}>{c.icon}</div>
           <div className="min-w-0">
-            <p className="text-xs text-slate-500 font-medium truncate">
+            <p className="text-xs text-muted-foreground font-medium truncate">
               {c.label}
             </p>
             {isLoading ? (
@@ -508,23 +508,23 @@ function ReceiptDialog({
 
   return (
     <Dialog open={open} onClose={onClose} size="lg">
-      <div className="no-print flex items-center justify-between px-5 py-4 border-b bg-slate-50 shrink-0">
-        <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+      <div className="no-print flex items-center justify-between px-5 py-4 border-b bg-muted/50 shrink-0">
+        <h2 className="text-base font-bold text-foreground flex items-center gap-2">
           <Receipt className="w-4 h-4 text-indigo-600" />
           Invoice / Receipt
         </h2>
         <div className="flex items-center gap-2">
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-1 py-1.5 rounded-lg border text-sm text-slate-600 hover:bg-slate-100"
+            className="flex items-center gap-1.5 px-1 py-1.5 rounded-lg border text-sm text-muted-foreground hover:bg-muted"
           >
             <Printer className="w-3.5 h-3.5" /> Print
           </button>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-200"
+            className="p-1.5 rounded-lg hover:bg-muted"
           >
-            <X className="w-4 h-4 text-slate-500" />
+            <X className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
       </div>
@@ -536,7 +536,7 @@ function ReceiptDialog({
         ) : data ? (
           <ReceiptDocument data={data} />
         ) : (
-          <p className="text-center text-slate-400 py-10">
+          <p className="text-center text-muted-foreground/70 py-10">
             Failed to load receipt
           </p>
         )}
@@ -551,17 +551,17 @@ function ReceiptDocument({ data }: { data: any }) {
 
   return (
     <div className="space-y-5 text-sm print:text-xs">
-      <div className="text-center border-b-2 border-slate-800 pb-5">
+      <div className="text-center border-b-2 border-foreground pb-5">
         <div className="flex items-center justify-center gap-3 mb-2">
-          <Building2 className="w-8 h-8 text-slate-700" />
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">
+          <Building2 className="w-8 h-8 text-foreground" />
+          <h1 className="text-2xl font-black text-foreground tracking-tight uppercase">
             {clinic?.name || "Dental Clinic"}
           </h1>
         </div>
         {clinic?.address && (
-          <p className="text-xs text-slate-500 mt-1">{clinic.address}</p>
+          <p className="text-xs text-muted-foreground mt-1">{clinic.address}</p>
         )}
-        <div className="flex items-center justify-center gap-4 mt-2 text-xs text-slate-500">
+        <div className="flex items-center justify-center gap-4 mt-2 text-xs text-muted-foreground">
           {clinic?.phone && (
             <span className="flex items-center gap-1">
               <Phone className="w-3 h-3" />
@@ -579,12 +579,12 @@ function ReceiptDocument({ data }: { data: any }) {
 
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-black text-slate-900">
+          <h2 className="text-xl font-black text-foreground">
             {derivePaymentStatus(invoice) === "PAID"
               ? "OFFICIAL RECEIPT"
               : "INVOICE"}
           </h2>
-          <div className="mt-2 space-y-0.5 text-xs text-slate-600">
+          <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
             {latestReceipt && (
               <p>
                 <span className="font-semibold">Receipt #:</span>{" "}
@@ -600,7 +600,7 @@ function ReceiptDocument({ data }: { data: any }) {
               {formatDate(invoice?.createdAt)}
             </p>
             {invoice?.currency !== invoice?.baseCurrency && (
-              <p className="text-blue-600">
+              <p className="text-primary">
                 <span className="font-semibold">Currency:</span>{" "}
                 {invoice.currency} @ {Number(invoice.exchangeRate).toFixed(4)}
               </p>
@@ -610,29 +610,29 @@ function ReceiptDocument({ data }: { data: any }) {
         <StatusBadge status={invoice?.status} />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 bg-slate-50 rounded-xl p-4">
+      <div className="grid grid-cols-2 gap-4 bg-muted/50 rounded-xl p-4">
         <div>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+          <p className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest mb-1">
             Patient
           </p>
-          <p className="font-bold text-slate-900">
+          <p className="font-bold text-foreground">
             {patient?.firstName} {patient?.lastName}
           </p>
-          <p className="text-xs text-slate-500">ID: {patient?.patientCode}</p>
+          <p className="text-xs text-muted-foreground">ID: {patient?.patientCode}</p>
           {patient?.phone && (
-            <p className="text-xs text-slate-500">Tel: {patient.phone}</p>
+            <p className="text-xs text-muted-foreground">Tel: {patient.phone}</p>
           )}
         </div>
         {dentist && (
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+            <p className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest mb-1">
               Attending
             </p>
-            <p className="font-bold text-slate-900">
+            <p className="font-bold text-foreground">
               Dr. {dentist.firstName} {dentist.lastName}
             </p>
             {dentist.specialization && (
-              <p className="text-xs text-slate-500">{dentist.specialization}</p>
+              <p className="text-xs text-muted-foreground">{dentist.specialization}</p>
             )}
           </div>
         )}
@@ -640,50 +640,50 @@ function ReceiptDocument({ data }: { data: any }) {
 
       <table className="w-full text-xs">
         <thead>
-          <tr className="border-b-2 border-slate-200">
-            <th className="text-left py-2 font-semibold text-slate-500">
+          <tr className="border-b-2 border-border">
+            <th className="text-left py-2 font-semibold text-muted-foreground">
               Description
             </th>
-            <th className="text-center py-2 font-semibold text-slate-500">
+            <th className="text-center py-2 font-semibold text-muted-foreground">
               Qty
             </th>
-            <th className="text-right py-2 font-semibold text-slate-500">
+            <th className="text-right py-2 font-semibold text-muted-foreground">
               Unit
             </th>
-            <th className="text-right py-2 font-semibold text-slate-500">
+            <th className="text-right py-2 font-semibold text-muted-foreground">
               Total
             </th>
           </tr>
         </thead>
         <tbody>
           {invoice?.items?.map((item: InvoiceItem) => (
-            <tr key={item.id} className="border-b border-slate-100">
+            <tr key={item.id} className="border-b border-border/60">
               <td className="py-2 pr-3">
-                <div className="font-medium text-slate-800">
+                <div className="font-medium text-foreground">
                   {item.description}
                 </div>
                 {item.ledgerEntry && (
-                  <div className="text-[9px] text-slate-400 font-mono mt-0.5">
+                  <div className="text-[9px] text-muted-foreground/70 font-mono mt-0.5">
                     {item.ledgerEntry.entryCode} ·{" "}
                     {item.ledgerEntry.type.replace(/_/g, " ")}
                   </div>
                 )}
                 {item.originalCurrency &&
                   item.originalCurrency !== invoice?.currency && (
-                    <div className="text-[9px] text-amber-600">
+                    <div className="text-[9px] text-warning">
                       Orig:{" "}
                       {formatCurrency(item.originalTotal, item.originalCurrency)}{" "}
                       @ {Number(item.exchangeRate).toFixed(4)}
                     </div>
                   )}
               </td>
-              <td className="py-2 text-center text-slate-600">
+              <td className="py-2 text-center text-muted-foreground">
                 {item.quantity}
               </td>
-              <td className="py-2 text-right text-slate-600">
+              <td className="py-2 text-right text-muted-foreground">
                 {formatCurrency(item.unitPrice, invoice?.currency)}
               </td>
-              <td className="py-2 text-right font-bold text-slate-800">
+              <td className="py-2 text-right font-bold text-foreground">
                 {formatCurrency(item.total, invoice?.currency)}
               </td>
             </tr>
@@ -691,13 +691,13 @@ function ReceiptDocument({ data }: { data: any }) {
         </tbody>
       </table>
 
-      <div className="space-y-1.5 border-t-2 border-slate-200 pt-4 ml-auto max-w-xs">
-        <div className="flex justify-between text-xs text-slate-600">
+      <div className="space-y-1.5 border-t-2 border-border pt-4 ml-auto max-w-xs">
+        <div className="flex justify-between text-xs text-muted-foreground">
           <span>Subtotal</span>
           <span>{formatCurrency(invoice?.subtotal, invoice?.currency)}</span>
         </div>
         {(invoice?.discountAmount || 0) > 0 && (
-          <div className="flex justify-between text-xs text-red-500">
+          <div className="flex justify-between text-xs text-danger">
             <span>Discount</span>
             <span>
               − {formatCurrency(invoice.discountAmount, invoice.currency)}
@@ -705,31 +705,31 @@ function ReceiptDocument({ data }: { data: any }) {
           </div>
         )}
         {(invoice?.taxAmount || 0) > 0 && (
-          <div className="flex justify-between text-xs text-slate-600">
+          <div className="flex justify-between text-xs text-muted-foreground">
             <span>Tax ({invoice?.taxPercent}%)</span>
             <span>{formatCurrency(invoice.taxAmount, invoice.currency)}</span>
           </div>
         )}
-        <div className="flex justify-between font-black text-base border-t border-slate-300 pt-2">
+        <div className="flex justify-between font-black text-base border-t border-input pt-2">
           <span>Total ({invoice?.currency})</span>
-          <span className="text-blue-700">
+          <span className="text-primary">
             {formatCurrency(invoice?.total, invoice?.currency)}
           </span>
         </div>
         {invoice?.currency !== invoice?.baseCurrency && (
-          <div className="flex justify-between text-[10px] text-slate-400">
+          <div className="flex justify-between text-[10px] text-muted-foreground/70">
             <span>≈ {invoice?.baseCurrency}</span>
             <span>
               {formatCurrency(invoice?.baseTotal, invoice?.baseCurrency)}
             </span>
           </div>
         )}
-        <div className="flex justify-between text-sm font-bold text-emerald-700">
+        <div className="flex justify-between text-sm font-bold text-success">
           <span>Paid</span>
           <span>{formatCurrency(invoice?.amountPaid, invoice?.currency)}</span>
         </div>
         {(invoice?.balance || 0) > 0.01 && (
-          <div className="flex justify-between text-sm font-black text-amber-700 bg-amber-50 rounded px-2 py-1">
+          <div className="flex justify-between text-sm font-black text-warning bg-warning-muted/60 rounded px-2 py-1">
             <span>Balance Due</span>
             <span>{formatCurrency(invoice.balance, invoice.currency)}</span>
           </div>
@@ -738,7 +738,7 @@ function ReceiptDocument({ data }: { data: any }) {
 
       {receipts?.length > 0 && (
         <div>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+          <p className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest mb-2">
             Payment History
           </p>
           <div className="space-y-1.5">
@@ -752,25 +752,25 @@ function ReceiptDocument({ data }: { data: any }) {
               return (
                 <div
                   key={r.id}
-                  className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-2"
+                  className="flex items-center justify-between bg-success-muted/60 border border-success/25 rounded-lg px-2 py-2"
                 >
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                    <CheckCircle className="w-3.5 h-3.5 text-success" />
                     <div>
-                      <div className="text-xs font-semibold text-emerald-800">
+                      <div className="text-xs font-semibold text-success">
                         <span className="font-mono mr-2">{r.receiptNumber}</span>
                         {method && (
                           <span>{String(method).replace(/_/g, " ")}</span>
                         )}
                       </div>
-                      <div className="text-[10px] text-emerald-600 flex flex-wrap gap-x-2">
+                      <div className="text-[10px] text-success flex flex-wrap gap-x-2">
                         {reference && <span>Ref: {reference}</span>}
                         {receivedByLabel && <span>by {receivedByLabel}</span>}
                       </div>
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs font-black text-emerald-800">
+                    <div className="text-xs font-black text-success">
                       {formatCurrency(
                         r.amountReceived,
                         r.currency || r.currencyCode || invoice?.currency
@@ -779,7 +779,7 @@ function ReceiptDocument({ data }: { data: any }) {
                     {r.baseAmountReceived != null &&
                       (r.currency ?? r.currencyCode) !==
                         invoice?.baseCurrency && (
-                        <div className="text-[9px] text-emerald-600">
+                        <div className="text-[9px] text-success">
                           ≈{" "}
                           {formatCurrency(
                             r.baseAmountReceived,
@@ -787,7 +787,7 @@ function ReceiptDocument({ data }: { data: any }) {
                           )}
                         </div>
                       )}
-                    <div className="text-[9px] text-emerald-600">
+                    <div className="text-[9px] text-success">
                       {formatDate(r.generatedAt)}
                     </div>
                   </div>
@@ -798,8 +798,8 @@ function ReceiptDocument({ data }: { data: any }) {
         </div>
       )}
 
-      <div className="text-center text-xs text-slate-400 border-t pt-4 mt-4">
-        <p className="font-semibold text-slate-600">
+      <div className="text-center text-xs text-muted-foreground/70 border-t pt-4 mt-4">
+        <p className="font-semibold text-muted-foreground">
           Thank you for choosing {clinic?.name || "our clinic"}
         </p>
         <p className="mt-0.5 text-[10px]">
@@ -835,21 +835,21 @@ function InvoiceDetailDialog({
   return (
     <Dialog open={open} onClose={onClose} size="xl">
       {/* Header */}
-      <div className="px-6 py-4 border-b bg-slate-50 shrink-0 flex items-center justify-between">
+      <div className="px-6 py-4 border-b bg-muted/50 shrink-0 flex items-center justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-sm font-bold text-slate-800">
+            <span className="font-mono text-sm font-bold text-foreground">
               {invoice.invoiceNumber}
             </span>
             <StatusBadge status={invoice.status} />
             <PaymentStatusBadge status={payStatus} />
             {hasMultiCurrency && (
-              <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[9px]">
+              <Badge className="bg-warning-muted/60 text-warning border-warning/25 text-[9px]">
                 Multi-currency
               </Badge>
             )}
           </div>
-          <p className="text-[10px] text-slate-400 mt-0.5">
+          <p className="text-[10px] text-muted-foreground/70 mt-0.5">
             {invoice.patient?.firstName} {invoice.patient?.lastName} ·{" "}
             {formatDate(invoice.createdAt)}
           </p>
@@ -857,15 +857,15 @@ function InvoiceDetailDialog({
         <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={onReceipt}
-            className="flex items-center gap-1.5 px-1 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+            className="flex items-center gap-1.5 px-1 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
           >
             <Printer className="w-3.5 h-3.5" /> Print Invoice
           </button>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-200"
+            className="p-1.5 rounded-lg hover:bg-muted"
           >
-            <X className="w-4 h-4 text-slate-500" />
+            <X className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
       </div>
@@ -873,38 +873,38 @@ function InvoiceDetailDialog({
       {/* Body */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {invoice.patient && (
-          <div className="bg-slate-50 rounded-xl p-4 text-xs space-y-2 border border-slate-200">
-            <p className="font-semibold text-slate-500 text-[10px] uppercase tracking-wide">
+          <div className="bg-muted/50 rounded-xl p-4 text-xs space-y-2 border border-border">
+            <p className="font-semibold text-muted-foreground text-[10px] uppercase tracking-wide">
               Patient Details
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
               <div className="flex items-center gap-2">
-                <User className="w-4 h-4 text-slate-400 shrink-0" />
+                <User className="w-4 h-4 text-muted-foreground/70 shrink-0" />
                 <div>
-                  <p className="font-semibold text-slate-800">
+                  <p className="font-semibold text-foreground">
                     {invoice.patient.firstName} {invoice.patient.lastName}
                   </p>
-                  <p className="font-mono text-[10px] text-slate-400">
+                  <p className="font-mono text-[10px] text-muted-foreground/70">
                     {invoice.patient.patientCode}
                   </p>
                 </div>
               </div>
               {invoice.patient.phone && (
-                <div className="flex items-center gap-2 text-slate-600">
-                  <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Phone className="w-4 h-4 text-muted-foreground/70 shrink-0" />
                   <span>{invoice.patient.phone}</span>
                 </div>
               )}
               {invoice.visit?.dentist && (
-                <div className="flex items-center gap-2 text-slate-600">
-                  <Stethoscope className="w-4 h-4 text-slate-400 shrink-0" />
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Stethoscope className="w-4 h-4 text-muted-foreground/70 shrink-0" />
                   <div>
                     <p className="font-medium">
                       Dr. {invoice.visit.dentist.firstName}{" "}
                       {invoice.visit.dentist.lastName}
                     </p>
                     {invoice.visit.dentist.specialization && (
-                      <p className="text-[10px] text-slate-400">
+                      <p className="text-[10px] text-muted-foreground/70">
                         {invoice.visit.dentist.specialization}
                       </p>
                     )}
@@ -915,18 +915,18 @@ function InvoiceDetailDialog({
           </div>
         )}
 
-        <div className="border border-slate-200 rounded-xl overflow-hidden">
-          <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">
+        <div className="border border-border rounded-xl overflow-hidden">
+          <div className="bg-muted/50 px-4 py-2.5 border-b border-border flex items-center justify-between">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
               Line Items
             </span>
-            <span className="text-[10px] text-slate-400">
+            <span className="text-[10px] text-muted-foreground/70">
               {invoice.items?.length ?? 0} item(s)
             </span>
           </div>
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/50 text-slate-400 font-medium">
+              <tr className="border-b border-border/60 bg-muted/50 text-muted-foreground/70 font-medium">
                 <th className="text-center px-4 py-2.5 font-medium">
                   Description
                 </th>
@@ -938,14 +938,14 @@ function InvoiceDetailDialog({
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border/60">
               {invoice.items?.map((item) => (
                 <tr
                   key={item.id}
-                  className="hover:bg-slate-50/50 transition-colors"
+                  className="hover:bg-muted/50 transition-colors"
                 >
                   <td className="px-4 py-3">
-                    <div className="font-medium text-slate-800">
+                    <div className="font-medium text-foreground">
                       {item.description}
                     </div>
                     {item.ledgerEntry && (
@@ -959,14 +959,14 @@ function InvoiceDetailDialog({
                         >
                           {item.ledgerEntry.type.replace(/_/g, " ")}
                         </Badge>
-                        <span className="font-mono text-[9px] text-slate-400">
+                        <span className="font-mono text-[9px] text-muted-foreground/70">
                           {item.ledgerEntry.entryCode}
                         </span>
                       </div>
                     )}
                     {item.originalCurrency &&
                       item.originalCurrency !== invoice.currency && (
-                        <div className="text-[9px] text-amber-600 mt-1">
+                        <div className="text-[9px] text-warning mt-1">
                           {formatCurrency(
                             item.originalTotal,
                             item.originalCurrency
@@ -976,10 +976,10 @@ function InvoiceDetailDialog({
                         </div>
                       )}
                   </td>
-                  <td className="px-4 py-3 text-center text-slate-500 font-medium">
+                  <td className="px-4 py-3 text-center text-muted-foreground font-medium">
                     {item.quantity}
                   </td>
-                  <td className="px-4 py-3 text-center font-bold text-slate-800">
+                  <td className="px-4 py-3 text-center font-bold text-foreground">
                     {formatCurrency(item.total, invoice.currency)}
                   </td>
                 </tr>
@@ -991,15 +991,15 @@ function InvoiceDetailDialog({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
           <div className="space-y-4 order-2 md:order-1">
             {invoice.currency !== (invoice.baseCurrency || BASE_CURRENCY) && (
-              <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs">
-                <p className="font-semibold text-blue-700 mb-1">
+              <div className="bg-primary-muted/60 border border-primary/20 rounded-xl p-4 text-xs">
+                <p className="font-semibold text-primary mb-1">
                   Currency Exchange Info
                 </p>
-                <p className="text-blue-600">
+                <p className="text-primary">
                   Invoice: <strong>{invoice.currency}</strong> · Rate:{" "}
                   {Number(invoice.exchangeRate).toFixed(4)}
                 </p>
-                <p className="text-blue-600">
+                <p className="text-primary">
                   Base Settlement:{" "}
                   <strong>{invoice.baseCurrency || BASE_CURRENCY}</strong>
                 </p>
@@ -1008,38 +1008,38 @@ function InvoiceDetailDialog({
 
             {invoice.payments?.length > 0 && (
               <div className="space-y-2">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide px-1">
+                <p className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wide px-1">
                   Payments Received
                 </p>
                 <div className="space-y-2">
                   {invoice.payments.map((p) => (
                     <div
                       key={p.id}
-                      className="flex items-center justify-between bg-emerald-50/60 border border-emerald-100 rounded-xl px-4 py-2.5"
+                      className="flex items-center justify-between bg-success-muted/60 border border-success/20 rounded-xl px-4 py-2.5"
                     >
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <CheckCircle className="w-4 h-4 text-success shrink-0" />
                         <div>
-                          <span className="text-xs font-semibold text-emerald-800">
+                          <span className="text-xs font-semibold text-success">
                             {p.method.replace(/_/g, " ")}
                           </span>
-                          <Badge className="ml-1.5 text-[9px] bg-emerald-100 text-emerald-700 border-emerald-200">
+                          <Badge className="ml-1.5 text-[9px] bg-success-muted text-success border-success/25">
                             {p.currency}
                           </Badge>
                           {p.reference && (
-                            <span className="text-[10px] text-emerald-600 ml-1.5">
+                            <span className="text-[10px] text-success ml-1.5">
                               · {p.reference}
                             </span>
                           )}
                         </div>
                       </div>
                       <div className="text-center">
-                        <div className="text-xs font-black text-emerald-800">
+                        <div className="text-xs font-black text-success">
                           {formatCurrency(p.amount, p.currency)}
                         </div>
                         {p.currency !==
                           (invoice.baseCurrency || BASE_CURRENCY) && (
-                          <div className="text-[9px] text-emerald-600">
+                          <div className="text-[9px] text-success">
                             ≈{" "}
                             {formatCurrency(
                               p.baseAmount,
@@ -1047,7 +1047,7 @@ function InvoiceDetailDialog({
                             )}
                           </div>
                         )}
-                        <div className="text-[9px] text-slate-400 mt-0.5">
+                        <div className="text-[9px] text-muted-foreground/70 mt-0.5">
                           {formatDate(p.paidAt)}
                         </div>
                       </div>
@@ -1059,7 +1059,7 @@ function InvoiceDetailDialog({
 
             {invoice.receipts?.length > 0 && (
               <div className="space-y-2">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide px-1">
+                <p className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wide px-1">
                   Receipts Issued
                 </p>
                 <div className="space-y-2">
@@ -1094,7 +1094,7 @@ function InvoiceDetailDialog({
                               r.currency || invoice.currency
                             )}
                           </div>
-                          <div className="text-[9px] text-slate-400 mt-0.5">
+                          <div className="text-[9px] text-muted-foreground/70 mt-0.5">
                             {formatDate(r.generatedAt)}
                           </div>
                         </div>
@@ -1106,18 +1106,18 @@ function InvoiceDetailDialog({
             )}
           </div>
 
-          <div className="bg-slate-50 rounded-xl p-4 space-y-2.5 text-xs border border-slate-200 order-1 md:order-2">
-            <p className="font-semibold text-slate-500 text-[10px] uppercase tracking-wide mb-1">
+          <div className="bg-muted/50 rounded-xl p-4 space-y-2.5 text-xs border border-border order-1 md:order-2">
+            <p className="font-semibold text-muted-foreground text-[10px] uppercase tracking-wide mb-1">
               Financial Summary
             </p>
-            <div className="flex justify-between text-slate-600">
+            <div className="flex justify-between text-muted-foreground">
               <span>Subtotal</span>
               <span className="font-medium">
                 {formatCurrency(invoice.subtotal, invoice.currency)}
               </span>
             </div>
             {(invoice.discountAmount || 0) > 0 && (
-              <div className="flex justify-between text-red-500">
+              <div className="flex justify-between text-danger">
                 <span>Discount</span>
                 <span className="font-medium">
                   − {formatCurrency(invoice.discountAmount, invoice.currency)}
@@ -1125,21 +1125,21 @@ function InvoiceDetailDialog({
               </div>
             )}
             {(invoice.taxAmount || 0) > 0 && (
-              <div className="flex justify-between text-slate-600">
+              <div className="flex justify-between text-muted-foreground">
                 <span>Tax ({invoice.taxPercent ?? 0}%)</span>
                 <span className="font-medium">
                   {formatCurrency(invoice.taxAmount, invoice.currency)}
                 </span>
               </div>
             )}
-            <div className="flex justify-between font-black text-sm border-t border-slate-200 pt-2.5 text-slate-900">
+            <div className="flex justify-between font-black text-sm border-t border-border pt-2.5 text-foreground">
               <span>Total ({invoice.currency})</span>
-              <span className="text-blue-700 text-base">
+              <span className="text-primary text-base">
                 {formatCurrency(invoice.total, invoice.currency)}
               </span>
             </div>
             {invoice.currency !== (invoice.baseCurrency || BASE_CURRENCY) && (
-              <div className="flex justify-between text-[10px] text-slate-400 border-b border-slate-100 pb-2">
+              <div className="flex justify-between text-[10px] text-muted-foreground/70 border-b border-border/60 pb-2">
                 <span>≈ in {invoice.baseCurrency || BASE_CURRENCY}</span>
                 <span>
                   {formatCurrency(
@@ -1149,12 +1149,12 @@ function InvoiceDetailDialog({
                 </span>
               </div>
             )}
-            <div className="flex justify-between font-semibold text-emerald-700 pt-1">
+            <div className="flex justify-between font-semibold text-success pt-1">
               <span>Amount Paid</span>
               <span>{formatCurrency(invoice.amountPaid, invoice.currency)}</span>
             </div>
             {invoice.balance > 0.01 && (
-              <div className="flex justify-between font-black text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-1 py-2 mt-2">
+              <div className="flex justify-between font-black text-sm text-warning bg-warning-muted/60 border border-warning/20 rounded-lg px-1 py-2 mt-2">
                 <span>Balance Due</span>
                 <span>{formatCurrency(invoice.balance, invoice.currency)}</span>
               </div>
@@ -1163,9 +1163,9 @@ function InvoiceDetailDialog({
         </div>
       </div>
 
-      <div className="px-6 py-4 border-t bg-slate-50 shrink-0 flex items-center gap-3">
+      <div className="px-6 py-4 border-t bg-muted/50 shrink-0 flex items-center gap-3">
         {payStatus === "PAID" && (
-          <div className="flex items-center gap-2 px-1 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-xs">
+          <div className="flex items-center gap-2 px-1 py-2 rounded-lg bg-success-muted/60 border border-success/25 text-success font-bold text-xs">
             <CheckCircle className="w-4 h-4" />
             Fully Paid
           </div>
@@ -1181,7 +1181,7 @@ function InvoiceDetailDialog({
               ? "Open the visit's billing workspace to edit or receive payment"
               : "This invoice has no linked visit"
           }
-          className="ml-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-600/10 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed"
+          className="ml-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary transition-colors shadow-sm shadow-blue-600/10 disabled:bg-muted disabled:text-muted-foreground/70 disabled:cursor-not-allowed"
         >
           <ExternalLink className="w-4 h-4" />
           Open Billing Workspace
@@ -1218,20 +1218,20 @@ function InvoiceRow({
     <tr
       onClick={primaryClick}
       className={cn(
-        "border-b border-slate-100 transition-colors hover:bg-slate-50/80 cursor-pointer",
+        "border-b border-border/60 transition-colors hover:bg-muted/80 cursor-pointer",
         rowTint
       )}
     >
       <td className="px-4 py-3 whitespace-nowrap">
-        <div className="font-mono text-sm font-bold text-blue-700">
+        <div className="font-mono text-sm font-bold text-primary">
           {invoice.invoiceNumber}
         </div>
       </td>
 
       {/* NEW: Date column */}
-      <td className="px-1 py-3 text-xs text-slate-600 whitespace-nowrap">
+      <td className="px-1 py-3 text-xs text-muted-foreground whitespace-nowrap">
         {formatDate(invoice.createdAt) }          
-        <span className="text-[10px] text-slate-400 mt-0.5 pl-3">
+        <span className="text-[10px] text-muted-foreground/70 mt-0.5 pl-3">
           {relativeDate(invoice.createdAt)}
           </span>
       </td>
@@ -1239,38 +1239,38 @@ function InvoiceRow({
       <td className="px-1 py-3">
         {invoice.patient ? (
           <div>
-            <div className="text-sm font-medium text-slate-800 truncate max-w-[180px]">
+            <div className="text-sm font-medium text-foreground truncate max-w-[180px]">
               {invoice.patient.firstName} {invoice.patient.lastName}
-            <span className="text-[10px] text-slate-400 font-mono pl-2">
+            <span className="text-[10px] text-muted-foreground/70 font-mono pl-2">
               {invoice.patient.patientCode}
             </span>
             </div>
           </div>
         ) : (
-          <span className="text-slate-400 text-xs">—</span>
+          <span className="text-muted-foreground/70 text-xs">—</span>
         )}
       </td>
 
-      <td className="px-1 py-3 text-xs text-slate-500 whitespace-nowrap">
+      <td className="px-1 py-3 text-xs text-muted-foreground whitespace-nowrap">
         {invoice.visit?.dentist ? (
           <span>Dr. {invoice.visit.dentist.firstName}</span>
         ) : (
-          <span className="text-slate-300">—</span>
+          <span className="text-muted-foreground/50">—</span>
         )}
       </td>
 
       <td className="px-1 py-3 text-center">
-        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">
+        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted text-muted-foreground text-xs font-bold">
           {invoice.items?.length ?? 0}
         </span>
       </td>
 
       <td className="px-1 py-3 text-center whitespace-nowrap">
-        <div className="text-sm font-bold text-slate-800">
+        <div className="text-sm font-bold text-foreground">
           {formatCurrency(invoice.total, invoice.currency)}
         </div>
         {invoice.currency !== (invoice.baseCurrency || BASE_CURRENCY) && (
-          <div className="text-[10px] text-slate-400">
+          <div className="text-[10px] text-muted-foreground/70">
             ≈{" "}
             {formatCurrency(
               invoice.baseTotal,
@@ -1282,25 +1282,25 @@ function InvoiceRow({
 
       <td className="px-1 py-3 text-center whitespace-nowrap">
         {hasPaid ? (
-          <span className="text-sm font-semibold text-emerald-600">
+          <span className="text-sm font-semibold text-success">
             {formatCurrency(invoice.amountPaid, invoice.currency)}
           </span>
         ) : (
-          <span className="text-xs text-slate-300">0</span>
+          <span className="text-xs text-muted-foreground/50">0</span>
         )}
       </td>
 
       <td className="px-1 py-3 text-center whitespace-nowrap">
         {invoice.balance > 0.01 ? (
-          <span className="text-sm font-bold text-red-600">
+          <span className="text-sm font-bold text-danger">
             {formatCurrency(invoice.balance, invoice.currency)}
           </span>
         ) : (
-          <span className="text-xs font-medium text-emerald-500">Cleared</span>
+          <span className="text-xs font-medium text-success">Cleared</span>
         )}
       </td>
 
-      <td className="px-1 py-3 text-xs text-slate-500 whitespace-nowrap">
+      <td className="px-1 py-3 text-xs text-muted-foreground whitespace-nowrap">
         <StatusBadge status={invoice.status} />
       </td>
 
@@ -1320,7 +1320,7 @@ function InvoiceRow({
             title={
               hasVisit ? "Open billing workspace" : "View invoice detail"
             }
-            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-medium border border-blue-200 transition-colors"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary-muted/60 hover:bg-primary-muted text-primary text-[11px] font-medium border border-primary/25 transition-colors"
           >
             <ExternalLink className="w-3 h-3" />
             Open
@@ -1566,13 +1566,13 @@ export function BillingPage() {
     <div className="flex flex-col h-full px-2 py-1 gap-4">
       {/* ── Page Header ─────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between shrink-0">
-        <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-          <BarChart3 className="w-5 h-5 text-blue-600" />
+        <h1 className="text-xl font-black text-foreground tracking-tight flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-primary" />
           Billing &amp; Invoices
         </h1>
         <button
           onClick={() => refetch()}
-          className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors"
+          className="p-2 rounded-lg hover:bg-muted text-muted-foreground/70 transition-colors"
           title="Refresh"
         >
           <RefreshCw className="w-4 h-4" />
@@ -1583,13 +1583,13 @@ export function BillingPage() {
       <StatsRow invoices={invoices} isLoading={isLoading} />
 
       {/* ── Main Table Card ──────────────────────────────────────────────── */}
-      <div className="flex flex-col flex-1 min-h-0 border border-slate-200 rounded-2xl bg-white overflow-hidden">
+      <div className="flex flex-col flex-1 min-h-0 border border-border rounded-2xl bg-white overflow-hidden">
         {/* ── Filter Toolbar ─────────────────────────────────────────────── */}
-        <div className="px-3 py-2.5 border-b border-slate-100 bg-slate-50 shrink-0 space-y-2">
+        <div className="px-3 py-2.5 border-b border-border/60 bg-muted/50 shrink-0 space-y-2">
           {/* Row 1 — Search + Date Range + invoice count ────────────────── */}
           <div className="flex items-center gap-2 flex-wrap">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/70" />
               <input
                 type="text"
                 value={searchInput}
@@ -1597,12 +1597,12 @@ export function BillingPage() {
                   setSearchInput(e.target.value);
                 }}
                 placeholder="Search invoice #, patient name, code…"
-                className="pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white w-56"
+                className="pl-8 pr-3 py-1.5 text-sm border border-border rounded-lg focus:ring-2 focus:ring-primary/60 focus:outline-none bg-white w-56"
               />
             </div>
 
-            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5">
-              <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <div className="flex items-center gap-1.5 bg-white border border-border rounded-lg px-2.5 py-1.5">
+              <Calendar className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
               <input
                 type="date"
                 value={dateFrom}
@@ -1611,9 +1611,9 @@ export function BillingPage() {
                   setPage(1);
                 }}
                 title="From date"
-                className="text-xs border-none outline-none bg-transparent text-slate-600 w-[116px]"
+                className="text-xs border-none outline-none bg-transparent text-muted-foreground w-[116px]"
               />
-              <span className="text-slate-300 text-xs select-none">→</span>
+              <span className="text-muted-foreground/50 text-xs select-none">→</span>
               <input
                 type="date"
                 value={dateTo}
@@ -1622,7 +1622,7 @@ export function BillingPage() {
                   setPage(1);
                 }}
                 title="To date"
-                className="text-xs border-none outline-none bg-transparent text-slate-600 w-[116px]"
+                className="text-xs border-none outline-none bg-transparent text-muted-foreground w-[116px]"
               />
               {(dateFrom || dateTo) && (
                 <button
@@ -1632,18 +1632,18 @@ export function BillingPage() {
                     setPage(1);
                   }}
                   title="Clear date range"
-                  className="ml-0.5 p-0.5 rounded hover:bg-slate-100 text-slate-400"
+                  className="ml-0.5 p-0.5 rounded hover:bg-muted text-muted-foreground/70"
                 >
                   <X className="w-3 h-3" />
                 </button>
               )}
             </div>
 
-            <div className="ml-auto text-xs text-slate-400">
+            <div className="ml-auto text-xs text-muted-foreground/70">
               {!isLoading &&
                 `${meta.total.toLocaleString()} invoice${meta.total !== 1 ? "s" : ""}`}
               {isFetching && !isLoading && (
-                <span className="ml-2 text-blue-500">updating…</span>
+                <span className="ml-2 text-primary">updating…</span>
               )}
             </div>
             <div className="flex gap-1">
@@ -1657,8 +1657,8 @@ export function BillingPage() {
                   className={cn(
                     "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all border",
                     statusFilter === opt.value
-                      ? "bg-slate-800 text-white border-slate-800"
-                      : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                      ? "bg-foreground text-white border-foreground"
+                      : "bg-white text-muted-foreground border-border hover:border-input"
                   )}
                 >
                   {opt.cfg && (
@@ -1671,7 +1671,7 @@ export function BillingPage() {
               ))}
             </div>
 
-            <div className="w-px h-5 bg-slate-200 shrink-0" />
+            <div className="w-px h-5 bg-muted shrink-0" />
 
             <div className="flex gap-1">
               {paymentStatusOptions.map((opt) => (
@@ -1684,8 +1684,8 @@ export function BillingPage() {
                   className={cn(
                     "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all border",
                     paymentStatusFilter === opt.value
-                      ? "bg-slate-800 text-white border-slate-800"
-                      : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                      ? "bg-foreground text-white border-foreground"
+                      : "bg-white text-muted-foreground border-border hover:border-input"
                   )}
                 >
                   {opt.dot && (
@@ -1698,17 +1698,17 @@ export function BillingPage() {
               ))}
             </div>
 
-            <div className="w-px h-5 bg-slate-200 shrink-0" />
+            <div className="w-px h-5 bg-muted shrink-0" />
 
-            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5">
-              <Stethoscope className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <div className="flex items-center gap-1.5 bg-white border border-border rounded-lg px-2.5 py-1.5">
+              <Stethoscope className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
               <select
                 value={dentistFilter}
                 onChange={(e) => {
                   setDentistFilter(e.target.value);
                   setPage(1);
                 }}
-                className="text-xs border-none outline-none bg-transparent text-slate-600 min-w-[110px] pr-1 cursor-pointer"
+                className="text-xs border-none outline-none bg-transparent text-muted-foreground min-w-[110px] pr-1 cursor-pointer"
               >
                 <option value="ALL">All Dentists</option>
                 {dentistOptions.map((d) => (
@@ -1719,19 +1719,19 @@ export function BillingPage() {
               </select>
             </div>
 
-            <div className="w-px h-5 bg-slate-200 shrink-0" />
+            <div className="w-px h-5 bg-muted shrink-0" />
 
             {/* Currency filter — multi-currency support. The dropdown is
                 populated from currencies actually present in the loaded
                 result set, so the user never sees an option that filters
                 to zero rows. */}
-            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5">
-              <DollarSign className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <div className="flex items-center gap-1.5 bg-white border border-border rounded-lg px-2.5 py-1.5">
+              <DollarSign className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
               <select
                 value={currencyFilter}
                 onChange={(e) => setCurrencyFilter(e.target.value)}
                 title="Filter by invoice currency"
-                className="text-xs border-none outline-none bg-transparent text-slate-600 min-w-[80px] pr-1 cursor-pointer"
+                className="text-xs border-none outline-none bg-transparent text-muted-foreground min-w-[80px] pr-1 cursor-pointer"
               >
                 <option value="ALL">All Currencies</option>
                 {availableCurrencies.map((c) => (
@@ -1742,11 +1742,11 @@ export function BillingPage() {
               </select>
             </div>
 
-            <div className="w-px h-5 bg-slate-200 shrink-0" />
+            <div className="w-px h-5 bg-muted shrink-0" />
 
             {/* Sort selector — drives server-side orderBy */}
-            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5">
-              <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <div className="flex items-center gap-1.5 bg-white border border-border rounded-lg px-2.5 py-1.5">
+              <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
               <select
                 value={`${sortBy}:${sortDir}`}
                 onChange={(e) => {
@@ -1755,7 +1755,7 @@ export function BillingPage() {
                   setSortDir(d as typeof sortDir);
                 }}
                 title="Sort order"
-                className="text-xs border-none outline-none bg-transparent text-slate-600 min-w-[140px] pr-1 cursor-pointer"
+                className="text-xs border-none outline-none bg-transparent text-muted-foreground min-w-[140px] pr-1 cursor-pointer"
               >
                 <option value="createdAt:desc">Newest first</option>
                 <option value="createdAt:asc">Oldest first</option>
@@ -1771,7 +1771,7 @@ export function BillingPage() {
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium border border-red-200 text-red-500 hover:bg-red-50 transition-colors whitespace-nowrap"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium border border-danger/25 text-danger hover:bg-danger-muted/60 transition-colors whitespace-nowrap"
               >
                 <X className="w-3 h-3" />
                 Clear filters
@@ -1782,44 +1782,44 @@ export function BillingPage() {
 
         {/* ── Active-filter chips (UX: "you're filtering by X, Y, Z") ─── */}
         {hasActiveFilters && (
-          <div className="px-3 py-2 border-b border-slate-100 bg-blue-50/40 shrink-0 flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] uppercase tracking-wide text-slate-400 font-semibold">
+          <div className="px-3 py-2 border-b border-border/60 bg-primary-muted/40 shrink-0 flex items-center gap-1.5 flex-wrap">
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground/70 font-semibold">
               Filtering by:
             </span>
             {search && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-slate-200 text-[11px] text-slate-700">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-border text-[11px] text-foreground">
                 <Search className="w-3 h-3" />"{search}"
               </span>
             )}
             {statusFilter !== "ALL" && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-slate-200 text-[11px] text-slate-700">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-border text-[11px] text-foreground">
                 Status: {statusFilter}
               </span>
             )}
             {paymentStatusFilter !== "ALL" && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-slate-200 text-[11px] text-slate-700">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-border text-[11px] text-foreground">
                 Payment: {paymentStatusFilter}
               </span>
             )}
             {dentistFilter !== "ALL" && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-slate-200 text-[11px] text-slate-700">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-border text-[11px] text-foreground">
                 Dentist:{" "}
                 {dentistOptions.find((d) => d.id === dentistFilter)?.name ??
                   dentistFilter}
               </span>
             )}
             {currencyFilter !== "ALL" && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-slate-200 text-[11px] text-slate-700">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-border text-[11px] text-foreground">
                 Currency: {currencyFilter}
               </span>
             )}
             {dateFrom && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-slate-200 text-[11px] text-slate-700">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-border text-[11px] text-foreground">
                 From: {dateFrom}
               </span>
             )}
             {dateTo && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-slate-200 text-[11px] text-slate-700">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-border text-[11px] text-foreground">
                 To: {dateTo}
               </span>
             )}
@@ -1833,10 +1833,10 @@ export function BillingPage() {
               <Spinner size="lg" />
             </div>
           ) : invoices.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground/70">
               <FileText className="w-12 h-12 mb-3 opacity-20" />
               <p className="text-sm font-medium">No invoices found</p>
-              <p className="text-xs mt-1 text-slate-400">
+              <p className="text-xs mt-1 text-muted-foreground/70">
                 {hasActiveFilters
                   ? "Try adjusting or clearing your filters"
                   : "Invoices created from visits will appear here"}
@@ -1844,7 +1844,7 @@ export function BillingPage() {
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
-                  className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-500 hover:bg-slate-50 transition-colors"
+                  className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:bg-muted/50 transition-colors"
                 >
                   <X className="w-3 h-3" />
                   Clear filters
@@ -1853,8 +1853,8 @@ export function BillingPage() {
             </div>
           ) : (
             <table className="w-full text-sm min-w-[1000px]">
-              <thead className="sticky top-0 bg-white border-b border-slate-200 z-10">
-                <tr className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide">
+              <thead className="sticky top-0 bg-white border-b border-border z-10">
+                <tr className="text-[11px] text-muted-foreground/70 font-semibold uppercase tracking-wide">
                   <th className="text-left px-3 py-3">Invoice</th>
                   <th className="text-left px-2 py-3">Date</th>
                   <th className="text-left px-2 py-3">Patient</th>
@@ -1885,8 +1885,8 @@ export function BillingPage() {
 
         {/* ── Pagination ────────────────────────────────────────────────── */}
         {meta.totalPages > 1 && (
-          <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
-            <p className="text-xs text-slate-500">
+          <div className="px-4 py-2.5 border-t border-border/60 bg-muted/50 flex items-center justify-between shrink-0">
+            <p className="text-xs text-muted-foreground">
               {meta.total === 0
                 ? "No invoices"
                 : `${(safePage - 1) * LIMIT + 1}–${Math.min(
@@ -1898,11 +1898,11 @@ export function BillingPage() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={safePage === 1}
-                className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-30 transition-colors"
+                className="p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-30 transition-colors"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
-              <span className="px-1 py-1 text-xs text-slate-600 font-medium">
+              <span className="px-1 py-1 text-xs text-muted-foreground font-medium">
                 {safePage} / {meta.totalPages}
               </span>
               <button
@@ -1910,7 +1910,7 @@ export function BillingPage() {
                   setPage((p) => Math.min(meta.totalPages, p + 1))
                 }
                 disabled={safePage === meta.totalPages}
-                className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-30 transition-colors"
+                className="p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-30 transition-colors"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>

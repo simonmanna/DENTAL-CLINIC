@@ -50,15 +50,15 @@ const STATUS_ICONS: Record<ComplaintStatus, React.ReactNode> = {
 };
 
 const STATUS_STYLES: Record<ComplaintStatus, string> = {
-  IMPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  SAME: 'bg-amber-50 text-amber-700 border-amber-200',
-  WORSE: 'bg-red-50 text-red-600 border-red-200',
+  IMPROVED: 'bg-success-muted/60 text-success border-success/25',
+  SAME: 'bg-warning-muted/60 text-warning border-warning/25',
+  WORSE: 'bg-danger-muted/60 text-danger border-danger/25',
 };
 
 const OUTCOME_STYLES: Record<Outcome, string> = {
-  GOOD: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  FAIR: 'bg-blue-50 text-blue-700 border-blue-200',
-  POOR: 'bg-red-50 text-red-600 border-red-200',
+  GOOD: 'bg-success-muted/60 text-success border-success/25',
+  FAIR: 'bg-primary-muted/60 text-primary border-primary/25',
+  POOR: 'bg-danger-muted/60 text-danger border-danger/25',
 };
 
 function cn(...c: (string | boolean | undefined | null)[]) { 
@@ -67,7 +67,7 @@ function cn(...c: (string | boolean | undefined | null)[]) {
 
 function Spinner({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
   const sizes = { sm: 'w-4 h-4', md: 'w-5 h-5', lg: 'w-6 h-6' };
-  return <Loader2 className={cn('animate-spin text-blue-600', sizes[size])} />;
+  return <Loader2 className={cn('animate-spin text-primary', sizes[size])} />;
 }
 
 interface ProgressReportsTabProps {
@@ -158,12 +158,12 @@ export default function ProgressReportsTab({ patientId, patient }: ProgressRepor
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-        <AlertTriangle className="w-10 h-10 mb-3 text-red-400" />
-        <p className="text-sm font-medium text-slate-500">Failed to load progress reports</p>
+      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground/70">
+        <AlertTriangle className="w-10 h-10 mb-3 text-danger/70" />
+        <p className="text-sm font-medium text-muted-foreground">Failed to load progress reports</p>
         <button 
           onClick={() => refetch()} 
-          className="mt-3 px-4 py-2 text-xs text-blue-600 hover:bg-blue-50 rounded-lg"
+          className="mt-3 px-4 py-2 text-xs text-primary hover:bg-primary-muted/60 rounded-lg"
         >
           Retry
         </button>
@@ -175,33 +175,33 @@ export default function ProgressReportsTab({ patientId, patient }: ProgressRepor
     <div className="space-y-4">
       {/* Header Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+        <div className="bg-muted/50 border border-border rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <ClipboardList className="w-4 h-4 text-blue-500" />
-            <span className="text-xs text-slate-400 uppercase">Total Reports</span>
+            <ClipboardList className="w-4 h-4 text-primary" />
+            <span className="text-xs text-muted-foreground/70 uppercase">Total Reports</span>
           </div>
-          <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
+          <p className="text-2xl font-bold text-foreground">{stats.total}</p>
         </div>
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+        <div className="bg-muted/50 border border-border rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className="w-4 h-4 text-emerald-500" />
-            <span className="text-xs text-slate-400 uppercase">Improved</span>
+            <TrendingUp className="w-4 h-4 text-success" />
+            <span className="text-xs text-muted-foreground/70 uppercase">Improved</span>
           </div>
-          <p className="text-2xl font-bold text-emerald-600">{stats.improved}</p>
+          <p className="text-2xl font-bold text-success">{stats.improved}</p>
         </div>
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+        <div className="bg-muted/50 border border-border rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1">
             <BarChart2 className="w-4 h-4 text-indigo-500" />
-            <span className="text-xs text-slate-400 uppercase">Success Rate</span>
+            <span className="text-xs text-muted-foreground/70 uppercase">Success Rate</span>
           </div>
           <p className="text-2xl font-bold text-indigo-600">{stats.successRate}%</p>
         </div>
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+        <div className="bg-muted/50 border border-border rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <CheckCircle className="w-4 h-4 text-amber-500" />
-            <span className="text-xs text-slate-400 uppercase">With Outcome</span>
+            <CheckCircle className="w-4 h-4 text-warning" />
+            <span className="text-xs text-muted-foreground/70 uppercase">With Outcome</span>
           </div>
-          <p className="text-2xl font-bold text-amber-600">{stats.withOutcome}</p>
+          <p className="text-2xl font-bold text-warning">{stats.withOutcome}</p>
         </div>
       </div>
 
@@ -212,7 +212,7 @@ export default function ProgressReportsTab({ patientId, patient }: ProgressRepor
             onClick={() => setViewMode('list')}
             className={cn(
               'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-              viewMode === 'list' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              viewMode === 'list' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:bg-muted'
             )}
           >
             List View
@@ -221,7 +221,7 @@ export default function ProgressReportsTab({ patientId, patient }: ProgressRepor
             onClick={() => setViewMode('timeline')}
             className={cn(
               'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-              viewMode === 'timeline' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              viewMode === 'timeline' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:bg-muted'
             )}
           >
             Timeline
@@ -231,13 +231,13 @@ export default function ProgressReportsTab({ patientId, patient }: ProgressRepor
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {/* Search */}
           <div className="relative flex-1 sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70" />
             <input
               type="text"
               placeholder="Search reports..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60"
             />
           </div>
 
@@ -245,7 +245,7 @@ export default function ProgressReportsTab({ patientId, patient }: ProgressRepor
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as any)}
-            className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 bg-white"
           >
             <option value="ALL">All Status</option>
             <option value="IMPROVED">Improved</option>
@@ -266,10 +266,10 @@ export default function ProgressReportsTab({ patientId, patient }: ProgressRepor
       {viewMode === 'list' ? (
         <div className="space-y-3">
           {filteredReports.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground/70 bg-muted/50 rounded-xl border border-dashed border-border">
               <ClipboardList className="w-12 h-12 mb-3 opacity-20" />
-              <p className="text-sm font-medium text-slate-500">No progress reports found</p>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-sm font-medium text-muted-foreground">No progress reports found</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">
                 {searchQuery || filterStatus !== 'ALL' 
                   ? 'Try adjusting your filters' 
                   : 'Progress reports will appear here after visits'}
@@ -285,7 +285,7 @@ export default function ProgressReportsTab({ patientId, patient }: ProgressRepor
                   key={report.id}
                   className={cn(
                     'bg-white rounded-xl border transition-all overflow-hidden',
-                    'border-slate-200 hover:border-slate-300'
+                    'border-border hover:border-input'
                   )}
                 >
                   {/* Header */}
@@ -295,18 +295,18 @@ export default function ProgressReportsTab({ patientId, patient }: ProgressRepor
                   >
                     <div className={cn(
                       "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0",
-                      report.complaintStatus === 'IMPROVED' ? "bg-emerald-50 border border-emerald-100" :
-                      report.complaintStatus === 'WORSE' ? "bg-red-50 border border-red-100" :
-                      "bg-blue-50 border border-blue-100"
+                      report.complaintStatus === 'IMPROVED' ? "bg-success-muted/60 border border-success/20" :
+                      report.complaintStatus === 'WORSE' ? "bg-danger-muted/60 border border-danger/20" :
+                      "bg-primary-muted/60 border border-primary/20"
                     )}>
-                      {report.complaintStatus === 'IMPROVED' ? <TrendingUp className="w-5 h-5 text-emerald-500" /> :
-                       report.complaintStatus === 'WORSE' ? <TrendingDown className="w-5 h-5 text-red-500" /> :
-                       <Minus className="w-5 h-5 text-blue-500" />}
+                      {report.complaintStatus === 'IMPROVED' ? <TrendingUp className="w-5 h-5 text-success" /> :
+                       report.complaintStatus === 'WORSE' ? <TrendingDown className="w-5 h-5 text-danger" /> :
+                       <Minus className="w-5 h-5 text-primary" />}
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="text-xs font-mono text-slate-400">
+                        <span className="text-xs font-mono text-muted-foreground/70">
                           {report.reportCode}
                         </span>
                         
@@ -330,24 +330,24 @@ export default function ProgressReportsTab({ patientId, patient }: ProgressRepor
                         )}
 
                         {report.toothNumber && (
-                          <span className="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">
+                          <span className="text-xs font-bold text-muted-foreground bg-muted border border-border px-2 py-0.5 rounded-lg">
                             Tooth {report.toothNumber}
                           </span>
                         )}
 
                         <ChevronRight className={cn(
-                          'w-4 h-4 text-slate-400 transition-transform ml-auto',
+                          'w-4 h-4 text-muted-foreground/70 transition-transform ml-auto',
                           isExpanded && 'rotate-90'
                         )} />
                       </div>
 
                       {report.complaint && (
-                        <p className="text-sm text-slate-700 font-medium mb-1">
+                        <p className="text-sm text-foreground font-medium mb-1">
                           {report.complaint}
                         </p>
                       )}
 
-                      <div className="flex items-center gap-4 text-[11px] text-slate-400 flex-wrap">
+                      <div className="flex items-center gap-4 text-[11px] text-muted-foreground/70 flex-wrap">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           {formatDate(report.createdAt)}
@@ -376,32 +376,32 @@ export default function ProgressReportsTab({ patientId, patient }: ProgressRepor
 
                   {/* Expanded Details */}
                   {isExpanded && (
-                    <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-4 space-y-3">
+                    <div className="border-t border-border/60 bg-muted/50 px-5 py-4 space-y-3">
                       {report.findings && (
-                        <div className="bg-white rounded-lg border border-slate-200 p-3">
-                          <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Findings</span>
-                          <p className="text-sm text-slate-700 mt-1">{report.findings}</p>
+                        <div className="bg-white rounded-lg border border-border p-3">
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Findings</span>
+                          <p className="text-sm text-foreground mt-1">{report.findings}</p>
                         </div>
                       )}
 
                       {report.notes && (
-                        <div className="bg-white rounded-lg border border-slate-200 p-3">
-                          <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Session Notes</span>
-                          <p className="text-sm text-slate-700 mt-1">{report.notes}</p>
+                        <div className="bg-white rounded-lg border border-border p-3">
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Session Notes</span>
+                          <p className="text-sm text-foreground mt-1">{report.notes}</p>
                         </div>
                       )}
 
                       {report.nextPlan && (
-                        <div className="bg-blue-50 rounded-lg border border-blue-100 p-3">
-                          <span className="text-[10px] font-bold uppercase tracking-wide text-blue-600">Next Plan</span>
-                          <p className="text-sm text-blue-800 mt-1 font-medium">{report.nextPlan}</p>
+                        <div className="bg-primary-muted/60 rounded-lg border border-primary/20 p-3">
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-primary">Next Plan</span>
+                          <p className="text-sm text-primary mt-1 font-medium">{report.nextPlan}</p>
                         </div>
                       )}
 
                       {report.treatmentStatus && (
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-500">Treatment Status:</span>
-                          <span className="text-xs px-2 py-1 bg-slate-100 text-slate-700 rounded-lg">
+                          <span className="text-xs text-muted-foreground">Treatment Status:</span>
+                          <span className="text-xs px-2 py-1 bg-muted text-foreground rounded-lg">
                             {report.treatmentStatus}
                           </span>
                         </div>
@@ -414,7 +414,7 @@ export default function ProgressReportsTab({ patientId, patient }: ProgressRepor
                               e.stopPropagation();
                               navigate(`/visits/${report.visit!.id}`);
                             }}
-                            className="px-3 py-1.5 text-xs text-blue-600 hover:bg-blue-50 rounded-lg"
+                            className="px-3 py-1.5 text-xs text-primary hover:bg-primary-muted/60 rounded-lg"
                           >
                             View Visit
                           </button>
@@ -431,35 +431,35 @@ export default function ProgressReportsTab({ patientId, patient }: ProgressRepor
         /* Timeline View */
         <div className="space-y-3">
           {timelineItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground/70 bg-muted/50 rounded-xl border border-dashed border-border">
               <Calendar className="w-12 h-12 mb-3 opacity-20" />
-              <p className="text-sm font-medium text-slate-500">No reports to display</p>
+              <p className="text-sm font-medium text-muted-foreground">No reports to display</p>
             </div>
           ) : (
-            <div className="relative pl-6 border-l-2 border-slate-200 space-y-4">
+            <div className="relative pl-6 border-l-2 border-border space-y-4">
               {timelineItems.map((report) => (
                 <div key={report.id} className="relative">
                   <div className={cn(
                     'absolute -left-[29px] w-4 h-4 rounded-full border-2 border-white shadow-sm',
-                    report.complaintStatus === 'IMPROVED' ? 'bg-emerald-500' :
-                    report.complaintStatus === 'WORSE' ? 'bg-red-500' :
-                    report.complaintStatus === 'SAME' ? 'bg-amber-500' :
-                    'bg-slate-400'
+                    report.complaintStatus === 'IMPROVED' ? 'bg-success' :
+                    report.complaintStatus === 'WORSE' ? 'bg-danger' :
+                    report.complaintStatus === 'SAME' ? 'bg-warning' :
+                    'bg-muted-foreground/70'
                   )} />
                   <div 
                     onClick={() => navigate(report.visit ? `/visits/${report.visit.id}` : '#')}
                     className={cn(
-                      "bg-white rounded-xl border border-slate-200 p-4 hover:border-blue-300 transition-all",
+                      "bg-white rounded-xl border border-border p-4 hover:border-primary/30 transition-all",
                       report.visit && "cursor-pointer"
                     )}
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <p className="text-xs text-slate-400 mb-1">
+                        <p className="text-xs text-muted-foreground/70 mb-1">
                           {formatDate(report.createdAt)}
                           {report.visit && ` • ${report.visit.visitCode}`}
                         </p>
-                        <h4 className="font-semibold text-slate-800">
+                        <h4 className="font-semibold text-foreground">
                           {report.complaint || 'Progress Report'}
                         </h4>
                       </div>
@@ -473,7 +473,7 @@ export default function ProgressReportsTab({ patientId, patient }: ProgressRepor
                       )}
                     </div>
                     
-                    <div className="flex items-center gap-4 text-xs text-slate-500">
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       {report.toothNumber && (
                         <span>Tooth {report.toothNumber}</span>
                       )}
@@ -494,7 +494,7 @@ export default function ProgressReportsTab({ patientId, patient }: ProgressRepor
                     </div>
 
                     {report.findings && (
-                      <p className="mt-2 text-xs text-slate-600 line-clamp-2">{report.findings}</p>
+                      <p className="mt-2 text-xs text-muted-foreground line-clamp-2">{report.findings}</p>
                     )}
                   </div>
                 </div>

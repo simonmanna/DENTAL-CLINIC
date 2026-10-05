@@ -7,6 +7,6 @@ export const GL_HEADER = '#0369a1';
 export const GL = {
   headerBar: 'text-white', // used with inline GL_HEADER background
   tableHead:
-    'bg-sky-50 text-[#0369a1] uppercase text-[11px] font-semibold tracking-wider',
+    'bg-primary-muted/60 text-[#0369a1] uppercase text-[11px] font-semibold tracking-wider',
   numeric: 'tabular-nums font-mono',
 };

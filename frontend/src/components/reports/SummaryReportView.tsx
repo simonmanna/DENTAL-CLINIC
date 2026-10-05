@@ -77,11 +77,11 @@ export const SummaryReportView: React.FC<SummaryReportViewProps> = ({ data }) =>
         {trend && (
           <div className="flex items-center mt-2">
             {trend > 0 ? (
-              <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+              <TrendingUp className="h-4 w-4 text-success mr-1" />
             ) : (
-              <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
+              <TrendingDown className="h-4 w-4 text-danger mr-1" />
             )}
-            <span className={`text-xs ${trend > 0 ? 'text-green-500' : 'text-red-500'}`}>
+            <span className={`text-xs ${trend > 0 ? 'text-success' : 'text-danger'}`}>
               {Math.abs(trend)}% from last period
             </span>
           </div>

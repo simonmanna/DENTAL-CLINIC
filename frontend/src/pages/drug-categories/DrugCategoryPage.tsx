@@ -81,11 +81,11 @@ export function DrugCategoryPage() {
       {/* PAGE HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
-            <Layers className="h-6 w-6 text-sky-600" />
+          <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
+            <Layers className="h-6 w-6 text-primary" />
             Drug Categories
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Manage and organize your medication classification hierarchy
           </p>
         </div>
@@ -96,11 +96,11 @@ export function DrugCategoryPage() {
             size="sm"
             onClick={() => refetch()}
             disabled={isLoading}
-            className="bg-white hover:bg-gray-50 border-gray-300 shadow-sm"
+            className="bg-white hover:bg-muted/50 border-input shadow-sm"
           >
             <RefreshCw
               className={cn(
-                "h-4 w-4 mr-2 text-gray-600",
+                "h-4 w-4 mr-2 text-muted-foreground",
                 isLoading && "animate-spin",
               )}
             />
@@ -111,15 +111,15 @@ export function DrugCategoryPage() {
             <DialogTrigger asChild>
               <Button
                 onClick={openCreate}
-                className="bg-sky-600 hover:bg-sky-700 text-white shadow-sm border-b-2 border-sky-800 transition-all active:translate-y-[1px]"
+                className="bg-primary hover:bg-primary text-white shadow-sm border-b-2 border-primary transition-all active:translate-y-[1px]"
               >
                 <Plus className="mr-2 h-4 w-4" /> Add New Category
               </Button>
             </DialogTrigger>
 
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto border-t-4 border-sky-500">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto border-t-4 border-primary/60">
               <DialogHeader>
-                <DialogTitle className="text-xl text-gray-800">
+                <DialogTitle className="text-xl text-foreground">
                   {editingCategory
                     ? "🛠️ Edit Category"
                     : "✨ Create New Category"}
@@ -137,10 +137,10 @@ export function DrugCategoryPage() {
       </div>
 
       {/* MAIN CARD CONTAINER */}
-      <div className="bg-white rounded shadow-md border-t-[3px] border-sky-400">
+      <div className="bg-white rounded shadow-md border-t-[3px] border-primary/40">
         {/* Card Header (Optional Style) */}
-        {/* <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/50">
-          <h3 className="text-sm font-medium text-gray-700 uppercase tracking-wider">
+        {/* <div className="px-5 py-3 border-b border-border/60 bg-muted/50">
+          <h3 className="text-sm font-medium text-foreground uppercase tracking-wider">
             Classification Registry
           </h3>
         </div> */}
@@ -159,7 +159,7 @@ export function DrugCategoryPage() {
       </div>
 
       {/* FOOTER-STYLE INFO */}
-      <div className="mt-2 text-xs text-gray-400 text-right">
+      <div className="mt-2 text-xs text-muted-foreground/70 text-right">
         Showing classification data for {categories.length} main categories
       </div>
     </div>

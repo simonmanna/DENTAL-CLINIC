@@ -101,14 +101,14 @@ function CategoryDialog({
 
         <div className="space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded px-3 py-2">
+            <div className="bg-danger-muted/60 border border-danger/25 text-danger text-sm rounded px-3 py-2">
               {error}
             </div>
           )}
 
           <div className="grid grid-cols-[80px_1fr] gap-3">
             <div>
-              <label className="text-xs font-bold uppercase text-gray-500">
+              <label className="text-xs font-bold uppercase text-muted-foreground">
                 Icon
               </label>
               <Input
@@ -119,7 +119,7 @@ function CategoryDialog({
               />
             </div>
             <div>
-              <label className="text-xs font-bold uppercase text-gray-500">
+              <label className="text-xs font-bold uppercase text-muted-foreground">
                 Name
               </label>
               <Input
@@ -131,7 +131,7 @@ function CategoryDialog({
           </div>
 
           <div>
-            <label className="text-xs font-bold uppercase text-gray-500">
+            <label className="text-xs font-bold uppercase text-muted-foreground">
               Description
             </label>
             <Input
@@ -142,7 +142,7 @@ function CategoryDialog({
           </div>
 
           <div>
-            <label className="text-xs font-bold uppercase text-gray-500">
+            <label className="text-xs font-bold uppercase text-muted-foreground">
               Linked GL Account (optional)
             </label>
             <Select value={ledgerAccountId} onValueChange={setLedgerAccountId}>
@@ -160,7 +160,7 @@ function CategoryDialog({
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-[11px] text-slate-500 mt-1">
+            <p className="text-[11px] text-muted-foreground mt-1">
               Link an account to post double-entry (DR this account · CR Cash/AP).
               Leave unset to keep this category out of the ledger.
             </p>
@@ -170,7 +170,7 @@ function CategoryDialog({
             <div className="flex items-center justify-between rounded border px-3 py-2">
               <div>
                 <p className="text-sm font-medium">Active</p>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-muted-foreground">
                   Disabled categories are hidden from new expenses but keep their
                   history.
                 </p>
@@ -252,14 +252,14 @@ export default function ExpenseCategoriesPage() {
         <div>
           <Link
             to="/expenses"
-            className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1"
+            className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
           >
             <ChevronLeft className="w-4 h-4" /> Back to Expenses
           </Link>
-          <h1 className="text-xl font-bold text-slate-800 mt-1">
+          <h1 className="text-xl font-bold text-foreground mt-1">
             Expense Categories
           </h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted-foreground">
             Manage categories and their optional accounting links.
           </p>
         </div>
@@ -268,14 +268,14 @@ export default function ExpenseCategoriesPage() {
         </Button>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-10 text-center text-slate-400">
+          <div className="p-10 text-center text-muted-foreground/70">
             <Loader2 className="w-6 h-6 animate-spin mx-auto" />
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
+            <thead className="bg-muted/50 text-muted-foreground text-xs uppercase">
               <tr>
                 <th className="text-left px-4 py-2 font-semibold">Category</th>
                 <th className="text-left px-4 py-2 font-semibold">GL Account</th>
@@ -284,36 +284,36 @@ export default function ExpenseCategoriesPage() {
                 <th className="text-right px-4 py-2 font-semibold">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border/60">
               {categories.map((c) => (
-                <tr key={c.id} className={c.isActive ? "" : "bg-slate-50/60"}>
+                <tr key={c.id} className={c.isActive ? "" : "bg-muted/60"}>
                   <td className="px-4 py-2.5">
-                    <span className="font-medium text-slate-800">
+                    <span className="font-medium text-foreground">
                       {c.icon ? `${c.icon} ` : ""}
                       {c.name}
                     </span>
                     {c.isSystem && (
-                      <span className="ml-2 text-[10px] uppercase tracking-wide text-slate-400">
+                      <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-foreground/70">
                         default
                       </span>
                     )}
                     {c.description && (
-                      <p className="text-xs text-slate-400">{c.description}</p>
+                      <p className="text-xs text-muted-foreground/70">{c.description}</p>
                     )}
                   </td>
                   <td className="px-4 py-2.5">
                     {c.ledgerAccount ? (
-                      <span className="inline-flex items-center gap-1 text-emerald-700">
+                      <span className="inline-flex items-center gap-1 text-success">
                         <Link2 className="w-3.5 h-3.5" />
                         {c.ledgerAccount.code} · {c.ledgerAccount.name}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-slate-400">
+                      <span className="inline-flex items-center gap-1 text-muted-foreground/70">
                         <Link2Off className="w-3.5 h-3.5" /> Not posted
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-center text-slate-500">
+                  <td className="px-4 py-2.5 text-center text-muted-foreground">
                     {c._count?.expenses ?? 0}
                   </td>
                   <td className="px-4 py-2.5 text-center">
@@ -321,8 +321,8 @@ export default function ExpenseCategoriesPage() {
                       onClick={() => toggleActive(c)}
                       className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                         c.isActive
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-slate-100 text-slate-500"
+                          ? "bg-success-muted/60 text-success"
+                          : "bg-muted text-muted-foreground"
                       }`}
                     >
                       {c.isActive ? "Active" : "Disabled"}
@@ -331,7 +331,7 @@ export default function ExpenseCategoriesPage() {
                   <td className="px-4 py-2.5 text-right whitespace-nowrap">
                     <button
                       onClick={() => setDialog({ open: true, category: c })}
-                      className="p-1.5 text-slate-500 hover:text-[#3c8dbc]"
+                      className="p-1.5 text-muted-foreground hover:text-[#3c8dbc]"
                       title="Edit"
                     >
                       <Edit3 className="w-4 h-4" />
@@ -339,7 +339,7 @@ export default function ExpenseCategoriesPage() {
                     <button
                       onClick={() => remove(c)}
                       disabled={c.isSystem || (c._count?.expenses ?? 0) > 0}
-                      className="p-1.5 text-slate-500 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="p-1.5 text-muted-foreground hover:text-danger disabled:opacity-30 disabled:cursor-not-allowed"
                       title={
                         c.isSystem
                           ? "Default category — disable instead"
@@ -357,7 +357,7 @@ export default function ExpenseCategoriesPage() {
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-4 py-10 text-center text-slate-400"
+                    className="px-4 py-10 text-center text-muted-foreground/70"
                   >
                     No categories yet.
                   </td>

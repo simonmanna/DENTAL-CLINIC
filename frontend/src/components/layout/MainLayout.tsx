@@ -24,6 +24,26 @@ import {
   HeartPulse,
   Shield,
   KeyRound,
+  Scale,
+  AlertTriangle,
+  Zap,
+  Landmark,
+  Store,
+  Banknote,
+  Database,
+  FolderTree,
+  BarChart3,
+  ClipboardList,
+  MapPin,
+  BookOpen,
+  Boxes,
+  RefreshCw,
+  Microscope,
+  FileText,
+  ShoppingCart,
+  ShieldCheck,
+  FlaskConical,
+  Receipt,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -266,8 +286,8 @@ const navItems = [
     label: "Appointments",
     path: "#",
     children: [
-      { label: "Appointments Calendar", path: "/appointments", icon: "📂" },
-      { label: "Draft Appointments", path: "/DraftAppointmentsPage", icon: "🧪" },
+      { label: "Appointments Calendar", path: "/appointments", icon: FolderTree },
+      { label: "Draft Appointments", path: "/DraftAppointmentsPage", icon: FlaskConical },
     ],
   },
 
@@ -277,8 +297,8 @@ const navItems = [
     label: "Invoices & Receipts",
     path: "#",
     children: [
-      { label: "Invoices", path: "/billing", icon: "🧾" },
-      { label: "Receipts", path: "/receipts", icon: "🗒️" },
+      { label: "Invoices", path: "/billing", icon: Receipt },
+      { label: "Receipts", path: "/receipts", icon: FileText },
     ],
   },
   {
@@ -286,10 +306,10 @@ const navItems = [
     label: "Medicines",
     path: "#",
     children: [
-      // { label: "Pharmacy Sales", path: "/pharmacysales", icon: "💊" },
-      { label: "Drug Categories", path: "/drug-categories", icon: "📂" },
-      { label: "Drugs", path: "/drug-inventory", icon: "🧪" },
-      { label: "Prescriptions", path: "/PrescriptionsList", icon: "📋" },
+      // { label: "Pharmacy Sales", path: "/pharmacysales", icon: Pill },
+      { label: "Drug Categories", path: "/drug-categories", icon: FolderTree },
+      { label: "Drugs", path: "/drug-inventory", icon: FlaskConical },
+      { label: "Prescriptions", path: "/PrescriptionsList", icon: ClipboardList },
     ],
   },
   {
@@ -300,11 +320,11 @@ const navItems = [
       {
         label: "Procedure Categories",
         path: "/procedure-categories",
-        icon: "📂",
+        icon: FolderTree,
       },
-      { label: "Procedures", path: "/procedures", icon: "🔬" },
-      { label: "Conditions/Diagnosis", path: "/ConditionsPage", icon: "🔬" },
-      { label: "Services", path: "/billing-services", icon: "🩺" },
+      { label: "Procedures", path: "/procedures", icon: Microscope },
+      { label: "Conditions/Diagnosis", path: "/ConditionsPage", icon: Microscope },
+      { label: "Services", path: "/billing-services", icon: Stethoscope },
     ],
   },
   {
@@ -312,15 +332,15 @@ const navItems = [
     label: "Inventory",
     path: "#",
     children: [
-      { label: "Inventory Items", path: "/inventory", icon: "📦" },
-      { label: "Stock Out", path: "/StockOut", icon: "📍" },
-      { label: "Direct Stock", path: "/direct-stock", icon: "⚡" },
-      { label: "Categories", path: "/inventory/categories", icon: "📂" },
-      // { label: "Stock Moves", path: "/stockmoves", icon: "🔄" },
-      { label: "Locations", path: "/LocationsPage", icon: "📍" },
-      // { label: "Damages/Expiry", path: "/waste-records", icon: "⚠️" },
-      { label: "Adjustments", path: "/stock-adjustments", icon: "⚖️" },
-      { label: "Stock Ledger", path: "/stock-ledger", icon: "📒" },
+      { label: "Inventory Items", path: "/inventory", icon: Boxes },
+      { label: "Stock Out", path: "/StockOut", icon: MapPin },
+      { label: "Direct Stock", path: "/direct-stock", icon: Zap },
+      { label: "Categories", path: "/inventory/categories", icon: FolderTree },
+      // { label: "Stock Moves", path: "/stockmoves", icon: RefreshCw },
+      { label: "Locations", path: "/LocationsPage", icon: MapPin },
+      // { label: "Damages/Expiry", path: "/waste-records", icon: AlertTriangle },
+      { label: "Adjustments", path: "/stock-adjustments", icon: Scale },
+      { label: "Stock Ledger", path: "/stock-ledger", icon: BookOpen },
     ],
   },
   {
@@ -328,8 +348,8 @@ const navItems = [
     label: "Purchases",
     path: "#",
     children: [
-      { label: "Suppliers", path: "/suppliers", icon: "🏪" },
-      { label: "Purchases", path: "/purchases", icon: "🛒" },
+      { label: "Suppliers", path: "/suppliers", icon: Store },
+      { label: "Purchases", path: "/purchases", icon: ShoppingCart },
     ],
   },
   {
@@ -337,9 +357,9 @@ const navItems = [
     label: "Expenses",
     path: "#",
     children: [
-     { label: "Expenses", path: "/expenses", icon: "💸" },
-     { label: "Payments", path: "/PaymentsList", icon: "💳" },
-     { label: "Accounts", path: "/accounts", icon: "🏦" },
+     { label: "Expenses", path: "/expenses", icon: Banknote },
+     { label: "Payments", path: "/PaymentsList", icon: CreditCard },
+     { label: "Accounts", path: "/accounts", icon: Landmark },
     ],
   },
   // {
@@ -347,9 +367,9 @@ const navItems = [
   //   label: "Cash Flow",
   //   path: "#",
   //   children: [
-  //     { label: "Cash Flow", path: "/cashflow", icon: "📊" },
-  //     { label: "Receipts", path: "/receipts", icon: "🗒️" },
-  //     { label: "Payments", path: "/PaymentsList", icon: "💳" },
+  //     { label: "Cash Flow", path: "/cashflow", icon: BarChart3 },
+  //     { label: "Receipts", path: "/receipts", icon: FileText },
+  //     { label: "Payments", path: "/PaymentsList", icon: CreditCard },
   //   ],
   // },
   { icon: UserCog, label: "Staff", path: "/staff", badge: null },
@@ -358,31 +378,21 @@ const navItems = [
     label: "Reports",
     path: "#",
     children: [
-      { label: "Medical Report", path: "/TreatmentReports", icon: "🗒️" },
+      { label: "Medical Report", path: "/TreatmentReports", icon: FileText },
       {
         label: "Patients Report",
         path: "/PatientListReportPage",
-        icon: "📊",
+        icon: BarChart3,
       },
-      { label: "Sales & Receipts", path: "/SalesReports", icon: "🧾" },
-      { label: "Expenses & Payments", path: "/ExpensePaymentsReports", icon: "💸" },
-      { label: "Inventory Report", path: "/InventoryReports", icon: "🗒️" },
-      { label: "General Ledger", path: "/general-ledger", icon: "📒" },
-      { label: "Audit Log", path: "/audit-log", icon: "🛡️" },
-      { label: "Backups", path: "/admin/backups", icon: "💾" },
+      { label: "Sales & Receipts", path: "/SalesReports", icon: Receipt },
+      { label: "Expenses & Payments", path: "/ExpensePaymentsReports", icon: Banknote },
+      { label: "Inventory Report", path: "/InventoryReports", icon: FileText },
+      { label: "General Ledger", path: "/general-ledger", icon: BookOpen },
+      { label: "Audit Log", path: "/audit-log", icon: ShieldCheck },
+      { label: "Backups", path: "/admin/backups", icon: Database },
     ],
   },
 ];
-
-// ─── GOOGLE FONTS ─────────────────────────────────────────────────────────────
-const FontLoader = () => (
-  <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=DM+Sans:wght@500;600;700;800&display=swap');
-    * { font-family: 'Plus Jakarta Sans', 'DM Sans', system-ui, sans-serif !important; font-weight: 600; }
-    input, textarea, select { font-family: 'DM Sans', system-ui, sans-serif !important; font-weight: 600; }
-    body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-  `}</style>
-);
 
 // ─── NAV ITEM ─────────────────────────────────────────────────────────────────
 interface NavItemProps {
@@ -390,7 +400,6 @@ interface NavItemProps {
   collapsed: boolean;
   isActive: (path: string) => boolean;
   onNavigate?: () => void;
-  theme: Theme;
 }
 
 function NavItem({
@@ -398,7 +407,6 @@ function NavItem({
   collapsed,
   isActive,
   onNavigate,
-  theme,
 }: NavItemProps) {
   const location = useLocation();
   const hasChildren = "children" in item && item.children;
@@ -412,96 +420,74 @@ function NavItem({
     if (anyChildActive) setOpen(true);
   }, [location.pathname]);
 
+  const rowBase =
+    "relative w-full flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-sidebar-accent/70";
+
   if (hasChildren) {
     return (
       <div>
         <button
           onClick={() => setOpen((o) => !o)}
           title={collapsed ? item.label : undefined}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg mx-2 text-sm transition-all duration-150 group relative"
-          style={{
-            width: "calc(100% - 16px)",
-            color: anyChildActive ? theme.sidebarActive : theme.sidebarText,
-            background: anyChildActive ? theme.sidebarActiveBg : "transparent",
-            fontWeight: anyChildActive ? 600 : 400,
-          }}
-          onMouseEnter={(e) =>
-            !anyChildActive &&
-            ((e.currentTarget as HTMLElement).style.background =
-              theme.sidebarHover)
-          }
-          onMouseLeave={(e) =>
-            !anyChildActive &&
-            ((e.currentTarget as HTMLElement).style.background = "transparent")
-          }
+          aria-expanded={open}
+          className={cn(
+            rowBase,
+            anyChildActive
+              ? "bg-sidebar-active-bg font-semibold text-sidebar-active"
+              : "font-medium text-sidebar-foreground/85 hover:bg-sidebar-hover hover:text-sidebar-active",
+          )}
         >
-          {anyChildActive && !collapsed && (
-            <span
-              className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full"
-              style={{ background: theme.sidebarActiveBar }}
-            />
+          {anyChildActive && (
+            <span className="absolute -left-2 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-sidebar-accent" />
           )}
           <item.icon
-            className="shrink-0"
-            style={{
-              width: 16,
-              height: 16,
-              opacity: anyChildActive ? 1 : 1,
-            }}
+            className={cn(
+              "h-4 w-4 shrink-0",
+              anyChildActive ? "text-sidebar-accent" : "text-sidebar-muted",
+            )}
           />
           {!collapsed && (
             <>
-              <span className="flex-1 text-left truncate text-[13.5px] tracking-[0.01em]">
-                {item.label}
-              </span>
+              <span className="flex-1 truncate text-left">{item.label}</span>
               <ChevronDown
                 className={cn(
-                  "transition-transform duration-200",
-                  open ? "rotate-180" : "",
+                  "h-3.5 w-3.5 shrink-0 text-sidebar-muted transition-transform duration-200",
+                  open && "rotate-180",
                 )}
-                style={{ width: 13, height: 13, opacity: 1 }}
               />
             </>
           )}
         </button>
 
         {open && !collapsed && (
-          <div
-            className="ml-4 mr-2 mt-0.5 mb-0.5 pl-3"
-            style={{ borderLeft: `1px solid ${theme.sidebarBorder}` }}
-          >
-            {item.children!.map((child) => (
-              <Link
-                key={child.path}
-                to={child.path}
-                onClick={onNavigate}
-                className="flex items-center gap-2.5 px-3 py-[7px] rounded-md text-[13px] transition-all duration-100 mt-0.5"
-                style={{
-                  color: isActive(child.path)
-                    ? theme.sidebarActive
-                    : theme.sidebarMuted,
-                  background: isActive(child.path)
-                    ? "rgba(255,255,255,0.14)"
-                    : "transparent",
-                  fontWeight: isActive(child.path) ? 600 : 400,
-                }}
-                onMouseEnter={(e) =>
-                  !isActive(child.path) &&
-                  ((e.currentTarget as HTMLElement).style.color =
-                    theme.sidebarText)
-                }
-                onMouseLeave={(e) =>
-                  !isActive(child.path) &&
-                  ((e.currentTarget as HTMLElement).style.color =
-                    theme.sidebarMuted)
-                }
-              >
-                <span style={{ fontSize: 13, lineHeight: 1 }}>
-                  {child.icon}
-                </span>
-                {child.label}
-              </Link>
-            ))}
+          <div className="relative ml-[18px] mt-0.5 space-y-px border-l border-sidebar-border pl-2.5">
+            {item.children!.map((child) => {
+              const childActive = isActive(child.path);
+              return (
+                <Link
+                  key={child.path}
+                  to={child.path}
+                  onClick={onNavigate}
+                  aria-current={childActive ? "page" : undefined}
+                  className={cn(
+                    "group flex items-center gap-2.5 rounded-md px-2.5 py-[6px] text-[12.5px] outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-sidebar-accent/70",
+                    childActive
+                      ? "bg-sidebar-hover font-semibold text-sidebar-active"
+                      : "font-normal text-sidebar-muted hover:bg-sidebar-hover/60 hover:text-sidebar-foreground",
+                  )}
+                >
+                  <child.icon
+                    className={cn(
+                      "h-[13px] w-[13px] shrink-0 transition-colors",
+                      childActive
+                        ? "text-sidebar-accent"
+                        : "text-sidebar-muted group-hover:text-sidebar-foreground",
+                    )}
+                  />
+                  <span className="truncate">{child.label}</span>
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
@@ -513,40 +499,26 @@ function NavItem({
       to={item.path}
       onClick={onNavigate}
       title={collapsed ? item.label : undefined}
-      className="flex items-center gap-3 px-3 py-2 rounded-lg mx-2 text-[13.5px] transition-all duration-150 group relative"
-      style={{
-        display: "flex",
-        color: active ? theme.sidebarActive : theme.sidebarText,
-        background: active ? theme.sidebarActiveBg : "transparent",
-        fontWeight: active ? 600 : 400,
-      }}
-      onMouseEnter={(e) =>
-        !active &&
-        ((e.currentTarget as HTMLElement).style.background = theme.sidebarHover)
-      }
-      onMouseLeave={(e) =>
-        !active &&
-        ((e.currentTarget as HTMLElement).style.background = "transparent")
-      }
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        rowBase,
+        active
+          ? "bg-sidebar-active-bg font-semibold text-sidebar-active"
+          : "font-medium text-sidebar-foreground/85 hover:bg-sidebar-hover hover:text-sidebar-active",
+      )}
     >
       {active && (
-        <span
-          className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full"
-          style={{ background: theme.sidebarActiveBar }}
-        />
+        <span className="absolute -left-2 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-sidebar-accent" />
       )}
       <item.icon
-        className="shrink-0"
-        style={{ width: 16, height: 16, opacity: active ? 1 : 1 }}
+        className={cn(
+          "h-4 w-4 shrink-0",
+          active ? "text-sidebar-accent" : "text-sidebar-muted",
+        )}
       />
-      {!collapsed && (
-        <span className="flex-1 truncate tracking-[0.01em]">{item.label}</span>
-      )}
+      {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
       {!collapsed && item.badge && (
-        <span
-          className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white min-w-[18px] text-center leading-tight"
-          style={{ background: theme.badgeBg }}
-        >
+        <span className="ml-auto min-w-[18px] rounded-full bg-sidebar-accent px-1.5 py-0.5 text-center text-[10px] font-bold leading-tight text-sidebar">
           {item.badge}
         </span>
       )}
@@ -580,7 +552,7 @@ function ThemePicker({
         </span>
         <button
           onClick={onClose}
-          className="rounded-md p-0.5 hover:bg-gray-100 transition-colors"
+          className="rounded-md p-0.5 hover:bg-muted transition-colors"
           style={{ color: "#94a3b8" }}
         >
           <X style={{ width: 14, height: 14 }} />
@@ -671,64 +643,35 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   const navSharedProps = {
     collapsed,
     isActive,
-    theme,
     onNavigate: () => setMobileOpen(false),
   };
 
   const sidebarContent = (
-    <div className="flex flex-col h-full" style={{ background: theme.sidebar }}>
-      {/* Brand Header */}
+    <div className="flex h-full flex-col bg-sidebar">
+      {/* Brand */}
       <div
         className={cn(
-          "flex items-center h-[58px] shrink-0 px-4",
-          collapsed ? "justify-center" : "gap-3",
+          "flex h-14 shrink-0 items-center border-b border-sidebar-border px-3",
+          collapsed ? "justify-center" : "gap-2.5",
         )}
-        style={{ borderBottom: `1px solid ${theme.sidebarBorder}` }}
       >
-        <div
-          className="flex items-center justify-center shrink-0 rounded-xl"
-          style={{
-            width: 34,
-            height: 34,
-            background: theme.brandBg,
-            border: `1px solid rgba(255,255,255,0.22)`,
-          }}
-        >
-          <HeartPulse style={{ width: 18, height: 18, color: "#fff" }} />
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
+          <HeartPulse className="h-[17px] w-[17px] text-primary-foreground" />
         </div>
         {!collapsed && (
-          <div className="flex flex-col leading-none">
-            <span
-              style={{
-                color: "#fff",
-                fontWeight: 700,
-                fontSize: 16,
-                letterSpacing: "-0.3px",
-              }}
-            >
+          <div className="flex min-w-0 flex-col leading-tight">
+            <span className="truncate text-[14px] font-semibold tracking-[-0.01em] text-sidebar-active">
               Fshikta Dental
             </span>
-            <span
-              style={{
-                color: theme.sidebarMuted,
-                fontSize: 10,
-                fontWeight: 500,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-              }}
-            >
+            <span className="truncate text-[9.5px] font-medium uppercase tracking-[0.1em] text-sidebar-muted">
               Clinic Management
             </span>
           </div>
         )}
       </div>
 
-
-      {/* Nav Items */}
-      <nav
-        className="flex-1 overflow-y-auto pb-2 space-y-0.5"
-        style={{ scrollbarWidth: "none" }}
-      >
+      {/* Nav */}
+      <nav className="scrollbar-none flex-1 space-y-0.5 overflow-y-auto px-3 py-2.5">
         {navItems.map((item) => (
           <NavItem
             key={`${item.label}-${item.path}`}
@@ -738,43 +681,20 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
         ))}
       </nav>
 
-      {/* Bottom Actions */}
-      <div
-        className="p-2 space-y-0.5"
-        style={{ borderTop: `1px solid ${theme.sidebarBorder}` }}
-      >
+      {/* Bottom actions */}
+      <div className="shrink-0 space-y-0.5 border-t border-sidebar-border px-3 py-2">
         <Link
           to="/settings"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg transition-all"
-          style={{ color: theme.sidebarMuted, fontSize: 13 }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background =
-              theme.sidebarHover;
-            (e.currentTarget as HTMLElement).style.color = theme.sidebarText;
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.background = "transparent";
-            (e.currentTarget as HTMLElement).style.color = theme.sidebarMuted;
-          }}
+          className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-sidebar-muted outline-none transition-colors hover:bg-sidebar-hover hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-accent/70"
         >
-          <Settings style={{ width: 15, height: 15, flexShrink: 0 }} />
+          <Settings className="h-4 w-4 shrink-0" />
           {!collapsed && <span>Settings</span>}
         </Link>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all"
-          style={{ color: theme.sidebarMuted, fontSize: 13 }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background =
-              "rgba(239,68,68,0.15)";
-            (e.currentTarget as HTMLElement).style.color = "#fca5a5";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.background = "transparent";
-            (e.currentTarget as HTMLElement).style.color = theme.sidebarMuted;
-          }}
+          className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-sidebar-muted outline-none transition-colors hover:bg-danger/15 hover:text-danger focus-visible:ring-2 focus-visible:ring-danger/70"
         >
-          <LogOut style={{ width: 15, height: 15, flexShrink: 0 }} />
+          <LogOut className="h-4 w-4 shrink-0" />
           {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
@@ -783,29 +703,15 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <FontLoader />
+      <Toaster position="top-right" />
 
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          style: {
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontWeight: 500,
-          },
-        }}
-      />
-
-      <div
-        className="flex h-screen overflow-hidden"
-        style={{ background: "#f1f5f9" }}
-      >
+      <div className="flex h-screen overflow-hidden bg-background">
         {/* Desktop Sidebar */}
         <aside
           className={cn(
-            "hidden lg:flex flex-col shrink-0 z-30 transition-all duration-300",
-            collapsed ? "w-[62px]" : "w-[228px]",
+            "z-30 hidden shrink-0 flex-col border-r border-sidebar-border transition-[width] duration-200 ease-out lg:flex",
+            collapsed ? "w-[64px]" : "w-[236px]",
           )}
-          style={{ boxShadow: "2px 0 12px rgba(0,0,0,0.10)" }}
         >
           {sidebarContent}
         </aside>
@@ -814,26 +720,17 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
         {mobileOpen && (
           <div className="fixed inset-0 z-50 lg:hidden flex">
             <div
-              className="absolute inset-0 backdrop-blur-sm"
-              style={{ background: "rgba(15,23,42,0.45)" }}
+              className="absolute inset-0 bg-foreground/45 backdrop-blur-sm"
               onClick={() => setMobileOpen(false)}
             />
-            <aside
-              className="relative flex flex-col w-[228px]"
-              style={{ boxShadow: "4px 0 20px rgba(0,0,0,0.18)" }}
-            >
+            <aside className="relative flex w-[236px] flex-col border-r border-sidebar-border shadow-lg">
               {sidebarContent}
               <button
                 onClick={() => setMobileOpen(false)}
-                className="absolute top-3.5 right-3 flex items-center justify-center rounded-full"
-                style={{
-                  width: 26,
-                  height: 26,
-                  background: "rgba(255,255,255,0.18)",
-                  color: "#fff",
-                }}
+                aria-label="Close navigation"
+                className="absolute right-3 top-4 flex h-6 w-6 items-center justify-center rounded-full bg-sidebar-hover text-sidebar-foreground transition-colors hover:bg-sidebar-active-bg hover:text-sidebar-active"
               >
-                <X style={{ width: 14, height: 14 }} />
+                <X className="h-3.5 w-3.5" />
               </button>
             </aside>
           </div>
@@ -842,15 +739,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
         {/* Main */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Top Header */}
-          <header
-            className="flex items-center justify-between shrink-0 px-4"
-            style={{
-              background: "#fff",
-              borderBottom: "1px solid #e8edf2",
-              height: 42,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-            }}
-          >
+          <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-card px-3 sm:px-4">
             <div className="flex items-center gap-1">
               <button
                 onClick={() =>
@@ -858,39 +747,27 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                     ? setMobileOpen((o) => !o)
                     : setCollapsed((c) => !c)
                 }
-                className="flex items-center justify-center rounded-lg transition-all"
-                style={{ width: 36, height: 36, color: "#64748b" }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "#f1f5f9";
-                  (e.currentTarget as HTMLElement).style.color = theme.accent;
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background =
-                    "transparent";
-                  (e.currentTarget as HTMLElement).style.color = "#64748b";
-                }}
+                aria-label="Toggle navigation"
+                className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <Menu style={{ width: 18, height: 18 }} />
+                <Menu className="h-[17px] w-[17px]" />
               </button>
 
               {/* Breadcrumb */}
-              <nav className="hidden md:flex items-center gap-1.5">
-                <span
-                  style={{ fontSize: 13, color: "#94a3b8", cursor: "pointer" }}
-                  onMouseEnter={(e) =>
-                    ((e.currentTarget as HTMLElement).style.color = "#475569")
-                  }
-                  onMouseLeave={(e) =>
-                    ((e.currentTarget as HTMLElement).style.color = "#94a3b8")
-                  }
+              <nav
+                aria-label="Breadcrumb"
+                className="ml-1 hidden items-center gap-1.5 md:flex"
+              >
+                <Link
+                  to="/dashboard"
+                  className="rounded text-[13px] text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Home
-                </span>
-                <ChevronRight
-                  style={{ width: 13, height: 13, color: "#cbd5e1" }}
-                />
+                </Link>
+                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-border" />
                 <span
-                  style={{ fontSize: 13, color: "#1e293b", fontWeight: 600 }}
+                  aria-current="page"
+                  className="text-[13px] font-semibold text-foreground"
                 >
                   {currentPage}
                 </span>
@@ -1038,7 +915,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                       <Link
                         to="/settings"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors hover:bg-slate-50"
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors hover:bg-muted/50"
                         style={{ color: "#334155" }}
                       >
                         <Settings
@@ -1050,7 +927,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                       <Link
                         to="/change-password"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors hover:bg-slate-50"
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors hover:bg-muted/50"
                         style={{ color: "#334155" }}
                       >
                         <KeyRound
@@ -1064,7 +941,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                           setUserMenuOpen(false);
                           handleLogout();
                         }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors hover:bg-red-50 text-left mt-0.5"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors hover:bg-danger-muted/60 text-left mt-0.5"
                         style={{ color: "#ef4444" }}
                       >
                         <LogOut style={{ width: 14, height: 14 }} />

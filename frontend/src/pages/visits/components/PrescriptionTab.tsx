@@ -214,14 +214,14 @@ function cn(...cls: (string | boolean | undefined | null)[]) {
 
 function Spinner({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const sizes = { sm: "w-4 h-4", md: "w-5 h-5", lg: "w-6 h-6" };
-  return <Loader2 className={cn("animate-spin text-blue-600", sizes[size])} />;
+  return <Loader2 className={cn("animate-spin text-primary", sizes[size])} />;
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  ACTIVE: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  DISPENSED: "bg-blue-50 text-blue-700 border-blue-200",
-  EXPIRED: "bg-slate-100 text-slate-500 border-slate-200",
-  CANCELLED: "bg-red-50 text-red-600 border-red-200",
+  ACTIVE: "bg-success-muted/60 text-success border-success/25",
+  DISPENSED: "bg-primary-muted/60 text-primary border-primary/25",
+  EXPIRED: "bg-muted text-muted-foreground border-border",
+  CANCELLED: "bg-danger-muted/60 text-danger border-danger/25",
 };
 
 const STATUS_ICONS: Record<string, React.ReactNode> = {
@@ -307,27 +307,27 @@ function DrugCombobox({
         className={cn(
           "w-full flex items-center gap-2 px-3 py-2.5 border rounded-lg cursor-pointer transition-all",
           isOpen
-            ? "border-blue-500 ring-2 ring-blue-100"
-            : "border-slate-200 hover:border-slate-300",
-          disabled && "opacity-50 cursor-not-allowed bg-slate-50",
+            ? "border-primary/60 ring-2 ring-primary/20"
+            : "border-border hover:border-input",
+          disabled && "opacity-50 cursor-not-allowed bg-muted/50",
           selectedDrug ? "bg-white" : "bg-white",
         )}
       >
-        <Search className="w-4 h-4 text-slate-400 shrink-0" />
+        <Search className="w-4 h-4 text-muted-foreground/70 shrink-0" />
 
         {selectedDrug ? (
           <div className="flex-1 min-w-0 flex items-center gap-2">
-            <span className="font-medium text-slate-800 truncate">
+            <span className="font-medium text-foreground truncate">
               {selectedDrug.name}
             </span>
             {selectedDrug.strength && (
-              <span className="text-xs text-slate-500 shrink-0">
+              <span className="text-xs text-muted-foreground shrink-0">
                 {selectedDrug.strength}
               </span>
             )}
           </div>
         ) : (
-          <span className="flex-1 text-slate-400 text-sm truncate">
+          <span className="flex-1 text-muted-foreground/70 text-sm truncate">
             {placeholder}
           </span>
         )}
@@ -336,31 +336,31 @@ function DrugCombobox({
           {selectedDrug && (
             <button
               onClick={handleClear}
-              className="p-0.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+              className="p-0.5 rounded-full hover:bg-muted text-muted-foreground/70 hover:text-muted-foreground"
               type="button"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           )}
           {isOpen ? (
-            <ChevronUp className="w-4 h-4 text-slate-400" />
+            <ChevronUp className="w-4 h-4 text-muted-foreground/70" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-slate-400" />
+            <ChevronDown className="w-4 h-4 text-muted-foreground/70" />
           )}
         </div>
       </div>
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl max-h-80 overflow-hidden flex flex-col">
+        <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-border rounded-xl shadow-2xl max-h-80 overflow-hidden flex flex-col">
           {/* Search Input */}
-          <div className="p-3 border-b border-slate-100 sticky top-0 bg-white">
+          <div className="p-3 border-b border-border/60 sticky top-0 bg-white">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70" />
               <input
                 ref={inputRef}
                 type="text"
-                className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60"
                 placeholder="Type to search drugs..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -372,7 +372,7 @@ function DrugCombobox({
           {/* Drug List */}
           <div className="overflow-y-auto flex-1">
             {filteredDrugs.length === 0 ? (
-              <div className="p-4 text-center text-sm text-slate-500">
+              <div className="p-4 text-center text-sm text-muted-foreground">
                 {searchQuery ? "No drugs found" : "Start typing to search"}
               </div>
             ) : (
@@ -383,21 +383,21 @@ function DrugCombobox({
                     type="button"
                     onClick={() => handleSelect(drug)}
                     className={cn(
-                      "w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-slate-50 last:border-0 flex items-center gap-2",
+                      "w-full text-left px-4 py-3 hover:bg-primary-muted/60 transition-colors border-b border-border/40 last:border-0 flex items-center gap-2",
                       drug.id === value &&
-                        "bg-blue-50 border-l-4 border-l-blue-500",
+                        "bg-primary-muted/60 border-l-4 border-l-blue-500",
                     )}
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-slate-800 truncate">
+                        <span className="font-medium text-foreground truncate">
                           {drug.name}
                         </span>
                         {drug.id === value && (
-                          <Check className="w-4 h-4 text-blue-600 shrink-0" />
+                          <Check className="w-4 h-4 text-primary shrink-0" />
                         )}
                       </div>
-                      <div className="text-xs text-slate-500 mt-0.5">
+                      <div className="text-xs text-muted-foreground mt-0.5">
                         {drug.genericName && `${drug.genericName} • `}
                         {drug.strength} {drug.form}
                       </div>
@@ -409,7 +409,7 @@ function DrugCombobox({
           </div>
 
           {/* Footer */}
-          <div className="p-2 border-t border-slate-100 text-xs text-slate-400 text-center bg-slate-50">
+          <div className="p-2 border-t border-border/60 text-xs text-muted-foreground/70 text-center bg-muted/50">
             {filteredDrugs.length} of {drugs.length} drugs
           </div>
         </div>
@@ -2115,7 +2115,7 @@ function NewPrescriptionDialog({
               <h2 className="text-lg font-bold text-white">
                 {isEditMode ? "Edit Prescription" : "New Prescription"}
               </h2>
-              <p className="text-xs text-blue-100">
+              <p className="text-xs text-primary/40">
                 {isEditMode && editTarget
                   ? `Rx: ${editTarget.prescriptionCode}`
                   : visit?.visitCode
@@ -2136,10 +2136,10 @@ function NewPrescriptionDialog({
 
         {/* Debug Panel - Remove in production */}
         {/* {process.env.NODE_ENV === 'development' && (
-          <div className="bg-yellow-50 px-4 py-2 text-xs border-b border-yellow-200">
-            <div className="font-bold text-yellow-800">Debug: Drugs loaded: {drugs.length} | Valid items: {validItemsCount}</div>
+          <div className="bg-warning-muted/60 px-4 py-2 text-xs border-b border-warning/25">
+            <div className="font-bold text-warning">Debug: Drugs loaded: {drugs.length} | Valid items: {validItemsCount}</div>
             {validationResults.map((r, i) => (
-              <div key={i} className="text-yellow-700">
+              <div key={i} className="text-warning">
                 Item {i+1}: drugId={r.checks.drugId ? '✓' : '✗'}({r.checks.drugId}) | 
                 dosage={r.checks.hasDosage ? '✓' : '✗'} | 
                 freq={r.checks.hasFrequency ? '✓' : '✗'} | 
@@ -2154,20 +2154,20 @@ function NewPrescriptionDialog({
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Patient Info */}
           {visit?.patient && (
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <User className="w-6 h-6 text-blue-600" />
+            <div className="bg-primary-muted/60 border border-primary/20 rounded-xl p-4 flex items-center gap-4">
+              <div className="w-12 h-12 bg-primary-muted rounded-full flex items-center justify-center">
+                <User className="w-6 h-6 text-primary" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-800">
+                  <span className="font-bold text-foreground">
                     {visit.patient.firstName} {visit.patient.lastName}
                   </span>
-                  <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+                  <span className="text-xs px-2 py-0.5 bg-primary-muted text-primary rounded-full">
                     {visit.patient.patientCode}
                   </span>
                 </div>
-                <div className="text-sm text-slate-500 mt-0.5">
+                <div className="text-sm text-muted-foreground mt-0.5">
                   Visit ID: {visit.visitCode || visitId.slice(-8)}
                 </div>
               </div>
@@ -2177,18 +2177,18 @@ function NewPrescriptionDialog({
           {/* Medications */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                <Pill className="w-4 h-4 text-blue-600" />
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Pill className="w-4 h-4 text-primary" />
                 Medications
                 {validItemsCount > 0 && (
-                  <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">
+                  <span className="text-xs px-2 py-0.5 bg-success-muted text-success rounded-full">
                     {validItemsCount} ready
                   </span>
                 )}
               </h3>
               <button
                 onClick={addItem}
-                className="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-blue-50"
+                className="text-xs font-medium text-primary hover:text-primary flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-primary-muted/60"
               >
                 <Plus className="w-3.5 h-3.5" /> Add Medication
               </button>
@@ -2197,7 +2197,7 @@ function NewPrescriptionDialog({
             {items.map((item, index) => (
               <div
                 key={index}
-                className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-4"
+                className="bg-muted/50 rounded-xl border border-border p-4 space-y-4"
               >
                 {/* Item Header */}
                 <div className="flex items-center justify-between">
@@ -2206,17 +2206,17 @@ function NewPrescriptionDialog({
                       className={cn(
                         "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
                         validationResults[index]?.isValid
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-slate-200 text-slate-500",
+                          ? "bg-success-muted text-success"
+                          : "bg-muted text-muted-foreground",
                       )}
                     >
                       {index + 1}
                     </span>
-                    <span className="text-sm font-medium text-slate-600">
+                    <span className="text-sm font-medium text-muted-foreground">
                       Medication
                     </span>
                     {item.drugName && (
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-muted-foreground/70">
                         - {item.drugName}
                       </span>
                     )}
@@ -2224,7 +2224,7 @@ function NewPrescriptionDialog({
                   {items.length > 1 && (
                     <button
                       onClick={() => removeItem(index)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50"
+                      className="p-1.5 rounded-lg text-muted-foreground/70 hover:text-danger hover:bg-danger-muted/60"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -2234,10 +2234,10 @@ function NewPrescriptionDialog({
                 <div className="grid grid-cols-12 gap-3">
                   {/* Drug Combobox - SPANS FULL WIDTH */}
                   <div className="col-span-12">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1">
-                      Drug / Medication <span className="text-red-500">*</span>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                      Drug / Medication <span className="text-danger">*</span>
                       {item.drugId && (
-                        <span className="ml-2 text-emerald-600 font-normal">
+                        <span className="ml-2 text-success font-normal">
                           ✓ Selected (ID: {item.drugId.slice(-6)})
                         </span>
                       )}
@@ -2258,14 +2258,14 @@ function NewPrescriptionDialog({
 
                   {/* Dosage */}
                   <div className="col-span-3">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1">
-                      Dosage <span className="text-red-500">*</span>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                      Dosage <span className="text-danger">*</span>
                     </label>
                     <div className="relative">
                       <input
                         type="text"
                         list={`dosages-${index}`}
-                        className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60"
                         placeholder="e.g., 1 tablet"
                         value={item.dosage}
                         onChange={(e) =>
@@ -2283,7 +2283,7 @@ function NewPrescriptionDialog({
 
                   {/* Route */}
                   <div className="col-span-3">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1">
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
                       Route
                     </label>
                     <select
@@ -2291,7 +2291,7 @@ function NewPrescriptionDialog({
                       onChange={(e) =>
                         updateItem(index, "route", e.target.value)
                       }
-                      className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 bg-white"
                     >
                       {ROUTES.map((r) => (
                         <option key={r.value} value={r.value}>
@@ -2303,8 +2303,8 @@ function NewPrescriptionDialog({
 
                   {/* Frequency */}
                   <div className="col-span-3">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1">
-                      Frequency <span className="text-red-500">*</span>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                      Frequency <span className="text-danger">*</span>
                     </label>
                     <select
                       value={item.frequency}
@@ -2312,7 +2312,7 @@ function NewPrescriptionDialog({
                         updateItem(index, "frequency", e.target.value);
                         autoCalculateQuantity(index);
                       }}
-                      className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 bg-white"
                     >
                       <option value="">Select...</option>
                       {FREQUENCY_OPTIONS.map((opt) => (
@@ -2325,8 +2325,8 @@ function NewPrescriptionDialog({
 
                   {/* Duration */}
                   <div className="col-span-3">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1">
-                      Duration <span className="text-red-500">*</span>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                      Duration <span className="text-danger">*</span>
                     </label>
                     <select
                       value={item.duration}
@@ -2334,7 +2334,7 @@ function NewPrescriptionDialog({
                         updateItem(index, "duration", e.target.value);
                         autoCalculateQuantity(index);
                       }}
-                      className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 bg-white"
                     >
                       <option value="">Select...</option>
                       {DURATION_OPTIONS.map((opt) => (
@@ -2347,12 +2347,12 @@ function NewPrescriptionDialog({
 
                   {/* Quantity */}
                   <div className="col-span-2">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1">
-                      Qty <span className="text-red-500">*</span>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                      Qty <span className="text-danger">*</span>
                       <button
                         type="button"
                         onClick={() => autoCalculateQuantity(index)}
-                        className="ml-1 text-blue-500 hover:text-blue-700"
+                        className="ml-1 text-primary hover:text-primary"
                         title="Auto-calculate"
                       >
                         <RefreshCw className="w-3 h-3 inline" />
@@ -2361,7 +2361,7 @@ function NewPrescriptionDialog({
                     <input
                       type="number"
                       min="1"
-                      className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60"
                       value={item.quantity}
                       onChange={(e) =>
                         updateItem(index, "quantity", e.target.value)
@@ -2371,7 +2371,7 @@ function NewPrescriptionDialog({
 
                   {/* Refills */}
                   <div className="col-span-2">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1">
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
                       Refills
                     </label>
                     <select
@@ -2379,7 +2379,7 @@ function NewPrescriptionDialog({
                       onChange={(e) =>
                         updateItem(index, "refills", e.target.value)
                       }
-                      className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 bg-white"
                     >
                       {[0, 1, 2, 3, 5, 11].map((n) => (
                         <option key={n} value={n}>
@@ -2391,12 +2391,12 @@ function NewPrescriptionDialog({
 
                   {/* Instructions - spans remaining 8 columns */}
                   <div className="col-span-8">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1">
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
                       Patient Instructions (Sig)
                     </label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60"
                       placeholder="e.g., Take with food • Avoid alcohol • Complete full course"
                       value={item.instructions}
                       onChange={(e) =>
@@ -2410,13 +2410,13 @@ function NewPrescriptionDialog({
           </div>
 
           {/* Prescription Notes & Validity */}
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200">
+          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">
+              <label className="block text-xs font-semibold text-muted-foreground mb-1">
                 Prescription Notes
               </label>
               <textarea
-                className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 resize-none"
                 rows={2}
                 placeholder="Additional instructions for pharmacist or patient..."
                 value={notes}
@@ -2424,17 +2424,17 @@ function NewPrescriptionDialog({
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">
+              <label className="block text-xs font-semibold text-muted-foreground mb-1">
                 Valid Until
               </label>
               <input
                 type="date"
-                className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60"
                 value={validUntil}
                 onChange={(e) => setValidUntil(e.target.value)}
                 min={new Date().toISOString().split("T")[0]}
               />
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground/70 mt-1">
                 Default: 30 days from today
               </p>
             </div>
@@ -2442,7 +2442,7 @@ function NewPrescriptionDialog({
 
           {/* Error Display */}
           {createMutation.isError && (
-            <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-600">
+            <div className="flex items-center gap-2 bg-danger-muted/60 border border-danger/25 rounded-lg px-4 py-3 text-sm text-danger">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               {(createMutation.error as Error)?.message ||
                 "Failed to create prescription"}
@@ -2451,8 +2451,8 @@ function NewPrescriptionDialog({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-slate-200 px-6 py-4 flex items-center justify-between bg-slate-50 shrink-0">
-          <div className="text-xs text-slate-500">
+        <div className="border-t border-border px-6 py-4 flex items-center justify-between bg-muted/50 shrink-0">
+          <div className="text-xs text-muted-foreground">
             {validItemsCount} of {items.length} medication
             {validItemsCount !== 1 ? "s" : ""} ready
           </div>
@@ -2460,7 +2460,7 @@ function NewPrescriptionDialog({
             <button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition-colors"
+              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
             >
               Cancel
             </button>
@@ -2472,7 +2472,7 @@ function NewPrescriptionDialog({
                 "flex items-center gap-2 px-6 py-2 text-sm font-semibold rounded-lg transition-all shadow-lg",
                 isValid
                   ? "bg-[#1e3a5f] text-white hover:bg-[#16304f] shadow-blue-900/20"
-                  : "bg-slate-300 text-slate-500 cursor-not-allowed",
+                  : "bg-border text-muted-foreground cursor-not-allowed",
               )}
             >
               {createMutation.isPending ? (
@@ -2526,8 +2526,8 @@ function RxCard({
       className={cn(
         "bg-white rounded-xl border transition-all group",
         rx.status === "CANCELLED"
-          ? "opacity-60 border-slate-100"
-          : "border-slate-200 hover:border-slate-300 hover:shadow-md",
+          ? "opacity-60 border-border/60"
+          : "border-border hover:border-input hover:shadow-md",
       )}
     >
       {/* Main Row */}
@@ -2537,14 +2537,14 @@ function RxCard({
           className={cn(
             "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0",
             rx.status === "DISPENSED"
-              ? "bg-blue-50 border border-blue-100"
-              : "bg-emerald-50 border border-emerald-100",
+              ? "bg-primary-muted/60 border border-primary/20"
+              : "bg-success-muted/60 border border-success/20",
           )}
         >
           <Pill
             className={cn(
               "w-5 h-5",
-              rx.status === "DISPENSED" ? "text-blue-500" : "text-emerald-500",
+              rx.status === "DISPENSED" ? "text-primary" : "text-success",
             )}
           />
         </div>
@@ -2553,7 +2553,7 @@ function RxCard({
         <div className="flex-1 min-w-0">
           {/* Header Line */}
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className="text-sm font-bold text-slate-800">
+            <span className="text-sm font-bold text-foreground">
               {rx.items.length} Medication{rx.items.length !== 1 ? "s" : ""}
             </span>
 
@@ -2570,7 +2570,7 @@ function RxCard({
             {rx.items.length > 1 && (
               <button
                 onClick={() => setExpanded(!expanded)}
-                className="text-[11px] text-blue-600 hover:underline flex items-center gap-0.5 ml-2"
+                className="text-[11px] text-primary hover:underline flex items-center gap-0.5 ml-2"
               >
                 {expanded ? "Show less" : "Show all"}
                 <ChevronDown
@@ -2592,29 +2592,29 @@ function RxCard({
           >
             {rx.items.slice(0, expanded ? undefined : 2).map((item, idx) => (
               <div key={item.id} className="flex items-center gap-2 text-xs">
-                <span className="text-slate-400 w-4">{idx + 1}.</span>
-                <span className="font-medium text-slate-700">
+                <span className="text-muted-foreground/70 w-4">{idx + 1}.</span>
+                <span className="font-medium text-foreground">
                   {item.drug.name}
                 </span>
-                <span className="text-slate-400">
+                <span className="text-muted-foreground/70">
                   {item.dosage} • {item.frequency}
                 </span>
                 {item.instructions && (
-                  <span className="text-amber-600 italic truncate max-w-[200px]">
+                  <span className="text-warning italic truncate max-w-[200px]">
                     • {item.instructions}
                   </span>
                 )}
               </div>
             ))}
             {!expanded && rx.items.length > 2 && (
-              <div className="text-xs text-slate-400 pl-4">
+              <div className="text-xs text-muted-foreground/70 pl-4">
                 +{rx.items.length - 2} more...
               </div>
             )}
           </div>
 
           {/* Meta Row */}
-          <div className="flex items-center gap-4 mt-3 text-[11px] text-slate-400 flex-wrap">
+          <div className="flex items-center gap-4 mt-3 text-[11px] text-muted-foreground/70 flex-wrap">
             <span className="flex items-center gap-1 font-mono">
               <Hash className="w-3 h-3" />
               {rx.prescriptionCode}
@@ -2624,12 +2624,12 @@ function RxCard({
               {new Date(rx.createdAt).toLocaleDateString()}
             </span>
             {rx.validUntil && (
-              <span className={cn(isExpired && "text-red-500 font-medium")}>
+              <span className={cn(isExpired && "text-danger font-medium")}>
                 Valid until: {new Date(rx.validUntil).toLocaleDateString()}
               </span>
             )}
             {rx.dispensedAt && (
-              <span className="text-blue-600 font-medium">
+              <span className="text-primary font-medium">
                 Dispensed: {new Date(rx.dispensedAt).toLocaleDateString()}
                 {rx.dispensedBy && ` by ${rx.dispensedBy}`}
               </span>
@@ -2638,7 +2638,7 @@ function RxCard({
 
           {/* Notes */}
           {rx.notes && (
-            <div className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 flex items-start gap-2">
+            <div className="mt-2 text-xs text-warning bg-warning-muted/60 border border-warning/20 rounded-lg px-3 py-2 flex items-start gap-2">
               <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
               <span>{rx.notes}</span>
             </div>
@@ -2650,7 +2650,7 @@ function RxCard({
           <button
             onClick={onPrint}
             title="Print prescription"
-            className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            className="p-2 rounded-lg text-muted-foreground/70 hover:text-foreground hover:bg-muted transition-colors"
           >
             <Printer className="w-4 h-4" />
           </button>
@@ -2660,7 +2660,7 @@ function RxCard({
             <button
               onClick={onEdit}
               title="Edit prescription"
-              className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+              className="p-2 rounded-lg text-muted-foreground/70 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
             >
               <Edit3 className="w-4 h-4" />
             </button>
@@ -2670,7 +2670,7 @@ function RxCard({
             <button
               onClick={onDispense}
               title="Mark as dispensed"
-              className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+              className="p-2 rounded-lg text-muted-foreground/70 hover:text-primary hover:bg-primary-muted/60 transition-colors"
             >
               <Check className="w-4 h-4" />
             </button>
@@ -2680,7 +2680,7 @@ function RxCard({
             <button
               onClick={onDelete}
               title="Delete prescription"
-              className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+              className="p-2 rounded-lg text-muted-foreground/70 hover:text-danger hover:bg-danger-muted/60 transition-colors"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -2690,58 +2690,58 @@ function RxCard({
 
       {/* Expanded Details */}
       {expanded && (
-        <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-4">
+        <div className="border-t border-border/60 bg-muted/50 px-5 py-4">
           <div className="space-y-3">
             {rx.items.map((item, idx) => (
               <div
                 key={item.id}
-                className="bg-white rounded-lg border border-slate-200 p-3"
+                className="bg-white rounded-lg border border-border p-3"
               >
                 <div className="flex items-start gap-3">
-                  <span className="w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold shrink-0">
+                  <span className="w-6 h-6 bg-primary-muted text-primary rounded-full flex items-center justify-center text-xs font-bold shrink-0">
                     {idx + 1}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-slate-800">
+                      <span className="font-semibold text-foreground">
                         {item.drug.name}
                       </span>
-                      <span className="text-xs text-slate-500">
+                      <span className="text-xs text-muted-foreground">
                         {item.drug.strength} {item.drug.form}
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs">
                       <div>
-                        <span className="text-slate-400">Dosage:</span>{" "}
-                        <span className="text-slate-700">{item.dosage}</span>
+                        <span className="text-muted-foreground/70">Dosage:</span>{" "}
+                        <span className="text-foreground">{item.dosage}</span>
                       </div>
                       <div>
-                        <span className="text-slate-400">Frequency:</span>{" "}
-                        <span className="text-slate-700">{item.frequency}</span>
+                        <span className="text-muted-foreground/70">Frequency:</span>{" "}
+                        <span className="text-foreground">{item.frequency}</span>
                       </div>
                       <div>
-                        <span className="text-slate-400">Duration:</span>{" "}
-                        <span className="text-slate-700">{item.duration}</span>
+                        <span className="text-muted-foreground/70">Duration:</span>{" "}
+                        <span className="text-foreground">{item.duration}</span>
                       </div>
                       <div>
-                        <span className="text-slate-400">Quantity:</span>{" "}
-                        <span className="text-slate-700">{item.quantity}</span>
+                        <span className="text-muted-foreground/70">Quantity:</span>{" "}
+                        <span className="text-foreground">{item.quantity}</span>
                       </div>
                       {item.route && (
                         <div>
-                          <span className="text-slate-400">Route:</span>{" "}
-                          <span className="text-slate-700 capitalize">
+                          <span className="text-muted-foreground/70">Route:</span>{" "}
+                          <span className="text-foreground capitalize">
                             {item.route}
                           </span>
                         </div>
                       )}
                       <div>
-                        <span className="text-slate-400">Refills:</span>{" "}
-                        <span className="text-slate-700">{item.refills}</span>
+                        <span className="text-muted-foreground/70">Refills:</span>{" "}
+                        <span className="text-foreground">{item.refills}</span>
                       </div>
                     </div>
                     {item.instructions && (
-                      <div className="mt-2 text-xs text-slate-600 bg-slate-50 rounded px-2 py-1.5">
+                      <div className="mt-2 text-xs text-muted-foreground bg-muted/50 rounded px-2 py-1.5">
                         <span className="font-medium">Instructions:</span>{" "}
                         {item.instructions}
                       </div>
@@ -2778,32 +2778,32 @@ function DeleteDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
         <div className="flex items-center gap-4 mb-4">
-          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-            <Trash2 className="w-6 h-6 text-red-500" />
+          <div className="w-12 h-12 bg-danger-muted rounded-full flex items-center justify-center">
+            <Trash2 className="w-6 h-6 text-danger" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-800">
+            <h3 className="text-lg font-bold text-foreground">
               Delete Prescription?
             </h3>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-muted-foreground">
               This will permanently delete {rx.items.length} medication
               {rx.items.length !== 1 ? "s" : ""}.
             </p>
           </div>
         </div>
 
-        <div className="bg-slate-50 rounded-xl p-4 mb-6">
+        <div className="bg-muted/50 rounded-xl p-4 mb-6">
           <div className="flex items-center gap-2 mb-2">
-            <Hash className="w-4 h-4 text-slate-400" />
-            <span className="font-mono text-sm text-slate-600">
+            <Hash className="w-4 h-4 text-muted-foreground/70" />
+            <span className="font-mono text-sm text-muted-foreground">
               {rx.prescriptionCode}
             </span>
           </div>
-          <div className="text-sm text-slate-700">
+          <div className="text-sm text-foreground">
             {rx.items.map((i) => i.drug.name).join(", ")}
           </div>
           {rx.notes && (
-            <div className="mt-2 text-xs text-slate-500 italic">
+            <div className="mt-2 text-xs text-muted-foreground italic">
               Note: {rx.notes}
             </div>
           )}
@@ -2812,14 +2812,14 @@ function DeleteDialog({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={isPending}
-            className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-danger hover:bg-danger disabled:opacity-50 rounded-lg transition-colors flex items-center justify-center gap-2"
           >
             {isPending ? <Spinner size="sm" /> : <Trash2 className="w-4 h-4" />}
             Delete Prescription
@@ -2892,34 +2892,34 @@ export function PrescriptionTab({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between bg-white rounded-xl border border-slate-200 p-4">
+      <div className="flex items-center justify-between bg-white rounded-xl border border-border p-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+          <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
             <Pill className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-800">
+            <h3 className="text-base font-bold text-foreground">
               Prescriptions
             </h3>
             <div className="flex items-center gap-2 mt-0.5">
               {prescriptions.length > 0 ? (
                 <>
                   {activeCount > 0 && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-success-muted/60 text-success border border-success/25 font-medium">
                       {activeCount} active
                     </span>
                   )}
                   {dispensedCount > 0 && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-medium">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary-muted/60 text-primary border border-primary/25 font-medium">
                       {dispensedCount} dispensed
                     </span>
                   )}
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-muted-foreground/70">
                     {totalItems} medication{totalItems !== 1 ? "s" : ""} total
                   </span>
                 </>
               ) : (
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-muted-foreground/70">
                   No prescriptions yet
                 </span>
               )}
@@ -2930,7 +2930,7 @@ export function PrescriptionTab({
         <div className="flex items-center gap-2">
           <button
             onClick={() => refetch()}
-            className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="p-2 rounded-lg text-muted-foreground/70 hover:text-muted-foreground hover:bg-muted transition-colors"
             title="Refresh list"
           >
             <RefreshCw className="w-4 h-4" />
@@ -2939,7 +2939,7 @@ export function PrescriptionTab({
           {!readOnly && (
             <button
               onClick={() => setIsNewDialogOpen(true)}
-            className="flex items-center gap-2 px-2 py-1.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm"
+            className="flex items-center gap-2 px-2 py-1.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary transition-colors shadow-sm"
             >
               <Plus className="w-4 h-4" />
               New Prescription
@@ -2966,9 +2966,9 @@ export function PrescriptionTab({
 
       {/* Loading State */}
       {isLoading && (
-        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl border border-slate-200">
+        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl border border-border">
           <Spinner size="lg" />
-          <p className="text-sm text-slate-500 mt-3">
+          <p className="text-sm text-muted-foreground mt-3">
             Loading prescriptions...
           </p>
         </div>
@@ -2976,19 +2976,19 @@ export function PrescriptionTab({
 
       {/* Error State */}
       {error && (
-        <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-5 py-4">
-          <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
+        <div className="flex items-center gap-3 bg-danger-muted/60 border border-danger/25 rounded-xl px-5 py-4">
+          <AlertTriangle className="w-5 h-5 text-danger shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-red-700">
+            <p className="text-sm font-medium text-danger">
               Failed to load prescriptions
             </p>
-            <p className="text-xs text-red-600 mt-0.5">
+            <p className="text-xs text-danger mt-0.5">
               Please check your connection and try again
             </p>
           </div>
           <button
             onClick={() => refetch()}
-            className="px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 rounded-lg transition-colors"
+            className="px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger-muted rounded-lg transition-colors"
           >
             Retry
           </button>
@@ -2997,21 +2997,21 @@ export function PrescriptionTab({
 
       {/* Empty State */}
       {!isLoading && !error && prescriptions.length === 0 && (
-        <div className="text-center py-16 bg-white rounded-xl border border-dashed border-slate-300">
-          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Pill className="w-8 h-8 text-slate-400" />
+        <div className="text-center py-16 bg-white rounded-xl border border-dashed border-input">
+          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+            <Pill className="w-8 h-8 text-muted-foreground/70" />
           </div>
-          <h4 className="text-base font-semibold text-slate-700 mb-1">
+          <h4 className="text-base font-semibold text-foreground mb-1">
             No prescriptions yet
           </h4>
-          <p className="text-sm text-slate-500 max-w-sm mx-auto mb-4">
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-4">
             Prescriptions written during this visit will appear here. Click "New
             Prescription" to add medications.
           </p>
           {!readOnly && (
             <button
               onClick={() => setIsNewDialogOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary hover:text-primary hover:bg-primary-muted/60 rounded-lg transition-colors"
             >
               <Plus className="w-4 h-4" />
               Write your first prescription
@@ -3041,14 +3041,14 @@ export function PrescriptionTab({
       {/* Summary Footer */}
       {/* Summary Footer */}
       {prescriptions.length > 0 && (
-        <div className="flex items-center justify-between bg-slate-50 rounded-xl border border-slate-200 px-4 py-3">
-          <span className="text-xs text-slate-500">
+        <div className="flex items-center justify-between bg-muted/50 rounded-xl border border-border px-4 py-3">
+          <span className="text-xs text-muted-foreground">
             Showing {prescriptions.length} prescription
             {prescriptions.length !== 1 ? "s" : ""}
           </span>
           <button
             onClick={() => printAllPrescriptions(prescriptions, visit, clinicSettings)}
-            className="flex items-center gap-2 text-xs font-medium text-slate-600 hover:text-slate-800 transition-colors"
+            className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             <Printer className="w-3.5 h-3.5" />
             Print All Prescriptions

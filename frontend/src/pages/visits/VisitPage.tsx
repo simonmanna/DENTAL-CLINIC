@@ -42,7 +42,7 @@ function Spinner({ size = "md" }: { size?: "sm" | "md" }) {
   return (
     <Loader2
       className={cn(
-        "animate-spin text-blue-600",
+        "animate-spin text-primary",
         size === "sm" ? "w-4 h-4" : "w-6 h-6",
       )}
     />
@@ -64,7 +64,7 @@ function ChartImagingTab({
 }) {
   return (
     <div
-      className="bg-white rounded-xl border border-slate-200 px-1 py-0.5"
+      className="bg-white rounded-xl border border-border px-1 py-0.5"
       style={{ minHeight: 520 }}
     >
       <DentalChart
@@ -122,7 +122,7 @@ export function VisitPage() {
 
   if (!id)
     return (
-      <div className="flex flex-col items-center justify-center h-96 text-slate-400">
+      <div className="flex flex-col items-center justify-center h-96 text-muted-foreground/70">
         <p className="text-sm">No visit ID provided</p>
       </div>
     );
@@ -132,7 +132,7 @@ export function VisitPage() {
       <div className="flex items-center justify-center h-96">
         <div className="flex flex-col items-center gap-3">
           <Spinner />
-          <p className="text-sm text-slate-400">Loading visit…</p>
+          <p className="text-sm text-muted-foreground/70">Loading visit…</p>
         </div>
       </div>
     );
@@ -140,10 +140,10 @@ export function VisitPage() {
   if (error || !visitData)
     return (
       <div className="flex flex-col items-center justify-center h-96">
-        <p className="text-red-500 text-sm mb-4">Failed to load visit</p>
+        <p className="text-danger text-sm mb-4">Failed to load visit</p>
         <button
           onClick={() => navigate("/visits")}
-          className="flex items-center gap-2 px-4 py-2 rounded border border-slate-200 text-sm text-slate-600 hover:bg-slate-50"
+          className="flex items-center gap-2 px-4 py-2 rounded border border-border text-sm text-muted-foreground hover:bg-muted/50"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Visits
         </button>
@@ -159,20 +159,20 @@ export function VisitPage() {
   const dentistId = visit.dentist?.id || visit.dentistId;
 
   const STATUS_PILL: Record<VisitStatus, string> = {
-    CHECKED_IN: "bg-amber-100 text-amber-700",
-    IN_PROGRESS: "bg-blue-100 text-blue-700",
-    COMPLETED: "bg-green-100 text-green-700",
-    CANCELLED: "bg-red-100 text-red-600",
-    ARRIVED: "bg-amber-100 text-amber-700",
+    CHECKED_IN: "bg-warning-muted text-warning",
+    IN_PROGRESS: "bg-primary-muted text-primary",
+    COMPLETED: "bg-success-muted text-success",
+    CANCELLED: "bg-danger-muted text-danger",
+    ARRIVED: "bg-warning-muted text-warning",
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-muted/50">
       <div className="max-w-screen-2xl mx-auto px-0.5 py-0.5 space-y-1">
         {/* ── Visit Header Card ─────────────────────────────────────────── */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
           <div className="px-5 py-1 bg-[#0369a1] text-white flex items-center justify-between">
-            <div className="flex flex-wrap items-center justify-between gap-4 px-1 py-1 text-white border-b border-slate-800">
+            <div className="flex flex-wrap items-center justify-between gap-4 px-1 py-1 text-white border-b border-foreground">
               {/* Left Side: Patient Identity */}
               <div className="flex items-center gap-3 shrink-0">
                 <div className=" w-9 h-9 bg-white/20 rounded-full flex items-center justify-center text-sm font-bold">
@@ -183,7 +183,7 @@ export function VisitPage() {
                   <p className="font-semibold text-base text-white">
                     {visit.patient?.firstName} {visit.patient?.lastName}
                   </p>
-                  <p className="text-blue-200 text-xs">
+                  <p className="text-primary/50 text-xs">
                     {visit.patient?.patientCode}
                   </p>
                 </div>
@@ -213,7 +213,7 @@ export function VisitPage() {
                     key={label}
                     className="flex flex-col border-l border-white/10 pl-4 first:border-0 first:pl-0"
                   >
-                    <span className="text-[14px] text-blue-200/95 uppercase tracking-wide">
+                    <span className="text-[14px] text-primary/95 uppercase tracking-wide">
                       {label}
                     </span>
                     <span className="font-medium text-white text-xs mt-0.5">
@@ -224,7 +224,7 @@ export function VisitPage() {
 
                 {/* Optional: Inline Allergies Alert */}
                 {/* {visit.patient?.allergies?.length > 0 && (
-      <div className="flex items-center gap-1.5 bg-red-500/20 border border-red-500/30 rounded px-2.5 py-1 text-xs text-red-200 ml-2">
+      <div className="flex items-center gap-1.5 bg-danger/20 border border-danger/30 rounded px-2.5 py-1 text-xs text-danger/50 ml-2">
         <AlertTriangle className="w-3.5 h-3.5" />
         <span>Allergies: {visit.patient.allergies.join(", ")}</span>
       </div>
@@ -233,7 +233,7 @@ export function VisitPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="text-xs text-blue-200 flex items-center gap-1.5">
+              <div className="text-xs text-primary/50 flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5" />
                 {visit.checkedInAt
                   ? new Date(visit.checkedInAt).toLocaleTimeString([], {
@@ -254,7 +254,7 @@ export function VisitPage() {
                 <button
                   onClick={() => startMutation.mutate()}
                   disabled={startMutation.isPending}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-[#1e3a5f] rounded text-xs font-semibold hover:bg-blue-50 transition-colors disabled:opacity-60"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-[#1e3a5f] rounded text-xs font-semibold hover:bg-primary-muted/60 transition-colors disabled:opacity-60"
                 >
                   {startMutation.isPending ? (
                     <Spinner size="sm" />
@@ -268,7 +268,7 @@ export function VisitPage() {
                 <button
                   onClick={() => completeMutation.mutate({})}
                   disabled={completeMutation.isPending}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 text-white rounded text-xs font-semibold hover:bg-green-600 transition-colors disabled:opacity-60"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-success text-white rounded text-xs font-semibold hover:bg-success transition-colors disabled:opacity-60"
                 >
                   {completeMutation.isPending ? (
                     <Spinner size="sm" />
@@ -284,8 +284,8 @@ export function VisitPage() {
         </div>
 
         {/* ── Tabs ─────────────────────────────────────────────────────── */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="flex border-b border-slate-200 bg-slate-50 overflow-x-auto">
+        <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+          <div className="flex border-b border-border bg-muted/50 overflow-x-auto">
             {TABS.map((tab) => {
               const Icon = tab.icon;
               const active = activeTab === tab.id;
@@ -296,8 +296,8 @@ export function VisitPage() {
                   className={cn(
                     "flex items-center gap-1 px-3 py-1 text-base font-medium whitespace-nowrap border-b-2 transition-colors",
                     active
-                      ? "border-blue-600 text-blue-700 bg-white"
-                      : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100",
+                      ? "border-primary text-primary bg-white"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted",
                   )}
                 >
                   <Icon className="w-3.5 h-3.5" />

@@ -275,18 +275,18 @@ export const ENTRY_COLORS: Record<ChartEntryType, {
 }> = {
   CONDITION: {
     fill: '#f59e0b', stroke: '#92400e', light: '#fef3c7', text: '#78350f',
-    dotClass: 'bg-amber-400', label: 'Condition',
+    dotClass: 'bg-warning/80', label: 'Condition',
   },
   EXISTING: {
     fill: '#16a34a', stroke: '#14532d', light: '#dcfce7', text: '#14532d',
-    dotClass: 'bg-green-500', label: 'Existing Work',
+    dotClass: 'bg-success', label: 'Existing Work',
   },
   PLANNED: {
     fill: '#dc2626', stroke: '#991b1b', light: '#fee2e2', text: '#7f1d1d',
-    dotClass: 'bg-red-500', label: 'Planned',
+    dotClass: 'bg-danger', label: 'Planned',
   },
   COMPLETED: {
     fill: '#2563eb', stroke: '#1e3a8a', light: '#dbeafe', text: '#1e3a8a',
-    dotClass: 'bg-blue-500', label: 'Completed Here',
+    dotClass: 'bg-primary', label: 'Completed Here',
   },
 };

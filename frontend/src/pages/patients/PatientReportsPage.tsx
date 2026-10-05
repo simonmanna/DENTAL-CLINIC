@@ -163,11 +163,11 @@ function StatCard({ icon: Icon, label, value, sub, delta, color, loading }: Stat
                 <>
                   <DeltaIcon
                     size={12}
-                    className={delta >= 0 ? "text-emerald-500" : "text-red-500"}
+                    className={delta >= 0 ? "text-success" : "text-danger"}
                   />
                   <span
                     className={`text-xs font-medium ${
-                      delta >= 0 ? "text-emerald-600" : "text-red-500"
+                      delta >= 0 ? "text-success" : "text-danger"
                     }`}
                   >
                     {fmtPct(delta)} vs last period

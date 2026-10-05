@@ -109,15 +109,15 @@ function StatCard({ label, value, sub, icon, accent = false, alert = false }: {
   icon: React.ReactNode; accent?: boolean; alert?: boolean;
 }) {
   return (
-    <Card className={`border ${alert ? 'border-amber-200 bg-amber-50' : accent ? 'border-blue-200 bg-blue-50' : ''}`}>
+    <Card className={`border ${alert ? 'border-warning/25 bg-warning-muted/60' : accent ? 'border-primary/25 bg-primary-muted/60' : ''}`}>
       <CardContent className="pt-5 pb-4">
         <div className="flex items-start justify-between">
           <div>
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
-            <p className={`text-2xl font-bold mt-1 ${alert ? 'text-amber-700' : accent ? 'text-blue-700' : ''}`}>{value}</p>
+            <p className={`text-2xl font-bold mt-1 ${alert ? 'text-warning' : accent ? 'text-primary' : ''}`}>{value}</p>
             {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
           </div>
-          <div className={`p-2.5 rounded-lg ${alert ? 'bg-amber-100 text-amber-600' : accent ? 'bg-blue-100 text-blue-600' : 'bg-muted text-muted-foreground'}`}>
+          <div className={`p-2.5 rounded-lg ${alert ? 'bg-warning-muted text-warning' : accent ? 'bg-primary-muted text-primary' : 'bg-muted text-muted-foreground'}`}>
             {icon}
           </div>
         </div>
@@ -600,14 +600,14 @@ function AssetDetailDialog({
                     <p className="text-xs text-muted-foreground">Purchase Cost</p>
                     <p className="font-bold text-base mt-1">{fmt(asset.purchaseCost)}</p>
                   </div>
-                  <div className="bg-red-50 rounded-lg p-3 text-center">
+                  <div className="bg-danger-muted/60 rounded-lg p-3 text-center">
                     <p className="text-xs text-muted-foreground">Accumulated Dep.</p>
-                    <p className="font-bold text-base mt-1 text-red-600">{fmt(asset.accumulatedDepreciation)}</p>
+                    <p className="font-bold text-base mt-1 text-danger">{fmt(asset.accumulatedDepreciation)}</p>
                     <p className="text-xs text-muted-foreground">{depPct}%</p>
                   </div>
-                  <div className="bg-emerald-50 rounded-lg p-3 text-center">
+                  <div className="bg-success-muted/60 rounded-lg p-3 text-center">
                     <p className="text-xs text-muted-foreground">Book Value</p>
-                    <p className="font-bold text-base mt-1 text-emerald-700">{fmt(asset.currentBookValue)}</p>
+                    <p className="font-bold text-base mt-1 text-success">{fmt(asset.currentBookValue)}</p>
                   </div>
                 </div>
 
@@ -618,7 +618,7 @@ function AssetDetailDialog({
                     <span>{depPct}% depreciated</span>
                   </div>
                   <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-red-400 rounded-full transition-all" style={{ width: `${Math.min(100, Number(depPct))}%` }} />
+                    <div className="h-full bg-danger/80 rounded-full transition-all" style={{ width: `${Math.min(100, Number(depPct))}%` }} />
                   </div>
                 </div>
 
@@ -649,7 +649,7 @@ function AssetDetailDialog({
                   <div className="space-y-2">
                     {(asset as any).maintenanceRecords?.map((m: AssetMaintenance) => (
                       <div key={m.id} className="flex items-start gap-3 p-3 rounded-lg border bg-card">
-                        <div className={`mt-0.5 p-1.5 rounded-md ${m.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-600' : m.status === 'OVERDUE' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'}`}>
+                        <div className={`mt-0.5 p-1.5 rounded-md ${m.status === 'COMPLETED' ? 'bg-success-muted/60 text-success' : m.status === 'OVERDUE' ? 'bg-danger-muted/60 text-danger' : 'bg-warning-muted/60 text-warning'}`}>
                           <Wrench className="w-3.5 h-3.5" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -662,7 +662,7 @@ function AssetDetailDialog({
                             {m.actualCost && ` Â· ${fmt(m.actualCost)}`}
                           </p>
                         </div>
-                        <Badge variant="outline" className={`text-xs ${m.status === 'COMPLETED' ? 'text-emerald-700' : m.status === 'OVERDUE' ? 'text-red-700' : 'text-amber-700'}`}>
+                        <Badge variant="outline" className={`text-xs ${m.status === 'COMPLETED' ? 'text-success' : m.status === 'OVERDUE' ? 'text-danger' : 'text-warning'}`}>
                           {m.status}
                         </Badge>
                       </div>
@@ -868,7 +868,7 @@ export default function FixedAssetsPage() {
                           <span className="text-sm font-medium">{fmt(asset.currentBookValue)}</span>
                           {depPct > 0 && (
                             <div className="mt-1 h-1 w-16 bg-muted rounded-full overflow-hidden">
-                              <div className="h-full bg-red-400 rounded-full" style={{ width: `${Math.min(100, depPct)}%` }} />
+                              <div className="h-full bg-danger/80 rounded-full" style={{ width: `${Math.min(100, depPct)}%` }} />
                             </div>
                           )}
                         </div>
@@ -878,7 +878,7 @@ export default function FixedAssetsPage() {
                       </TableCell>
                       <TableCell>
                         {warrantyDate ? (
-                          <span className={`text-xs ${warrantyExpiringSoon ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
+                          <span className={`text-xs ${warrantyExpiringSoon ? 'text-warning font-medium' : 'text-muted-foreground'}`}>
                             {warrantyExpiringSoon && 'âš  '}{fmtDate(asset.warrantyExpiry)}
                           </span>
                         ) : <span className="text-xs text-muted-foreground">â€”</span>}

@@ -112,16 +112,16 @@ export function ChartOfAccountsTab() {
       header: 'Code',
       accessor: (a) => a.code,
       width: 'w-24',
-      cell: (a) => <span className="font-mono text-slate-600">{a.code}</span>,
+      cell: (a) => <span className="font-mono text-muted-foreground">{a.code}</span>,
     },
     {
       key: 'name',
       header: 'Account Name',
       accessor: (a) => a.name,
       cell: (a) => (
-        <span className="inline-flex items-center gap-1.5 font-medium text-slate-800">
+        <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
           {a.name}
-          {a.isSystem && <Lock className="h-3 w-3 text-slate-400" />}
+          {a.isSystem && <Lock className="h-3 w-3 text-muted-foreground/70" />}
         </span>
       ),
     },
@@ -139,7 +139,7 @@ export function ChartOfAccountsTab() {
       key: 'normalBalance',
       header: 'Normal',
       accessor: (a) => a.normalBalance,
-      cell: (a) => <span className="text-slate-500">{a.normalBalance}</span>,
+      cell: (a) => <span className="text-muted-foreground">{a.normalBalance}</span>,
     },
     {
       key: 'status',
@@ -163,7 +163,7 @@ export function ChartOfAccountsTab() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-[#0369a1] hover:bg-sky-50"
+            className="h-8 w-8 text-[#0369a1] hover:bg-primary-muted/60"
             title="View ledger"
             onClick={() => setLedgerCode(a.code)}
           >
@@ -172,7 +172,7 @@ export function ChartOfAccountsTab() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 hover:bg-sky-50"
+            className="h-8 w-8 hover:bg-primary-muted/60"
             title="Edit"
             onClick={() => openEdit(a)}
           >
@@ -181,7 +181,7 @@ export function ChartOfAccountsTab() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 hover:bg-rose-50"
+            className="h-8 w-8 hover:bg-danger-muted/60"
             title={
               a.isSystem
                 ? 'System account — cannot delete'
@@ -195,7 +195,7 @@ export function ChartOfAccountsTab() {
                 del.mutate(a.id);
             }}
           >
-            <Trash2 className="h-4 w-4 text-rose-500" />
+            <Trash2 className="h-4 w-4 text-danger" />
           </Button>
         </div>
       ),
@@ -239,10 +239,10 @@ export function ChartOfAccountsTab() {
                 className={
                   'flex items-start gap-2 rounded-md border px-3 py-2 text-xs space-y-2 gap-3' +
                   (editIsSystem
-                    ? 'border-amber-200 bg-amber-50 text-amber-800'
+                    ? 'border-warning/25 bg-warning-muted/60 text-warning'
                     : editHasPostings
-                      ? 'border-sky-200 bg-sky-50 text-sky-800'
-                      : 'border-emerald-200 bg-emerald-50 text-emerald-800')
+                      ? 'border-primary/25 bg-primary-muted/60 text-primary'
+                      : 'border-success/25 bg-success-muted/60 text-success')
                 }
               >
                 <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
@@ -277,7 +277,7 @@ export function ChartOfAccountsTab() {
             </div>
             <div>
               <Label className="flex items-center gap-1 mb-1 pb-1">
-                Type {typeLocked && <Lock className="h-3 w-3 text-slate-400" />}
+                Type {typeLocked && <Lock className="h-3 w-3 text-muted-foreground/70" />}
               </Label>
               <Select
                 value={form.type}
@@ -295,7 +295,7 @@ export function ChartOfAccountsTab() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-slate-500 mt-1.5">
+              <p className="text-xs text-muted-foreground mt-1.5">
                 {typeLocked
                   ? editIsSystem
                     ? 'Type is fixed for system accounts.'
@@ -367,7 +367,7 @@ function AccountLedgerDialog({
       key: 'entryNumber',
       header: 'Entry #',
       accessor: (r) => r.entryNumber,
-      cell: (r) => <span className="font-mono text-xs text-slate-500">{r.entryNumber}</span>,
+      cell: (r) => <span className="font-mono text-xs text-muted-foreground">{r.entryNumber}</span>,
     },
     {
       key: 'memo',
@@ -409,7 +409,7 @@ function AccountLedgerDialog({
       align: 'right',
       sortable: false,
       cell: (r) => (
-        <span className="font-mono tabular-nums font-medium text-slate-800">
+        <span className="font-mono tabular-nums font-medium text-foreground">
           {fmtMoney(r.balance)}
         </span>
       ),
@@ -424,15 +424,15 @@ function AccountLedgerDialog({
         subtitle={data ? `${data.account.type} · normal ${data.account.normalBalance}` : undefined}
         icon={<BookOpen className="h-4 w-4" />}
       >
-        {isLoading && <p className="text-slate-400 py-6">Loading…</p>}
+        {isLoading && <p className="text-muted-foreground/70 py-6">Loading…</p>}
         {data && (
           <div className="space-y-3">
             <div className="flex gap-3">
-              <div className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5">
-                <p className="text-[11px] uppercase tracking-wide text-slate-400">Opening</p>
-                <p className="font-mono font-semibold text-slate-700">{fmtMoney(data.opening)}</p>
+              <div className="flex-1 rounded-lg border border-border bg-muted/50 px-4 py-2.5">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground/70">Opening</p>
+                <p className="font-mono font-semibold text-foreground">{fmtMoney(data.opening)}</p>
               </div>
-              <div className="flex-1 rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5">
+              <div className="flex-1 rounded-lg border border-primary/25 bg-primary-muted/60 px-4 py-2.5">
                 <p className="text-[11px] uppercase tracking-wide text-[#0369a1]">Closing</p>
                 <p className="font-mono font-semibold text-[#0369a1]">{fmtMoney(data.closing)}</p>
               </div>

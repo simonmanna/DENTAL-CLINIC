@@ -28,29 +28,29 @@ function StatCard({
 }) {
   const colors = {
     blue: {
-      bg: 'from-blue-500 to-blue-600',
-      icon: 'bg-blue-400/30',
-      text: 'text-blue-100',
+      bg: 'from-primary to-primary',
+      icon: 'bg-primary/30',
+      text: 'text-primary/40',
     },
     amber: {
-      bg: 'from-amber-500 to-amber-600',
-      icon: 'bg-amber-400/30',
-      text: 'text-amber-100',
+      bg: 'from-warning to-warning',
+      icon: 'bg-warning/30',
+      text: 'text-warning/40',
     },
     emerald: {
-      bg: 'from-emerald-500 to-emerald-600',
-      icon: 'bg-emerald-400/30',
-      text: 'text-emerald-100',
+      bg: 'from-success to-success',
+      icon: 'bg-success/30',
+      text: 'text-success/40',
     },
     slate: {
-      bg: 'from-slate-600 to-slate-700',
-      icon: 'bg-slate-500/30',
-      text: 'text-slate-200',
+      bg: 'from-muted-foreground to-foreground',
+      icon: 'bg-muted-foreground/30',
+      text: 'text-muted-foreground/40',
     },
     rose: {
-      bg: 'from-rose-500 to-rose-600',
-      icon: 'bg-rose-400/30',
-      text: 'text-rose-100',
+      bg: 'from-danger to-danger',
+      icon: 'bg-danger/30',
+      text: 'text-danger/40',
     },
   }[color];
 

@@ -367,9 +367,9 @@ function SortHeader({
         {label}
         {active &&
           (order === "asc" ? (
-            <ChevronUp size={14} className="text-teal-600" />
+            <ChevronUp size={14} className="text-primary" />
           ) : (
-            <ChevronDown size={14} className="text-teal-600" />
+            <ChevronDown size={14} className="text-primary" />
           ))}
       </div>
     </th>
@@ -969,7 +969,7 @@ export default function PatientListReportPage() {
                     <tr
                       key={row.id}
                       onClick={() => navigate(`/patients/${row.id}`)}
-                      className="border-b last:border-0 cursor-pointer transition-colors hover:bg-teal-50/40"
+                      className="border-b last:border-0 cursor-pointer transition-colors hover:bg-primary-muted/40"
                     >
                       <td className="py-2.5 px-4 font-medium text-foreground">
                         {row.name}
@@ -987,10 +987,10 @@ export default function PatientListReportPage() {
                           variant="outline"
                           className={`text-xs ${
                             row.gender === "Male"
-                              ? "border-blue-200 bg-blue-50 text-blue-700"
+                              ? "border-primary/25 bg-primary-muted/60 text-primary"
                               : row.gender === "Female"
                                 ? "border-pink-200 bg-pink-50 text-pink-700"
-                                : "border-slate-200 bg-slate-50 text-slate-700"
+                                : "border-border bg-muted/50 text-foreground"
                           }`}
                         >
                           {row.gender}
@@ -1087,7 +1087,7 @@ export default function PatientListReportPage() {
         <div className="print-area hidden print:block text-black">
           <div className="mb-3 border-b border-black/70 pb-2">
             <h1 className="text-lg font-bold">Patient Directory Report</h1>
-            <p className="mt-0.5 text-[11px] text-gray-600">
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
               Generated {new Date().toLocaleString("en-UG")} ·{" "}
               {fmt(printRows.length)} patient
               {printRows.length === 1 ? "" : "s"} · {filterSummary}
@@ -1102,9 +1102,9 @@ export default function PatientListReportPage() {
               { label: "Avg Age", value: analytics?.avgAge ?? 0 },
               { label: "New This Month", value: analytics?.newThisMonth ?? 0 },
             ].map((k) => (
-              <div key={k.label} className="rounded border border-gray-300 py-1">
+              <div key={k.label} className="rounded border border-input py-1">
                 <div className="text-base font-semibold">{fmt(k.value)}</div>
-                <div className="text-gray-500">{k.label}</div>
+                <div className="text-muted-foreground">{k.label}</div>
               </div>
             ))}
           </div>
@@ -1124,8 +1124,8 @@ export default function PatientListReportPage() {
             </thead>
             <tbody>
               {printRows.map((r, i) => (
-                <tr key={r.id} className="avoid-break border-b border-gray-300">
-                  <td className="py-1 pr-2 text-gray-500">{i + 1}</td>
+                <tr key={r.id} className="avoid-break border-b border-input">
+                  <td className="py-1 pr-2 text-muted-foreground">{i + 1}</td>
                   <td className="py-1 pr-2 font-medium">{r.name}</td>
                   <td className="py-1 pr-2">{r.registeredAt}</td>
                   <td className="py-1 pr-2">
@@ -1140,7 +1140,7 @@ export default function PatientListReportPage() {
             </tbody>
           </table>
 
-          <p className="mt-4 text-center text-[10px] text-gray-500">
+          <p className="mt-4 text-center text-[10px] text-muted-foreground">
             Confidential · For internal clinical use only
           </p>
         </div>

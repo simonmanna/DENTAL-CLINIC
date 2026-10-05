@@ -30,25 +30,25 @@ const SOAP_FIELDS = [
     key: 'objective' as keyof SOAPData,
     label: 'O — Objective',
     hint: 'Clinical findings, vitals, diagnostics, measurements',
-    color: 'bg-sky-50 border-sky-100',
-    accent: 'text-sky-600',
-    badge: 'bg-sky-100 text-sky-700',
+    color: 'bg-primary-muted/60 border-primary/20',
+    accent: 'text-primary',
+    badge: 'bg-primary-muted text-primary',
   },
   {
     key: 'assessment' as keyof SOAPData,
     label: 'A — Assessment',
     hint: 'Diagnosis, differential diagnoses, clinical impression',
-    color: 'bg-amber-50 border-amber-100',
-    accent: 'text-amber-600',
-    badge: 'bg-amber-100 text-amber-700',
+    color: 'bg-warning-muted/60 border-warning/20',
+    accent: 'text-warning',
+    badge: 'bg-warning-muted text-warning',
   },
   {
     key: 'plan' as keyof SOAPData,
     label: 'P — Plan',
     hint: 'Treatment plan, referrals, patient education, follow-up',
-    color: 'bg-emerald-50 border-emerald-100',
-    accent: 'text-emerald-600',
-    badge: 'bg-emerald-100 text-emerald-700',
+    color: 'bg-success-muted/60 border-success/20',
+    accent: 'text-success',
+    badge: 'bg-success-muted text-success',
   },
 ];
 
@@ -107,18 +107,18 @@ export function SOAPSection({ visitId, data, readOnly }: SOAPSectionProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <FileText className="w-4 h-4 text-slate-400" />
-          <span className="text-sm font-semibold text-slate-700">SOAP Notes</span>
+          <FileText className="w-4 h-4 text-muted-foreground/70" />
+          <span className="text-sm font-semibold text-foreground">SOAP Notes</span>
         </div>
         <div className="flex items-center gap-3">
           {savedAt && !isDirty && (
-            <span className="flex items-center gap-1.5 text-xs text-emerald-600">
+            <span className="flex items-center gap-1.5 text-xs text-success">
               <CheckCircle className="w-3.5 h-3.5" />
               Saved {savedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
           )}
           {isDirty && (
-            <span className="flex items-center gap-1.5 text-xs text-amber-500">
+            <span className="flex items-center gap-1.5 text-xs text-warning">
               <Clock className="w-3.5 h-3.5" />
               Unsaved changes
             </span>
@@ -127,7 +127,7 @@ export function SOAPSection({ visitId, data, readOnly }: SOAPSectionProps) {
             <button
               onClick={handleManualSave}
               disabled={saveMutation.isPending || !isDirty}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-foreground text-white hover:bg-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
               <Save className="w-3.5 h-3.5" />
               {saveMutation.isPending ? 'Saving…' : 'Save'}
@@ -152,7 +152,7 @@ export function SOAPSection({ visitId, data, readOnly }: SOAPSectionProps) {
               </span>
             </div>
             <textarea
-              className="w-full bg-white/70 border border-white/80 rounded-lg p-3 text-sm text-slate-700 placeholder:text-slate-300 resize-none focus:outline-none focus:ring-2 focus:ring-slate-200 transition-all leading-relaxed"
+              className="w-full bg-white/70 border border-white/80 rounded-lg p-3 text-sm text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-2 focus:ring-border transition-all leading-relaxed"
               rows={5}
               placeholder={field.hint}
               value={soap[field.key]}

@@ -143,7 +143,7 @@ export function DataTable<T>({
         <div className="flex items-center gap-2">
           {searchable && (
             <div className="relative max-w-xs flex-1">
-              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -153,7 +153,7 @@ export function DataTable<T>({
             </div>
           )}
           <div className="ml-auto flex items-center gap-3">
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-muted-foreground/70">
               {sorted.length} {sorted.length === 1 ? 'row' : 'rows'}
             </span>
             {toolbar}
@@ -161,10 +161,10 @@ export function DataTable<T>({
         </div>
       )}
 
-      <div className="rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+      <div className="rounded-lg border border-border overflow-hidden shadow-sm">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent border-b border-slate-200">
+            <TableRow className="hover:bg-transparent border-b border-border">
               {columns.map((col) => {
                 const isSorted = sort?.key === col.key;
                 const canSort = col.accessor && col.sortable !== false;
@@ -176,7 +176,7 @@ export function DataTable<T>({
                       GL.tableHead,
                       alignClass(col.align),
                       col.width,
-                      canSort && 'cursor-pointer select-none hover:bg-sky-100/70',
+                      canSort && 'cursor-pointer select-none hover:bg-primary-muted/70',
                       'h-10 whitespace-nowrap',
                       col.headerClassName,
                     )}
@@ -209,7 +209,7 @@ export function DataTable<T>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="text-center text-slate-400 py-10"
+                  className="text-center text-muted-foreground/70 py-10"
                 >
                   Loading…
                 </TableCell>
@@ -219,7 +219,7 @@ export function DataTable<T>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="text-center text-slate-400 py-10"
+                  className="text-center text-muted-foreground/70 py-10"
                 >
                   {emptyText}
                 </TableCell>
@@ -231,9 +231,9 @@ export function DataTable<T>({
                   key={rowKey(row, i)}
                   onClick={() => onRowClick?.(row)}
                   className={cn(
-                    'border-b border-slate-100 transition-colors',
+                    'border-b border-border/60 transition-colors',
                     onRowClick && 'cursor-pointer',
-                    'hover:bg-sky-50/60',
+                    'hover:bg-primary-muted/60',
                     rowClassName?.(row),
                   )}
                 >
@@ -242,7 +242,7 @@ export function DataTable<T>({
                       key={col.key}
                       className={cn(
                         cellPad,
-                        'text-sm text-slate-700',
+                        'text-sm text-foreground',
                         alignClass(col.align),
                         col.className,
                       )}
@@ -270,7 +270,7 @@ export function DataTable<T>({
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-muted-foreground">
             Page {page} of {totalPages}
           </span>
           <Button

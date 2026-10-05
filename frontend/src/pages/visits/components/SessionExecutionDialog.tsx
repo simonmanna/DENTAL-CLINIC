@@ -86,7 +86,7 @@ const STATUS_TO_BACKEND: Record<string, string> = {
 
 // ─── Shared field style (module-level, not recreated per render) ─────────────
 const FIELD_BASE =
-  "w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800";
+  "w-full rounded-lg border border-input px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/60 bg-white text-foreground";
 
 // ─── UI Primitives ─────────────────────────────────────────────────────────
 
@@ -102,14 +102,14 @@ const Button = ({
     "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50";
   const variants: Record<string, string> = {
     primary:
-      "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-blue-800 focus:ring-blue-500",
+      "bg-gradient-to-r from-primary to-primary text-white shadow-md hover:shadow-lg hover:from-primary hover:to-primary focus:ring-primary/60",
     secondary:
-      "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 focus:ring-slate-400",
+      "bg-white text-foreground border border-input hover:bg-muted/50 focus:ring-input",
     success:
-      "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md hover:shadow-lg hover:from-emerald-600 hover:to-emerald-700 focus:ring-emerald-500",
+      "bg-gradient-to-r from-success to-success text-white shadow-md hover:shadow-lg hover:from-success hover:to-success focus:ring-success/60",
     danger:
-      "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md hover:shadow-lg focus:ring-red-500",
-    ghost: "bg-transparent text-slate-600 hover:bg-slate-100",
+      "bg-gradient-to-r from-danger to-danger text-white shadow-md hover:shadow-lg focus:ring-danger/60",
+    ghost: "bg-transparent text-muted-foreground hover:bg-muted",
   };
   const sizes: Record<string, string> = {
     xs: "px-2 py-1 text-xs",
@@ -130,14 +130,14 @@ const Button = ({
 
 const Card = ({ children, className = "" }: any) => (
   <div
-    className={`bg-white rounded-xl border border-slate-200 shadow-sm ${className}`}
+    className={`bg-white rounded-xl border border-border shadow-sm ${className}`}
   >
     {children}
   </div>
 );
 
-const ColHeader = ({ icon: Icon, title, color = "text-slate-600" }: any) => (
-  <div className="flex items-center gap-2 pb-2 mb-3 border-b border-slate-100">
+const ColHeader = ({ icon: Icon, title, color = "text-muted-foreground" }: any) => (
+  <div className="flex items-center gap-2 pb-2 mb-3 border-b border-border/60">
     <Icon className={`w-3.5 h-3.5 ${color}`} />
     <h2 className={`text-xs font-bold uppercase tracking-wider ${color}`}>
       {title}
@@ -167,30 +167,30 @@ function ToothStatusCard({
   const cfg = {
     pending: {
       icon: Circle,
-      bg: "bg-slate-50",
-      border: "border-slate-200",
-      badge: "text-slate-500 bg-slate-100",
+      bg: "bg-muted/50",
+      border: "border-border",
+      badge: "text-muted-foreground bg-muted",
       label: "Pending",
     },
     "in-progress": {
       icon: Clock,
-      bg: "bg-blue-50",
-      border: "border-blue-200",
-      badge: "text-blue-700 bg-blue-100",
+      bg: "bg-primary-muted/60",
+      border: "border-primary/25",
+      badge: "text-primary bg-primary-muted",
       label: "In progress",
     },
     completed: {
       icon: CheckCircle,
-      bg: "bg-green-50",
-      border: "border-green-200",
-      badge: "text-green-700 bg-green-100",
+      bg: "bg-success-muted/60",
+      border: "border-success/25",
+      badge: "text-success bg-success-muted",
       label: "Completed",
     },
     skipped: {
       icon: AlertCircle,
-      bg: "bg-amber-50",
-      border: "border-amber-200",
-      badge: "text-amber-700 bg-amber-100",
+      bg: "bg-warning-muted/60",
+      border: "border-warning/25",
+      badge: "text-warning bg-warning-muted",
       label: "Skipped",
     },
   }[tooth.status];
@@ -201,13 +201,13 @@ function ToothStatusCard({
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-white border border-current/20 flex items-center justify-center shrink-0">
-            <span className="text-xs font-bold text-slate-700">
+            <span className="text-xs font-bold text-foreground">
               {tooth.toothNumber}
             </span>
           </div>
           <div>
             <div className="flex items-center gap-1">
-              <span className="text-xs font-semibold text-slate-800">
+              <span className="text-xs font-semibold text-foreground">
                 #{tooth.toothNumber}
               </span>
               <span
@@ -223,7 +223,7 @@ function ToothStatusCard({
                 {tooth.surfaces.map((s) => (
                   <span
                     key={s}
-                    className="text-[9px] font-mono bg-white px-1 py-0.5 rounded border border-slate-200 text-slate-500"
+                    className="text-[9px] font-mono bg-white px-1 py-0.5 rounded border border-border text-muted-foreground"
                     title={surfaceLabel(s)}
                   >
                     {surfaceShort(s)}
@@ -243,16 +243,16 @@ function ToothStatusCard({
                 skipped: AlertCircle,
               };
               const colors = {
-                pending: "hover:bg-slate-200 text-slate-400",
-                "in-progress": "hover:bg-blue-200 text-blue-400",
-                completed: "hover:bg-green-200 text-green-500",
-                skipped: "hover:bg-amber-200 text-amber-500",
+                pending: "hover:bg-muted text-muted-foreground/70",
+                "in-progress": "hover:bg-primary-muted text-primary/70",
+                completed: "hover:bg-success-muted text-success",
+                skipped: "hover:bg-warning-muted text-warning",
               };
               const active = {
-                pending: "bg-slate-200 text-slate-700",
-                "in-progress": "bg-blue-200 text-blue-700",
-                completed: "bg-green-200 text-green-700",
-                skipped: "bg-amber-200 text-amber-700",
+                pending: "bg-muted text-foreground",
+                "in-progress": "bg-primary-muted text-primary",
+                completed: "bg-success-muted text-success",
+                skipped: "bg-warning-muted text-warning",
               };
               const I = icons[st];
               return (
@@ -275,7 +275,7 @@ function ToothStatusCard({
         onChange={(e) => onNotesChange(e.target.value)}
         placeholder="Notes for this tooth…"
         rows={1}
-        className="mt-1.5 w-full rounded-lg border border-white/60 bg-white/70 px-2.5 py-1 text-xs resize-none focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-400"
+        className="mt-1.5 w-full rounded-lg border border-white/60 bg-white/70 px-2.5 py-1 text-xs resize-none focus:outline-none focus:ring-1 focus:ring-primary/60 placeholder:text-muted-foreground/70"
       />
     </div>
   );
@@ -566,7 +566,7 @@ export function SessionExecutionDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
-        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-foreground/50 backdrop-blur-sm"
         onClick={onClose}
       />
 
@@ -595,7 +595,7 @@ export function SessionExecutionDialog({
                     </span>
                   )}
                   <span
-                    className={`px-2 py-0.5 rounded text-xs font-medium ${isPayPerSession ? "bg-amber-400/30 text-amber-100" : "bg-white/10 text-white/80"}`}
+                    className={`px-2 py-0.5 rounded text-xs font-medium ${isPayPerSession ? "bg-warning-muted text-warning" : "bg-white/10 text-white/80"}`}
                   >
                     {isPayPerSession ? "Billed per session" : "Already billed"}
                   </span>
@@ -618,18 +618,18 @@ export function SessionExecutionDialog({
 
         {/* ── Teeth progress bar ── */}
         {totalTeeth > 1 && (
-          <div className="px-6 py-2 bg-slate-50 border-b border-slate-200 shrink-0">
+          <div className="px-6 py-2 bg-muted/50 border-b border-border shrink-0">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-medium text-slate-600">
+              <span className="text-xs font-medium text-muted-foreground">
                 Teeth progress
               </span>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-muted-foreground">
                 {completedTeeth}/{totalTeeth} completed
               </span>
             </div>
-            <div className="w-full bg-slate-200 rounded-full h-1.5">
+            <div className="w-full bg-muted rounded-full h-1.5">
               <div
-                className="bg-green-500 h-1.5 rounded-full transition-all"
+                className="bg-success h-1.5 rounded-full transition-all"
                 style={{
                   width: `${totalTeeth > 0 ? (completedTeeth / totalTeeth) * 100 : 0}%`,
                 }}
@@ -653,15 +653,15 @@ export function SessionExecutionDialog({
                 <ColHeader
                   icon={Calendar}
                   title="Session details"
-                  color="text-blue-600"
+                  color="text-primary"
                 />
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                    <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                       Date performed
                     </label>
                     <div className="relative">
-                      <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                      <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/70 pointer-events-none" />
                       <input
                         type="date"
                         value={date}
@@ -672,18 +672,18 @@ export function SessionExecutionDialog({
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                    <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                       Performing provider{" "}
-                      <span className="text-red-500">*</span>
+                      <span className="text-danger">*</span>
                     </label>
                     <div className="relative">
-                      <Stethoscope className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                      <Stethoscope className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/70 pointer-events-none" />
                       <select
                         value={providerId}
                         onChange={(e) => setProviderId(e.target.value)}
                         className={`${FIELD_BASE} pl-8 pr-8 appearance-none cursor-pointer ${
                           isMissingProvider
-                            ? "border-red-300 ring-1 ring-red-200"
+                            ? "border-danger/30 ring-1 ring-danger/25"
                             : ""
                         }`}
                       >
@@ -695,21 +695,21 @@ export function SessionExecutionDialog({
                           </option>
                         ))}
                       </select>
-                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/70 pointer-events-none" />
                     </div>
                     {isMissingProvider && (
-                      <p className="mt-1 text-[10px] text-red-500 font-medium">
+                      <p className="mt-1 text-[10px] text-danger font-medium">
                         A provider must be selected to record this session.
                       </p>
                     )}
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                    <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                       Treatment Phase
                     </label>
                     <div className="relative">
-                      <Layers className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                      <Layers className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/70 pointer-events-none" />
                       <select
                         value={phase}
                         onChange={(e) => setPhase(e.target.value)}
@@ -721,7 +721,7 @@ export function SessionExecutionDialog({
                           </option>
                         ))}
                       </select>
-                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/70 pointer-events-none" />
                     </div>
                   </div>
                 </div>
@@ -743,7 +743,7 @@ export function SessionExecutionDialog({
                 />
                 {/* FIX-9: Single empty-state message (was duplicated) */}
                 {sessionSurfaces.length === 0 && (
-                  <p className="text-[10px] text-slate-400 mt-2">
+                  <p className="text-[10px] text-muted-foreground/70 mt-2">
                     No surfaces selected — toggle above to record which surfaces
                     were treated.
                   </p>
@@ -772,7 +772,7 @@ export function SessionExecutionDialog({
               )}
             </div>
 
-            <div className="bg-slate-100 self-stretch" />
+            <div className="bg-muted self-stretch" />
 
             {/* ╔══════════════════════════╗
                 ║  MIDDLE COLUMN           ║
@@ -782,13 +782,13 @@ export function SessionExecutionDialog({
                 <ColHeader
                   icon={FileText}
                   title="Clinical notes"
-                  color="text-slate-500"
+                  color="text-muted-foreground"
                 />
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Observations, complications, patient response, post-op instructions…"
-                  className="flex-1 min-h-[50px] rounded-xl border border-slate-300 px-3 py-0.5 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 min-h-[50px] rounded-xl border border-input px-3 py-0.5 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent"
                 />
               </div>
 
@@ -796,7 +796,7 @@ export function SessionExecutionDialog({
                 <ColHeader
                   icon={FileText}
                   title="Imaging"
-                  color="text-teal-600"
+                  color="text-primary"
                 />
                 <SessionImagingSection
                   patientId={patientId}
@@ -818,7 +818,7 @@ export function SessionExecutionDialog({
               </div>
             </div>
 
-            <div className="bg-slate-100 self-stretch" />
+            <div className="bg-muted self-stretch" />
 
             {/* ╔══════════════════════════╗
                 ║  RIGHT COLUMN            ║
@@ -829,7 +829,7 @@ export function SessionExecutionDialog({
                 <ColHeader
                   icon={Flag}
                   title="Session outcome"
-                  color="text-amber-600"
+                  color="text-warning"
                 />
                 <div className="space-y-3">
                   <div className="flex flex-col gap-1 mb-3 pb-4">
@@ -839,18 +839,18 @@ export function SessionExecutionDialog({
                         PARTIAL: {
                           label: "Partial",
                           desc: "More sessions needed",
-                          active: "border-amber-400 bg-amber-50",
-                          dot: "bg-amber-500",
+                          active: "border-warning/40 bg-warning-muted/60",
+                          dot: "bg-warning",
                           icon: Clock,
-                          iconColor: "text-amber-600",
+                          iconColor: "text-warning",
                         },
                         COMPLETED: {
                           label: "Completed",
                           desc: "Work done this session",
-                          active: "border-green-400 bg-green-50",
-                          dot: "bg-green-500",
+                          active: "border-success/40 bg-success-muted/60",
+                          dot: "bg-success",
                           icon: CheckCircle,
-                          iconColor: "text-green-600",
+                          iconColor: "text-success",
                         },
                       }[opt];
                       const OIcon = config.icon;
@@ -862,7 +862,7 @@ export function SessionExecutionDialog({
                           className={`flex flex-col items-start gap-1 px-3 py-2.5 rounded-xl border-2 transition-all text-left ${
                             isActive
                               ? config.active
-                              : "border-slate-200 bg-white hover:border-slate-300"
+                              : "border-border bg-white hover:border-input"
                           }`}
                         >
                           <div className="flex items-center gap-1.5">
@@ -870,7 +870,7 @@ export function SessionExecutionDialog({
                               className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
                                 isActive
                                   ? `${config.dot} border-transparent`
-                                  : "border-slate-300"
+                                  : "border-input"
                               }`}
                             >
                               {isActive && (
@@ -878,13 +878,13 @@ export function SessionExecutionDialog({
                               )}
                             </div>
                             <OIcon
-                              className={`w-3.5 h-3.5 ${isActive ? config.iconColor : "text-slate-400"}`}
+                              className={`w-3.5 h-3.5 ${isActive ? config.iconColor : "text-muted-foreground/70"}`}
                             />
-                            <span className="text-xs font-semibold text-slate-800">
+                            <span className="text-xs font-semibold text-foreground">
                               {config.label}
                             </span>
                           </div>
-                          <p className="text-[10px] text-slate-500 leading-tight pl-0.5">
+                          <p className="text-[10px] text-muted-foreground leading-tight pl-0.5">
                             {config.desc}
                           </p>
                         </button>
@@ -895,32 +895,32 @@ export function SessionExecutionDialog({
                   <ColHeader
                     icon={Flag}
                     title="Procedure Status"
-                    color="text-amber-600"
+                    color="text-warning"
                   />
 
                   <label
                     className={`flex items-start gap-2.5 p-3 rounded-xl border-2 cursor-pointer transition-all ${
                       isFinal
-                        ? "border-blue-400 bg-blue-50"
-                        : "border-slate-200 hover:border-slate-300"
+                        ? "border-primary/40 bg-primary-muted/60"
+                        : "border-border hover:border-input"
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={isFinal}
                       onChange={(e) => setIsFinal(e.target.checked)}
-                      className="mt-0.5 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      className="mt-0.5 w-4 h-4 rounded border-input text-primary focus:ring-primary/60"
                     />
                     <div>
-                      <div className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                        <Flag className="w-3.5 h-3.5 text-blue-600" />
+                      <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                        <Flag className="w-3.5 h-3.5 text-primary" />
                         Mark as COMPLETE  [FINAL session]
                       </div>
-                      <p className="text-[10px] text-slate-500 mt-0.5">
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
                         Sets procedure status to <strong>COMPLETED</strong>.
                       </p>
                       {isFinal && (
-                        <p className="text-[10px] text-blue-700 mt-1 font-medium">
+                        <p className="text-[10px] text-primary mt-1 font-medium">
                           ✓ Procedure will be closed
                         </p>
                       )}
@@ -929,7 +929,7 @@ export function SessionExecutionDialog({
 
                   {isEarlyFinal && (
                     <div className="px-1">
-                      <p className="text-[11px] text-amber-700 font-medium mb-1">
+                      <p className="text-[11px] text-warning font-medium mb-1">
                         Closing early — {completedSoFar + 1} of {plannedSessions}{" "}
                         planned sessions completed. A reason is required and
                         will be audited.
@@ -941,20 +941,20 @@ export function SessionExecutionDialog({
                         placeholder="Reason for closing the procedure early…"
                         className={`w-full text-xs rounded-lg border p-2 ${
                           isMissingOverrideReason
-                            ? "border-amber-400 bg-amber-50"
-                            : "border-slate-200"
+                            ? "border-warning/40 bg-warning-muted/60"
+                            : "border-border"
                         }`}
                       />
                     </div>
                   )}
 
-                  <div className="flex items-center gap-2 text-[11px] text-slate-500 px-1">
+                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground px-1">
                     <span>After saving, Procedure will be: </span>
                     <span
                       className={`font-semibold px-2 py-0.5 rounded-full ${
                         isFinal
-                          ? "bg-green-100 text-green-700"
-                          : "bg-blue-100 text-blue-700"
+                          ? "bg-success-muted text-success"
+                          : "bg-primary-muted text-primary"
                       }`}
                     >
                       {isFinal ? "COMPLETED" : "IN PROGRESS"}
@@ -968,18 +968,18 @@ export function SessionExecutionDialog({
         </div>
 
         {/* ══════════ FOOTER ══════════ */}
-        <div className="px-6 py-1.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
+        <div className="px-6 py-1.5 bg-muted/50 border-t border-border flex items-center justify-between shrink-0">
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
           <div className="flex items-center gap-3">
             {isMissingProvider && (
-              <span className="text-xs text-red-500 flex items-center gap-1">
+              <span className="text-xs text-danger flex items-center gap-1">
                 <AlertCircle className="w-3 h-3" /> Select a provider
               </span>
             )}
             {isFinal && !isMissingProvider && (
-              <span className="text-xs font-medium text-green-700 bg-green-100 px-3 py-1 rounded-full flex items-center gap-1">
+              <span className="text-xs font-medium text-success bg-success-muted px-3 py-1 rounded-full flex items-center gap-1">
                 <Flag className="w-3 h-3" /> Final session
               </span>
             )}

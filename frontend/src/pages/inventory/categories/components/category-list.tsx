@@ -125,36 +125,36 @@ export function CategoryList() {
     <div className="space-y-1 p-1">
       {/* --- ADMIN LTE TOP CARDS --- */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
-        <div className="relative overflow-hidden rounded-lg bg-sky-500 p-4 text-white shadow-md">
+        <div className="relative overflow-hidden rounded-lg bg-primary p-4 text-white shadow-md">
           <div className="z-10 relative">
             <h3 className="text-2xl font-bold">{stats.total}</h3>
-            <p className="text-sky-100">Total Categories</p>
+            <p className="text-primary/40">Total Categories</p>
           </div>
-          <Tag className="absolute right-[-10px] bottom-[-10px] h-20 w-20 text-sky-400/50 rotate-12" />
+          <Tag className="absolute right-[-10px] bottom-[-10px] h-20 w-20 text-primary/50 rotate-12" />
         </div>
 
-        <div className="relative overflow-hidden rounded-lg bg-emerald-500 p-4 text-white shadow-md">
+        <div className="relative overflow-hidden rounded-lg bg-success p-4 text-white shadow-md">
           <div className="z-10 relative">
             <h3 className="text-2xl font-bold">{stats.active}</h3>
-            <p className="text-emerald-100">Active Status</p>
+            <p className="text-success/40">Active Status</p>
           </div>
-          <CheckCircle className="absolute right-[-10px] bottom-[-10px] h-20 w-20 text-emerald-400/50 rotate-12" />
+          <CheckCircle className="absolute right-[-10px] bottom-[-10px] h-20 w-20 text-success/50 rotate-12" />
         </div>
 
-        <div className="relative overflow-hidden rounded-lg bg-amber-500 p-4 text-white shadow-md">
+        <div className="relative overflow-hidden rounded-lg bg-warning p-4 text-white shadow-md">
           <div className="z-10 relative">
             <h3 className="text-2xl font-bold">{stats.items}</h3>
-            <p className="text-amber-100">Total Items Linked</p>
+            <p className="text-warning/40">Total Items Linked</p>
           </div>
-          <Box className="absolute right-[-10px] bottom-[-10px] h-20 w-20 text-amber-400/50 rotate-12" />
+          <Box className="absolute right-[-10px] bottom-[-10px] h-20 w-20 text-warning/50 rotate-12" />
         </div>
       </div>
 
       {/* --- MAIN TABLE CARD --- */}
       {/* --- MAIN TABLE CARD --- */}
-      <div className="rounded-lg bg-white shadow-sm border-t-4 border-sky-500">
-        <div className="p-2 border-b flex flex-col sm:flex-row justify-between items-center gap-1 bg-slate-50/50">
-          <h2 className="text-lg font-semibold text-slate-700">
+      <div className="rounded-lg bg-white shadow-sm border-t-4 border-primary/60">
+        <div className="p-2 border-b flex flex-col sm:flex-row justify-between items-center gap-1 bg-muted/50">
+          <h2 className="text-lg font-semibold text-foreground">
             Inventory Categories
           </h2>
           <div className="flex items-center gap-3">
@@ -162,7 +162,7 @@ export function CategoryList() {
               placeholder="Search..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-8 w-[200px] bg-white border-sky-200 focus-visible:ring-sky-50"
+              className="h-8 w-[200px] bg-white border-primary/25 focus-visible:ring-primary/15"
             />
             <Button
               size="sm"
@@ -170,7 +170,7 @@ export function CategoryList() {
                 setSelectedCategory(null);
                 setIsFormOpen(true);
               }}
-              className="bg-sky-600 hover:bg-sky-700 text-white h-8"
+              className="bg-primary hover:bg-primary text-white h-8"
             >
               <Plus className="mr-1 h-4 w-4" />
               Add New
@@ -180,24 +180,24 @@ export function CategoryList() {
 
         <div className="p-0">
           <Table>
-            <TableHeader className="bg-slate-50">
+            <TableHeader className="bg-muted/50">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="h-9 py-0 font-bold text-slate-600">
+                <TableHead className="h-9 py-0 font-bold text-muted-foreground">
                   Name
                 </TableHead>
-                <TableHead className="h-9 py-0 font-bold text-slate-600">
+                <TableHead className="h-9 py-0 font-bold text-muted-foreground">
                   Parent
                 </TableHead>
-                <TableHead className="h-9 py-0 font-bold text-slate-600">
+                <TableHead className="h-9 py-0 font-bold text-muted-foreground">
                   Code
                 </TableHead>
-                <TableHead className="h-9 py-0 font-bold text-slate-600">
+                <TableHead className="h-9 py-0 font-bold text-muted-foreground">
                   Count
                 </TableHead>
-                <TableHead className="h-9 py-0 font-bold text-slate-600">
+                <TableHead className="h-9 py-0 font-bold text-muted-foreground">
                   Status
                 </TableHead>
-                <TableHead className="h-9 py-0 text-right font-bold text-slate-600">
+                <TableHead className="h-9 py-0 text-right font-bold text-muted-foreground">
                   Actions
                 </TableHead>
               </TableRow>
@@ -206,7 +206,7 @@ export function CategoryList() {
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-12">
-                    <Icons.spinner className="h-6 w-8 animate-spin mx-auto text-sky-500" />
+                    <Icons.spinner className="h-6 w-8 animate-spin mx-auto text-primary" />
                   </TableCell>
                 </TableRow>
               ) : categories?.length === 0 ? (
@@ -222,18 +222,18 @@ export function CategoryList() {
                 categories?.map((category) => (
                   <TableRow
                     key={category.id}
-                    className="hover:bg-sky-50/30 transition-colors"
+                    className="hover:bg-primary-muted/30 transition-colors"
                   >
                     {/* py-1 reduces row height significantly */}
                     <TableCell className="py-1 font-medium">
                       <div className="flex items-center gap-2 text-sm">
                         <div
-                          className="w-2.5 h-2.5 rounded-full border border-slate-200"
+                          className="w-2.5 h-2.5 rounded-full border border-border"
                           style={{
                             backgroundColor: category.color || "#e2e8f0",
                           }}
                         />
-                        <span className="text-slate-700 truncate max-w-[150px]">
+                        <span className="text-foreground truncate max-w-[150px]">
                           {category.name}
                         </span>
                       </div>
@@ -243,7 +243,7 @@ export function CategoryList() {
                       {category.parentId && categoryMap[category.parentId] ? (
                         <Badge
                           variant="outline"
-                          className="text-[10px] px-1.5 py-0 font-normal bg-sky-50 text-sky-700 border-sky-200"
+                          className="text-[10px] px-1.5 py-0 font-normal bg-primary-muted/60 text-primary border-primary/25"
                         >
                           {categoryMap[category.parentId]}
                         </Badge>
@@ -253,13 +253,13 @@ export function CategoryList() {
                     </TableCell>
 
                     <TableCell className="py-1 text-xs">
-                      <code className="px-1 py-0.5 rounded bg-slate-100 text-slate-600 font-mono">
+                      <code className="px-1 py-0.5 rounded bg-muted text-muted-foreground font-mono">
                         {category.code || "N/A"}
                       </code>
                     </TableCell>
 
                     <TableCell className="py-1">
-                      <span className="text-xs font-semibold text-slate-600">
+                      <span className="text-xs font-semibold text-muted-foreground">
                         {category._count?.inventoryItems || 0}
                       </span>
                     </TableCell>
@@ -268,8 +268,8 @@ export function CategoryList() {
                       <Badge
                         className={`text-[11px] px-1.5 py-0 leading-none ${
                           category.isActive
-                            ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                            : "bg-red-200 text-slate-600 border-slate-200"
+                            ? "bg-success-muted text-success border-success/25"
+                            : "bg-danger-muted text-muted-foreground border-border"
                         }`}
                       >
                         {category.isActive ? "Active" : "Inactive"}
@@ -280,7 +280,7 @@ export function CategoryList() {
                       <div className="flex justify-end gap-1">
                         <Button
                           title="Edit Details"
-                          className="h-6 w-8 rounded-md bg-amber-400 p-0 text-white hover:bg-amber-600 shadow-sm"
+                          className="h-6 w-8 rounded-md bg-warning/80 p-0 text-white hover:bg-warning shadow-sm"
                           onClick={() => handleEdit(category)}
                         >
                           <Pencil size={16} strokeWidth={3} />
@@ -288,7 +288,7 @@ export function CategoryList() {
 
                         {/* <Button
                           title="Edit Details"
-                          className="h-6 w-8 rounded-md bg-amber-500 p-0 text-white hover:bg-amber-600 shadow-sm"
+                          className="h-6 w-8 rounded-md bg-warning p-0 text-white hover:bg-warning shadow-sm"
                           onClick={() => handleEdit(category)}
                         >
                           <MinusCircle size={16} strokeWidth={3} />
@@ -299,7 +299,7 @@ export function CategoryList() {
                         {/* <Button
                           variant="outline"
                           size="sm"
-                          className="h-7 px-2 border-sky-200 text-sky-600 hover:bg-sky-600 hover:text-white transition-all"
+                          className="h-7 px-2 border-primary/25 text-primary hover:bg-primary hover:text-white transition-all"
                           onClick={() => handleEdit(category)}
                         >
                           <Edit2 className="h-3.5 w-3.5 mr-1" />
@@ -311,7 +311,7 @@ export function CategoryList() {
                           title="Deactivate"
                             variant="outline"
                             size="sm"
-                            className="h-7 px-2 border-red-200 bg-red-100 text-red-600 hover:bg-red-600 hover:text-white transition-all"
+                            className="h-7 px-2 border-danger/25 bg-danger-muted text-danger hover:bg-danger hover:text-white transition-all"
                             onClick={() => handleDelete(category.id)}
                           >
                             <MinusCircle className="h-3.5 w-3.5 mr-1" />
@@ -322,7 +322,7 @@ export function CategoryList() {
                           title="Activate"
                             variant="outline"
                             size="sm"
-                            className="h-7 px-2 border-emerald-200 bg-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all"
+                            className="h-7 px-2 border-success/25 bg-success-muted text-success hover:bg-success hover:text-white transition-all"
                             onClick={() => handleRestore(category.id)}
                           >
                             <RefreshCw className="h-3.5 w-3.5 mr-1" />
@@ -338,19 +338,19 @@ export function CategoryList() {
           </Table>
         </div>
       </div>
-      {/* <div className="rounded-lg bg-white shadow-sm border-t-4 border-sky-500">
-        <div className="p-1 border-b flex flex-col sm:flex-row justify-between items-center gap-1 bg-slate-50/50">
-          <h2 className="text-lg font-semibold text-slate-700">Inventory Categories Management</h2>
+      {/* <div className="rounded-lg bg-white shadow-sm border-t-4 border-primary/60">
+        <div className="p-1 border-b flex flex-col sm:flex-row justify-between items-center gap-1 bg-muted/50">
+          <h2 className="text-lg font-semibold text-foreground">Inventory Categories Management</h2>
           <div className="flex items-center gap-3">
             <Input
               placeholder="Search..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-[240px] bg-white border-sky-200 focus-visible:ring-sky-500"
+              className="w-[240px] bg-white border-primary/25 focus-visible:ring-primary/60"
             />
             <Button 
               onClick={() => { setSelectedCategory(null); setIsFormOpen(true); }}
-              className="bg-sky-600 hover:bg-sky-700 text-white"
+              className="bg-primary hover:bg-primary text-white"
             >
               <Icons.plus className="mr-2 h-4 w-4" />
               Add New
@@ -360,21 +360,21 @@ export function CategoryList() {
 
         <div className="p-0">
           <Table>
-            <TableHeader className="bg-slate-50">
+            <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead className="font-bold text-slate-600">Name</TableHead>
-                <TableHead className="font-bold text-slate-600">Parent</TableHead>
-                <TableHead className="font-bold text-slate-600">Code</TableHead>
-                <TableHead className="font-bold text-slate-600">Count</TableHead>
-                <TableHead className="font-bold text-slate-600">Status</TableHead>
-                <TableHead className="text-right font-bold text-slate-600">Actions</TableHead>
+                <TableHead className="font-bold text-muted-foreground">Name</TableHead>
+                <TableHead className="font-bold text-muted-foreground">Parent</TableHead>
+                <TableHead className="font-bold text-muted-foreground">Code</TableHead>
+                <TableHead className="font-bold text-muted-foreground">Count</TableHead>
+                <TableHead className="font-bold text-muted-foreground">Status</TableHead>
+                <TableHead className="text-right font-bold text-muted-foreground">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-12">
-                    <Icons.spinner className="h-6 w-8 animate-spin mx-auto text-sky-500" />
+                    <Icons.spinner className="h-6 w-8 animate-spin mx-auto text-primary" />
                   </TableCell>
                 </TableRow>
               ) : categories?.length === 0 ? (
@@ -385,21 +385,21 @@ export function CategoryList() {
                 </TableRow>
               ) : (
                 categories?.map((category) => (
-                  <TableRow key={category.id} className="hover:bg-sky-50/30 transition-colors">
+                  <TableRow key={category.id} className="hover:bg-primary-muted/30 transition-colors">
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         {category.color ? (
-                          <div className="w-3 h-3 rounded-full border border-slate-200" style={{ backgroundColor: category.color }} />
+                          <div className="w-3 h-3 rounded-full border border-border" style={{ backgroundColor: category.color }} />
                         ) : (
-                           <div className="w-3 h-3 rounded-full bg-slate-200" />
+                           <div className="w-3 h-3 rounded-full bg-muted" />
                         )}
-                        <span className="text-slate-700">{category.name}</span>
+                        <span className="text-foreground">{category.name}</span>
                       </div>
                     </TableCell>
                     
                     <TableCell>
                       {category.parentId && categoryMap[category.parentId] ? (
-                        <Badge variant="outline" className="font-normal bg-sky-50 text-sky-700 border-sky-200">
+                        <Badge variant="outline" className="font-normal bg-primary-muted/60 text-primary border-primary/25">
                           {categoryMap[category.parentId]}
                         </Badge>
                       ) : (
@@ -408,21 +408,21 @@ export function CategoryList() {
                     </TableCell>
 
                     <TableCell>
-                      <code className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-xs font-mono">
+                      <code className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-xs font-mono">
                         {category.code || 'N/A'}
                       </code>
                     </TableCell>
 
                     <TableCell>
-                      <span className="text-sm font-semibold text-slate-600">
+                      <span className="text-sm font-semibold text-muted-foreground">
                         {category._count?.inventoryItems || 0}
                       </span>
                     </TableCell>
 
                     <TableCell>
                       <Badge className={category.isActive 
-                        ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-emerald-200' 
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-100'}>
+                        ? 'bg-success-muted text-success hover:bg-success-muted border-success/25' 
+                        : 'bg-muted text-muted-foreground hover:bg-muted'}>
                         {category.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
@@ -430,26 +430,26 @@ export function CategoryList() {
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="hover:text-sky-600 hover:bg-sky-50">
+                          <Button variant="ghost" size="icon" className="hover:text-primary hover:bg-primary-muted/60">
                             <Icons.moreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-40">
                           <DropdownMenuItem onClick={() => handleEdit(category)}>
-                            <Icons.edit className="mr-2 h-4 w-4 text-sky-600" />
+                            <Icons.edit className="mr-2 h-4 w-4 text-primary" />
                             Edit
                           </DropdownMenuItem>
                           {category.isActive ? (
                             <DropdownMenuItem 
                               onClick={() => handleDelete(category.id)}
-                              className="text-red-600 focus:text-red-600"
+                              className="text-danger focus:text-danger"
                             >
                               <Icons.trash className="mr-2 h-4 w-4" />
                               Deactivate
                             </DropdownMenuItem>
                           ) : (
                             <DropdownMenuItem onClick={() => handleRestore(category.id)}>
-                              <Icons.refreshCw className="mr-2 h-4 w-4 text-emerald-600" />
+                              <Icons.refreshCw className="mr-2 h-4 w-4 text-success" />
                               Restore
                             </DropdownMenuItem>
                           )}
@@ -466,9 +466,9 @@ export function CategoryList() {
 
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto border-t-8 border-sky-500">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto border-t-8 border-primary/60">
           <DialogHeader>
-            <DialogTitle className="text-sky-700">
+            <DialogTitle className="text-primary">
               {selectedCategory
                 ? "Update Category Details"
                 : "Create New Category"}
@@ -505,7 +505,7 @@ export function CategoryList() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-danger hover:bg-danger"
             >
               Deactivate
             </AlertDialogAction>

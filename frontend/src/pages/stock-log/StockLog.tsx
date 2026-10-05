@@ -78,17 +78,17 @@ type StockLogTransactionType =
   | "EXPIRY_WRITE_OFF";
 
 const transactionTypeColors: Record<string, string> = {
-  PURCHASE_RECEIPT: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  USAGE: "bg-rose-50 text-rose-700 border-rose-200",
-  ADJUSTMENT_IN: "bg-sky-50 text-sky-700 border-sky-200",
-  ADJUSTMENT_OUT: "bg-orange-50 text-orange-700 border-orange-200",
-  WASTE: "bg-red-50 text-red-700 border-red-200",
-  TRANSFER_IN: "bg-blue-50 text-blue-700 border-blue-200",
+  PURCHASE_RECEIPT: "bg-success-muted/60 text-success border-success/25",
+  USAGE: "bg-danger-muted/60 text-danger border-danger/25",
+  ADJUSTMENT_IN: "bg-primary-muted/60 text-primary border-primary/25",
+  ADJUSTMENT_OUT: "bg-warning-muted/60 text-warning border-warning/25",
+  WASTE: "bg-danger-muted/60 text-danger border-danger/25",
+  TRANSFER_IN: "bg-primary-muted/60 text-primary border-primary/25",
   TRANSFER_OUT: "bg-indigo-50 text-indigo-700 border-indigo-200",
   SALE: "bg-purple-50 text-purple-700 border-purple-200",
-  RETURN_IN: "bg-green-50 text-green-700 border-green-200",
-  RETURN_TO_SUPPLIER: "bg-gray-50 text-gray-700 border-gray-200",
-  OPENING_BALANCE: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  RETURN_IN: "bg-success-muted/60 text-success border-success/25",
+  RETURN_TO_SUPPLIER: "bg-muted/50 text-foreground border-border",
+  OPENING_BALANCE: "bg-warning-muted/60 text-warning border-warning/25",
   EXPIRY_WRITE_OFF: "bg-pink-50 text-pink-700 border-pink-200",
 };
 
@@ -170,7 +170,7 @@ if (transactionType) {
       accessorKey: "ledgerCode",
       header: "Log Code",
       cell: ({ row }) => (
-        <span className="font-mono text-xs font-semibold text-sky-700 bg-sky-50 px-0.5 py-0.5 rounded border border-sky-100">
+        <span className="font-mono text-xs font-semibold text-primary bg-primary-muted/60 px-0.5 py-0.5 rounded border border-primary/20">
           {row.original.ledgerCode}
         </span>
       ),
@@ -179,8 +179,8 @@ if (transactionType) {
       accessorKey: "createdAt",
       header: "Date & Time",
       cell: ({ row }) => (
-        <div className="text-slate-600 text-xs">
-          <div className="font-medium text-slate-900">
+        <div className="text-muted-foreground text-xs">
+          <div className="font-medium text-foreground">
             {format(new Date(row.original.createdAt), "dd MMM yyyy")}
           </div>
           <div>{format(new Date(row.original.createdAt), "HH:mm:ss")}</div>
@@ -194,22 +194,22 @@ if (transactionType) {
         const log = row.original;
         const item = row.original.item;
 
-        if (!item?.name) return <span className="text-slate-400 italic">N/A</span>;
+        if (!item?.name) return <span className="text-muted-foreground/70 italic">N/A</span>;
 
         return (
           <div className="flex flex-col gap-0.5">
-            <span className="font-bold text-slate-800 text-sm">{item.name}</span>
+            <span className="font-bold text-foreground text-sm">{item.name}</span>
                          <div className="flex items-center gap-1.5 text-[10px]">
-                          <span className="font-mono text-xs text-slate-500">{item.itemCode}</span>
+                          <span className="font-mono text-xs text-muted-foreground">{item.itemCode}</span>
 
               {/* <Badge
                 variant="secondary"
-                className="px-1 py-0 h-4 text-[9px] bg-slate-100 text-slate-600 border-none"
+                className="px-1 py-0 h-4 text-[9px] bg-muted text-muted-foreground border-none"
               >
                 {log.itemType}
               </Badge>  */}
-              <span className="text-slate-400">|</span>
-              <span className="text-slate-500 uppercase font-medium">
+              <span className="text-muted-foreground/70">|</span>
+              <span className="text-muted-foreground uppercase font-medium">
                 {item.uom}
               </span>
             </div>
@@ -221,7 +221,7 @@ if (transactionType) {
       accessorKey: "location.name",
       header: "Location",
       cell: ({ row }) => (
-        <span className="text-slate-700 font-medium">
+        <span className="text-foreground font-medium">
           {row.original.location?.name || "-"}
         </span>
       ),
@@ -235,7 +235,7 @@ if (transactionType) {
 
         // âœ… Safe fallback if type is undefined
         if (!type) {
-          return <span className="text-slate-400 italic">â€”</span>;
+          return <span className="text-muted-foreground/70 italic">â€”</span>;
         }
 
         // âœ… Format for display: "PURCHASE_RECEIPT" â†’ "Purchase Receipt"
@@ -253,7 +253,7 @@ if (transactionType) {
             variant="outline"
             className={`font-semibold shadow-sm ${
               transactionTypeColors[type] ??
-              "bg-slate-50 text-slate-700 border-slate-200"
+              "bg-muted/50 text-foreground border-border"
             }`}
           >
             {displayType}
@@ -279,7 +279,7 @@ if (transactionType) {
       accessorKey: "quantityBefore",
       header: "Quantity Before",
       cell: ({ row }) => (
-        <div className="text-left pl-2 font-mono font-bold text-slate-900">
+        <div className="text-left pl-2 font-mono font-bold text-foreground">
           {row.original.quantityBefore}
         </div>
       ),
@@ -291,7 +291,7 @@ if (transactionType) {
         const change = row.original.quantityChange;
         return (
           <div
-            className={`font-bold text-left pl-2 ${change > 0 ? "text-left text-emerald-600" : change < 0 ? "text-left text-rose-600" : "text-left text-slate-400"}`}
+            className={`font-bold text-left pl-2 ${change > 0 ? "text-left text-success" : change < 0 ? "text-left text-danger" : "text-left text-muted-foreground/70"}`}
           >
             {change > 0 ? "+" : ""}
             {change}
@@ -303,7 +303,7 @@ if (transactionType) {
       accessorKey: "quantityAfter",
       header: "Final Stock",
       cell: ({ row }) => (
-        <div className="text-left font-mono font-bold text-slate-900 pl-2">
+        <div className="text-left font-mono font-bold text-foreground pl-2">
           {row.original.quantityAfter}
         </div>
       ),
@@ -312,9 +312,9 @@ if (transactionType) {
       accessorKey: "unitCost",
       header: "Unit Cost",
       cell: ({ row }) => (
-        <span className="text-slate-600 font-medium">
+        <span className="text-muted-foreground font-medium">
           {Number(row.original.unitCost).toLocaleString()}{" "}
-          <small className="text-[10px] text-slate-400">UGX</small>
+          <small className="text-[10px] text-muted-foreground/70">UGX</small>
         </span>
       ),
     },
@@ -335,17 +335,17 @@ if (transactionType) {
   return (
     <div className="min-h-screen bg-[#f4f6f9] pb-8 font-sans">
       {/* AdminLTE Content Header */}
-      <section className="bg-white border-b border-slate-200 px-1 py-1 mb-1">
+      <section className="bg-white border-b border-border px-1 py-1 mb-1">
         <div className="max-w-screen-2xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-800">
+            <h1 className="text-2xl font-semibold text-foreground">
               Stock Ledger
             </h1>
-            {/* <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
+            {/* <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
               <Home className="h-3.5 w-3.5" />
               <span>Dashboard</span>
               <ChevronRight className="h-3.5 w-3.5" />
-              <span className="text-sky-600 font-medium">Stock Logs</span>
+              <span className="text-primary font-medium">Stock Logs</span>
             </div> */}
           </div>
           <div className="flex items-center gap-1">
@@ -353,14 +353,14 @@ if (transactionType) {
               variant="outline"
               onClick={fetchLogs}
               disabled={loading}
-              className="bg-white border-sky-200 text-sky-700 hover:bg-sky-50"
+              className="bg-white border-primary/25 text-primary hover:bg-primary-muted/60"
             >
               <RefreshCw
                 className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`}
               />
               Refresh
             </Button>
-            <Button className="bg-sky-600 hover:bg-sky-700 shadow-md">
+            <Button className="bg-primary hover:bg-primary shadow-md">
               <Download className="mr-2 h-4 w-4" />
               Export CSV
             </Button>
@@ -371,8 +371,8 @@ if (transactionType) {
       <div className="px-1 md:px-1 max-w-screen-2xl mx-auto space-y-6">
         {/* Filters Box */}
         <Card className="border-none shadow-sm border-t-4 border-t-sky-500 rounded-t-sm">
-          <CardHeader className="py-1 px-1 border-b border-slate-100 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-600 flex items-center gap-2">
+          <CardHeader className="py-1 px-1 border-b border-border/60 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
               <Search className="h-4 w-4" /> Search Filters
             </CardTitle>
             {(search || itemType || transactionType || dateFrom || dateTo) && (
@@ -380,7 +380,7 @@ if (transactionType) {
                 variant="ghost"
                 size="sm"
                 onClick={clearFilters}
-                className="h-7 text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                className="h-7 text-danger hover:text-danger hover:bg-danger-muted/60"
               >
                 <FilterX className="h-3.5 w-3.5 mr-1" /> Reset
               </Button>
@@ -395,7 +395,7 @@ if (transactionType) {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                className="border-slate-200 focus-visible:ring-sky-500 h-9"
+                className="border-border focus-visible:ring-primary/60 h-9"
               />
 
               <Select
@@ -405,7 +405,7 @@ if (transactionType) {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-9 border-slate-200 focus:ring-sky-500">
+                <SelectTrigger className="h-9 border-border focus:ring-primary/60">
                   <SelectValue placeholder="All Item Types" />
                 </SelectTrigger>
                 <SelectContent>
@@ -422,7 +422,7 @@ if (transactionType) {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-9 border-slate-200">
+                <SelectTrigger className="h-9 border-border">
                   <SelectValue placeholder="All Transactions" />
                 </SelectTrigger>
                 <SelectContent>
@@ -460,7 +460,7 @@ if (transactionType) {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-9 border-slate-200">
+                <SelectTrigger className="h-9 border-border">
                   <SelectValue placeholder="All Transactions" />
                 </SelectTrigger>
                 <SelectContent>
@@ -484,9 +484,9 @@ if (transactionType) {
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    className="h-9 w-full justify-start text-left font-normal border-slate-200 text-slate-600"
+                    className="h-9 w-full justify-start text-left font-normal border-border text-muted-foreground"
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4 text-sky-500" />
+                    <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
                     {dateFrom ? format(dateFrom, "dd/MM/yyyy") : "From Date"}
                   </Button>
                 </PopoverTrigger>
@@ -503,9 +503,9 @@ if (transactionType) {
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    className="h-9 w-full justify-start text-left font-normal border-slate-200 text-slate-600"
+                    className="h-9 w-full justify-start text-left font-normal border-border text-muted-foreground"
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4 text-sky-500" />
+                    <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
                     {dateTo ? format(dateTo, "dd/MM/yyyy") : "To Date"}
                   </Button>
                 </PopoverTrigger>
@@ -530,12 +530,12 @@ if (transactionType) {
                   {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow
                       key={headerGroup.id}
-                      className="border-b border-slate-200"
+                      className="border-b border-border"
                     >
                       {headerGroup.headers.map((header) => (
                         <TableHead
                           key={header.id}
-                          className="text-left h-12 text-[11px] font-bold text-slate-600 uppercase tracking-wider "
+                          className="text-left h-12 text-[11px] font-bold text-muted-foreground uppercase tracking-wider "
                         >
                           {flexRender(
                             header.column.columnDef.header,
@@ -553,9 +553,9 @@ if (transactionType) {
                         colSpan={columns.length}
                         className="h-72 text-left"
                       >
-                        <div className="flex flex-col items-start text-sky-600">
+                        <div className="flex flex-col items-start text-primary">
                           <Loader2 className="h-10 w-10 animate-spin mb-2" />
-                          <span className="text-sm font-medium text-slate-500">
+                          <span className="text-sm font-medium text-muted-foreground">
                             Processing Ledger Data...
                           </span>
                         </div>
@@ -568,8 +568,8 @@ if (transactionType) {
                         className="h-72 text-left"
                       >
                         <div className="flex items-start flex-col text-left py-2">
-                          <PackageX className="h-12 w-12 text-slate-200 mb-3" />
-                          <p className="text-slate-500 font-medium">
+                          <PackageX className="h-12 w-12 text-muted-foreground/40 mb-3" />
+                          <p className="text-muted-foreground font-medium">
                             No stock movements found.
                           </p>
                         </div>
@@ -579,7 +579,7 @@ if (transactionType) {
                     table.getRowModel().rows.map((row) => (
                       <TableRow
                         key={row.id}
-                        className="hover:bg-sky-50/30 border-b border-slate-100 transition-colors"
+                        className="hover:bg-primary-muted/30 border-b border-border/60 transition-colors"
                       >
                         {row.getVisibleCells().map((cell) => (
                           <TableCell key={cell.id} className="text-left">
@@ -597,17 +597,17 @@ if (transactionType) {
             </div>
 
             {/* AdminLTE style Footer */}
-            <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-white border-t border-slate-100 gap-4">
-              <div className="text-sm text-slate-500">
+            <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-white border-t border-border/60 gap-4">
+              <div className="text-sm text-muted-foreground">
                 Showing{" "}
-                <span className="font-bold text-slate-700">
+                <span className="font-bold text-foreground">
                   {(page - 1) * limit + 1}
                 </span>{" "}
                 to{" "}
-                <span className="font-bold text-slate-700">
+                <span className="font-bold text-foreground">
                   {Math.min(page * limit, total)}
                 </span>{" "}
-                of <span className="font-bold text-slate-700">{total}</span>{" "}
+                of <span className="font-bold text-foreground">{total}</span>{" "}
                 entries
               </div>
               <div className="flex items-center gap-1">
@@ -616,11 +616,11 @@ if (transactionType) {
                   size="sm"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1 || loading}
-                  className="h-8 border-slate-200 px-4 hover:bg-sky-50 hover:text-sky-700"
+                  className="h-8 border-border px-4 hover:bg-primary-muted/60 hover:text-primary"
                 >
                   Previous
                 </Button>
-                <div className="flex items-center justify-center bg-sky-600 text-white text-xs font-bold w-8 h-8 rounded shadow-inner">
+                <div className="flex items-center justify-center bg-primary text-white text-xs font-bold w-8 h-8 rounded shadow-inner">
                   {page}
                 </div>
                 <Button
@@ -628,7 +628,7 @@ if (transactionType) {
                   size="sm"
                   onClick={() => setPage((p) => p + 1)}
                   disabled={page * limit >= total || loading}
-                  className="h-8 border-slate-200 px-4 hover:bg-sky-50 hover:text-sky-700"
+                  className="h-8 border-border px-4 hover:bg-primary-muted/60 hover:text-primary"
                 >
                   Next
                 </Button>

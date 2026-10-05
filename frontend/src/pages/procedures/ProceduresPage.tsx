@@ -63,11 +63,11 @@ const fmt = (n: number | undefined | null) =>
 
 function statusBadge(isActive: boolean) {
   return isActive ? (
-    <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 font-medium">
+    <Badge className="bg-success-muted text-success border-success/25 font-medium">
       Active
     </Badge>
   ) : (
-    <Badge variant="secondary" className="text-slate-500">
+    <Badge variant="secondary" className="text-muted-foreground">
       Inactive
     </Badge>
   );
@@ -192,21 +192,21 @@ function ProcedureFormDialog({
 
         <div className="space-y-4 mt-4">
           {errors._global && (
-            <div className="rounded-md bg-rose-50 border border-rose-200 p-3 text-sm text-rose-700">
+            <div className="rounded-md bg-danger-muted/60 border border-danger/25 p-3 text-sm text-danger">
               {errors._global}
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Name <span className="text-rose-500">*</span></Label>
+              <Label>Name <span className="text-danger">*</span></Label>
               <Input
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
                 placeholder="e.g. Root Canal Treatment"
-                className={errors.name ? "border-rose-400" : ""}
+                className={errors.name ? "border-danger/40" : ""}
               />
-              {errors.name && <p className="text-xs text-rose-500">{errors.name}</p>}
+              {errors.name && <p className="text-xs text-danger">{errors.name}</p>}
             </div>
             <div className="space-y-1.5">
               <Label>Code</Label>
@@ -220,9 +220,9 @@ function ProcedureFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Category <span className="text-rose-500">*</span></Label>
+              <Label>Category <span className="text-danger">*</span></Label>
               <Select value={form.category} onValueChange={(v) => set("category", v)}>
-                <SelectTrigger className={errors.category ? "border-rose-400" : ""}>
+                <SelectTrigger className={errors.category ? "border-danger/40" : ""}>
                   <SelectValue placeholder="Select category…" />
                 </SelectTrigger>
                 <SelectContent>
@@ -235,7 +235,7 @@ function ProcedureFormDialog({
                   )}
                 </SelectContent>
               </Select>
-              {errors.category && <p className="text-xs text-rose-500">{errors.category}</p>}
+              {errors.category && <p className="text-xs text-danger">{errors.category}</p>}
             </div>
             <div className="space-y-1.5">
               <Label>Duration (minutes)</Label>
@@ -251,28 +251,28 @@ function ProcedureFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Internal Cost (UGX) <span className="text-rose-500">*</span></Label>
+              <Label>Internal Cost (UGX) <span className="text-danger">*</span></Label>
               <Input
                 type="number"
                 min={0}
                 step={1000}
                 value={form.baseCost}
                 onChange={(e) => set("baseCost", parseFloat(e.target.value) || 0)}
-                className={errors.baseCost ? "border-rose-400" : ""}
+                className={errors.baseCost ? "border-danger/40" : ""}
               />
-              <p className="text-xs text-slate-500">What the clinic pays for materials</p>
+              <p className="text-xs text-muted-foreground">What the clinic pays for materials</p>
             </div>
             <div className="space-y-1.5">
-              <Label>Selling Price <span className="text-rose-500">*</span></Label>
+              <Label>Selling Price <span className="text-danger">*</span></Label>
               <Input
                 type="number"
                 min={0}
                 step={1000}
                 value={form.basePrice}
                 onChange={(e) => set("basePrice", parseFloat(e.target.value) || 0)}
-                className={errors.basePrice ? "border-rose-400" : ""}
+                className={errors.basePrice ? "border-danger/40" : ""}
               />
-              <p className="text-xs text-slate-500">What the patient pays</p>
+              <p className="text-xs text-muted-foreground">What the patient pays</p>
             </div>
           </div>
 
@@ -324,7 +324,7 @@ function ProcedureFormDialog({
               onChange={(v) => set("revenueAccountId", v)}
               inheritLabel="Inherit from category (else Treatment Revenue)"
             />
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               GL account this procedure's revenue is recognised into when invoiced.
             </p>
           </div>
@@ -353,7 +353,7 @@ function ProcedureFormDialog({
 
         <DialogFooter className="mt-4">
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={save} disabled={saving} className="bg-primary hover:bg-primary">
             {saving ? "Saving…" : existing ? "Update Procedure" : "Create Procedure"}
           </Button>
         </DialogFooter>
@@ -413,15 +413,15 @@ export default function ProceduresPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50">
+    <div className="flex flex-col h-full bg-muted/50">
       {/* Header */}
       <div className="bg-white border-b px-5 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Procedures & Treatments</h1>
-            <p className="text-sm text-slate-500 mt-0.5">Manage the procedure catalog with pricing</p>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">Procedures & Treatments</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Manage the procedure catalog with pricing</p>
           </div>
-          <Button onClick={openCreate} className="gap-2 bg-blue-600 hover:bg-blue-700">
+          <Button onClick={openCreate} className="gap-2 bg-primary hover:bg-primary">
             <Plus size={16} /> New Procedure
           </Button>
         </div>
@@ -430,7 +430,7 @@ export default function ProceduresPage() {
       {/* Filters */}
       <div className="bg-white border-b px-6 py-3 flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70" />
           <Input
             className="pl-9 h-8 text-sm"
             placeholder="Search procedures…"
@@ -452,12 +452,12 @@ export default function ProceduresPage() {
       {/* Table */}
       <div className="flex-1 overflow-auto px-2 py-2">
         {loading ? (
-          <div className="flex items-center justify-center h-48 text-slate-400">
+          <div className="flex items-center justify-center h-48 text-muted-foreground/70">
             <Activity size={24} className="animate-spin mr-2" /> Loading procedures…
           </div>
         ) : procedures.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-slate-400">
-            <Layers size={32} className="mb-3 text-slate-300" />
+          <div className="flex flex-col items-center justify-center h-48 text-muted-foreground/70">
+            <Layers size={32} className="mb-3 text-muted-foreground/50" />
             <p className="text-sm">No procedures found</p>
             <Button variant="outline" size="sm" onClick={openCreate} className="mt-3">Create first procedure</Button>
           </div>
@@ -465,7 +465,7 @@ export default function ProceduresPage() {
           <div className="rounded-xl border bg-white overflow-hidden shadow-sm">
             <Table>
               <TableHeader>
-                <TableRow className="bg-slate-50 hover:bg-slate-50">
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
                   <TableHead>Procedure</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead className="text-center">Selling Price</TableHead>
@@ -477,21 +477,21 @@ export default function ProceduresPage() {
               </TableHeader>
               <TableBody>
                 {procedures.map((proc) => (
-                  <TableRow key={proc.id} className="hover:bg-slate-50">
+                  <TableRow key={proc.id} className="hover:bg-muted/50">
                     <TableCell>
-                      <div className="font-medium text-slate-800">{proc.name}</div>
-                      {proc.code && <div className="text-xs text-slate-400 font-mono">{proc.code}</div>}
+                      <div className="font-medium text-foreground">{proc.name}</div>
+                      {proc.code && <div className="text-xs text-muted-foreground/70 font-mono">{proc.code}</div>}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-xs font-normal">{proc.category}</Badge>
                     </TableCell>
-                    <TableCell className="text-center font-semibold text-slate-700">
+                    <TableCell className="text-center font-semibold text-foreground">
                       {fmt(proc.basePrice)} {proc.currency}
                     </TableCell>
-                    <TableCell className="text-center text-rose-600 font-medium">
+                    <TableCell className="text-center text-danger font-medium">
                       {fmt(proc.baseCost)}
                     </TableCell>
-                    <TableCell className="text-center text-sm text-slate-600">
+                    <TableCell className="text-center text-sm text-muted-foreground">
                       {proc.defaultDuration} min
                     </TableCell>
                     <TableCell className="text-center">{statusBadge(proc.isActive)}</TableCell>
@@ -500,7 +500,7 @@ export default function ProceduresPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0 text-slate-500 hover:bg-slate-100"
+                          className="h-7 w-7 p-0 text-muted-foreground hover:bg-muted"
                           onClick={() => openEdit(proc)}
                         >
                           <Edit2 size={13} />
@@ -508,7 +508,7 @@ export default function ProceduresPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0 text-rose-400 hover:bg-rose-50"
+                          className="h-7 w-7 p-0 text-danger/70 hover:bg-danger-muted/60"
                           onClick={() => handleDelete(proc)}
                         >
                           <Trash2 size={13} />
@@ -522,8 +522,8 @@ export default function ProceduresPage() {
 
             {/* Pagination */}
             {meta.pages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t bg-slate-50">
-                <span className="text-xs text-slate-500">{meta.total} total procedures</span>
+              <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/50">
+                <span className="text-xs text-muted-foreground">{meta.total} total procedures</span>
                 <div className="flex gap-1">
                   {Array.from({ length: meta.pages }, (_, i) => i + 1).map((p) => (
                     <Button

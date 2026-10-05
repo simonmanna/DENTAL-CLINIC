@@ -90,8 +90,8 @@ const { register, handleSubmit, watch, formState: { isSubmitting } } = useForm<F
       <DialogContent className="max-w-3xl h-[85vh] flex flex-col p-0 gap-0">
         <DialogHeader className="px-6 py-4 border-b">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-              <Truck className="h-4 w-4 text-blue-600" />
+            <div className="p-2 rounded-lg bg-primary-muted dark:bg-primary/30">
+              <Truck className="h-4 w-4 text-primary" />
             </div>
             <div>
               <DialogTitle className="text-base">Record Delivery</DialogTitle>
@@ -272,11 +272,11 @@ export function RecordPaymentModal({ po, onClose }: { po: PurchaseOrder; onClose
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Paid</p>
-              <p className="font-semibold text-sm font-mono text-emerald-600">{formatUGX(po.amountPaid)}</p>
+              <p className="font-semibold text-sm font-mono text-success">{formatUGX(po.amountPaid)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Balance</p>
-              <p className="font-semibold text-sm font-mono text-amber-600">{formatUGX(po.balance)}</p>
+              <p className="font-semibold text-sm font-mono text-warning">{formatUGX(po.balance)}</p>
             </div>
           </div>
 
@@ -475,13 +475,13 @@ export function StockAdjustmentModal({ onClose }: { onClose: () => void }) {
                             />
                           </td>
                           <td className="p-1.5 text-right font-mono font-semibold text-sm">
-                            <span className={diff > 0 ? "text-emerald-600" : diff < 0 ? "text-red-500" : "text-muted-foreground"}>
+                            <span className={diff > 0 ? "text-success" : diff < 0 ? "text-danger" : "text-muted-foreground"}>
                               {diff > 0 ? "+" : ""}{diff}
                             </span>
                           </td>
                           <td className="p-1.5">
                             <Button
-                              type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-500"
+                              type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-danger"
                               onClick={() => setItems((prev) => prev.filter((_, i) => i !== idx))}
                               disabled={items.length === 1}
                             >
@@ -562,8 +562,8 @@ export function WasteRecordModal({ onClose }: { onClose: () => void }) {
       <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0 gap-0">
         <DialogHeader className="px-6 py-4 border-b">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
+            <div className="p-2 rounded-lg bg-danger-muted dark:bg-danger/30">
+              <AlertTriangle className="h-4 w-4 text-danger" />
             </div>
             <div>
               <DialogTitle className="text-base">Record Waste / Damage</DialogTitle>
@@ -637,7 +637,7 @@ export function WasteRecordModal({ onClose }: { onClose: () => void }) {
                           {new Intl.NumberFormat("en-UG", { minimumFractionDigits: 0 }).format((item.quantity || 0) * (item.unitCost || 0))}
                         </td>
                         <td className="p-1.5">
-                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 hover:text-red-500" onClick={() => setItems((p) => p.filter((_, i) => i !== idx))} disabled={items.length === 1}>
+                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 hover:text-danger" onClick={() => setItems((p) => p.filter((_, i) => i !== idx))} disabled={items.length === 1}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </td>
@@ -647,7 +647,7 @@ export function WasteRecordModal({ onClose }: { onClose: () => void }) {
                   <tfoot className="border-t bg-muted/20">
                     <tr>
                       <td colSpan={5} className="p-2 text-right text-xs font-semibold text-muted-foreground">Total Waste Value:</td>
-                      <td className="p-2 text-right font-mono font-bold text-red-600">{formatUGX(totalValue)}</td>
+                      <td className="p-2 text-right font-mono font-bold text-danger">{formatUGX(totalValue)}</td>
                       <td />
                     </tr>
                   </tfoot>

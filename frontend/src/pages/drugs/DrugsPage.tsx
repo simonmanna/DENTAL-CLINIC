@@ -122,7 +122,7 @@ function DrugDetailSheet({
               {drug.name}
             </DialogTitle>
             {drug.genericName && (
-              <DialogDescription className="text-sky-100 italic">
+              <DialogDescription className="text-primary/40 italic">
                 {drug.genericName}
               </DialogDescription>
             )}
@@ -135,8 +135,8 @@ function DrugDetailSheet({
               <Badge
                 className={
                   drug.isActive
-                    ? "bg-green-500 hover:bg-green-600"
-                    : "bg-gray-500"
+                    ? "bg-success hover:bg-success"
+                    : "bg-muted-foreground"
                 }
               >
                 {drug.isActive ? "Active" : "Inactive"}
@@ -145,8 +145,8 @@ function DrugDetailSheet({
                 variant="outline"
                 className={
                   drug.requiresPrescription
-                    ? "border-red-500 text-red-500"
-                    : "border-sky-500 text-sky-500"
+                    ? "border-danger/60 text-danger"
+                    : "border-primary/60 text-primary"
                 }
               >
                 {drug.requiresPrescription ? "Rx Only" : "OTC"}
@@ -162,12 +162,12 @@ function DrugDetailSheet({
               ].map(([label, val]) => (
                 <div
                   key={label}
-                  className="flex justify-between items-center border-b border-gray-50 pb-2 last:border-0"
+                  className="flex justify-between items-center border-b border-border/40 pb-2 last:border-0"
                 >
-                  <span className="text-sm font-bold text-gray-600 uppercase tracking-tight">
+                  <span className="text-sm font-bold text-muted-foreground uppercase tracking-tight">
                     {label}
                   </span>
-                  <span className="text-sm font-medium text-gray-900">
+                  <span className="text-sm font-medium text-foreground">
                     {val}
                   </span>
                 </div>
@@ -178,12 +178,12 @@ function DrugDetailSheet({
           {/* ── NEW: Linked Inventory ── */}
           {drug.inventoryItem ? (
             <div className="bg-white rounded border-l-4 border-l-amber-500 shadow-sm p-4">
-              <h4 className="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-1">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase mb-2 flex items-center gap-1">
                 <Package className="h-3 w-3" />
                 Linked Inventory
               </h4>
               <div className="flex justify-between items-center">
-                <span className="text-sm font-semibold text-gray-800">
+                <span className="text-sm font-semibold text-foreground">
                   {drug.inventoryItem.name}
                 </span>
                 <Badge variant="outline">{drug.inventoryItem.itemCode}</Badge>
@@ -198,7 +198,7 @@ function DrugDetailSheet({
             </div>
           ) : (
             <div className="bg-white rounded border shadow-sm p-4">
-              <h4 className="text-xs font-bold text-gray-500 uppercase mb-1">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase mb-1">
                 Inventory Link
               </h4>
               <p className="text-sm text-muted-foreground">
@@ -210,23 +210,23 @@ function DrugDetailSheet({
           {/* Pricing Box */}
           <div className="bg-white rounded border-l-4 border-l-green-500 shadow-sm px-2 py-1 flex justify-between items-center">
             <div>
-              <p className="text-xs text-gray-500 uppercase font-bold">
+              <p className="text-xs text-muted-foreground uppercase font-bold">
                 Selling Price
               </p>
-              <p className="text-xl font-black text-gray-800">
+              <p className="text-xl font-black text-foreground">
                 {formatPrice(drug.sellPrice)}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-gray-500 uppercase font-bold">Cost</p>
-              <p className="text-xl text-gray-400">
+              <p className="text-xs text-muted-foreground uppercase font-bold">Cost</p>
+              <p className="text-xl text-muted-foreground/70">
                 {formatPrice(drug.unitPrice)}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-gray-50 px-6 py-1 flex justify-end gap-3 border-t">
+        <div className="bg-muted/50 px-6 py-1 flex justify-end gap-3 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
@@ -355,19 +355,19 @@ export default function DrugsPage() {
           label="Total Drugs"
           value={stats?.total}
           icon={Package}
-          color="bg-blue-500"
+          color="bg-primary"
         />
         <StatCard
           label="Active"
           value={stats?.active}
           icon={Pill}
-          color="bg-green-500"
+          color="bg-success"
         />
         <StatCard
           label="Prescription"
           value={stats?.requiresPrescription}
           icon={AlertCircle}
-          color="bg-red-500"
+          color="bg-danger"
         />
         <StatCard
           label="Over The Counter"

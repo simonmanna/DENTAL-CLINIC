@@ -60,11 +60,11 @@ export function WasteDetailDrawer({ record, open, onClose, onApprove, onReject }
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent className="w-full sm:max-w-xl overflow-y-auto p-0">
         {/* ── Header ─────────────────────────────────────────────────────── */}
-        <div className="bg-white border-b border-gray-100 px-6 py-5 sticky top-0 z-10">
+        <div className="bg-white border-b border-border/60 px-6 py-5 sticky top-0 z-10">
           <SheetHeader>
             <div className="flex items-start justify-between">
               <div>
-                <SheetTitle className="text-lg font-bold font-mono text-gray-900">
+                <SheetTitle className="text-lg font-bold font-mono text-foreground">
                   {record.wasteCode}
                 </SheetTitle>
                 <div className="flex items-center gap-2 mt-1.5">
@@ -74,19 +74,19 @@ export function WasteDetailDrawer({ record, open, onClose, onApprove, onReject }
                     {meta.icon} {meta.label}
                   </span>
                   {isApproved ? (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-muted/60 text-success border border-success/25">
                       <CheckCircle2 className="w-3 h-3" /> Approved
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-muted/60 text-warning border border-warning/25">
                       <Clock className="w-3 h-3" /> Pending Approval
                     </span>
                   )}
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-400">Total Loss</p>
-                <p className="text-xl font-bold text-red-600">
+                <p className="text-xs text-muted-foreground/70">Total Loss</p>
+                <p className="text-xl font-bold text-danger">
                   {formatCurrency(record.totalValue)}
                 </p>
               </div>
@@ -126,60 +126,60 @@ export function WasteDetailDrawer({ record, open, onClose, onApprove, onReject }
           </div>
 
           {record.notes && (
-            <div className="bg-gray-50 rounded-xl p-3.5">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+            <div className="bg-muted/50 rounded-xl p-3.5">
+              <p className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider mb-1.5">
                 Notes
               </p>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">{record.notes}</p>
+              <p className="text-sm text-foreground whitespace-pre-wrap">{record.notes}</p>
             </div>
           )}
 
           {/* ── Items ──────────────────────────────────────────────────────── */}
           <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2.5">
+            <p className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider mb-2.5">
               Items ({record.items.length})
             </p>
             <div className="space-y-2">
               {record.items.map((item) => (
                 <div
                   key={item.id}
-                  className="bg-white border border-gray-100 rounded-xl p-3.5 shadow-sm"
+                  className="bg-white border border-border/60 rounded-xl p-3.5 shadow-sm"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2 min-w-0">
                       {item.itemType === 'DRUG' ? (
-                        <Pill className="w-4 h-4 text-blue-500 shrink-0" />
+                        <Pill className="w-4 h-4 text-primary shrink-0" />
                       ) : (
-                        <Package className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <Package className="w-4 h-4 text-success shrink-0" />
                       )}
                       <div className="min-w-0">
-                        <p className="font-medium text-gray-900 text-sm truncate">
+                        <p className="font-medium text-foreground text-sm truncate">
                           {item.itemName}
                         </p>
                         {item.reason && (
-                          <p className="text-xs text-gray-400 mt-0.5">{item.reason}</p>
+                          <p className="text-xs text-muted-foreground/70 mt-0.5">{item.reason}</p>
                         )}
                       </div>
                     </div>
                     <div className="text-right shrink-0 ml-3">
-                      <p className="text-sm font-bold text-gray-900">
+                      <p className="text-sm font-bold text-foreground">
                         {formatCurrency(item.totalCost)}
                       </p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-muted-foreground/70">
                         {item.quantity} {item.unit} × {formatCurrency(item.unitCost)}
                       </p>
                     </div>
                   </div>
 
                   {(item.batchNumber || item.expiryDate) && (
-                    <div className="flex gap-3 mt-2 pt-2 border-t border-gray-100">
+                    <div className="flex gap-3 mt-2 pt-2 border-t border-border/60">
                       {item.batchNumber && (
-                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
                           <Hash className="w-3 h-3" /> {item.batchNumber}
                         </span>
                       )}
                       {item.expiryDate && (
-                        <span className="text-xs text-orange-500 flex items-center gap-1">
+                        <span className="text-xs text-warning flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           Exp: {formatDate(item.expiryDate)}
                         </span>
@@ -191,12 +191,12 @@ export function WasteDetailDrawer({ record, open, onClose, onApprove, onReject }
             </div>
 
             {/* Total row */}
-            <div className="bg-red-50 border border-red-100 rounded-xl p-3.5 mt-3 flex justify-between items-center">
-              <span className="text-sm font-semibold text-red-800 flex items-center gap-1.5">
+            <div className="bg-danger-muted/60 border border-danger/20 rounded-xl p-3.5 mt-3 flex justify-between items-center">
+              <span className="text-sm font-semibold text-danger flex items-center gap-1.5">
                 <TrendingDown className="w-4 h-4" />
                 Total Loss Value
               </span>
-              <span className="text-lg font-bold text-red-800">
+              <span className="text-lg font-bold text-danger">
                 {formatCurrency(record.totalValue)}
               </span>
             </div>
@@ -205,7 +205,7 @@ export function WasteDetailDrawer({ record, open, onClose, onApprove, onReject }
           {/* ── Stock Log (if approved) ──────────────────────────────────────── */}
           {record.stockLogs && record.stockLogs.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+              <p className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                 <Activity className="w-3.5 h-3.5" />
                 Stock Log Entries
               </p>
@@ -213,17 +213,17 @@ export function WasteDetailDrawer({ record, open, onClose, onApprove, onReject }
                 {record.stockLogs.map((log) => (
                   <div
                     key={log.id}
-                    className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs"
+                    className="bg-muted/50 border border-border/60 rounded-xl p-3 text-xs"
                   >
                     <div className="flex justify-between">
-                      <span className="font-medium text-slate-700">
+                      <span className="font-medium text-foreground">
                         {log.inventoryItem?.name || log.drug?.name}
                       </span>
-                      <span className="font-mono font-bold text-red-600">
+                      <span className="font-mono font-bold text-danger">
                         {log.quantityChange} {/* negative */}
                       </span>
                     </div>
-                    <div className="text-slate-400 mt-0.5">
+                    <div className="text-muted-foreground/70 mt-0.5">
                       Stock: {log.quantityBefore} → {log.quantityAfter} ·{' '}
                       {formatDate(log.createdAt, true)}
                     </div>
@@ -239,14 +239,14 @@ export function WasteDetailDrawer({ record, open, onClose, onApprove, onReject }
               <Button
                 onClick={() => onReject(record)}
                 variant="outline"
-                className="flex-1 gap-2 rounded-xl border-red-200 text-red-600 hover:bg-red-50"
+                className="flex-1 gap-2 rounded-xl border-danger/25 text-danger hover:bg-danger-muted/60"
               >
                 <XCircle className="w-4 h-4" />
                 Reject
               </Button>
               <Button
                 onClick={() => onApprove(record)}
-                className="flex-1 gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="flex-1 gap-2 rounded-xl bg-success hover:bg-success text-white"
               >
                 <BadgeCheck className="w-4 h-4" />
                 Approve & Deduct
@@ -269,12 +269,12 @@ function InfoCell({
   value: string;
 }) {
   return (
-    <div className="bg-gray-50 rounded-xl p-3">
-      <p className="text-xs text-gray-400 flex items-center gap-1 mb-0.5">
+    <div className="bg-muted/50 rounded-xl p-3">
+      <p className="text-xs text-muted-foreground/70 flex items-center gap-1 mb-0.5">
         <Icon className="w-3 h-3" />
         {label}
       </p>
-      <p className="text-sm font-medium text-gray-900">{value}</p>
+      <p className="text-sm font-medium text-foreground">{value}</p>
     </div>
   );
 }

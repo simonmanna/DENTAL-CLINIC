@@ -41,14 +41,14 @@ export function InventoryPage() {
         actions={<Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowAdd(true)}>Add Item</Button>} />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-        <StatCard title="Total Items" value={stats?.totalItems || 0} icon={<Package className="w-6 h-6 text-blue-600" />} iconBg="bg-blue-100" />
-        <StatCard title="Stock Value" value={formatCurrency(stats?.totalValue || 0)} icon={<TrendingDown className="w-6 h-6 text-emerald-600" />} iconBg="bg-emerald-100" />
-        <StatCard title="Low Stock" value={stats?.lowStockItems || 0} icon={<AlertTriangle className="w-6 h-6 text-amber-600" />} iconBg="bg-amber-100" />
-        <StatCard title="Out of Stock" value={stats?.outOfStock || 0} icon={<Package className="w-6 h-6 text-red-600" />} iconBg="bg-red-100" />
+        <StatCard title="Total Items" value={stats?.totalItems || 0} icon={<Package className="w-6 h-6 text-primary" />} iconBg="bg-primary-muted" />
+        <StatCard title="Stock Value" value={formatCurrency(stats?.totalValue || 0)} icon={<TrendingDown className="w-6 h-6 text-success" />} iconBg="bg-success-muted" />
+        <StatCard title="Low Stock" value={stats?.lowStockItems || 0} icon={<AlertTriangle className="w-6 h-6 text-warning" />} iconBg="bg-warning-muted" />
+        <StatCard title="Out of Stock" value={stats?.outOfStock || 0} icon={<Package className="w-6 h-6 text-danger" />} iconBg="bg-danger-muted" />
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm">
-        <div className="p-1 border-b border-slate-100 flex items-center gap-3">
+      <div className="bg-white rounded-xl border border-border/60 shadow-sm">
+        <div className="p-1 border-b border-border/60 flex items-center gap-3">
           <Select value={catFilter} onChange={e => setCatFilter(e.target.value)} className="w-44">
             <option value="">All Categories</option>
             {CATEGORIES.map(c => <option key={c} value={c}>{c.replace(/_/g, ' ')}</option>)}
@@ -62,26 +62,26 @@ export function InventoryPage() {
                 <Tr key={item.id}>
                   <Td>
                     <div className="flex items-center gap-2">
-                      {isLow && <div className="w-2 h-2 rounded-full bg-amber-500" title="Low stock" />}
+                      {isLow && <div className="w-2 h-2 rounded-full bg-warning" title="Low stock" />}
                       <div>
-                        <p className="font-semibold text-slate-800 text-sm">{item.name}</p>
-                        <p className="text-xs text-slate-400">{item.itemCode}</p>
+                        <p className="font-semibold text-foreground text-sm">{item.name}</p>
+                        <p className="text-xs text-muted-foreground/70">{item.itemCode}</p>
                       </div>
                     </div>
                   </Td>
-                  <Td><span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full">{item.category}</span></Td>
-                  <Td><span className="text-sm text-slate-500">{item.location || '—'}</span></Td>
+                  <Td><span className="px-2 py-0.5 bg-muted text-muted-foreground text-xs rounded-full">{item.category}</span></Td>
+                  <Td><span className="text-sm text-muted-foreground">{item.location || '—'}</span></Td>
                   <Td>
-                    <span className={cn('font-bold text-sm', isLow ? 'text-red-600' : 'text-slate-800')}>
+                    <span className={cn('font-bold text-sm', isLow ? 'text-danger' : 'text-foreground')}>
                       {item.quantity} {item.unit}
                     </span>
                   </Td>
-                  <Td><span className="text-sm text-slate-500">{item.minQuantity} {item.unit}</span></Td>
-                  <Td><span className="text-sm text-slate-600">{formatCurrency(item.unitCost)}</span></Td>
-                  <Td><span className="text-sm font-medium text-slate-700">{formatCurrency(item.quantity * item.unitCost)}</span></Td>
+                  <Td><span className="text-sm text-muted-foreground">{item.minQuantity} {item.unit}</span></Td>
+                  <Td><span className="text-sm text-muted-foreground">{formatCurrency(item.unitCost)}</span></Td>
+                  <Td><span className="text-sm font-medium text-foreground">{formatCurrency(item.quantity * item.unitCost)}</span></Td>
                   <Td>
                     <button onClick={() => { setShowTx(item.id); setTxForm({ type: 'PURCHASE', quantity: 0, unitCost: item.unitCost, notes: '' }); }}
-                      className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded-lg hover:bg-blue-100 transition-colors">
+                      className="px-3 py-1 bg-primary-muted/60 text-primary text-xs font-medium rounded-lg hover:bg-primary-muted transition-colors">
                       Stock In/Out
                     </button>
                   </Td>
@@ -105,7 +105,7 @@ export function InventoryPage() {
             <FormField label="Unit Cost (UGX)"><Input type="number" value={form.unitCost} onChange={e => setForm({ ...form, unitCost: +e.target.value })} min={0} /></FormField>
             <FormField label="Storage Location"><Input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="Storeroom A, Shelf 2..." /></FormField>
           </div>
-          <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+          <div className="flex justify-end gap-3 pt-2 border-t border-border/60">
             <Button variant="outline" type="button" onClick={() => setShowAdd(false)}>Cancel</Button>
             <Button type="submit" loading={addMutation.isPending}>Add Item</Button>
           </div>
@@ -122,7 +122,7 @@ export function InventoryPage() {
           <FormField label="Quantity" required><Input type="number" value={txForm.quantity} onChange={e => setTxForm({ ...txForm, quantity: +e.target.value })} min={1} required /></FormField>
           <FormField label="Unit Cost (UGX)"><Input type="number" value={txForm.unitCost} onChange={e => setTxForm({ ...txForm, unitCost: +e.target.value })} min={0} /></FormField>
           <FormField label="Notes"><Input value={txForm.notes} onChange={e => setTxForm({ ...txForm, notes: e.target.value })} placeholder="Reason, reference..." /></FormField>
-          <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+          <div className="flex justify-end gap-3 pt-2 border-t border-border/60">
             <Button variant="outline" type="button" onClick={() => setShowTx(null)}>Cancel</Button>
             <Button type="submit" loading={txMutation.isPending}>Record</Button>
           </div>

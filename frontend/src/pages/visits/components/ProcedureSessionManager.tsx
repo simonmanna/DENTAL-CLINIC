@@ -29,33 +29,33 @@ const SESSION_STATUS_META: Record<
 > = {
   PENDING: {
     label: "Pending",
-    color: "text-slate-600",
-    bg: "bg-slate-100",
-    dot: "bg-slate-400",
+    color: "text-muted-foreground",
+    bg: "bg-muted",
+    dot: "bg-muted-foreground/70",
   },
   IN_PROGRESS: {
     label: "In Progress",
-    color: "text-blue-700",
-    bg: "bg-blue-100",
-    dot: "bg-blue-500",
+    color: "text-primary",
+    bg: "bg-primary-muted",
+    dot: "bg-primary",
   },
   COMPLETED: {
     label: "Completed",
-    color: "text-green-700",
-    bg: "bg-green-100",
-    dot: "bg-green-500",
+    color: "text-success",
+    bg: "bg-success-muted",
+    dot: "bg-success",
   },
   SKIPPED: {
     label: "Skipped",
-    color: "text-amber-700",
-    bg: "bg-amber-100",
-    dot: "bg-amber-500",
+    color: "text-warning",
+    bg: "bg-warning-muted",
+    dot: "bg-warning",
   },
   CANCELLED: {
     label: "Cancelled",
-    color: "text-red-600",
-    bg: "bg-red-100",
-    dot: "bg-red-500",
+    color: "text-danger",
+    bg: "bg-danger-muted",
+    dot: "bg-danger",
   },
 };
 
@@ -65,18 +65,18 @@ const LEDGER_META: Record<
 > = {
   PENDING: {
     label: "In Ledger",
-    color: "text-blue-700",
-    bg: "bg-blue-50 border-blue-200",
+    color: "text-primary",
+    bg: "bg-primary-muted/60 border-primary/25",
   },
   INVOICED: {
     label: "Invoiced",
-    color: "text-green-700",
-    bg: "bg-green-50 border-green-200",
+    color: "text-success",
+    bg: "bg-success-muted/60 border-success/25",
   },
   VOID: {
     label: "Void",
-    color: "text-red-600",
-    bg: "bg-red-50 border-red-200",
+    color: "text-danger",
+    bg: "bg-danger-muted/60 border-danger/25",
   },
 };
 
@@ -165,14 +165,14 @@ export function ProcedureSessionManager({
     <div className="mt-1">
       {/* Summary bar */}
       <div className="flex items-center gap-3 mb-2 flex-wrap">
-        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
           {sessionType === "MULTI" ? `${sessions.length} Sessions` : "Session"}
         </span>
-        <span className="text-[10px] text-slate-400">
+        <span className="text-[10px] text-muted-foreground/70">
           {doneCount}/{sessions.length} done
         </span>
         {billingType === "PAY_PARTIALLY" && (
-          <span className="text-[10px] text-blue-600 font-medium">
+          <span className="text-[10px] text-primary font-medium">
             billed per visit
           </span>
         )}
@@ -207,8 +207,8 @@ export function ProcedureSessionManager({
               className={cn(
                 "rounded-lg border transition-all overflow-hidden",
                 session.status === "COMPLETED"
-                  ? "border-green-200 bg-green-50/40"
-                  : "border-slate-200 bg-white",
+                  ? "border-success/25 bg-success-muted/40"
+                  : "border-border bg-white",
               )}
             >
               {/* Row header */}
@@ -218,8 +218,8 @@ export function ProcedureSessionManager({
                   className={cn(
                     "w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0",
                     session.status === "COMPLETED"
-                      ? "bg-green-500 text-white"
-                      : "bg-slate-200 text-slate-600",
+                      ? "bg-success text-white"
+                      : "bg-muted text-muted-foreground",
                   )}
                 >
                   {session.status === "COMPLETED" ? (
@@ -230,11 +230,11 @@ export function ProcedureSessionManager({
                 </div>
                 {/* Label */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-slate-700 truncate">
+                  <p className="text-xs font-medium text-foreground truncate">
                     {session.sessionLabel ?? `Session ${session.sessionNumber}`}
                   </p>
                   {session.performedDate && (
-                    <p className="text-[10px] text-slate-400 flex items-center gap-0.5 mt-0.5">
+                    <p className="text-[10px] text-muted-foreground/70 flex items-center gap-0.5 mt-0.5">
                       <Calendar className="w-2.5 h-2.5" />
                       {new Date(session.performedDate).toLocaleDateString()}
                     </p>
@@ -274,7 +274,7 @@ export function ProcedureSessionManager({
                          onClick={() =>
                            isEditing ? setEditingId(null) : startEdit(session)
                          }
-                         className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+                         className="p-1.5 rounded hover:bg-muted text-muted-foreground/70 hover:text-muted-foreground"
                          title="Record session details"
                        >
                          <FileText className="w-3.5 h-3.5" />
@@ -286,7 +286,7 @@ export function ProcedureSessionManager({
                        <button
                          type="button"
                          onClick={() => onSessionEdit(session)}
-                         className="p-1.5 rounded hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
+                         className="p-1.5 rounded hover:bg-primary-muted/60 text-muted-foreground/70 hover:text-primary transition-colors"
                          title="Edit session"
                        >
                          <Pencil className="w-3.5 h-3.5" />
@@ -298,7 +298,7 @@ export function ProcedureSessionManager({
                        <button
                          type="button"
                          onClick={() => onSessionVoid(session)}
-                         className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors"
+                         className="p-1.5 rounded hover:bg-danger-muted/60 text-muted-foreground/70 hover:text-danger transition-colors"
                          title="Delete session"
                        >
                          <Trash2 className="w-3.5 h-3.5" />
@@ -312,7 +312,7 @@ export function ProcedureSessionManager({
                          onClick={() =>
                            setExpandedId(isExpanded ? null : session.id)
                          }
-                         className="p-1.5 rounded hover:bg-slate-100 text-slate-400"
+                         className="p-1.5 rounded hover:bg-muted text-muted-foreground/70"
                        >
                          {isExpanded ? (
                            <ChevronUp className="w-3.5 h-3.5" />
@@ -327,10 +327,10 @@ export function ProcedureSessionManager({
 
               {/* Edit form */}
               {isEditing && (
-                <div className="px-3 pb-3 pt-1 border-t border-slate-100 bg-slate-50/60 space-y-2">
+                <div className="px-3 pb-3 pt-1 border-t border-border/60 bg-muted/60 space-y-2">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[10px] font-medium text-slate-500 block mb-1">
+                      <label className="text-[10px] font-medium text-muted-foreground block mb-1">
                         Status
                       </label>
                       <select
@@ -341,7 +341,7 @@ export function ProcedureSessionManager({
                             status: e.target.value as SessionStatus,
                           }))
                         }
-                        className="w-full text-xs rounded border border-slate-200 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full text-xs rounded border border-border px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary/60"
                       >
                         {/* COMPLETED is deliberately absent — completion goes
                             through Execute Session so chart entries stay in
@@ -351,12 +351,12 @@ export function ProcedureSessionManager({
                         <option value="SKIPPED">Skipped</option>
                         <option value="CANCELLED">Cancelled</option>
                       </select>
-                      <p className="text-[10px] text-slate-400 mt-1">
+                      <p className="text-[10px] text-muted-foreground/70 mt-1">
                         To complete this session, use Execute Session.
                       </p>
                     </div>
                     <div>
-                      <label className="text-[10px] font-medium text-slate-500 block mb-1">
+                      <label className="text-[10px] font-medium text-muted-foreground block mb-1">
                         Date performed
                       </label>
                       <input
@@ -373,13 +373,13 @@ export function ProcedureSessionManager({
                           }))
                         }
                         max={new Date().toISOString().split("T")[0]}
-                        className="w-full text-xs rounded border border-slate-200 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full text-xs rounded border border-border px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary/60"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-medium text-slate-500 block mb-1">
+                    <label className="text-[10px] font-medium text-muted-foreground block mb-1">
                       Session cost (UGX)
                     </label>
                     <input
@@ -393,7 +393,7 @@ export function ProcedureSessionManager({
                           sessionPrice: parseFloat(e.target.value) || 0,
                         }))
                       }
-                      className="w-full text-xs rounded border border-slate-200 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full text-xs rounded border border-border px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary/60"
                     />
                     {/* <input
                       type="number"
@@ -406,12 +406,12 @@ export function ProcedureSessionManager({
                           sessionCost: parseFloat(e.target.value) || 0,
                         }))
                       }
-                      className="w-full text-xs rounded border border-slate-200 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full text-xs rounded border border-border px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary/60"
                     /> */}
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-medium text-slate-500 block mb-1">
+                    <label className="text-[10px] font-medium text-muted-foreground block mb-1">
                       Clinical notes
                     </label>
                     <textarea
@@ -426,7 +426,7 @@ export function ProcedureSessionManager({
                         }))
                       }
                       placeholder="Notes for this session…"
-                      className="w-full text-xs rounded border border-slate-200 px-2 py-1.5 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full text-xs rounded border border-border px-2 py-1.5 resize-none focus:outline-none focus:ring-1 focus:ring-primary/60"
                     />
                   </div>
 
@@ -434,7 +434,7 @@ export function ProcedureSessionManager({
                     <button
                       type="button"
                       onClick={() => setEditingId(null)}
-                      className="flex-1 py-1.5 rounded border border-slate-200 text-xs text-slate-600 hover:bg-slate-100"
+                      className="flex-1 py-1.5 rounded border border-border text-xs text-muted-foreground hover:bg-muted"
                     >
                       Cancel
                     </button>
@@ -442,7 +442,7 @@ export function ProcedureSessionManager({
                       type="button"
                       onClick={() => saveEdit(session.id)}
                       disabled={isSaving}
-                      className="flex-1 py-1.5 rounded bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-1"
+                      className="flex-1 py-1.5 rounded bg-primary text-white text-xs font-medium hover:bg-primary disabled:opacity-50 flex items-center justify-center gap-1"
                     >
                       {isSaving ? (
                         <Loader2 className="w-3 h-3 animate-spin" />
@@ -457,8 +457,8 @@ export function ProcedureSessionManager({
 
               {/* Expanded notes (read-only) */}
               {isExpanded && !isEditing && session.performedNotes && (
-                <div className="px-3 pb-2 pt-1 border-t border-slate-100">
-                  <p className="text-[11px] text-slate-500 italic">
+                <div className="px-3 pb-2 pt-1 border-t border-border/60">
+                  <p className="text-[11px] text-muted-foreground italic">
                     {session.performedNotes}
                   </p>
                 </div>

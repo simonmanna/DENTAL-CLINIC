@@ -56,7 +56,7 @@ function StatCard({
   label,
   value,
   icon: Icon,
-  colorClass, // e.g., 'bg-sky-500', 'bg-orange-400'
+  colorClass, // e.g., 'bg-primary', 'bg-warning/80'
 }: {
   label: string;
   value: string | number;
@@ -97,14 +97,14 @@ function CategoryBadge({ category }: { category: WasteCategory }) {
 function StatusBadge({ approved }: { approved: boolean }) {
   if (approved) {
     return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-muted/60 text-success border border-success/25">
         <CheckCircle2 className="w-3 h-3" />
         Approved
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-muted/60 text-warning border border-warning/25">
       <Clock className="w-3 h-3" />
       Pending
     </span>
@@ -263,15 +263,15 @@ export default function WasteRecordsPage() {
 
   // ─── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-muted/50">
       {/* ── Header ── */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="bg-white border-b border-border px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-sky-100 rounded-lg">
-              <Package className="w-5 h-5 text-sky-600" />
+            <div className="p-1.5 bg-primary-muted rounded-lg">
+              <Package className="w-5 h-5 text-primary" />
             </div>
-            <h1 className="text-xl font-bold text-slate-800 tracking-tight">
+            <h1 className="text-xl font-bold text-foreground tracking-tight">
               Waste Manager
             </h1>
           </div>
@@ -283,7 +283,7 @@ export default function WasteRecordsPage() {
                 loadRecords();
                 loadStats();
               }}
-              className="gap-2 text-slate-600"
+              className="gap-2 text-muted-foreground"
             >
               <RefreshCw
                 className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
@@ -308,13 +308,13 @@ export default function WasteRecordsPage() {
             label="Total Records"
             value={statsLoading ? "..." : (stats?.totalRecords ?? 0)}
             icon={Package}
-            colorClass="bg-sky-500"
+            colorClass="bg-primary"
           />
           <StatCard
             label="Pending Review"
             value={statsLoading ? "..." : (stats?.pendingApproval ?? 0)}
             icon={AlertTriangle}
-            colorClass="bg-orange-400"
+            colorClass="bg-warning/80"
           />
           <StatCard
             label="Monthly Loss"
@@ -324,7 +324,7 @@ export default function WasteRecordsPage() {
                 : formatCurrency(stats?.monthlyLossValue ?? 0)
             }
             icon={TrendingDown}
-            colorClass="bg-red-500"
+            colorClass="bg-danger"
           />
           <StatCard
             label="Total Value"
@@ -332,23 +332,23 @@ export default function WasteRecordsPage() {
               statsLoading ? "..." : formatCurrency(stats?.totalLossValue ?? 0)
             }
             icon={CheckCircle2}
-            colorClass="bg-emerald-500"
+            colorClass="bg-success"
           />
         </div>
 
         {/* ── Filters Bar ── */}
-        <div className="flex flex-col md:flex-row gap-1 bg-white p-1 rounded-lg border border-gray-100 shadow-sm">
+        <div className="flex flex-col md:flex-row gap-1 bg-white p-1 rounded-lg border border-border/60 shadow-sm">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70" />
             <Input
               placeholder="Search..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-slate-50 border-none focus-visible:ring-1"
+              className="pl-9 bg-muted/50 border-none focus-visible:ring-1"
             />
           </div>
           <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="w-full md:w-[200px] bg-slate-50 border-none">
+            <SelectTrigger className="w-full md:w-[200px] bg-muted/50 border-none">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
@@ -356,18 +356,18 @@ export default function WasteRecordsPage() {
               {/* Mapping categories... */}
             </SelectContent>
           </Select>
-          <div className="flex gap-1 bg-slate-50 p-1 rounded-md">
+          <div className="flex gap-1 bg-muted/50 p-1 rounded-md">
             <Button
               variant="ghost"
               size="sm"
-              className="text-xs h-8 px-2 font-bold text-slate-500"
+              className="text-xs h-8 px-2 font-bold text-muted-foreground"
             >
               <AlertTriangle className="w-3 h-3 mr-1" /> Low
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              className="text-xs h-8 px-2 font-bold text-slate-500"
+              className="text-xs h-8 px-2 font-bold text-muted-foreground"
             >
               <TrendingDown className="w-3 h-3 mr-1" /> Out
             </Button>
@@ -375,9 +375,9 @@ export default function WasteRecordsPage() {
         </div>
 
         {/* ── Table ────────────────────────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-1 py-0.5 border-b border-gray-100 flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-600">
+        <div className="bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden">
+          <div className="px-1 py-0.5 border-b border-border/60 flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">
               {loading
                 ? "Loading..."
                 : `${total} record${total !== 1 ? "s" : ""} found`}
@@ -385,21 +385,21 @@ export default function WasteRecordsPage() {
           </div>
 
           {loading ? (
-            <div className="py-24 flex flex-col items-center gap-3 text-gray-400">
+            <div className="py-24 flex flex-col items-center gap-3 text-muted-foreground/70">
               <RefreshCw className="w-8 h-8 animate-spin" />
               <p className="text-sm">Loading records…</p>
             </div>
           ) : records.length === 0 ? (
-            <div className="py-24 flex flex-col items-center gap-3 text-gray-400">
-              <FileWarning className="w-12 h-12 text-gray-200" />
-              <p className="text-base font-medium text-gray-500">
+            <div className="py-24 flex flex-col items-center gap-3 text-muted-foreground/70">
+              <FileWarning className="w-12 h-12 text-muted-foreground/40" />
+              <p className="text-base font-medium text-muted-foreground">
                 No waste records found
               </p>
               <p className="text-sm">
                 Adjust your filters or{" "}
                 <button
                   onClick={() => navigate("/inventory/waste/new")}
-                  className="text-red-600 underline underline-offset-2"
+                  className="text-danger underline underline-offset-2"
                 >
                   record a new waste entry
                 </button>
@@ -407,52 +407,52 @@ export default function WasteRecordsPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-lg border border-border shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm text-left">
                     <thead>
-                      <tr className="border-b border-gray-100 bg-slate-50/50">
-                        <th className="px-6 py-4 font-bold text-slate-500 uppercase text-[11px]">
+                      <tr className="border-b border-border/60 bg-muted/50">
+                        <th className="px-6 py-4 font-bold text-muted-foreground uppercase text-[11px]">
                           Code
                         </th>
-                        <th className="px-4 py-4 font-bold text-slate-500 uppercase text-[11px]">
+                        <th className="px-4 py-4 font-bold text-muted-foreground uppercase text-[11px]">
                           Location
                         </th>
-                        <th className="px-4 py-4 font-bold text-slate-500 uppercase text-[11px]">
+                        <th className="px-4 py-4 font-bold text-muted-foreground uppercase text-[11px]">
                           Category
                         </th>
-                        <th className="px-4 py-4 font-bold text-slate-500 uppercase text-[11px] text-right">
+                        <th className="px-4 py-4 font-bold text-muted-foreground uppercase text-[11px] text-right">
                           Value
                         </th>
-                        <th className="px-4 py-4 font-bold text-slate-500 uppercase text-[11px]">
+                        <th className="px-4 py-4 font-bold text-muted-foreground uppercase text-[11px]">
                           Status
                         </th>
-                        <th className="px-6 py-4 font-bold text-slate-500 uppercase text-[11px] text-right">
+                        <th className="px-6 py-4 font-bold text-muted-foreground uppercase text-[11px] text-right">
                           Actions
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody className="divide-y divide-border/40">
                       {records.map((record) => (
                         <tr
                           key={record.id}
-                          className="hover:bg-slate-50/50 group transition-colors"
+                          className="hover:bg-muted/50 group transition-colors"
                         >
-                          <td className="px-6 py-4 font-bold text-sky-700">
+                          <td className="px-6 py-4 font-bold text-primary">
                             {record.wasteCode}
                           </td>
-                          <td className="px-4 py-4 text-slate-600 font-medium">
+                          <td className="px-4 py-4 text-muted-foreground font-medium">
                             {record.location.name}
                           </td>
                           <td className="px-4 py-4">
                             <Badge
                               variant="outline"
-                              className="font-normal bg-slate-50 text-slate-500 border-slate-200"
+                              className="font-normal bg-muted/50 text-muted-foreground border-border"
                             >
                               {record.category}
                             </Badge>
                           </td>
-                          <td className="px-4 py-4 text-right font-bold text-slate-700">
+                          <td className="px-4 py-4 text-right font-bold text-foreground">
                             {formatCurrency(record.totalValue)}
                           </td>
                           <td className="px-4 py-4">
@@ -463,7 +463,7 @@ export default function WasteRecordsPage() {
                               <Button
                                 size="icon"
                                 onClick={() => handleView(record)}
-                                className="h-7 w-8 bg-sky-500 hover:bg-sky-600 text-white"
+                                className="h-7 w-8 bg-primary hover:bg-primary text-white"
                               >
                                 <Eye className="w-4 h-4" />
                               </Button>
@@ -473,7 +473,7 @@ export default function WasteRecordsPage() {
                                   onClick={() =>
                                     setApproveDialog({ open: true, record })
                                   }
-                                  className="h-7 w-8 bg-emerald-500 hover:bg-emerald-600 text-white"
+                                  className="h-7 w-8 bg-success hover:bg-success text-white"
                                 >
                                   <BadgeCheck className="w-4 h-4" />
                                 </Button>
@@ -491,8 +491,8 @@ export default function WasteRecordsPage() {
 
           {/* ── Pagination ──────────────────────────────────────────────────── */}
           {totalPages > 1 && (
-            <div className="px-5 py-3.5 border-t border-gray-100 flex items-center justify-between">
-              <p className="text-sm text-gray-500">
+            <div className="px-5 py-3.5 border-t border-border/60 flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
                 Page {page} of {totalPages}
               </p>
               <div className="flex gap-2">
@@ -532,7 +532,7 @@ export default function WasteRecordsPage() {
         <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <BadgeCheck className="w-5 h-5 text-emerald-600" />
+              <BadgeCheck className="w-5 h-5 text-success" />
               Approve Waste Record
             </DialogTitle>
             <DialogDescription>
@@ -548,21 +548,21 @@ export default function WasteRecordsPage() {
 
           <div className="space-y-3">
             {approveDialog.record && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 space-y-1.5">
-                <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider">
+              <div className="bg-warning-muted/60 border border-warning/25 rounded-xl p-3.5 space-y-1.5">
+                <p className="text-xs font-semibold text-warning uppercase tracking-wider">
                   Items to be deducted
                 </p>
                 {approveDialog.record.items.map((item) => (
                   <div key={item.id} className="flex justify-between text-sm">
-                    <span className="text-amber-800">{item.itemName}</span>
-                    <span className="font-medium text-amber-900">
+                    <span className="text-warning">{item.itemName}</span>
+                    <span className="font-medium text-warning">
                       -{item.quantity} {item.unit}
                     </span>
                   </div>
                 ))}
-                <div className="border-t border-amber-200 pt-1.5 flex justify-between text-sm font-semibold">
-                  <span className="text-amber-800">Total Value</span>
-                  <span className="text-amber-900">
+                <div className="border-t border-warning/25 pt-1.5 flex justify-between text-sm font-semibold">
+                  <span className="text-warning">Total Value</span>
+                  <span className="text-warning">
                     {formatCurrency(approveDialog.record.totalValue)}
                   </span>
                 </div>
@@ -570,7 +570,7 @@ export default function WasteRecordsPage() {
             )}
 
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-gray-700">
+              <Label className="text-sm font-medium text-foreground">
                 Approval Notes (optional)
               </Label>
               <Textarea
@@ -595,7 +595,7 @@ export default function WasteRecordsPage() {
             <Button
               onClick={handleApprove}
               disabled={actionLoading}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl gap-2"
+              className="bg-success hover:bg-success text-white rounded-xl gap-2"
             >
               {actionLoading ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -618,7 +618,7 @@ export default function WasteRecordsPage() {
         <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <XCircle className="w-5 h-5 text-red-600" />
+              <XCircle className="w-5 h-5 text-danger" />
               Reject Waste Record
             </DialogTitle>
             <DialogDescription>
@@ -628,8 +628,8 @@ export default function WasteRecordsPage() {
           </DialogHeader>
 
           <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-gray-700">
-              Rejection Reason <span className="text-red-500">*</span>
+            <Label className="text-sm font-medium text-foreground">
+              Rejection Reason <span className="text-danger">*</span>
             </Label>
             <Textarea
               placeholder="Explain why this record is being rejected..."

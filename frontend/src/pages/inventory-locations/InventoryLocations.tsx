@@ -121,7 +121,7 @@ export default function LocationsPage() {
         </div>
         <Button
           title="New"
-          className="rounded-md bg-blue-700 p-4 text-white hover:bg-blue-800 shadow-sm"
+          className="rounded-md bg-primary p-4 text-white hover:bg-primary shadow-sm"
            onClick={() => {
             setPendingParentId(undefined);
             setIsCreateOpen(true);

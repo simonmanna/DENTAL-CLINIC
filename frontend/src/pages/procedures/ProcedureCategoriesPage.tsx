@@ -129,20 +129,20 @@ function CategoryForm({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <DialogTitle className="text-2xl font-bold text-foreground flex items-center gap-2">
             {initialData ? (
               <>
-                <Edit2 className="h-6 w-6 text-sky-600" />
+                <Edit2 className="h-6 w-6 text-primary" />
                 Edit Category
               </>
             ) : (
               <>
-                <Plus className="h-6 w-6 text-sky-600" />
+                <Plus className="h-6 w-6 text-primary" />
                 Create New Category
               </>
             )}
           </DialogTitle>
-          <DialogDescription className="text-slate-500">
+          <DialogDescription className="text-muted-foreground">
             {initialData
               ? 'Update the details of this procedure category.'
               : 'Fill in the details below to create a new procedure category.'}
@@ -152,17 +152,17 @@ function CategoryForm({
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           {/* Basic Information Section */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-              <Tag className="h-4 w-4 text-slate-500" />
-              <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
+            <div className="flex items-center gap-2 pb-2 border-b border-border">
+              <Tag className="h-4 w-4 text-muted-foreground" />
+              <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
                 Basic Information
               </h3>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-medium text-slate-700">
-                  Category Name <span className="text-rose-500">*</span>
+                <Label htmlFor="name" className="text-sm font-medium text-foreground">
+                  Category Name <span className="text-danger">*</span>
                 </Label>
                 <Input
                   id="name"
@@ -172,13 +172,13 @@ function CategoryForm({
                   required
                   className="h-10"
                 />
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   A clear, descriptive name for this category
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="code" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="code" className="text-sm font-medium text-foreground">
                   Category Code
                 </Label>
                 <Input
@@ -188,14 +188,14 @@ function CategoryForm({
                   placeholder="e.g. REST, ORTH"
                   className="h-10 font-mono"
                 />
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   Short identifier (auto-capitalized)
                 </p>
               </div>
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="description" className="text-sm font-medium text-slate-700">
+              <Label htmlFor="description" className="text-sm font-medium text-foreground">
                 Description
               </Label>
               <Textarea
@@ -210,16 +210,16 @@ function CategoryForm({
 
           {/* Organization Section */}
           <div className="space-y-4">
-            {/* <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-              <FolderTree className="h-4 w-4 text-slate-500" />
-              <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
+            {/* <div className="flex items-center gap-2 pb-2 border-b border-border">
+              <FolderTree className="h-4 w-4 text-muted-foreground" />
+              <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
                 Organization
               </h3>
             </div> */}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">
+                <Label className="text-sm font-medium text-foreground">
                   Parent Category
                 </Label>
                 <Select
@@ -242,34 +242,34 @@ function CategoryForm({
                       ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   Leave empty for a top-level category
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">
+                <Label className="text-sm font-medium text-foreground">
                   Status
                 </Label>
-                <div className="flex items-center h-10 px-3 border rounded-md bg-slate-50">
+                <div className="flex items-center h-10 px-3 border rounded-md bg-muted/50">
                   <Switch
                     checked={form.isActive}
                     onCheckedChange={(v) => setForm({ ...form, isActive: v })}
                   />
-                  <span className="ml-3 text-sm font-medium text-slate-700">
+                  <span className="ml-3 text-sm font-medium text-foreground">
                     {form.isActive ? 'Active' : 'Inactive'}
                   </span>
                   <Badge
                     className={`ml-auto text-xs ${
                       form.isActive
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-slate-200 text-slate-600'
+                        ? 'bg-success-muted text-success'
+                        : 'bg-muted text-muted-foreground'
                     }`}
                   >
                     {form.isActive ? 'ACTIVE' : 'INACTIVE'}
                   </Badge>
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   Inactive categories won't appear in procedure selection
                 </p>
               </div>
@@ -278,15 +278,15 @@ function CategoryForm({
 
           {/* Revenue Section */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-              <Building2 className="h-4 w-4 text-slate-500" />
-              <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
+            <div className="flex items-center gap-2 pb-2 border-b border-border">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
                 Revenue Settings
               </h3>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700">
+              <Label className="text-sm font-medium text-foreground">
                 Revenue Account
               </Label>
               <RevenueAccountSelect
@@ -294,14 +294,14 @@ function CategoryForm({
                 onChange={(v) => setForm({ ...form, revenueAccountId: v })}
                 inheritLabel="Use system default (Treatment Revenue)"
               />
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 Procedures in this category post revenue here unless they set their own account.
               </p>
             </div>
           </div>
 
 
-          <DialogFooter className="gap-2 pt-4 border-t border-slate-200">
+          <DialogFooter className="gap-2 pt-4 border-t border-border">
             <Button
               type="button"
               variant="outline"
@@ -312,7 +312,7 @@ function CategoryForm({
             </Button>
             <Button
               type="submit"
-              className="bg-sky-600 hover:bg-sky-700 text-white px-6 gap-2"
+              className="bg-primary hover:bg-primary text-white px-6 gap-2"
             >
               {initialData ? (
                 <>
@@ -453,15 +453,15 @@ export default function ProcedureCategoriesPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50">
+    <div className="flex flex-col h-full bg-muted/50">
       {/* Header */}
       <div className="bg-white border-b px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">
+            <h1 className="text-2xl font-bold text-foreground">
               Procedure Categories
             </h1>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-muted-foreground">
               Organize procedures into categories and sub-categories
             </p>
           </div>
@@ -470,7 +470,7 @@ export default function ProcedureCategoriesPage() {
               setEditingCategory(null);
               setFormOpen(true);
             }}
-            className="bg-sky-600 text-white hover:bg-sky-700 shadow-sm gap-2"
+            className="bg-primary text-white hover:bg-primary shadow-sm gap-2"
           >
             <Plus size={16} /> New Category
           </Button>
@@ -481,7 +481,7 @@ export default function ProcedureCategoriesPage() {
           <div className="relative flex-1 max-w-md">
             <Search
               size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70"
             />
             <Input
               placeholder="Search by category, code..."
@@ -507,7 +507,7 @@ export default function ProcedureCategoriesPage() {
       {/* Table */}
       <div className="flex-1 overflow-auto p-3">
         {loading ? (
-          <div className="flex items-center justify-center h-48 text-slate-400">
+          <div className="flex items-center justify-center h-48 text-muted-foreground/70">
             Loading categories...
           </div>
         ) : (
@@ -519,7 +519,7 @@ export default function ProcedureCategoriesPage() {
                     <Button
                       variant="ghost"
                       onClick={() => handleSort('code')}
-                      className="font-semibold text-slate-700 bg-transparent p-0 h-auto"
+                      className="font-semibold text-foreground bg-transparent p-0 h-auto"
                     >
                       CODE
                       <SortIcon field="code" />
@@ -529,7 +529,7 @@ export default function ProcedureCategoriesPage() {
                     <Button
                       variant="ghost"
                       onClick={() => handleSort('name')}
-                      className="font-semibold text-slate-700 bg-transparent p-0 h-auto"
+                      className="font-semibold text-foreground bg-transparent p-0 h-auto"
                     >
                       NAME
                       <SortIcon field="name" />
@@ -545,9 +545,9 @@ export default function ProcedureCategoriesPage() {
               <TableBody>
                 {filteredAndSortedCategories.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center text-slate-500">
+                    <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
                       <div className="flex flex-col items-center justify-center">
-                        <Folder size={48} className="mb-4 text-slate-300" />
+                        <Folder size={48} className="mb-4 text-muted-foreground/50" />
                         <p>No categories found</p>
                         <Button
                           variant="outline"
@@ -564,8 +564,8 @@ export default function ProcedureCategoriesPage() {
                   </TableRow>
                 ) : (
                   filteredAndSortedCategories.map((category) => (
-                    <TableRow key={category.id} className="group bg-slate-50">
-                      <TableCell className="font-mono text-sm text-slate-600 w-[150px]">
+                    <TableRow key={category.id} className="group bg-muted/50">
+                      <TableCell className="font-mono text-sm text-muted-foreground w-[150px]">
                         {category.code || '-'}
                       </TableCell>
                       <TableCell>
@@ -581,16 +581,16 @@ export default function ProcedureCategoriesPage() {
                             )}
                           </div>
                           <div>
-                            <div className="font-medium text-slate-900">{category.name}</div>
+                            <div className="font-medium text-foreground">{category.name}</div>
                             {category.description && (
-                              <div className="text-xs text-slate-500 truncate max-w-xs">
+                              <div className="text-xs text-muted-foreground truncate max-w-xs">
                                 {category.description}
                               </div>
                             )}
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-slate-600">
+                      <TableCell className="text-muted-foreground">
                         {getParentName(category.parentId)}
                       </TableCell>
                       <TableCell className="text-center">
@@ -600,16 +600,16 @@ export default function ProcedureCategoriesPage() {
                       </TableCell>
                       <TableCell>
                         {category.isActive ? (
-                          <Badge className="bg-emerald-100 text-emerald-700">
+                          <Badge className="bg-success-muted text-success">
                             ACTIVE
                           </Badge>
                         ) : (
-                          <Badge variant="secondary" className="bg-slate-100 text-slate-600">
+                          <Badge variant="secondary" className="bg-muted text-muted-foreground">
                             INACTIVE
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-sm text-slate-600">
+                      <TableCell className="text-sm text-muted-foreground">
                         {getRevenueAccountName(category.revenueAccountId)}
                       </TableCell>
                       <TableCell className="text-right">
@@ -620,7 +620,7 @@ export default function ProcedureCategoriesPage() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-8 px-3 text-sky-700 bg-sky-50"
+                                  className="h-8 px-3 text-primary bg-primary-muted/60"
                                   onClick={() => {
                                     setEditingCategory(category);
                                     setFormOpen(true);
@@ -640,7 +640,7 @@ export default function ProcedureCategoriesPage() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-8 px-3 text-rose-600 bg-rose-50"
+                                  className="h-8 px-3 text-danger bg-danger-muted/60"
                                   onClick={() => handleDelete(category)}
                                 >
                                   <Trash2 size={14} className="mr-1" />
@@ -663,10 +663,10 @@ export default function ProcedureCategoriesPage() {
 
       {/* Footer with count */}
       <div className="bg-white border-t px-6 py-3">
-        <div className="flex items-center justify-between text-sm text-slate-600">
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <span>Rows</span>
-            <span className="px-2 py-1 bg-slate-100 rounded-md font-medium">
+            <span className="px-2 py-1 bg-muted rounded-md font-medium">
               {filteredAndSortedCategories.length}
             </span>
           </div>

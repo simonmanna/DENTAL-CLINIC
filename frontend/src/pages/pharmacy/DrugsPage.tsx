@@ -35,8 +35,8 @@ const UGX = (n: number) => new Intl.NumberFormat('en-UG', { style: 'currency', c
 
 function StockStatusBadge({ drug }: { drug: Drug }) {
   if (drug.stockQuantity === 0) return <Badge variant="destructive" className="text-xs">Out of Stock</Badge>;
-  if (drug.stockQuantity <= drug.minStock) return <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs">Low Stock</Badge>;
-  return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs">In Stock</Badge>;
+  if (drug.stockQuantity <= drug.minStock) return <Badge className="bg-warning-muted text-warning border-warning/25 text-xs">Low Stock</Badge>;
+  return <Badge className="bg-success-muted text-success border-success/25 text-xs">In Stock</Badge>;
 }
 
 // ─── Drug Form Dialog ─────────────────────────────────────────────────────────
@@ -95,8 +95,8 @@ function DrugFormDialog({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center">
-              <Pill className="w-4 h-4 text-sky-600" />
+            <div className="w-8 h-8 bg-primary-muted rounded-lg flex items-center justify-center">
+              <Pill className="w-4 h-4 text-primary" />
             </div>
             {drug ? 'Edit Drug' : 'Add New Drug'}
           </DialogTitle>
@@ -106,7 +106,7 @@ function DrugFormDialog({
           <div className="space-y-5 py-2">
             {/* Basic Info */}
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Basic Information</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Basic Information</p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <Label>Drug Name *</Label>
@@ -148,7 +148,7 @@ function DrugFormDialog({
 
             {/* Pricing & Stock */}
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Pricing & Stock Control</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Pricing & Stock Control</p>
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label>Purchase Price (UGX)</Label>
@@ -158,7 +158,7 @@ function DrugFormDialog({
                   <Label>Selling Price (UGX)</Label>
                   <Input type="number" value={form.sellPrice} onChange={e => set('sellPrice', +e.target.value)} min={0} className="mt-1" />
                   {form.sellPrice > 0 && form.unitPrice > 0 && (
-                    <p className="text-xs mt-1 text-emerald-600">
+                    <p className="text-xs mt-1 text-success">
                       Margin: {(((form.sellPrice - form.unitPrice) / form.unitPrice) * 100).toFixed(0)}%
                     </p>
                   )}
@@ -174,19 +174,19 @@ function DrugFormDialog({
 
             {/* Flags */}
             <div className="space-y-3">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Dispensing Rules</p>
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Dispensing Rules</p>
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                 <div>
                   <p className="text-sm font-medium">Prescription Required</p>
-                  <p className="text-xs text-slate-400">Drug cannot be sold without valid Rx</p>
+                  <p className="text-xs text-muted-foreground/70">Drug cannot be sold without valid Rx</p>
                 </div>
                 <Switch checked={form.requiresPrescription} onCheckedChange={v => set('requiresPrescription', v)} />
               </div>
               {drug && (
-                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                   <div>
                     <p className="text-sm font-medium">Active in Formulary</p>
-                    <p className="text-xs text-slate-400">Deactivate to hide from POS and searches</p>
+                    <p className="text-xs text-muted-foreground/70">Deactivate to hide from POS and searches</p>
                   </div>
                   <Switch checked={form.isActive} onCheckedChange={v => set('isActive', v)} />
                 </div>
@@ -197,7 +197,7 @@ function DrugFormDialog({
 
             {/* Clinical */}
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Clinical Information</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Clinical Information</p>
               <div className="space-y-3">
                 <div>
                   <Label>Side Effects</Label>
@@ -265,24 +265,24 @@ function StockAdjustDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Stock Adjustment</DialogTitle>
-          <p className="text-sm text-slate-500">{drug.name} {drug.strength && `· ${drug.strength}`}</p>
+          <p className="text-sm text-muted-foreground">{drug.name} {drug.strength && `· ${drug.strength}`}</p>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           {/* Current → Projected */}
-          <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl">
             <div className="text-center flex-1">
-              <p className="text-xs text-slate-500">Current</p>
-              <p className="text-2xl font-bold text-slate-800">{drug.stockQuantity}</p>
-              <p className="text-xs text-slate-400">{drug.unit}</p>
+              <p className="text-xs text-muted-foreground">Current</p>
+              <p className="text-2xl font-bold text-foreground">{drug.stockQuantity}</p>
+              <p className="text-xs text-muted-foreground/70">{drug.unit}</p>
             </div>
-            <ChevronRight className="w-5 h-5 text-slate-400 flex-shrink-0" />
+            <ChevronRight className="w-5 h-5 text-muted-foreground/70 flex-shrink-0" />
             <div className="text-center flex-1">
-              <p className="text-xs text-slate-500">After Adjustment</p>
-              <p className={cn('text-2xl font-bold', projectedQty === 0 ? 'text-red-600' : projectedQty <= drug.minStock ? 'text-amber-600' : 'text-emerald-600')}>
+              <p className="text-xs text-muted-foreground">After Adjustment</p>
+              <p className={cn('text-2xl font-bold', projectedQty === 0 ? 'text-danger' : projectedQty <= drug.minStock ? 'text-warning' : 'text-success')}>
                 {projectedQty}
               </p>
-              <p className="text-xs text-slate-400">{drug.unit}</p>
+              <p className="text-xs text-muted-foreground/70">{drug.unit}</p>
             </div>
           </div>
 
@@ -309,7 +309,7 @@ function StockAdjustDialog({
             </div>
             <div>
               <Label>Total Cost</Label>
-              <div className="mt-1 h-9 flex items-center px-3 bg-slate-50 border rounded-md text-sm font-medium text-slate-700">
+              <div className="mt-1 h-9 flex items-center px-3 bg-muted/50 border rounded-md text-sm font-medium text-foreground">
                 {UGX(form.quantity * form.unitCost)}
               </div>
             </div>
@@ -386,8 +386,8 @@ export function DrugsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Drug Formulary</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{pagination.total} drugs · Manage inventory and stock levels</p>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Drug Formulary</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{pagination.total} drugs · Manage inventory and stock levels</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => reload()} className="gap-1.5">
@@ -402,15 +402,15 @@ export function DrugsPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {[
-          { label: 'Total Drugs', value: stats.total, icon: Pill, color: 'text-sky-700', bg: 'bg-sky-50' },
+          { label: 'Total Drugs', value: stats.total, icon: Pill, color: 'text-primary', bg: 'bg-primary-muted/60' },
           { label: 'Stock Value', value: UGX(stats.stockValue), icon: Package, color: 'text-indigo-700', bg: 'bg-indigo-50' },
           { label: 'Rx Only', value: stats.rxOnly, icon: CheckCircle, color: 'text-purple-700', bg: 'bg-purple-50' },
-          { label: 'Low Stock', value: stats.lowStock, icon: AlertTriangle, color: 'text-amber-700', bg: 'bg-amber-50' },
-          { label: 'Out of Stock', value: stats.outOfStock, icon: TrendingDown, color: 'text-red-700', bg: 'bg-red-50' },
+          { label: 'Low Stock', value: stats.lowStock, icon: AlertTriangle, color: 'text-warning', bg: 'bg-warning-muted/60' },
+          { label: 'Out of Stock', value: stats.outOfStock, icon: TrendingDown, color: 'text-danger', bg: 'bg-danger-muted/60' },
         ].map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-sm transition-shadow">
+          <div key={label} className="bg-white border border-border rounded-xl p-4 hover:shadow-sm transition-shadow">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-medium text-slate-500">{label}</p>
+              <p className="text-xs font-medium text-muted-foreground">{label}</p>
               <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center', bg)}>
                 <Icon className={cn('w-3.5 h-3.5', color)} />
               </div>
@@ -423,7 +423,7 @@ export function DrugsPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-2 items-center">
         <div className="relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-muted-foreground/70 absolute left-3 top-1/2 -translate-y-1/2" />
           <Input
             className="pl-9 w-64"
             placeholder="Search drugs, generics…"
@@ -431,7 +431,7 @@ export function DrugsPage() {
             onChange={e => setSearch(e.target.value)}
           />
           {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-muted-foreground">
               <X className="w-3.5 h-3.5" />
             </button>
           )}
@@ -449,13 +449,13 @@ export function DrugsPage() {
           </SelectContent>
         </Select>
 
-        <div className="flex gap-1 p-1 bg-slate-100 rounded-lg text-xs">
+        <div className="flex gap-1 p-1 bg-muted rounded-lg text-xs">
           {([['all', 'All'], ['low', 'Low Stock'], ['out', 'Out of Stock']] as const).map(([v, l]) => (
             <button
               key={v}
               onClick={() => setFilterStatus(v)}
               className={cn('px-2.5 py-1 rounded-md transition-colors font-medium',
-                filterStatus === v ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'
+                filterStatus === v ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
               )}
             >
               {l}
@@ -465,10 +465,10 @@ export function DrugsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-border rounded-xl overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="bg-slate-50/60">
+            <TableRow className="bg-muted/60">
               <TableHead>Drug</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Form / Strength</TableHead>
@@ -485,16 +485,16 @@ export function DrugsPage() {
               Array.from({ length: 8 }).map((_, i) => (
                 <TableRow key={i}>
                   {Array.from({ length: 9 }).map((_, j) => (
-                    <TableCell key={j}><div className="h-4 bg-slate-100 rounded animate-pulse" /></TableCell>
+                    <TableCell key={j}><div className="h-4 bg-muted rounded animate-pulse" /></TableCell>
                   ))}
                 </TableRow>
               ))
             ) : filteredDrugs.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-16">
-                  <Pill className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-500">No drugs found</p>
-                  <p className="text-sm text-slate-400 mt-1">Try adjusting your filters</p>
+                  <Pill className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
+                  <p className="text-muted-foreground">No drugs found</p>
+                  <p className="text-sm text-muted-foreground/70 mt-1">Try adjusting your filters</p>
                 </TableCell>
               </TableRow>
             ) : (
@@ -503,13 +503,13 @@ export function DrugsPage() {
                 const isLow = drug.stockQuantity > 0 && drug.stockQuantity <= drug.minStock;
                 const isOut = drug.stockQuantity === 0;
                 return (
-                  <TableRow key={drug.id} className={cn(isOut ? 'bg-red-50/30' : isLow ? 'bg-amber-50/30' : '')}>
+                  <TableRow key={drug.id} className={cn(isOut ? 'bg-danger-muted/30' : isLow ? 'bg-warning-muted/30' : '')}>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <div className={cn('w-2 h-8 rounded-full flex-shrink-0', isOut ? 'bg-red-400' : isLow ? 'bg-amber-400' : 'bg-emerald-400')} />
+                        <div className={cn('w-2 h-8 rounded-full flex-shrink-0', isOut ? 'bg-danger/80' : isLow ? 'bg-warning/80' : 'bg-success/80')} />
                         <div>
-                          <p className="font-medium text-slate-900 text-sm">{drug.name}</p>
-                          {drug.genericName && <p className="text-xs text-slate-400">{drug.genericName}</p>}
+                          <p className="font-medium text-foreground text-sm">{drug.name}</p>
+                          {drug.genericName && <p className="text-xs text-muted-foreground/70">{drug.genericName}</p>}
                           {drug.requiresPrescription && (
                             <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-semibold mt-0.5 inline-block">Rx</span>
                           )}
@@ -519,24 +519,24 @@ export function DrugsPage() {
                     <TableCell>
                       <Badge variant="outline" className="text-xs">{drug.category}</Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-slate-600">
+                    <TableCell className="text-sm text-muted-foreground">
                       <span className="capitalize">{drug.form ?? '—'}</span>
-                      {drug.strength && <span className="text-slate-400"> · {drug.strength}</span>}
+                      {drug.strength && <span className="text-muted-foreground/70"> · {drug.strength}</span>}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
-                        <span className={cn('font-semibold text-sm', isOut ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-slate-800')}>
+                        <span className={cn('font-semibold text-sm', isOut ? 'text-danger' : isLow ? 'text-warning' : 'text-foreground')}>
                           {drug.stockQuantity}
                         </span>
-                        <span className="text-xs text-slate-400">{drug.unit}</span>
-                        {(isLow || isOut) && <AlertTriangle className={cn('w-3.5 h-3.5', isOut ? 'text-red-500' : 'text-amber-500')} />}
+                        <span className="text-xs text-muted-foreground/70">{drug.unit}</span>
+                        {(isLow || isOut) && <AlertTriangle className={cn('w-3.5 h-3.5', isOut ? 'text-danger' : 'text-warning')} />}
                       </div>
-                      <div className="text-xs text-slate-400">min: {drug.minStock}</div>
+                      <div className="text-xs text-muted-foreground/70">min: {drug.minStock}</div>
                     </TableCell>
-                    <TableCell className="text-sm text-slate-600">{UGX(drug.unitPrice)}</TableCell>
-                    <TableCell className="text-sm font-semibold text-slate-800">{UGX(drug.sellPrice)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{UGX(drug.unitPrice)}</TableCell>
+                    <TableCell className="text-sm font-semibold text-foreground">{UGX(drug.sellPrice)}</TableCell>
                     <TableCell>
-                      <span className={cn('text-sm font-medium', margin < 0 ? 'text-red-600' : margin < 20 ? 'text-amber-600' : 'text-emerald-600')}>
+                      <span className={cn('text-sm font-medium', margin < 0 ? 'text-danger' : margin < 20 ? 'text-warning' : 'text-success')}>
                         {margin.toFixed(0)}%
                       </span>
                     </TableCell>
@@ -570,7 +570,7 @@ export function DrugsPage() {
 
         {/* Pagination */}
         {pagination.totalPages > 1 && (
-          <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between text-sm text-slate-500">
+          <div className="px-4 py-3 border-t border-border/60 flex items-center justify-between text-sm text-muted-foreground">
             <p>Showing {filteredDrugs.length} of {pagination.total} drugs</p>
             <div className="flex gap-1">
               {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(p => (
@@ -578,7 +578,7 @@ export function DrugsPage() {
                   key={p}
                   onClick={() => reload({ page: p })}
                   className={cn('w-7 h-7 rounded text-xs font-medium transition-colors',
-                    p === pagination.page ? 'bg-slate-900 text-white' : 'hover:bg-slate-100 text-slate-600'
+                    p === pagination.page ? 'bg-foreground text-white' : 'hover:bg-muted text-muted-foreground'
                   )}
                 >
                   {p}

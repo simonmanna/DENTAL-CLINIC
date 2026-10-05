@@ -93,7 +93,7 @@ function Spinner({ size = "md" }: { size?: "sm" | "md" }) {
   return (
     <Loader2
       className={cn(
-        "animate-spin text-blue-600",
+        "animate-spin text-primary",
         size === "sm" ? "w-4 h-4" : "w-6 h-6",
       )}
     />
@@ -110,36 +110,36 @@ function EmptyState({
   subtitle?: string;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground/70">
       <Icon className="w-10 h-10 mb-3 opacity-25" />
-      <p className="text-sm font-medium text-slate-500">{title}</p>
-      {subtitle && <p className="text-xs mt-1 text-slate-400">{subtitle}</p>}
+      <p className="text-sm font-medium text-muted-foreground">{title}</p>
+      {subtitle && <p className="text-xs mt-1 text-muted-foreground/70">{subtitle}</p>}
     </div>
   );
 }
 
 function StatusPill({ status }: { status: string }) {
   const map: Record<string, string> = {
-    ACTIVE: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    INACTIVE: "bg-red-50 text-red-600 border-red-200",
-    COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    IN_PROGRESS: "bg-blue-50 text-blue-700 border-blue-200",
-    PLANNED: "bg-slate-100 text-slate-600 border-slate-200",
-    ON_HOLD: "bg-amber-50 text-amber-700 border-amber-200",
-    CANCELLED: "bg-red-50 text-red-600 border-red-200",
-    SCHEDULED: "bg-sky-50 text-sky-700 border-sky-200",
-    CHECKED_IN: "bg-amber-50 text-amber-700 border-amber-200",
-    PAID: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    UNPAID: "bg-red-50 text-red-600 border-red-200",
-    PARTIAL: "bg-amber-50 text-amber-700 border-amber-200",
-    PENDING: "bg-slate-100 text-slate-600 border-slate-200",
-    VERIFIED: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    EXPIRED: "bg-red-50 text-red-600 border-red-200",
-    NO_SHOW: "bg-red-50 text-red-600 border-red-200",
+    ACTIVE: "bg-success-muted/60 text-success border-success/25",
+    INACTIVE: "bg-danger-muted/60 text-danger border-danger/25",
+    COMPLETED: "bg-success-muted/60 text-success border-success/25",
+    IN_PROGRESS: "bg-primary-muted/60 text-primary border-primary/25",
+    PLANNED: "bg-muted text-muted-foreground border-border",
+    ON_HOLD: "bg-warning-muted/60 text-warning border-warning/25",
+    CANCELLED: "bg-danger-muted/60 text-danger border-danger/25",
+    SCHEDULED: "bg-primary-muted/60 text-primary border-primary/25",
+    CHECKED_IN: "bg-warning-muted/60 text-warning border-warning/25",
+    PAID: "bg-success-muted/60 text-success border-success/25",
+    UNPAID: "bg-danger-muted/60 text-danger border-danger/25",
+    PARTIAL: "bg-warning-muted/60 text-warning border-warning/25",
+    PENDING: "bg-muted text-muted-foreground border-border",
+    VERIFIED: "bg-success-muted/60 text-success border-success/25",
+    EXPIRED: "bg-danger-muted/60 text-danger border-danger/25",
+    NO_SHOW: "bg-danger-muted/60 text-danger border-danger/25",
   };
   const cls =
     map[status?.toUpperCase()] ??
-    "bg-slate-100 text-slate-600 border-slate-200";
+    "bg-muted text-muted-foreground border-border";
   return (
     <span
       className={cn(
@@ -183,10 +183,10 @@ function OverviewTab({
       {/* ── Left column ── */}
       <div className="lg:col-span-2 space-y-1">
         {/* Personal Info */}
-        <div className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-200 bg-white flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              <User className="w-4 h-4 text-blue-500" /> Personal Information
+        <div className="rounded-xl border border-border bg-muted/50 overflow-hidden">
+          <div className="px-4 py-3 border-b border-border bg-white flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <User className="w-4 h-4 text-primary" /> Personal Information
             </h3>
           </div>
           <div className="p-4 grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4">
@@ -209,10 +209,10 @@ function OverviewTab({
               { label: "Marital Status", value: patient.maritalStatus || "—" },
             ].map(({ label, value, cls }: any) => (
               <div key={label}>
-                <p className="text-[10px] uppercase tracking-wide text-slate-400 mb-0.5">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mb-0.5">
                   {label}
                 </p>
-                <p className={cn("text-sm font-semibold text-slate-800", cls)}>
+                <p className={cn("text-sm font-semibold text-foreground", cls)}>
                   {value}
                 </p>
               </div>
@@ -222,17 +222,17 @@ function OverviewTab({
         </div>
 
         {/* Medical Background */}
-        <div className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-200 bg-white flex items-center gap-2">
-            <HeartPulse className="w-4 h-4 text-rose-500" />
-            <h3 className="text-sm font-semibold text-slate-700">
+        <div className="rounded-xl border border-border bg-muted/50 overflow-hidden">
+          <div className="px-4 py-3 border-b border-border bg-white flex items-center gap-2">
+            <HeartPulse className="w-4 h-4 text-danger" />
+            <h3 className="text-sm font-semibold text-foreground">
               Medical Information
             </h3>
           </div>
           <div className="p-4 space-y-4">
             {/* Medical Conditions */}
             <div>
-              <p className="text-[10px] uppercase tracking-wide text-slate-400 mb-2">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mb-2">
                 Medical Conditions
               </p>
               {patient.medicalConditions?.length > 0 ? (
@@ -240,20 +240,20 @@ function OverviewTab({
                   {patient.medicalConditions.map((c: string) => (
                     <span
                       key={c}
-                      className="px-2.5 py-1 bg-amber-50 border border-amber-200 rounded-full text-xs font-medium text-amber-700"
+                      className="px-2.5 py-1 bg-warning-muted/60 border border-warning/25 rounded-full text-xs font-medium text-warning"
                     >
                       {c}
                     </span>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-slate-400 italic">None on record</p>
+                <p className="text-xs text-muted-foreground/70 italic">None on record</p>
               )}
             </div>
 
 
      <div>
-      <p className="text-[10px] uppercase tracking-wide text-slate-400 mb-0.5">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mb-0.5">
         Allergies
       </p>
       {parseAllergies(patient.allergies).length > 0 ? (
@@ -261,7 +261,7 @@ function OverviewTab({
           {parseAllergies(patient.allergies).map((allergy) => (
             <span
               key={allergy}
-              className="px-2 py-0.5 bg-red-50 border border-red-200 rounded-full text-[12px] font-semibold text-red-700 flex items-center gap-1"
+              className="px-2 py-0.5 bg-danger-muted/60 border border-danger/25 rounded-full text-[12px] font-semibold text-danger flex items-center gap-1"
             >
               <AlertTriangle className="w-2.5 h-2.5" />
               {allergy}
@@ -269,7 +269,7 @@ function OverviewTab({
           ))}
         </div>
       ) : (
-        <p className="text-sm font-semibold text-slate-800">—</p>
+        <p className="text-sm font-semibold text-foreground">—</p>
       )}
     </div>
 
@@ -278,7 +278,7 @@ function OverviewTab({
             {/* Current Medications */}
             {patient.currentMedications?.length > 0 && (
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-slate-400 mb-2">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mb-2">
                   Current Medications
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -296,10 +296,10 @@ function OverviewTab({
             {/* Notes */}
             {patient.medicalNotes && (
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-slate-400 mb-1">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mb-1">
                   Notes
                 </p>
-                <p className="text-xs text-slate-600 bg-white border border-slate-200 rounded-lg p-3 leading-relaxed">
+                <p className="text-xs text-muted-foreground bg-white border border-border rounded-lg p-3 leading-relaxed">
                   {patient.medicalNotes}
                 </p>
               </div>
@@ -309,10 +309,10 @@ function OverviewTab({
         </div>
 
         {/* Contact Info */}
-        <div className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-200 bg-white flex items-center gap-2">
-            <Phone className="w-4 h-4 text-blue-500" />
-            <h3 className="text-sm font-semibold text-slate-700">
+        <div className="rounded-xl border border-border bg-muted/50 overflow-hidden">
+          <div className="px-4 py-3 border-b border-border bg-white flex items-center gap-2">
+            <Phone className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">
               Contact Information
             </h3>
           </div>
@@ -326,10 +326,10 @@ function OverviewTab({
               { label: "Country", value: patient.country || "—" },
             ].map(({ label, value }) => (
               <div key={label}>
-                <p className="text-[10px] uppercase tracking-wide text-slate-400 mb-0.5">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mb-0.5">
                   {label}
                 </p>
-                <p className="text-sm font-semibold text-slate-800 break-words">
+                <p className="text-sm font-semibold text-foreground break-words">
                   {value}
                 </p>
               </div>
@@ -343,25 +343,25 @@ function OverviewTab({
       <div className="space-y-5">
         {/* Emergency Contact */}
         {patient.emergencyContactName && (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-200 bg-white flex items-center gap-2">
-              <UserCheck className="w-4 h-4 text-blue-500" />
-              <h3 className="text-sm font-semibold text-slate-700">
+          <div className="rounded-xl border border-border bg-muted/50 overflow-hidden">
+            <div className="px-4 py-3 border-b border-border bg-white flex items-center gap-2">
+              <UserCheck className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">
                 Emergency Contact
               </h3>
             </div>
             <div className="p-4 space-y-2">
-              <p className="font-bold text-slate-800">
+              <p className="font-bold text-foreground">
                 {patient.emergencyContactName}
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 {patient.emergencyContactRelation}
               </p>
-              <p className="text-sm font-semibold text-blue-600">
+              <p className="text-sm font-semibold text-primary">
                 {patient.emergencyContactPhone}
               </p>
               {patient.emergencyContactEmail && (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   {patient.emergencyContactEmail}
                 </p>
               )}
@@ -370,10 +370,10 @@ function OverviewTab({
         )}
 
         {/* Activity Summary */}
-        <div className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-200 bg-white flex items-center gap-2">
-            <BarChart2 className="w-4 h-4 text-blue-500" />
-            <h3 className="text-sm font-semibold text-slate-700">
+        <div className="rounded-xl border border-border bg-muted/50 overflow-hidden">
+          <div className="px-4 py-3 border-b border-border bg-white flex items-center gap-2">
+            <BarChart2 className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">
               Activity Summary
             </h3>
           </div>
@@ -382,8 +382,8 @@ function OverviewTab({
               {
                 label: "Appointments",
                 value: patient._count?.appointments ?? 0,
-                color: "text-blue-600",
-                bg: "bg-blue-50",
+                color: "text-primary",
+                bg: "bg-primary-muted/60",
               },
               {
                 label: "Treatment Plans",
@@ -394,14 +394,14 @@ function OverviewTab({
               {
                 label: "EMR Records",
                 value: patient._count?.emrRecords ?? 0,
-                color: "text-emerald-600",
-                bg: "bg-emerald-50",
+                color: "text-success",
+                bg: "bg-success-muted/60",
               },
               {
                 label: "Invoices",
                 value: patient._count?.invoices ?? 0,
-                color: "text-amber-600",
-                bg: "bg-amber-50",
+                color: "text-warning",
+                bg: "bg-warning-muted/60",
               },
               {
                 label: "Prescriptions",
@@ -412,34 +412,34 @@ function OverviewTab({
               {
                 label: "Visits",
                 value: patient._count?.visits ?? 0,
-                color: "text-rose-600",
-                bg: "bg-rose-50",
+                color: "text-danger",
+                bg: "bg-danger-muted/60",
               },
             ].map(({ label, value, color, bg }) => (
               <div key={label} className={cn("rounded-lg p-3 text-center", bg)}>
                 <p className={cn("text-2xl font-bold", color)}>{value}</p>
-                <p className="text-[10px] text-slate-500 mt-0.5">{label}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{label}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Recent Invoices snapshot */}
-        <div className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-200 bg-white flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              <Receipt className="w-4 h-4 text-amber-500" /> Recent Invoices
+        <div className="rounded-xl border border-border bg-muted/50 overflow-hidden">
+          <div className="px-4 py-3 border-b border-border bg-white flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Receipt className="w-4 h-4 text-warning" /> Recent Invoices
             </h3>
             <button
               onClick={() => setActiveTab("billing")}
-              className="text-xs text-blue-600 hover:underline"
+              className="text-xs text-primary hover:underline"
             >
               View all
             </button>
           </div>
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-border/60">
             {patient.invoices?.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-6 italic">
+              <p className="text-xs text-muted-foreground/70 text-center py-6 italic">
                 No invoices
               </p>
             ) : (
@@ -449,15 +449,15 @@ function OverviewTab({
                   className="flex items-center justify-between px-4 py-2.5"
                 >
                   <div>
-                    <p className="text-xs font-semibold text-slate-700">
+                    <p className="text-xs font-semibold text-foreground">
                       {inv.invoiceNumber}
                     </p>
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-[10px] text-muted-foreground/70">
                       {formatDate(inv.createdAt)}
                     </p>
                   </div>
                   <div className="text-right flex flex-col items-end gap-1">
-                    <p className="text-xs font-bold text-slate-800">
+                    <p className="text-xs font-bold text-foreground">
                       {formatCurrency(inv.total)}
                     </p>
                     <StatusPill status={inv.status} />
@@ -470,19 +470,19 @@ function OverviewTab({
 
         {/* Referred By */}
         {(patient.referredBy || patient.referralSource) && (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-200 bg-white flex items-center gap-2">
-              <Zap className="w-4 h-4 text-blue-500" />
-              <h3 className="text-sm font-semibold text-slate-700">Referral</h3>
+          <div className="rounded-xl border border-border bg-muted/50 overflow-hidden">
+            <div className="px-4 py-3 border-b border-border bg-white flex items-center gap-2">
+              <Zap className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">Referral</h3>
             </div>
             <div className="p-4 space-y-1">
               {patient.referredBy && (
-                <p className="text-sm font-semibold text-slate-800">
+                <p className="text-sm font-semibold text-foreground">
                   {patient.referredBy}
                 </p>
               )}
               {patient.referralSource && (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   {patient.referralSource}
                 </p>
               )}
@@ -519,18 +519,18 @@ function EMRTab({ patient, navigate }: { patient: any; navigate: any }) {
           <div
             key={emr.id}
             onClick={() => navigate(`/emr/${emr.id}`)}
-            className="p-4 rounded-xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/20 transition-colors cursor-pointer"
+            className="p-4 rounded-xl border border-border/60 hover:border-primary/25 hover:bg-primary-muted/20 transition-colors cursor-pointer"
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                  <FileText className="w-4 h-4 text-blue-600" />
+                <div className="w-9 h-9 rounded-lg bg-primary-muted/60 flex items-center justify-center shrink-0">
+                  <FileText className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">
+                  <p className="text-sm font-semibold text-foreground">
                     {formatDateTime(emr.createdAt)}
                   </p>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-muted-foreground/70 mt-0.5">
                     Dr. {emr.dentist?.firstName} {emr.dentist?.lastName}
                   </p>
                 </div>
@@ -538,8 +538,8 @@ function EMRTab({ patient, navigate }: { patient: any; navigate: any }) {
               {emr.visitType && <StatusPill status={emr.visitType} />}
             </div>
             {emr.chiefComplaint && (
-              <p className="text-xs text-slate-600 mt-3 pl-12">
-                <span className="font-semibold text-slate-700">
+              <p className="text-xs text-muted-foreground mt-3 pl-12">
+                <span className="font-semibold text-foreground">
                   Chief complaint:{" "}
                 </span>
                 {emr.chiefComplaint}
@@ -547,11 +547,11 @@ function EMRTab({ patient, navigate }: { patient: any; navigate: any }) {
             )}
             {emr.assessment && (
               <div className="mt-2 pl-12">
-                <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
-                  <span className="text-xs font-semibold text-blue-700">
+                <div className="bg-primary-muted/60 border border-primary/20 rounded-lg px-3 py-2">
+                  <span className="text-xs font-semibold text-primary">
                     Assessment:{" "}
                   </span>
-                  <span className="text-xs text-blue-600">
+                  <span className="text-xs text-primary">
                     {emr.assessment}
                   </span>
                 </div>
@@ -559,11 +559,11 @@ function EMRTab({ patient, navigate }: { patient: any; navigate: any }) {
             )}
             {emr.treatmentNotes && (
               <div className="mt-2 pl-12">
-                <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-                  <span className="text-xs font-semibold text-slate-600">
+                <div className="bg-muted/50 border border-border rounded-lg px-3 py-2">
+                  <span className="text-xs font-semibold text-muted-foreground">
                     Treatment notes:{" "}
                   </span>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-muted-foreground">
                     {emr.treatmentNotes}
                   </span>
                 </div>
@@ -607,22 +607,22 @@ function TimelineTab({ patientId }: { patientId: string }) {
     VISIT: Stethoscope,
   };
   const COLOR_MAP: Record<string, string> = {
-    APPOINTMENT: "bg-blue-100 text-blue-600 border-blue-200",
-    EMR: "bg-emerald-100 text-emerald-600 border-emerald-200",
-    INVOICE: "bg-amber-100 text-amber-600 border-amber-200",
+    APPOINTMENT: "bg-primary-muted text-primary border-primary/25",
+    EMR: "bg-success-muted text-success border-success/25",
+    INVOICE: "bg-warning-muted text-warning border-warning/25",
     PRESCRIPTION: "bg-purple-100 text-purple-600 border-purple-200",
     IMAGING: "bg-indigo-100 text-indigo-600 border-indigo-200",
-    VISIT: "bg-rose-100 text-rose-600 border-rose-200",
+    VISIT: "bg-danger-muted text-danger border-danger/25",
   };
 
   return (
     <div className="relative pl-6">
-      <div className="absolute left-5 top-2 bottom-2 w-px bg-slate-200" />
+      <div className="absolute left-5 top-2 bottom-2 w-px bg-muted" />
       {(timeline as any[]).map((event: any, i: number) => {
         const Icon = ICON_MAP[event.type] ?? Activity;
         const cls =
           COLOR_MAP[event.type] ??
-          "bg-slate-100 text-slate-500 border-slate-200";
+          "bg-muted text-muted-foreground border-border";
         return (
           <div key={i} className="relative flex gap-4 mb-4">
             <div
@@ -633,17 +633,17 @@ function TimelineTab({ patientId }: { patientId: string }) {
             >
               <Icon className="w-4 h-4" />
             </div>
-            <div className="flex-1 bg-white rounded-xl border border-slate-100 shadow-sm p-3 mb-1">
+            <div className="flex-1 bg-white rounded-xl border border-border/60 shadow-sm p-3 mb-1">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                <span className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest">
                   {event.type}
                 </span>
-                <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                <span className="text-[10px] text-muted-foreground/70 flex items-center gap-1">
                   <Clock className="w-3 h-3" />
                   {formatDateTime(event.date)}
                 </span>
               </div>
-              <p className="text-sm text-slate-700 font-medium">
+              <p className="text-sm text-foreground font-medium">
                 {event.data?.assessment ||
                   event.data?.invoiceNumber ||
                   event.data?.type?.replace(/_/g, " ") ||
@@ -652,7 +652,7 @@ function TimelineTab({ patientId }: { patientId: string }) {
                   "Record"}
               </p>
               {event.data?.chiefComplaint && (
-                <p className="text-xs text-slate-400 mt-1 italic">
+                <p className="text-xs text-muted-foreground/70 mt-1 italic">
                   "{event.data.chiefComplaint}"
                 </p>
               )}
@@ -683,7 +683,7 @@ export function PatientDetailPage() {
 
   if (!id)
     return (
-      <div className="flex items-center justify-center h-96 text-slate-400 text-sm">
+      <div className="flex items-center justify-center h-96 text-muted-foreground/70 text-sm">
         No patient ID provided
       </div>
     );
@@ -692,17 +692,17 @@ export function PatientDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center h-96 gap-3">
         <Spinner />
-        <p className="text-sm text-slate-400">Loading patient…</p>
+        <p className="text-sm text-muted-foreground/70">Loading patient…</p>
       </div>
     );
 
   if (error || !patient)
     return (
       <div className="flex flex-col items-center justify-center h-96">
-        <p className="text-red-500 text-sm mb-4">Patient not found</p>
+        <p className="text-danger text-sm mb-4">Patient not found</p>
         <button
           onClick={() => navigate("/patients")}
-          className="flex items-center gap-2 px-4 py-2 rounded border border-slate-200 text-sm text-slate-600 hover:bg-slate-50"
+          className="flex items-center gap-2 px-4 py-2 rounded border border-border text-sm text-muted-foreground hover:bg-muted/50"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Patients
         </button>
@@ -712,10 +712,10 @@ export function PatientDetailPage() {
   const age = patient.dateOfBirth ? getAge(patient.dateOfBirth) : null;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-muted/50">
       <div className="max-w-screen-2xl mx-auto px-2 py-4 space-y-4">
         {/* ── Patient Header Card ──────────────────────────────────────── */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
           {/* Dark top bar */}
           <div className="px-5 py-1.5 bg-[#0369a1] text-white flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -723,7 +723,7 @@ export function PatientDetailPage() {
                 <p className="font-bold text-base leading-tight">
                   {patient.firstName} {patient.lastName}
                 </p>
-                <p className="text-blue-200 text-xs mt-0.5">
+                <p className="text-primary/50 text-xs mt-0.5">
                   {patient.patientCode}
                 </p>
               </div>
@@ -735,8 +735,8 @@ export function PatientDetailPage() {
                 className={cn(
                   "px-2.5 py-0.5 rounded-full text-xs font-semibold",
                   patient.isActive
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-red-100 text-red-600",
+                    ? "bg-success-muted text-success"
+                    : "bg-danger-muted text-danger",
                 )}
               >
                 {patient.isActive ? "● Active" : "● Inactive"}
@@ -753,7 +753,7 @@ export function PatientDetailPage() {
               </button>
               {/*              <button
                 onClick={() => navigate(`/dental-chart/${patient.id}`)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-[#1e3a5f] rounded text-xs font-semibold hover:bg-blue-50 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-[#1e3a5f] rounded text-xs font-semibold hover:bg-primary-muted/60 transition-colors"
               >
                 <Stethoscope className="w-3.5 h-3.5" /> Dental Chart
               </button>*/}
@@ -761,7 +761,7 @@ export function PatientDetailPage() {
           </div>
 
           {/* Info strip */}
-          <div className="px-5 py-2.5 flex flex-wrap gap-x-8 gap-y-2 bg-slate-50 border-b border-slate-200">
+          <div className="px-5 py-2.5 flex flex-wrap gap-x-8 gap-y-2 bg-muted/50 border-b border-border">
             {[
               { label: "Age", value: age ? `${age} yrs` : "—" },
               { label: "Gender", value: patient.gender || "—" },
@@ -781,11 +781,11 @@ export function PatientDetailPage() {
               },
             ].map(({ label, value, cls }: any) => (
               <div key={label} className="flex flex-col">
-                <span className="text-[10px] text-slate-400 uppercase tracking-wide">
+                <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wide">
                   {label}
                 </span>
                 <span
-                  className={cn("font-semibold text-slate-700 text-xs", cls)}
+                  className={cn("font-semibold text-foreground text-xs", cls)}
                 >
                   {value}
                 </span>
@@ -793,7 +793,7 @@ export function PatientDetailPage() {
             ))}
 
             <div>
-      <p className="text-[10px] uppercase tracking-wide text-slate-400 mb-0.5">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mb-0.5">
         Allergies
       </p>
       {parseAllergies(patient.allergies).length > 0 ? (
@@ -801,7 +801,7 @@ export function PatientDetailPage() {
           {parseAllergies(patient.allergies).map((allergy) => (
             <span
               key={allergy}
-              className="px-2 py-0.5 bg-red-50 border border-red-200 rounded-full text-[10px] font-semibold text-red-700 flex items-center gap-1"
+              className="px-2 py-0.5 bg-danger-muted/60 border border-danger/25 rounded-full text-[10px] font-semibold text-danger flex items-center gap-1"
             >
               <AlertTriangle className="w-2.5 h-2.5" />
               {allergy}
@@ -809,7 +809,7 @@ export function PatientDetailPage() {
           ))}
         </div>
       ) : (
-        <p className="text-sm font-semibold text-slate-800">—</p>
+        <p className="text-sm font-semibold text-foreground">—</p>
       )}
     </div>
 
@@ -818,8 +818,8 @@ export function PatientDetailPage() {
         </div>
 
         {/* ── Tabs ────────────────────────────────────────────────────── */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="flex border-b border-slate-200 bg-slate-50 overflow-x-auto">
+        <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+          <div className="flex border-b border-border bg-muted/50 overflow-x-auto">
             {TABS.map((tab) => {
               const Icon = tab.icon;
               const active = activeTab === tab.id;
@@ -830,8 +830,8 @@ export function PatientDetailPage() {
                   className={cn(
                     "flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
                     active
-                      ? "border-blue-600 text-blue-700 bg-white"
-                      : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100",
+                      ? "border-primary text-primary bg-white"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted",
                   )}
                 >
                   <Icon className="w-3.5 h-3.5" />

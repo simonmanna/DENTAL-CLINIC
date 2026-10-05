@@ -119,17 +119,17 @@ const STATUS_CONFIG: Record<
 > = {
   DRAFT: {
     label: "Draft",
-    bg: "bg-slate-50",
-    text: "text-slate-600",
-    dot: "bg-slate-400",
-    border: "border-slate-200",
+    bg: "bg-muted/50",
+    text: "text-muted-foreground",
+    dot: "bg-muted-foreground/70",
+    border: "border-border",
   },
   APPROVED: {
     label: "Approved",
-    bg: "bg-blue-50",
-    text: "text-blue-700",
-    dot: "bg-blue-400",
-    border: "border-blue-200",
+    bg: "bg-primary-muted/60",
+    text: "text-primary",
+    dot: "bg-primary/80",
+    border: "border-primary/25",
   },
   POSTED: {
     label: "Posted",
@@ -140,39 +140,39 @@ const STATUS_CONFIG: Record<
   },
   REJECTED: {
     label: "Rejected",
-    bg: "bg-red-50",
-    text: "text-red-700",
-    dot: "bg-red-400",
-    border: "border-red-200",
+    bg: "bg-danger-muted/60",
+    text: "text-danger",
+    dot: "bg-danger/80",
+    border: "border-danger/25",
   },
   CANCELLED: {
     label: "Cancelled",
-    bg: "bg-slate-100",
-    text: "text-slate-500",
-    dot: "bg-slate-400",
-    border: "border-slate-200",
+    bg: "bg-muted",
+    text: "text-muted-foreground",
+    dot: "bg-muted-foreground/70",
+    border: "border-border",
   },
   VOID: {
     label: "Void",
-    bg: "bg-rose-50",
-    text: "text-rose-700",
-    dot: "bg-rose-500",
-    border: "border-rose-200",
+    bg: "bg-danger-muted/60",
+    text: "text-danger",
+    dot: "bg-danger",
+    border: "border-danger/25",
   },
   // Legacy values, in case old data is still around
   PENDING: {
     label: "Pending",
-    bg: "bg-amber-50",
-    text: "text-amber-700",
-    dot: "bg-amber-400",
-    border: "border-amber-200",
+    bg: "bg-warning-muted/60",
+    text: "text-warning",
+    dot: "bg-warning/80",
+    border: "border-warning/25",
   },
   PAID: {
     label: "Paid (legacy)",
-    bg: "bg-emerald-50",
-    text: "text-emerald-700",
-    dot: "bg-emerald-400",
-    border: "border-emerald-200",
+    bg: "bg-success-muted/60",
+    text: "text-success",
+    dot: "bg-success/80",
+    border: "border-success/25",
   },
 };
 
@@ -182,24 +182,24 @@ const PAYMENT_STATUS_CONFIG: Record<
 > = {
   UNPAID: {
     label: "Unpaid",
-    bg: "bg-amber-50",
-    text: "text-amber-700",
-    dot: "bg-amber-400",
-    border: "border-amber-200",
+    bg: "bg-warning-muted/60",
+    text: "text-warning",
+    dot: "bg-warning/80",
+    border: "border-warning/25",
   },
   PARTIALLY_PAID: {
     label: "Partial",
-    bg: "bg-blue-50",
-    text: "text-blue-700",
-    dot: "bg-blue-400",
-    border: "border-blue-200",
+    bg: "bg-primary-muted/60",
+    text: "text-primary",
+    dot: "bg-primary/80",
+    border: "border-primary/25",
   },
   PAID: {
     label: "Paid",
-    bg: "bg-emerald-50",
-    text: "text-emerald-700",
-    dot: "bg-emerald-400",
-    border: "border-emerald-200",
+    bg: "bg-success-muted/60",
+    text: "text-success",
+    dot: "bg-success/80",
+    border: "border-success/25",
   },
 };
 
@@ -250,11 +250,11 @@ function StatusBadge({ status }: { status: string }) {
 function PaymentTypeBadge({ type }: { type?: string }) {
   if (!type) return null;
   return type === "CASH" ? (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-100 text-emerald-700 border border-emerald-200">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-success-muted text-success border border-success/25">
       <Banknote className="w-3 h-3" /> Cash
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-muted text-muted-foreground border border-border">
       <CreditCard className="w-3 h-3" /> Credit
     </span>
   );
@@ -276,29 +276,29 @@ function StatCard({
 }) {
   const palette = {
     blue: {
-      grad: "from-blue-500 to-blue-600",
-      iconBg: "bg-blue-400/30",
-      sub: "text-blue-100",
+      grad: "from-primary to-primary",
+      iconBg: "bg-primary/30",
+      sub: "text-primary/40",
     },
     amber: {
-      grad: "from-amber-500 to-amber-600",
-      iconBg: "bg-amber-400/30",
-      sub: "text-amber-100",
+      grad: "from-warning to-warning",
+      iconBg: "bg-warning/30",
+      sub: "text-warning/40",
     },
     emerald: {
-      grad: "from-emerald-500 to-emerald-600",
-      iconBg: "bg-emerald-400/30",
-      sub: "text-emerald-100",
+      grad: "from-success to-success",
+      iconBg: "bg-success/30",
+      sub: "text-success/40",
     },
     slate: {
-      grad: "from-slate-600 to-slate-700",
-      iconBg: "bg-slate-500/30",
-      sub: "text-slate-200",
+      grad: "from-muted-foreground to-foreground",
+      iconBg: "bg-muted-foreground/30",
+      sub: "text-muted-foreground/40",
     },
     rose: {
-      grad: "from-rose-500 to-rose-600",
-      iconBg: "bg-rose-400/30",
-      sub: "text-rose-100",
+      grad: "from-danger to-danger",
+      iconBg: "bg-danger/30",
+      sub: "text-danger/40",
     },
     violet: {
       grad: "from-violet-500 to-violet-600",
@@ -344,19 +344,19 @@ function BreakdownCard({
   empty?: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-      <p className="text-xs font-bold uppercase text-slate-500 mb-3">{title}</p>
+    <div className="bg-white rounded-xl border border-border shadow-sm p-4">
+      <p className="text-xs font-bold uppercase text-muted-foreground mb-3">{title}</p>
       {rows.length === 0 ? (
-        <p className="text-sm text-slate-400">{empty}</p>
+        <p className="text-sm text-muted-foreground/70">{empty}</p>
       ) : (
         <ul className="space-y-2">
           {rows.map((r, i) => (
             <li key={i} className="flex items-center justify-between gap-2 text-sm">
-              <span className="truncate text-slate-600">{r.label}</span>
-              <span className="font-semibold text-slate-800 whitespace-nowrap">
+              <span className="truncate text-muted-foreground">{r.label}</span>
+              <span className="font-semibold text-foreground whitespace-nowrap">
                 {r.value}
                 {r.sub && (
-                  <span className="text-xs text-slate-400 ml-1">({r.sub})</span>
+                  <span className="text-xs text-muted-foreground/70 ml-1">({r.sub})</span>
                 )}
               </span>
             </li>
@@ -479,7 +479,7 @@ function ExpenseFormDialog({
           <form onSubmit={form.handleSubmit(onSubmit)} className="bg-[#f4f6f9]">
             <div className="p-4 max-h-[70vh] overflow-y-auto space-y-6">
               {error && (
-                <div className="flex items-start gap-2.5 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+                <div className="flex items-start gap-2.5 p-3 bg-danger-muted/60 border border-danger/25 rounded-xl text-danger text-sm">
                   <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
                   <span>{error}</span>
                 </div>
@@ -493,12 +493,12 @@ function ExpenseFormDialog({
                     name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-bold uppercase text-gray-500">
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
                           Title *
                         </FormLabel>
                         <FormControl>
                           <Input
-                            className="rounded-none border-gray-300 focus:border-[#3c8dbc]"
+                            className="rounded-none border-input focus:border-[#3c8dbc]"
                             placeholder="e.g. Monthly electricity bill"
                             {...field}
                           />
@@ -512,13 +512,13 @@ function ExpenseFormDialog({
                     name="expenseDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-bold uppercase text-gray-500">
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
                           Date
                         </FormLabel>
                         <FormControl>
                           <Input
                             type="date"
-                            className="rounded-none border-gray-300 focus:border-[#3c8dbc]"
+                            className="rounded-none border-input focus:border-[#3c8dbc]"
                             {...field}
                           />
                         </FormControl>
@@ -531,7 +531,7 @@ function ExpenseFormDialog({
                     name="categoryId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-bold uppercase text-gray-500">
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
                           Category
                         </FormLabel>
                         <Select
@@ -539,7 +539,7 @@ function ExpenseFormDialog({
                           value={field.value}
                         >
                           <FormControl>
-                            <SelectTrigger className="rounded-none border-gray-300">
+                            <SelectTrigger className="rounded-none border-input">
                               <SelectValue placeholder="Select Category" />
                             </SelectTrigger>
                           </FormControl>
@@ -562,7 +562,7 @@ function ExpenseFormDialog({
                     name="supplierId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-bold uppercase text-gray-500">
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
                           Supplier
                         </FormLabel>
                         <Select
@@ -570,7 +570,7 @@ function ExpenseFormDialog({
                           value={field.value || "none"}
                         >
                           <FormControl>
-                            <SelectTrigger className="rounded-none border-gray-300">
+                            <SelectTrigger className="rounded-none border-input">
                               <SelectValue placeholder="Select supplier…" />
                             </SelectTrigger>
                           </FormControl>
@@ -597,12 +597,12 @@ function ExpenseFormDialog({
                     name="description"
                     render={({ field }) => (
                       <FormItem className="sm:col-span-2">
-                        <FormLabel className="text-xs font-bold uppercase text-gray-500">
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
                           Description
                         </FormLabel>
                         <FormControl>
                           <Input
-                            className="rounded-none border-gray-300 focus:border-[#3c8dbc]"
+                            className="rounded-none border-input focus:border-[#3c8dbc]"
                             placeholder="Additional details about this expense"
                             {...field}
                           />
@@ -618,7 +618,7 @@ function ExpenseFormDialog({
               <div className="grid grid-cols-2 md:grid-cols-2 gap-2">
                 {/* Amount Card */}
                 <div className="bg-white rounded border shadow-sm overflow-hidden">
-                  <div className="bg-gray-50 px-4 py-2 border-b text-sm font-bold text-gray-700 uppercase tracking-wider">
+                  <div className="bg-muted/50 px-4 py-2 border-b text-sm font-bold text-foreground uppercase tracking-wider">
                     Amount Details
                   </div>
                   <div className="p-4 space-y-4">
@@ -627,18 +627,18 @@ function ExpenseFormDialog({
                       name="amount"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs font-bold text-gray-500 uppercase">
+                          <FormLabel className="text-xs font-bold text-muted-foreground uppercase">
                             Amount (UGX) *
                           </FormLabel>
                           <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground/70 pointer-events-none">
                               UGX
                             </span>
                             <FormControl>
                               <Input
                                 type="number"
                                 min={0}
-                                className="rounded-none border-gray-300 pl-12 focus:border-[#3c8dbc]"
+                                className="rounded-none border-input pl-12 focus:border-[#3c8dbc]"
                                 placeholder="0"
                                 {...field}
                               />
@@ -653,7 +653,7 @@ function ExpenseFormDialog({
                       name="paymentType"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs font-bold text-gray-500 uppercase">
+                          <FormLabel className="text-xs font-bold text-muted-foreground uppercase">
                             Payment Type
                           </FormLabel>
                           <Select
@@ -661,7 +661,7 @@ function ExpenseFormDialog({
                             value={field.value}
                           >
                             <FormControl>
-                              <SelectTrigger className="rounded-none border-gray-300">
+                              <SelectTrigger className="rounded-none border-input">
                                 <SelectValue placeholder="Select type" />
                               </SelectTrigger>
                             </FormControl>
@@ -685,7 +685,7 @@ function ExpenseFormDialog({
                 {/* Cash Payment Card */}
                 {isCash && !isEdit && (
                   <div className="bg-white rounded border border-l-4 border-l-emerald-500 shadow-sm overflow-hidden">
-                    <div className="bg-emerald-50/50 px-4 py-2 border-b text-sm font-bold text-emerald-700 uppercase tracking-wider text-right">
+                    <div className="bg-success-muted/50 px-4 py-2 border-b text-sm font-bold text-success uppercase tracking-wider text-right">
                       Cash Payment Details
                     </div>
                     <div className="p-4 space-y-4">
@@ -694,7 +694,7 @@ function ExpenseFormDialog({
                         name="paymentMethod"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-xs font-bold text-gray-500 uppercase">
+                            <FormLabel className="text-xs font-bold text-muted-foreground uppercase">
                               Payment Method *
                             </FormLabel>
                             <Select
@@ -702,7 +702,7 @@ function ExpenseFormDialog({
                               value={field.value}
                             >
                               <FormControl>
-                                <SelectTrigger className="rounded-none border-gray-300">
+                                <SelectTrigger className="rounded-none border-input">
                                   <SelectValue placeholder="Select method" />
                                 </SelectTrigger>
                               </FormControl>
@@ -723,7 +723,7 @@ function ExpenseFormDialog({
                         name="accountId"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-xs font-bold text-gray-500 uppercase">
+                            <FormLabel className="text-xs font-bold text-muted-foreground uppercase">
                               Debit Account *
                             </FormLabel>
                             <Select
@@ -731,7 +731,7 @@ function ExpenseFormDialog({
                               value={field.value}
                             >
                               <FormControl>
-                                <SelectTrigger className="rounded-none border-gray-300">
+                                <SelectTrigger className="rounded-none border-input">
                                   <SelectValue placeholder="Select account" />
                                 </SelectTrigger>
                               </FormControl>
@@ -752,12 +752,12 @@ function ExpenseFormDialog({
                         name="paymentReference"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-xs font-bold text-gray-500 uppercase">
+                            <FormLabel className="text-xs font-bold text-muted-foreground uppercase">
                               Reference / Txn ID
                             </FormLabel>
                             <FormControl>
                               <Input
-                                className="rounded-none border-gray-300 focus:border-[#3c8dbc]"
+                                className="rounded-none border-input focus:border-[#3c8dbc]"
                                 placeholder="Optional transaction reference"
                                 {...field}
                               />
@@ -772,8 +772,8 @@ function ExpenseFormDialog({
 
               {/* SECTION: Metadata & Notes */}
               <div className="bg-white rounded border shadow-sm overflow-hidden">
-                <div className="bg-gray-50 px-4 py-2 border-b">
-                  <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+                <div className="bg-muted/50 px-4 py-2 border-b">
+                  <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1 h-4 bg-[#3c8dbc] rounded-full" />
                     Metadata & Notes
                   </h3>
@@ -785,7 +785,7 @@ function ExpenseFormDialog({
                       name="createdBy"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs font-bold uppercase text-gray-500">
+                          <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
                             Created By *
                           </FormLabel>
                           <Select
@@ -793,7 +793,7 @@ function ExpenseFormDialog({
                             value={field.value}
                           >
                             <FormControl>
-                              <SelectTrigger className="rounded-none border-gray-300">
+                              <SelectTrigger className="rounded-none border-input">
                                 <SelectValue placeholder="Select staff member" />
                               </SelectTrigger>
                             </FormControl>
@@ -815,12 +815,12 @@ function ExpenseFormDialog({
                     name="notes"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-bold uppercase text-gray-500">
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
                           Internal Notes
                         </FormLabel>
                         <FormControl>
                           <textarea
-                            className="w-full rounded-none border-gray-300 focus:border-[#3c8dbc] px-3 py-2 text-sm bg-white"
+                            className="w-full rounded-none border-input focus:border-[#3c8dbc] px-3 py-2 text-sm bg-white"
                             rows={3}
                             placeholder="Optional internal notes..."
                             {...field}
@@ -834,7 +834,7 @@ function ExpenseFormDialog({
 
               {/* Info Banner */}
               {isCash && !isEdit && (
-                <div className="flex items-start gap-2.5 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs">
+                <div className="flex items-start gap-2.5 p-3 bg-success-muted/60 border border-success/25 rounded-xl text-success text-xs">
                   <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" />
                   <span>
                     This expense will be{" "}
@@ -844,7 +844,7 @@ function ExpenseFormDialog({
                 </div>
               )}
               {!isCash && !isEdit && (
-                <div className="flex items-start gap-2.5 p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 text-xs">
+                <div className="flex items-start gap-2.5 p-3 bg-primary-muted/60 border border-primary/25 rounded-xl text-primary text-xs">
                   <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
                   <span>
                     This expense will be saved as <strong>Approved</strong>. You
@@ -856,7 +856,7 @@ function ExpenseFormDialog({
 
             {/* Footer Bar */}
             <div className="bg-white px-6 py-4 flex justify-between items-center border-t">
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+              <span className="text-[10px] text-muted-foreground/70 font-bold uppercase tracking-widest">
                 {isEdit ? `Editing: ${expense?.title}` : "New Expense Entry"}
               </span>
               <div className="flex gap-3">
@@ -894,12 +894,12 @@ function ExpenseFormDialog({
 
 // ─── Audit Trail Section ─────────────────────────────────────────────────────
 const AUDIT_ACTION_STYLE: Record<string, string> = {
-  CREATE: "bg-emerald-50 text-emerald-700",
-  UPDATE: "bg-amber-50 text-amber-700",
-  PAY: "bg-sky-50 text-sky-700",
-  VOID: "bg-red-50 text-red-700",
-  CANCEL: "bg-slate-100 text-slate-600",
-  DELETE: "bg-red-50 text-red-700",
+  CREATE: "bg-success-muted/60 text-success",
+  UPDATE: "bg-warning-muted/60 text-warning",
+  PAY: "bg-primary-muted/60 text-primary",
+  VOID: "bg-danger-muted/60 text-danger",
+  CANCEL: "bg-muted text-muted-foreground",
+  DELETE: "bg-danger-muted/60 text-danger",
 };
 
 function ExpenseAuditSection({ expenseId }: { expenseId: string }) {
@@ -921,32 +921,32 @@ function ExpenseAuditSection({ expenseId }: { expenseId: string }) {
 
   return (
     <div className="bg-white rounded border shadow-sm overflow-hidden">
-      <div className="bg-gray-50 px-4 py-2 border-b">
-        <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+      <div className="bg-muted/50 px-4 py-2 border-b">
+        <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
           <span className="w-1 h-4 bg-[#3c8dbc] rounded-full" />
           Audit Trail
         </h3>
       </div>
       <div className="p-4">
         {loading ? (
-          <div className="flex items-center gap-2 text-sm text-slate-400">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground/70">
             <Loader2 className="w-4 h-4 animate-spin" /> Loading history…
           </div>
         ) : rows.length === 0 ? (
-          <p className="text-sm text-slate-400">No audit history recorded.</p>
+          <p className="text-sm text-muted-foreground/70">No audit history recorded.</p>
         ) : (
           <ol className="space-y-3">
             {rows.map((r) => (
               <li key={r.id} className="flex gap-3 text-sm">
                 <span
                   className={`shrink-0 h-fit text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
-                    AUDIT_ACTION_STYLE[r.action] ?? "bg-slate-100 text-slate-600"
+                    AUDIT_ACTION_STYLE[r.action] ?? "bg-muted text-muted-foreground"
                   }`}
                 >
                   {r.action}
                 </span>
                 <div className="min-w-0">
-                  <p className="text-slate-700">
+                  <p className="text-foreground">
                     <span className="font-medium">
                       {r.entityType === "Payment" ? "Payment" : "Expense"}
                     </span>{" "}
@@ -955,11 +955,11 @@ function ExpenseAuditSection({ expenseId }: { expenseId: string }) {
                       {r.userName ?? r.userId ?? "system"}
                     </span>
                   </p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-muted-foreground/70">
                     {new Date(r.createdAt).toLocaleString("en-UG")}
                   </p>
                   {r.reason && (
-                    <p className="text-xs text-slate-500 italic mt-0.5">
+                    <p className="text-xs text-muted-foreground italic mt-0.5">
                       "{r.reason}"
                     </p>
                   )}
@@ -993,7 +993,7 @@ function ExpenseDetailDialog({
               <Receipt className="h-5 w-5" />
               Expense Details
             </DialogTitle>
-            <DialogDescription className="text-sky-100 opacity-90">
+            <DialogDescription className="text-primary/40 opacity-90">
               View complete information about this expense record
             </DialogDescription>
           </DialogHeader>
@@ -1002,14 +1002,14 @@ function ExpenseDetailDialog({
         <div className="bg-[#f4f6f9]">
           <div className="p-4 max-h-[70vh] overflow-y-auto space-y-6">
             {/* Hero Summary */}
-            <div className="rounded-xl bg-[#0369a1] from-slate-800 to-slate-900 p-5 text-white">
-              <p className="text-xs text-slate-400 uppercase tracking-wider font-medium">
+            <div className="rounded-xl bg-[#0369a1] from-foreground to-foreground p-5 text-white">
+              <p className="text-xs text-muted-foreground/70 uppercase tracking-wider font-medium">
                 {categoryDisplay(expense)}
               </p>
               <p className="text-3xl font-bold mt-2">
                 {formatCurrency(expense.amount)}
               </p>
-              <p className="text-sm text-slate-300 mt-1">{expense.title}</p>
+              <p className="text-sm text-muted-foreground/50 mt-1">{expense.title}</p>
               <div className="flex items-center gap-2 mt-3">
                 <StatusBadge status={expense.status} />
                 <PaymentTypeBadge type={(expense as any).paymentType} />
@@ -1018,8 +1018,8 @@ function ExpenseDetailDialog({
 
             {/* SECTION: Core Details */}
             <div className="bg-white rounded border shadow-sm overflow-hidden">
-              <div className="bg-gray-50 px-4 py-2 border-b">
-                <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+              <div className="bg-muted/50 px-4 py-2 border-b">
+                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
                   <span className="w-1 h-4 bg-[#3c8dbc] rounded-full" />
                   Core Information
                 </h3>
@@ -1039,11 +1039,11 @@ function ExpenseDetailDialog({
                   },
                 ].map(({ label, value, mono }) => (
                   <div key={label}>
-                    <p className="text-xs font-bold uppercase text-gray-500 mb-1">
+                    <p className="text-xs font-bold uppercase text-muted-foreground mb-1">
                       {label}
                     </p>
                     <p
-                      className={`text-sm font-semibold text-slate-700 ${mono ? "font-mono text-xs" : ""}`}
+                      className={`text-sm font-semibold text-foreground ${mono ? "font-mono text-xs" : ""}`}
                     >
                       {value}
                     </p>
@@ -1056,56 +1056,56 @@ function ExpenseDetailDialog({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {supplier && (
                 <div className="bg-white rounded border shadow-sm overflow-hidden">
-                  <div className="bg-gray-50 px-4 py-2 border-b">
-                    <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+                  <div className="bg-muted/50 px-4 py-2 border-b">
+                    <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
                       <span className="w-1 h-4 bg-[#3c8dbc] rounded-full" />
                       Supplier
                     </h3>
                   </div>
                   <div className="p-4 space-y-2">
-                    <p className="text-sm font-semibold text-slate-700">
+                    <p className="text-sm font-semibold text-foreground">
                       {supplier.name}
                     </p>
                     {supplier.contactPerson && (
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-muted-foreground/70">
                         {supplier.contactPerson}
                       </p>
                     )}
                     {supplier.phone && (
-                      <p className="text-xs text-slate-400">{supplier.phone}</p>
+                      <p className="text-xs text-muted-foreground/70">{supplier.phone}</p>
                     )}
                   </div>
                 </div>
               )}
 
               <div className="bg-white rounded border shadow-sm overflow-hidden">
-                <div className="bg-gray-50 px-4 py-2 border-b">
-                  <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+                <div className="bg-muted/50 px-4 py-2 border-b">
+                  <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1 h-4 bg-[#3c8dbc] rounded-full" />
                     Payment Info
                   </h3>
                 </div>
                 <div className="p-4 space-y-2">
-                  <p className="text-xs font-bold uppercase text-gray-500">
+                  <p className="text-xs font-bold uppercase text-muted-foreground">
                     Type
                   </p>
                   <PaymentTypeBadge type={(expense as any).paymentType} />
                   {(expense as any).paymentMethod && (
                     <>
-                      <p className="text-xs font-bold uppercase text-gray-500 mt-3">
+                      <p className="text-xs font-bold uppercase text-muted-foreground mt-3">
                         Method
                       </p>
-                      <p className="text-sm font-semibold text-slate-700">
+                      <p className="text-sm font-semibold text-foreground">
                         {(expense as any).paymentMethod}
                       </p>
                     </>
                   )}
                   {(expense as any).paymentReference && (
                     <>
-                      <p className="text-xs font-bold uppercase text-gray-500 mt-3">
+                      <p className="text-xs font-bold uppercase text-muted-foreground mt-3">
                         Reference
                       </p>
-                      <p className="text-sm font-mono text-slate-700">
+                      <p className="text-sm font-mono text-foreground">
                         {(expense as any).paymentReference}
                       </p>
                     </>
@@ -1116,8 +1116,8 @@ function ExpenseDetailDialog({
 
             {/* SECTION: Workflow & Notes */}
             <div className="bg-white rounded border shadow-sm overflow-hidden">
-              <div className="bg-gray-50 px-4 py-2 border-b">
-                <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+              <div className="bg-muted/50 px-4 py-2 border-b">
+                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
                   <span className="w-1 h-4 bg-[#3c8dbc] rounded-full" />
                   Workflow & Notes
                 </h3>
@@ -1125,27 +1125,27 @@ function ExpenseDetailDialog({
               <div className="p-4 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <p className="text-xs font-bold uppercase text-gray-500 mb-1">
+                    <p className="text-xs font-bold uppercase text-muted-foreground mb-1">
                       Status
                     </p>
                     <StatusBadge status={expense.status} />
                   </div>
                   {expense.approvedBy && (
                     <div>
-                      <p className="text-xs font-bold uppercase text-gray-500 mb-1">
+                      <p className="text-xs font-bold uppercase text-muted-foreground mb-1">
                         Approved By
                       </p>
-                      <p className="text-sm font-semibold text-slate-700">
+                      <p className="text-sm font-semibold text-foreground">
                         {staffName(expense.approvedBy)}
                       </p>
                     </div>
                   )}
                   {expense.paidAt && (
                     <div>
-                      <p className="text-xs font-bold uppercase text-gray-500 mb-1">
+                      <p className="text-xs font-bold uppercase text-muted-foreground mb-1">
                         Paid At
                       </p>
-                      <p className="text-sm font-semibold text-slate-700">
+                      <p className="text-sm font-semibold text-foreground">
                         {fmtDate(expense.paidAt)}
                       </p>
                     </div>
@@ -1153,20 +1153,20 @@ function ExpenseDetailDialog({
                 </div>
                 {expense.notes && (
                   <div>
-                    <p className="text-xs font-bold uppercase text-gray-500 mb-1">
+                    <p className="text-xs font-bold uppercase text-muted-foreground mb-1">
                       Notes
                     </p>
-                    <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded border">
+                    <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded border">
                       {expense.notes}
                     </p>
                   </div>
                 )}
                 {expense.approvalNotes && (
                   <div>
-                    <p className="text-xs font-bold uppercase text-gray-500 mb-1">
+                    <p className="text-xs font-bold uppercase text-muted-foreground mb-1">
                       Approval Notes
                     </p>
-                    <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded border">
+                    <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded border">
                       {expense.approvalNotes}
                     </p>
                   </div>
@@ -1257,7 +1257,7 @@ function PayExpenseDialog({
               <Banknote className="h-5 w-5" />
               Process Payment
             </DialogTitle>
-            <DialogDescription className="text-sky-100 opacity-90">
+            <DialogDescription className="text-primary/40 opacity-90">
               Record cash-out and mark expense as paid
             </DialogDescription>
           </DialogHeader>
@@ -1265,18 +1265,18 @@ function PayExpenseDialog({
 
         <div className="bg-[#f4f6f9] p-4 space-y-4 max-h-[70vh] overflow-y-auto">
           {/* Amount Summary */}
-          <div className="rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 p-4 text-white">
+          <div className="rounded-xl bg-gradient-to-br from-foreground to-foreground p-4 text-white">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">
+                <p className="text-xs text-muted-foreground/70 font-medium uppercase tracking-wider">
                   Paying
                 </p>
                 <p className="font-semibold mt-0.5">{expense.title}</p>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-muted-foreground/70 mt-0.5">
                   {categoryDisplay(expense)} · {expense.expenseCode}
                 </p>
                 {(expense as any).supplier && (
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-muted-foreground/70 mt-0.5">
                     <Building2 className="w-3 h-3 inline mr-1" />
                     {(expense as any).supplier.name}
                   </p>
@@ -1289,7 +1289,7 @@ function PayExpenseDialog({
           </div>
 
           {error && (
-            <div className="flex items-start gap-2.5 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+            <div className="flex items-start gap-2.5 p-3 bg-danger-muted/60 border border-danger/25 rounded-xl text-danger text-sm">
               <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
               <span>{error}</span>
             </div>
@@ -1297,7 +1297,7 @@ function PayExpenseDialog({
 
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">
+              <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">
                 Paid By *
               </label>
               <select
@@ -1305,7 +1305,7 @@ function PayExpenseDialog({
                 onChange={(e) =>
                   setForm((p) => ({ ...p, paidBy: e.target.value }))
                 }
-                className="w-full px-3 py-2 rounded-none border border-gray-300 focus:border-[#3c8dbc] bg-white text-sm"
+                className="w-full px-3 py-2 rounded-none border border-input focus:border-[#3c8dbc] bg-white text-sm"
               >
                 <option value="">Select who is paying...</option>
                 {users.map((u) => (
@@ -1317,7 +1317,7 @@ function PayExpenseDialog({
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">
+              <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">
                 Debit Account *
               </label>
               <select
@@ -1325,7 +1325,7 @@ function PayExpenseDialog({
                 onChange={(e) =>
                   setForm((p) => ({ ...p, accountId: e.target.value }))
                 }
-                className="w-full px-3 py-2 rounded-none border border-gray-300 focus:border-[#3c8dbc] bg-white text-sm"
+                className="w-full px-3 py-2 rounded-none border border-input focus:border-[#3c8dbc] bg-white text-sm"
               >
                 <option value="">— Select account —</option>
                 {accounts.map((a) => (
@@ -1335,10 +1335,10 @@ function PayExpenseDialog({
                 ))}
               </select>
               {selectedAccount && (
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Balance after:{" "}
                   <span
-                    className={`font-semibold ${selectedAccount.currentBalance - expense.amount < 0 ? "text-red-600" : "text-emerald-600"}`}
+                    className={`font-semibold ${selectedAccount.currentBalance - expense.amount < 0 ? "text-danger" : "text-success"}`}
                   >
                     {formatCurrency(
                       selectedAccount.currentBalance - expense.amount,
@@ -1349,7 +1349,7 @@ function PayExpenseDialog({
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">
+              <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">
                 Payment Method *
               </label>
               <select
@@ -1357,7 +1357,7 @@ function PayExpenseDialog({
                 onChange={(e) =>
                   setForm((p) => ({ ...p, paymentMethod: e.target.value }))
                 }
-                className="w-full px-3 py-2 rounded-none border border-gray-300 focus:border-[#3c8dbc] bg-white text-sm"
+                className="w-full px-3 py-2 rounded-none border border-input focus:border-[#3c8dbc] bg-white text-sm"
               >
                 <option value="">— Select method —</option>
                 {CASH_PAY_METHODS.map((m) => (
@@ -1369,7 +1369,7 @@ function PayExpenseDialog({
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">
+              <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">
                 Reference / Txn ID
               </label>
               <input
@@ -1378,7 +1378,7 @@ function PayExpenseDialog({
                   setForm((p) => ({ ...p, reference: e.target.value }))
                 }
                 placeholder="Optional"
-                className="w-full px-3 py-2 rounded-none border border-gray-300 focus:border-[#3c8dbc] bg-white text-sm"
+                className="w-full px-3 py-2 rounded-none border border-input focus:border-[#3c8dbc] bg-white text-sm"
               />
             </div>
           </div>
@@ -1465,7 +1465,7 @@ function ApproveDialog({
               <CheckCircle className="h-5 w-5" />
               Approve Expense
             </DialogTitle>
-            <DialogDescription className="text-sky-100 opacity-90">
+            <DialogDescription className="text-primary/40 opacity-90">
               Confirm approval for this expense request
             </DialogDescription>
           </DialogHeader>
@@ -1473,14 +1473,14 @@ function ApproveDialog({
 
         <div className="bg-[#f4f6f9] p-4 space-y-4">
           {error && (
-            <div className="flex items-start gap-2.5 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+            <div className="flex items-start gap-2.5 p-3 bg-danger-muted/60 border border-danger/25 rounded-xl text-danger text-sm">
               <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          <div className="rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 p-4 text-white">
-            <p className="text-xs text-slate-400 uppercase tracking-wider">
+          <div className="rounded-xl bg-gradient-to-br from-foreground to-foreground p-4 text-white">
+            <p className="text-xs text-muted-foreground/70 uppercase tracking-wider">
               Approving
             </p>
             <p className="font-semibold mt-0.5">{expense.title}</p>
@@ -1490,13 +1490,13 @@ function ApproveDialog({
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">
+            <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">
               Approved By *
             </label>
             <select
               value={approvedBy}
               onChange={(e) => setApprovedBy(e.target.value)}
-              className="w-full px-3 py-2 rounded-none border border-gray-300 focus:border-[#3c8dbc] bg-white text-sm"
+              className="w-full px-3 py-2 rounded-none border border-input focus:border-[#3c8dbc] bg-white text-sm"
             >
               <option value="">Select approver...</option>
               {users.map((u) => (
@@ -1508,7 +1508,7 @@ function ApproveDialog({
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">
+            <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">
               Approval Notes
             </label>
             <textarea
@@ -1516,7 +1516,7 @@ function ApproveDialog({
               onChange={(e) => setApprovalNotes(e.target.value)}
               placeholder="Optional notes..."
               rows={3}
-              className="w-full px-3 py-2 rounded-none border border-gray-300 focus:border-[#3c8dbc] bg-white text-sm resize-none"
+              className="w-full px-3 py-2 rounded-none border border-input focus:border-[#3c8dbc] bg-white text-sm resize-none"
             />
           </div>
         </div>
@@ -1578,21 +1578,21 @@ function RejectDialog({
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md p-0 border-none overflow-hidden shadow-2xl">
-        <div className="bg-red-600 px-4 py-3">
+        <div className="bg-danger px-4 py-3">
           <DialogHeader className="text-white">
             <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
               <XCircle className="h-5 w-5" />
               Reject Expense
             </DialogTitle>
-            <DialogDescription className="text-red-100 opacity-90">
+            <DialogDescription className="text-danger/40 opacity-90">
               Provide reason for rejecting this expense
             </DialogDescription>
           </DialogHeader>
         </div>
 
         <div className="bg-[#f4f6f9] p-4 space-y-4">
-          <div className="rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 p-4 text-white">
-            <p className="text-xs text-slate-400 uppercase tracking-wider">
+          <div className="rounded-xl bg-gradient-to-br from-foreground to-foreground p-4 text-white">
+            <p className="text-xs text-muted-foreground/70 uppercase tracking-wider">
               Rejecting
             </p>
             <p className="font-semibold mt-0.5">{expense.title}</p>
@@ -1602,7 +1602,7 @@ function RejectDialog({
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">
+            <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">
               Rejection Reason
             </label>
             <textarea
@@ -1610,7 +1610,7 @@ function RejectDialog({
               onChange={(e) => setReason(e.target.value)}
               placeholder="Enter reason for rejection..."
               rows={4}
-              className="w-full px-3 py-2 rounded-none border border-gray-300 focus:border-red-500 bg-white text-sm resize-none"
+              className="w-full px-3 py-2 rounded-none border border-input focus:border-danger/60 bg-white text-sm resize-none"
             />
           </div>
         </div>
@@ -1625,7 +1625,7 @@ function RejectDialog({
               Cancel
             </Button>
             <Button
-              className="bg-red-600 hover:bg-red-700 rounded-none px-8 font-bold shadow-md"
+              className="bg-danger hover:bg-danger rounded-none px-8 font-bold shadow-md"
               onClick={handleReject}
               disabled={saving}
             >
@@ -1775,10 +1775,10 @@ export function ExpensesPage() {
 
   if (loading && expenses.length === 0) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-muted/50 flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="w-8 h-8 animate-spin text-[#3c8dbc] mx-auto mb-3" />
-          <p className="text-sm text-slate-500">Loading expenses…</p>
+          <p className="text-sm text-muted-foreground">Loading expenses…</p>
         </div>
       </div>
     );
@@ -1790,14 +1790,14 @@ export function ExpensesPage() {
         {/* Page Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight px-4">
+            <h1 className="text-2xl font-bold text-foreground tracking-tight px-4">
               Expenses
             </h1>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={load}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground bg-white border border-border rounded-xl hover:bg-muted/50 shadow-sm"
             >
               <RefreshCw
                 className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`}
@@ -1806,7 +1806,7 @@ export function ExpensesPage() {
             </button>
             <Link
               to="/expenses/categories"
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground bg-white border border-border rounded-xl hover:bg-muted/50 shadow-sm"
             >
               <Filter className="w-3.5 h-3.5" /> Categories
             </Link>
@@ -1884,17 +1884,17 @@ export function ExpensesPage() {
                 }))}
               empty="No supplier-linked expenses"
             />
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col">
-              <p className="text-xs font-bold uppercase text-slate-500">
+            <div className="bg-white rounded-xl border border-border shadow-sm p-4 flex flex-col">
+              <p className="text-xs font-bold uppercase text-muted-foreground">
                 Outstanding Payables
               </p>
-              <p className="text-2xl font-bold text-amber-600 mt-2">
+              <p className="text-2xl font-bold text-warning mt-2">
                 {formatCurrency(Number(stats.outstandingPayables?.amount ?? 0))}
               </p>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground/70 mt-1">
                 {stats.outstandingPayables?.count ?? 0} unpaid / partially paid
               </p>
-              <p className="text-[11px] text-slate-400 mt-auto pt-3">
+              <p className="text-[11px] text-muted-foreground/70 mt-auto pt-3">
                 Money still owed to suppliers and service providers.
               </p>
             </div>
@@ -1904,11 +1904,11 @@ export function ExpensesPage() {
         {/* Search + Filters */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-4 h-4 text-muted-foreground/70 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Search title, code, supplier…"
-              className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#3c8dbc]/20 focus:border-[#3c8dbc]"
+              className="w-full pl-9 pr-4 py-2.5 bg-white border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#3c8dbc]/20 focus:border-[#3c8dbc]"
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -1921,7 +1921,7 @@ export function ExpensesPage() {
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors ${
               showFilters || activeFilters > 0
                 ? "bg-[#3c8dbc] text-white shadow-md shadow-blue-200"
-                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                : "bg-white border border-border text-muted-foreground hover:bg-muted/50"
             }`}
           >
             <Filter className="w-4 h-4" />
@@ -1945,7 +1945,7 @@ export function ExpensesPage() {
                 setPage(1);
                 setPaymentTypeFilter("");
               }}
-              className="flex items-center gap-1 px-3 py-2.5 text-xs font-medium text-slate-500 hover:text-slate-700 rounded-xl border border-slate-200 bg-white"
+              className="flex items-center gap-1 px-3 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-xl border border-border bg-white"
             >
               <X className="w-3.5 h-3.5" /> Clear
             </button>
@@ -1953,7 +1953,7 @@ export function ExpensesPage() {
         </div>
 
         {showFilters && (
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-2 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-2 bg-white rounded-xl border border-border shadow-sm">
             {[
               {
                 label: "Category",
@@ -1996,14 +1996,14 @@ export function ExpensesPage() {
               },
             ].map(({ label, value, onChange, options, placeholder }) => (
               <div key={label}>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">
+                <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">
                   {label}
                 </label>
                 <div className="relative">
                   <select
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
-                    className="w-full px-3 py-2 rounded-none border border-gray-300 focus:border-[#3c8dbc] bg-white text-sm appearance-none"
+                    className="w-full px-3 py-2 rounded-none border border-input focus:border-[#3c8dbc] bg-white text-sm appearance-none"
                   >
                     <option value="">{placeholder}</option>
                     {options.map((o) => (
@@ -2012,12 +2012,12 @@ export function ExpensesPage() {
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-4 h-4 text-muted-foreground/70 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
             ))}
             <div>
-              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">
+              <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">
                 From Date
               </label>
               <input
@@ -2027,11 +2027,11 @@ export function ExpensesPage() {
                   setDateFrom(e.target.value);
                   setPage(1);
                 }}
-                className="w-full px-3 py-2 rounded-none border border-gray-300 focus:border-[#3c8dbc] bg-white text-sm"
+                className="w-full px-3 py-2 rounded-none border border-input focus:border-[#3c8dbc] bg-white text-sm"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">
+              <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">
                 To Date
               </label>
               <input
@@ -2041,18 +2041,18 @@ export function ExpensesPage() {
                   setDateTo(e.target.value);
                   setPage(1);
                 }}
-                className="w-full px-3 py-2 rounded-none border border-gray-300 focus:border-[#3c8dbc] bg-white text-sm"
+                className="w-full px-3 py-2 rounded-none border border-input focus:border-[#3c8dbc] bg-white text-sm"
               />
             </div>
           </div>
         )}
 
         {/* Table */}
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+        <div className="bg-white rounded-2xl border border-border overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
+                <tr className="bg-muted/50 border-b border-border">
                   {[
                     "Code",
                     "Title / Supplier",
@@ -2066,19 +2066,19 @@ export function ExpensesPage() {
                   ].map((h) => (
                     <th
                       key={h}
-                      className={`px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider ${h === "Amount" ? "text-right" : h === "Actions" ? "text-center" : "text-left"}`}
+                      className={`px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider ${h === "Amount" ? "text-right" : h === "Actions" ? "text-center" : "text-left"}`}
                     >
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border/60">
                 {expenses.length === 0 ? (
                   <tr>
                     <td
                       colSpan={9}
-                      className="px-4 py-12 text-center text-slate-400"
+                      className="px-4 py-12 text-center text-muted-foreground/70"
                     >
                       <Package className="w-8 h-8 mx-auto mb-2 opacity-40" />
                       <p className="text-sm font-medium">No expenses found</p>
@@ -2093,39 +2093,39 @@ export function ExpensesPage() {
                     return (
                       <tr
                         key={exp.id}
-                        className="hover:bg-slate-50/60 transition-colors"
+                        className="hover:bg-muted/60 transition-colors"
                       >
-                        <td className="px-4 py-3 font-mono text-xs text-slate-400 whitespace-nowrap">
+                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground/70 whitespace-nowrap">
                           {exp.expenseCode}
                         </td>
                         <td className="px-4 py-3">
-                          <p className="font-medium text-slate-800">
+                          <p className="font-medium text-foreground">
                             {exp.title}
                           </p>
                           {supplier ? (
-                            <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
+                            <p className="text-xs text-muted-foreground/70 mt-0.5 flex items-center gap-1">
                               <Building2 className="w-3 h-3" />
                               {supplier.name}
                             </p>
                           ) : (
                             exp.description && (
-                              <p className="text-xs text-slate-400 truncate max-w-[200px]">
+                              <p className="text-xs text-muted-foreground/70 truncate max-w-[200px]">
                                 {exp.description}
                               </p>
                             )
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-xs font-medium text-slate-600">
+                          <span className="text-xs font-medium text-muted-foreground">
                             {categoryDisplay(exp)}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <span className="font-bold text-slate-800 whitespace-nowrap">
+                          <span className="font-bold text-foreground whitespace-nowrap">
                             {formatCurrency(exp.amount)}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
+                        <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                           {fmtDate(exp.expenseDate)}
                         </td>
                         <td className="px-4 py-3">
@@ -2157,7 +2157,7 @@ export function ExpensesPage() {
                           <div className="flex items-center justify-center gap-1">
                             <button
                               onClick={() => setDetailDialog(exp)}
-                              className="p-1.5 text-slate-400 hover:text-[#3c8dbc] hover:bg-blue-50 rounded-lg transition-colors"
+                              className="p-1.5 text-muted-foreground/70 hover:text-[#3c8dbc] hover:bg-primary-muted/60 rounded-lg transition-colors"
                               title="View Details"
                             >
                               <Eye className="w-4 h-4" />
@@ -2173,7 +2173,7 @@ export function ExpensesPage() {
                                       expense: exp,
                                     })
                                   }
-                                  className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                  className="p-1.5 text-muted-foreground/70 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                                   title="Edit"
                                 >
                                   <Edit3 className="w-4 h-4" />
@@ -2188,7 +2188,7 @@ export function ExpensesPage() {
                                       expense: exp,
                                     })
                                   }
-                                  className="p-1.5 text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
+                                  className="p-1.5 text-success hover:text-success hover:bg-success-muted/60 rounded-lg transition-colors"
                                   title="Approve"
                                 >
                                   <CheckCircle className="w-4 h-4" />
@@ -2200,7 +2200,7 @@ export function ExpensesPage() {
                                       expense: exp,
                                     })
                                   }
-                                  className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  className="p-1.5 text-danger/70 hover:text-danger hover:bg-danger-muted/60 rounded-lg transition-colors"
                                   title="Reject"
                                 >
                                   <XCircle className="w-4 h-4" />
@@ -2215,7 +2215,7 @@ export function ExpensesPage() {
                                   onClick={() =>
                                     setPayDialog({ open: true, expense: exp })
                                   }
-                                  className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 transition-colors"
+                                  className="flex items-center gap-1 px-2.5 py-1.5 bg-success text-white text-xs font-semibold rounded-lg hover:bg-success transition-colors"
                                 >
                                   <Banknote className="w-3.5 h-3.5" />{" "}
                                   {((exp as any).paymentStatus ?? "UNPAID") ===
@@ -2228,7 +2228,7 @@ export function ExpensesPage() {
                               exp.status !== "CANCELLED" && (
                                 <button
                                   onClick={() => handleVoid(exp)}
-                                  className="p-1.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                  className="p-1.5 text-danger/70 hover:text-danger hover:bg-danger-muted/60 rounded-lg transition-colors"
                                   title="Void (reverse payments)"
                                 >
                                   <Ban className="w-4 h-4" />
@@ -2244,7 +2244,7 @@ export function ExpensesPage() {
                                 exp.status === "VOID") && (
                                 <button
                                   onClick={() => handleDelete(exp)}
-                                  className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  className="p-1.5 text-danger/70 hover:text-danger hover:bg-danger-muted/60 rounded-lg transition-colors"
                                   title="Delete"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -2262,8 +2262,8 @@ export function ExpensesPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-5 py-3 border-t border-slate-200 bg-slate-50/50">
-              <p className="text-xs text-slate-500">
+            <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-muted/50">
+              <p className="text-xs text-muted-foreground">
                 Showing {Math.min((page - 1) * limit + 1, total)}–
                 {Math.min(page * limit, total)} of {total}
               </p>
@@ -2271,17 +2271,17 @@ export function ExpensesPage() {
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 disabled:opacity-40 hover:bg-slate-50"
+                  className="p-1.5 rounded-lg border border-border bg-white text-muted-foreground disabled:opacity-40 hover:bg-muted/50"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <span className="text-xs font-medium text-slate-600 px-2">
+                <span className="text-xs font-medium text-muted-foreground px-2">
                   Page {page} of {totalPages}
                 </span>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 disabled:opacity-40 hover:bg-slate-50"
+                  className="p-1.5 rounded-lg border border-border bg-white text-muted-foreground disabled:opacity-40 hover:bg-muted/50"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>

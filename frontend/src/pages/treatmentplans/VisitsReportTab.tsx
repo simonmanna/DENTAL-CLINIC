@@ -42,13 +42,13 @@ const PERIODS = [
 ] as const;
 
 const STATUS_CFG: Record<string, string> = {
-  PLANNED: "bg-sky-50 text-sky-700 ring-sky-200",
-  IN_PROGRESS: "bg-amber-50 text-amber-700 ring-amber-200",
-  COMPLETED: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  CANCELLED: "bg-red-50 text-red-600 ring-red-200",
-  ON_HOLD: "bg-slate-100 text-slate-600 ring-slate-200",
-  PENDING: "bg-orange-50 text-orange-700 ring-orange-200",
-  ARRIVED: "bg-cyan-50 text-cyan-700 ring-cyan-200",
+  PLANNED: "bg-primary-muted/60 text-primary ring-primary/25",
+  IN_PROGRESS: "bg-warning-muted/60 text-warning ring-warning/25",
+  COMPLETED: "bg-success-muted/60 text-success ring-success/25",
+  CANCELLED: "bg-danger-muted/60 text-danger ring-danger/25",
+  ON_HOLD: "bg-muted text-muted-foreground ring-border",
+  PENDING: "bg-warning-muted/60 text-warning ring-warning/25",
+  ARRIVED: "bg-primary-muted/60 text-primary ring-primary/25",
 };
 
 const STATUS_OPTIONS = [
@@ -69,7 +69,7 @@ function shortDate(s?: string | null): string {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const cls = STATUS_CFG[status] ?? "bg-gray-100 text-gray-600 ring-gray-200";
+  const cls = STATUS_CFG[status] ?? "bg-muted text-muted-foreground ring-border";
   return (
     <span
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${cls}`}
@@ -91,7 +91,7 @@ function StatCard({
   icon: React.ElementType;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 px-2 py-1 flex gap-3 items-start shadow-sm">
+    <div className="bg-white rounded-xl border border-border px-2 py-1 flex gap-3 items-start shadow-sm">
       <div
         className="mt-0.5 size-8 rounded-lg flex items-center justify-center flex-shrink-0"
         style={{ background: accent + "18" }}
@@ -99,10 +99,10 @@ function StatCard({
         <Icon className="w-4 h-4" style={{ color: accent }} />
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider truncate">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
           {label}
         </p>
-        <p className="text-xl font-bold text-slate-900 mt-0.5 tabular-nums">{value}</p>
+        <p className="text-xl font-bold text-foreground mt-0.5 tabular-nums">{value}</p>
       </div>
     </div>
   );
@@ -120,37 +120,37 @@ function VisitRow({ visit, navigate }: { visit: PatientVisitsReport["data"][numb
   return (
     <>
       <tr
-        className={`border-b border-slate-100 ${hasDetail ? "cursor-pointer hover:bg-slate-50/60" : ""}`}
+        className={`border-b border-border/60 ${hasDetail ? "cursor-pointer hover:bg-muted/60" : ""}`}
         onClick={() => hasDetail && setOpen((o) => !o)}
       >
-        <td className="px-3 py-2.5 font-mono text-xs font-semibold text-emerald-700 whitespace-nowrap">
+        <td className="px-3 py-2.5 font-mono text-xs font-semibold text-success whitespace-nowrap">
           {visit.visitCode}
         </td>
-        <td className="px-3 py-2.5 text-xs text-slate-500 whitespace-nowrap">
+        <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
           {shortDate(visit.createdAt)}
         </td>
         <td className="px-3 py-2.5">
-          <p className="font-medium text-slate-900">{visit.patientName}</p>
-          <p className="text-xs text-slate-400">{visit.patientCode}</p>
+          <p className="font-medium text-foreground">{visit.patientName}</p>
+          <p className="text-xs text-muted-foreground/70">{visit.patientCode}</p>
         </td>
-        <td className="px-3 py-2.5 text-xs text-slate-500 whitespace-nowrap">
+        <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
           {visit.previousCardNumber ?? "—"}
         </td>
-        <td className="px-3 py-2.5 text-slate-600 whitespace-nowrap">{visit.dentistName}</td>
+        <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap">{visit.dentistName}</td>
         <td className="px-3 py-2.5 text-center tabular-nums">{visit.procedureCount}</td>
         <td className="px-3 py-2.5 text-center tabular-nums">
-          <span className="font-medium text-emerald-700">{visit.completedSessionCount}</span>
-          <span className="text-slate-400">/{visit.sessionCount}</span>
+          <span className="font-medium text-success">{visit.completedSessionCount}</span>
+          <span className="text-muted-foreground/70">/{visit.sessionCount}</span>
         </td>
         <td className="px-3 py-2.5">
           <StatusBadge status={visit.status} />
         </td>
         <td className="px-3 py-2.5 tabular-nums font-medium whitespace-nowrap">
           {(visit.amountPaid ?? 0) > 0 && formatCurrency(visit.amountPaid)}
-          {(visit.amountPaid ?? 0) > 0 && visit.balance > 0 && <span className="ml-1 text-[10px] text-red-500">bal {formatCurrency(visit.balance)}</span>}
-          {(visit.amountPaid ?? 0) === 0 && visit.balance > 0 && <span className="text-[10px] text-red-500">bal {formatCurrency(visit.balance)}</span>}
+          {(visit.amountPaid ?? 0) > 0 && visit.balance > 0 && <span className="ml-1 text-[10px] text-danger">bal {formatCurrency(visit.balance)}</span>}
+          {(visit.amountPaid ?? 0) === 0 && visit.balance > 0 && <span className="text-[10px] text-danger">bal {formatCurrency(visit.balance)}</span>}
         </td>
-        <td className="px-3 py-2.5 text-slate-400">
+        <td className="px-3 py-2.5 text-muted-foreground/70">
           {hasDetail ? (
             open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
           ) : null}
@@ -160,7 +160,7 @@ function VisitRow({ visit, navigate }: { visit: PatientVisitsReport["data"][numb
             type="button"
             onClick={() => navigate(`/visits/${visit.visitId}`)}
             title="View visit detail"
-            className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-primary-muted/60 text-muted-foreground/70 hover:text-primary transition-colors"
           >
             <Eye className="w-4 h-4" />
           </button>
@@ -168,15 +168,15 @@ function VisitRow({ visit, navigate }: { visit: PatientVisitsReport["data"][numb
       </tr>
       {open && hasDetail && (
         <tr>
-          <td colSpan={10} className="bg-slate-50 px-5 py-3 border-b border-slate-100">
+          <td colSpan={10} className="bg-muted/50 px-5 py-3 border-b border-border/60">
             <div className="space-y-2">
               {visit.diagnosis.length > 0 && (
                 <div>
-                  <span className="text-xs font-semibold text-slate-500 mr-2">Diagnoses:</span>
+                  <span className="text-xs font-semibold text-muted-foreground mr-2">Diagnoses:</span>
                   {visit.diagnosis.map((d, i) => (
                     <span
                       key={i}
-                      className="mr-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-[10px] font-medium"
+                      className="mr-1 px-2 py-0.5 bg-primary-muted/60 text-primary rounded-full text-[10px] font-medium"
                     >
                       {d}
                     </span>
@@ -185,8 +185,8 @@ function VisitRow({ visit, navigate }: { visit: PatientVisitsReport["data"][numb
               )}
 
               {(visit.treatmentProcedures?.length ?? 0) > 0 && (
-                <div className="pt-2 border-t border-slate-200">
-                  <span className="text-xs font-semibold text-slate-500 mr-2">
+                <div className="pt-2 border-t border-border">
+                  <span className="text-xs font-semibold text-muted-foreground mr-2">
                     Planned Procedures:
                   </span>
                   <div className="flex flex-wrap gap-1 mt-1">
@@ -207,8 +207,8 @@ function VisitRow({ visit, navigate }: { visit: PatientVisitsReport["data"][numb
               )}
 
               {(visit.procedureSessions?.length ?? 0) > 0 && (
-                <div className="pt-2 border-t border-slate-200">
-                  <span className="text-xs font-semibold text-slate-500 mr-2">
+                <div className="pt-2 border-t border-border">
+                  <span className="text-xs font-semibold text-muted-foreground mr-2">
                     Procedure Sessions:
                   </span>
                   <div className="flex flex-wrap gap-1 mt-1">
@@ -229,9 +229,9 @@ function VisitRow({ visit, navigate }: { visit: PatientVisitsReport["data"][numb
               )}
 
               {visit.followUpDate && (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   Follow-up:{" "}
-                  <span className="font-medium text-slate-700">
+                  <span className="font-medium text-foreground">
                     {shortDate(visit.followUpDate)}
                   </span>
                 </p>
@@ -324,14 +324,14 @@ export default function VisitsReportTab(): JSX.Element {
 
   const summary = report?.summary;
   const inputCls =
-    "h-9 rounded-lg border border-slate-200 px-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white";
+    "h-9 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-success/60 bg-white";
 
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-wrap gap-3 items-end shadow-sm">
+      <div className="bg-white border border-border rounded-xl p-4 flex flex-wrap gap-3 items-end shadow-sm">
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Period</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Period</label>
           <select
             value={filters.period}
             onChange={(e) =>
@@ -350,7 +350,7 @@ export default function VisitsReportTab(): JSX.Element {
         {filters.period === ReportPeriodClinical.CUSTOM && (
           <>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">From</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">From</label>
               <input
                 type="date"
                 value={filters.startDate}
@@ -359,7 +359,7 @@ export default function VisitsReportTab(): JSX.Element {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">To</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">To</label>
               <input
                 type="date"
                 value={filters.endDate}
@@ -371,7 +371,7 @@ export default function VisitsReportTab(): JSX.Element {
         )}
 
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Doctor</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Doctor</label>
           <select
             value={filters.dentistId}
             onChange={(e) => update({ dentistId: e.target.value, page: 1 })}
@@ -387,7 +387,7 @@ export default function VisitsReportTab(): JSX.Element {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Status</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Status</label>
           <select
             value={filters.status}
             onChange={(e) => update({ status: e.target.value, page: 1 })}
@@ -404,18 +404,18 @@ export default function VisitsReportTab(): JSX.Element {
 
         <div className="ml-auto flex items-end gap-2">
           {isFetching && (
-            <RefreshCw className="w-4 h-4 text-emerald-500 animate-spin self-center" />
+            <RefreshCw className="w-4 h-4 text-success animate-spin self-center" />
           )}
           <button
             onClick={() => update(DEFAULT_FILTERS)}
-            className="h-9 px-3 rounded-lg text-sm border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+            className="h-9 px-3 rounded-lg text-sm border border-border text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
           >
             Reset
           </button>
           <button
             onClick={handleExport}
             disabled={exporting || isLoading}
-            className="h-9 px-3 rounded-lg text-sm border border-emerald-600 text-emerald-700 hover:bg-emerald-50 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-9 px-3 rounded-lg text-sm border border-success text-success hover:bg-success-muted/60 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {exporting ? "⏳ Preparing…" : "⬇ Export CSV"}
           </button>
@@ -423,24 +423,24 @@ export default function VisitsReportTab(): JSX.Element {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
         {isError ? (
-          <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3">
-            <p className="text-sm font-medium text-slate-600">Failed to load visits report</p>
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground/70 gap-3">
+            <p className="text-sm font-medium text-muted-foreground">Failed to load visits report</p>
             <button
               onClick={() => refetch()}
-              className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+              className="px-4 py-2 bg-success text-white text-sm font-medium rounded-lg hover:bg-success transition-colors"
             >
               Retry
             </button>
           </div>
         ) : isLoading ? (
-          <div className="flex items-center justify-center h-48 text-slate-400 gap-3">
-            <div className="size-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+          <div className="flex items-center justify-center h-48 text-muted-foreground/70 gap-3">
+            <div className="size-5 border-2 border-success border-t-transparent rounded-full animate-spin" />
             <span className="text-sm">Loading visits…</span>
           </div>
         ) : !report || report.data.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-slate-400">
+          <div className="flex flex-col items-center justify-center h-48 text-muted-foreground/70">
             <span className="text-3xl mb-2">📋</span>
             <p className="text-sm font-medium">No visits found</p>
             <p className="text-xs mt-1">Try adjusting your filters</p>
@@ -450,7 +450,7 @@ export default function VisitsReportTab(): JSX.Element {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50">
+                  <tr className="border-b border-border bg-muted/50">
                     {[
                       "Visit",
                       "Date",
@@ -465,7 +465,7 @@ export default function VisitsReportTab(): JSX.Element {
                     ].map((h, i) => (
                       <th
                         key={i}
-                        className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap"
+                        className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap"
                       >
                         {h}
                       </th>
@@ -482,7 +482,7 @@ export default function VisitsReportTab(): JSX.Element {
 
             {/* Pagination */}
             {report.pagination.totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 text-xs text-slate-500">
+              <div className="flex items-center justify-between px-4 py-3 border-t border-border/60 text-xs text-muted-foreground">
                 <span>
                   Page {report.pagination.page} of {report.pagination.totalPages} ·{" "}
                   {report.pagination.total.toLocaleString()} visits
@@ -491,14 +491,14 @@ export default function VisitsReportTab(): JSX.Element {
                   <button
                     disabled={filters.page <= 1}
                     onClick={() => update({ page: filters.page - 1 })}
-                    className="px-3 py-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                    className="px-3 py-1.5 rounded-lg border border-border disabled:opacity-40 hover:bg-muted/50 transition-colors"
                   >
                     Prev
                   </button>
                   <button
                     disabled={filters.page >= report.pagination.totalPages}
                     onClick={() => update({ page: filters.page + 1 })}
-                    className="px-3 py-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                    className="px-3 py-1.5 rounded-lg border border-border disabled:opacity-40 hover:bg-muted/50 transition-colors"
                   >
                     Next
                   </button>

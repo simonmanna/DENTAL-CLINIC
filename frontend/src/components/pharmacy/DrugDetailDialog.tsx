@@ -39,7 +39,7 @@ export function DrugDetailDialog({ open, drug, onClose }: Props) {
         <DialogHeader className="px-6 pt-6 pb-4">
           <DialogTitle className="text-lg">{drug.name}</DialogTitle>
           {drug.genericName && (
-            <p className="text-sm text-slate-500">{drug.genericName}</p>
+            <p className="text-sm text-muted-foreground">{drug.genericName}</p>
           )}
         </DialogHeader>
 
@@ -58,8 +58,8 @@ export function DrugDetailDialog({ open, drug, onClose }: Props) {
                   drug.requiresPrescription ? 'Required' : 'Not required',
                 ],
               ].map(([label, value]) => (
-                <div key={label} className="bg-slate-50 rounded-lg p-3">
-                  <p className="text-xs text-slate-400">{label}</p>
+                <div key={label} className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground/70">{label}</p>
                   <p className="text-sm font-medium capitalize">{value}</p>
                 </div>
               ))}
@@ -71,34 +71,34 @@ export function DrugDetailDialog({ open, drug, onClose }: Props) {
                 className={cn(
                   'rounded-lg p-3 text-center border-2',
                   isOut
-                    ? 'border-red-200 bg-red-50'
+                    ? 'border-danger/25 bg-danger-muted/60'
                     : isLow
-                    ? 'border-amber-200 bg-amber-50'
-                    : 'border-emerald-200 bg-emerald-50',
+                    ? 'border-warning/25 bg-warning-muted/60'
+                    : 'border-success/25 bg-success-muted/60',
                 )}
               >
-                <p className="text-xs text-slate-500">Stock</p>
+                <p className="text-xs text-muted-foreground">Stock</p>
                 <p
                   className={cn(
                     'text-2xl font-bold',
                     isOut
-                      ? 'text-red-600'
+                      ? 'text-danger'
                       : isLow
-                      ? 'text-amber-600'
-                      : 'text-emerald-600',
+                      ? 'text-warning'
+                      : 'text-success',
                   )}
                 >
                   {drug.stockQuantity}
                 </p>
-                <p className="text-xs text-slate-400">Min: {drug.minStock}</p>
+                <p className="text-xs text-muted-foreground/70">Min: {drug.minStock}</p>
               </div>
-              <div className="bg-slate-50 rounded-lg p-3 text-center">
-                <p className="text-xs text-slate-400">Cost Price</p>
+              <div className="bg-muted/50 rounded-lg p-3 text-center">
+                <p className="text-xs text-muted-foreground/70">Cost Price</p>
                 <p className="text-sm font-bold">{UGX(drug.unitPrice)}</p>
               </div>
-              <div className="bg-slate-50 rounded-lg p-3 text-center">
-                <p className="text-xs text-slate-400">Sell Price</p>
-                <p className="text-sm font-bold text-emerald-700">{UGX(drug.sellPrice)}</p>
+              <div className="bg-muted/50 rounded-lg p-3 text-center">
+                <p className="text-xs text-muted-foreground/70">Sell Price</p>
+                <p className="text-sm font-bold text-success">{UGX(drug.sellPrice)}</p>
               </div>
             </div>
 
@@ -109,10 +109,10 @@ export function DrugDetailDialog({ open, drug, onClose }: Props) {
               <h4 className="text-sm font-semibold mb-3">Stock History</h4>
               {loading ? (
                 <div className="flex justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground/70" />
                 </div>
               ) : transactions.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-6">
+                <p className="text-sm text-muted-foreground/70 text-center py-6">
                   No stock transactions yet
                 </p>
               ) : (
@@ -124,28 +124,28 @@ export function DrugDetailDialog({ open, drug, onClose }: Props) {
                     return (
                       <div
                         key={tx.id}
-                        className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-100"
+                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/60"
                       >
                         <div className="flex items-center gap-3">
                           <div
                             className={cn(
                               'w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0',
                               info?.isInflow
-                                ? 'bg-emerald-100'
-                                : 'bg-red-100',
+                                ? 'bg-success-muted'
+                                : 'bg-danger-muted',
                             )}
                           >
                             {info?.isInflow ? (
-                              <ArrowUp className="w-3.5 h-3.5 text-emerald-600" />
+                              <ArrowUp className="w-3.5 h-3.5 text-success" />
                             ) : (
-                              <ArrowDown className="w-3.5 h-3.5 text-red-600" />
+                              <ArrowDown className="w-3.5 h-3.5 text-danger" />
                             )}
                           </div>
                           <div>
                             <p className="text-sm font-medium">
                               {info?.label ?? tx.type}
                             </p>
-                            <p className="text-xs text-slate-400">
+                            <p className="text-xs text-muted-foreground/70">
                               {new Date(tx.createdAt).toLocaleDateString(
                                 'en-UG',
                                 {
@@ -164,15 +164,15 @@ export function DrugDetailDialog({ open, drug, onClose }: Props) {
                             className={cn(
                               'text-sm font-semibold',
                               info?.isInflow
-                                ? 'text-emerald-600'
-                                : 'text-red-600',
+                                ? 'text-success'
+                                : 'text-danger',
                             )}
                           >
                             {info?.isInflow ? '+' : '-'}
                             {tx.quantity}
                           </p>
                           {tx.totalCost && (
-                            <p className="text-xs text-slate-400">
+                            <p className="text-xs text-muted-foreground/70">
                               {UGX(tx.totalCost)}
                             </p>
                           )}

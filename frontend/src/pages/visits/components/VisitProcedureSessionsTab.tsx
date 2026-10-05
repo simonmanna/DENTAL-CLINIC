@@ -41,16 +41,16 @@ export function VisitProcedureSessionsTab({ visitId }: { visitId: string }) {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-12 gap-2">
-        <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-        <span className="text-xs font-medium text-slate-400">Loading sessions...</span>
+        <Loader2 className="w-5 h-5 animate-spin text-primary" />
+        <span className="text-xs font-medium text-muted-foreground/70">Loading sessions...</span>
       </div>
     );
   }
 
   if (error || !sessions?.length) {
     return (
-      <div className="text-center py-10 border-2 border-dashed border-slate-100 rounded-xl">
-        <p className="text-sm text-slate-400">
+      <div className="text-center py-10 border-2 border-dashed border-border/60 rounded-xl">
+        <p className="text-sm text-muted-foreground/70">
           {error ? 'Failed to load sessions.' : 'No procedure sessions recorded.'}
         </p>
       </div>
@@ -58,37 +58,37 @@ export function VisitProcedureSessionsTab({ visitId }: { visitId: string }) {
   }
 
   return (
-    <div className="overflow-hidden bg-white border border-slate-200 rounded-xl shadow-sm">
-      <div className="divide-y divide-slate-100">
+    <div className="overflow-hidden bg-white border border-border rounded-xl shadow-sm">
+      <div className="divide-y divide-border/60">
         {sessions.map((session: ProcedureSession) => (
           <div
             key={session.id}
-            className="group hover:bg-slate-50 transition-colors duration-150 p-3"
+            className="group hover:bg-muted/50 transition-colors duration-150 p-3"
           >
             {/* Header Row */}
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
                 <div className={`p-2 rounded-lg shrink-0 ${
-                  session.status === 'COMPLETED' ? 'bg-green-50' : 'bg-blue-50'
+                  session.status === 'COMPLETED' ? 'bg-success-muted/60' : 'bg-primary-muted/60'
                 }`}>
                   {session.status === 'COMPLETED' ? (
-                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    <CheckCircle2 className="w-4 h-4 text-success" />
                   ) : (
-                    <Clock className="w-4 h-4 text-blue-600" />
+                    <Clock className="w-4 h-4 text-primary" />
                   )}
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm text-slate-900 truncate">
+                    <span className="font-semibold text-sm text-foreground truncate">
                       {session.treatmentProcedure.procedure.name}
                     </span>
                     {session.sessionLabel && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 bg-muted px-1.5 py-0.5 rounded">
                         {session.sessionLabel}
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500 leading-none mt-1">
+                  <p className="text-[11px] text-muted-foreground leading-none mt-1">
                     Treatment Plan: {session.treatmentProcedure.treatmentPlan.title}
                   </p>
                 </div>
@@ -97,8 +97,8 @@ export function VisitProcedureSessionsTab({ visitId }: { visitId: string }) {
               <div className="flex flex-col items-end shrink-0">
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                   session.status === 'COMPLETED' 
-                    ? 'bg-green-50 border-green-100 text-green-700' 
-                    : 'bg-amber-50 border-amber-100 text-amber-700'
+                    ? 'bg-success-muted/60 border-success/20 text-success' 
+                    : 'bg-warning-muted/60 border-warning/20 text-warning'
                 }`}>
                   {session.status}
                 </span>
@@ -107,8 +107,8 @@ export function VisitProcedureSessionsTab({ visitId }: { visitId: string }) {
 
             {/* Details Row */}
             <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 ml-11">
-              <div className="flex items-center gap-1.5 text-[12px] text-slate-600">
-                <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
+              <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                <CalendarDays className="w-3.5 h-3.5 text-muted-foreground/70" />
                 <span className="tabular-nums">
                   {session.performedDate
                     ? new Date(session.performedDate).toLocaleDateString(undefined, { 
@@ -118,18 +118,18 @@ export function VisitProcedureSessionsTab({ visitId }: { visitId: string }) {
                 </span>
               </div>
 
-              <div className="flex items-center gap-1.5 text-[12px] text-slate-600">
-                <Hash className="w-3.5 h-3.5 text-slate-400" />
+              <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                <Hash className="w-3.5 h-3.5 text-muted-foreground/70" />
                 <div className="flex gap-1">
                   {session.targets.length > 0 ? (
                     session.targets.map((t) => (
-                      <span key={t.id} className="bg-slate-100 px-1.5 rounded font-medium text-slate-700">
+                      <span key={t.id} className="bg-muted px-1.5 rounded font-medium text-foreground">
                         T{t.toothNumber} { " "}
-                        <span className="text-[10px] text-slate-400 ml-0.5">{t.surfaces.join(' , ')}</span>
+                        <span className="text-[10px] text-muted-foreground/70 ml-0.5">{t.surfaces.join(' , ')}</span>
                       </span>
                     ))
                   ) : (
-                    <span className="text-slate-400 italic">No Target</span>
+                    <span className="text-muted-foreground/70 italic">No Target</span>
                   )}
                 </div>
               </div>
@@ -137,9 +137,9 @@ export function VisitProcedureSessionsTab({ visitId }: { visitId: string }) {
 
             {/* Notes Section */}
             {session.performedNotes && (
-              <div className="mt-2 ml-11 flex items-start gap-2 bg-blue-50/50 p-2 rounded-md border border-blue-100/50">
-                <Info className="w-3.5 h-3.5 text-blue-400 mt-0.5 shrink-0" />
-                <p className="text-[12px] text-slate-600 italic leading-relaxed">
+              <div className="mt-2 ml-11 flex items-start gap-2 bg-primary-muted/50 p-2 rounded-md border border-primary/50">
+                <Info className="w-3.5 h-3.5 text-primary/70 mt-0.5 shrink-0" />
+                <p className="text-[12px] text-muted-foreground italic leading-relaxed">
                   {session.performedNotes}
                 </p>
               </div>

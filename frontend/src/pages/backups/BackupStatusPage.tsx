@@ -25,28 +25,28 @@ const BACKUP_META: Record<
     label: "Full DB Dump",
     icon: Database,
     desc: "Nightly pg_dump — portable, restores anywhere",
-    color: "from-blue-500 to-blue-600",
+    color: "from-primary to-primary",
   },
   base: {
     label: "Base Backup",
     icon: HardDrive,
     desc: "Weekly pg_basebackup — anchor for point-in-time recovery",
-    color: "from-emerald-500 to-emerald-600",
+    color: "from-success to-success",
   },
   files: {
     label: "Uploads Sync",
     icon: FolderOpen,
     desc: "Robocopy sync of x-rays & documents",
-    color: "from-amber-500 to-amber-600",
+    color: "from-warning to-warning",
   },
 };
 
 function StatusIcon({ status }: { status: string }) {
   if (status === "success")
-    return <CheckCircle2 className="w-5 h-5 text-emerald-400" />;
+    return <CheckCircle2 className="w-5 h-5 text-success/70" />;
   if (status === "failed")
-    return <XCircle className="w-5 h-5 text-red-400" />;
-  return <AlertCircle className="w-5 h-5 text-slate-400" />;
+    return <XCircle className="w-5 h-5 text-danger/70" />;
+  return <AlertCircle className="w-5 h-5 text-muted-foreground/70" />;
 }
 
 function formatDuration(ms: number) {
@@ -116,8 +116,8 @@ export default function BackupStatusPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Backups</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Backups</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Database dumps, WAL archiving, and file sync status
           </p>
         </div>
@@ -164,26 +164,26 @@ export default function BackupStatusPage() {
                   <div className="space-y-1.5 text-sm">
                     <div className="flex items-center gap-2">
                       <StatusIcon status={last.status} />
-                      <span className="font-medium capitalize text-slate-800">
+                      <span className="font-medium capitalize text-foreground">
                         {last.status}
                       </span>
-                      <span className="text-slate-400 text-xs ml-auto">
+                      <span className="text-muted-foreground/70 text-xs ml-auto">
                         {formatDuration(last.durationMs)}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-slate-500 text-xs">
+                    <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
                       <Clock className="w-3.5 h-3.5" />
                       {formatTime(last.finishedAt)}
                       {last.sizeBytes != null && (
                         <>
-                          <span className="text-slate-300">·</span>
+                          <span className="text-muted-foreground/50">·</span>
                           {formatSize(last.sizeBytes)}
                         </>
                       )}
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-400 italic">No runs yet</p>
+                  <p className="text-sm text-muted-foreground/70 italic">No runs yet</p>
                 )}
                 <Button
                   size="sm"
@@ -203,15 +203,15 @@ export default function BackupStatusPage() {
 
       {recent.length > 0 && (
         <Card>
-          <div className="px-4 py-3 border-b border-slate-100">
-            <h2 className="font-semibold text-slate-800 text-sm">
+          <div className="px-4 py-3 border-b border-border/60">
+            <h2 className="font-semibold text-foreground text-sm">
               Recent Activity
             </h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-100 text-left text-slate-500 text-xs uppercase tracking-wider">
+                <tr className="border-b border-border/60 text-left text-muted-foreground text-xs uppercase tracking-wider">
                   <th className="px-4 py-2.5 font-medium">Type</th>
                   <th className="px-4 py-2.5 font-medium">Status</th>
                   <th className="px-4 py-2.5 font-medium">Size</th>
@@ -222,14 +222,14 @@ export default function BackupStatusPage() {
                   )}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-border/40">
                 {recent.map((r: any, i: number) => (
-                  <tr key={i} className="hover:bg-slate-50/50">
-                    <td className="px-4 py-2.5 capitalize font-medium text-slate-700">
+                  <tr key={i} className="hover:bg-muted/50">
+                    <td className="px-4 py-2.5 capitalize font-medium text-foreground">
                       <span className="flex items-center gap-1.5">
-                        {r.kind === "full" && <Database className="w-3.5 h-3.5 text-blue-500" />}
-                        {r.kind === "base" && <HardDrive className="w-3.5 h-3.5 text-emerald-500" />}
-                        {r.kind === "files" && <FolderOpen className="w-3.5 h-3.5 text-amber-500" />}
+                        {r.kind === "full" && <Database className="w-3.5 h-3.5 text-primary" />}
+                        {r.kind === "base" && <HardDrive className="w-3.5 h-3.5 text-success" />}
+                        {r.kind === "files" && <FolderOpen className="w-3.5 h-3.5 text-warning" />}
                         {r.kind}
                       </span>
                     </td>
@@ -247,17 +247,17 @@ export default function BackupStatusPage() {
                         {r.status}
                       </Badge>
                     </td>
-                    <td className="px-4 py-2.5 text-slate-500">
+                    <td className="px-4 py-2.5 text-muted-foreground">
                       {formatSize(r.sizeBytes)}
                     </td>
-                    <td className="px-4 py-2.5 text-slate-500">
+                    <td className="px-4 py-2.5 text-muted-foreground">
                       {formatDuration(r.durationMs)}
                     </td>
-                    <td className="px-4 py-2.5 text-slate-500 text-xs">
+                    <td className="px-4 py-2.5 text-muted-foreground text-xs">
                       {formatTime(r.finishedAt)}
                     </td>
                     {r.error && (
-                      <td className="px-4 py-2.5 text-red-500 text-xs max-w-[200px] truncate">
+                      <td className="px-4 py-2.5 text-danger text-xs max-w-[200px] truncate">
                         {r.error}
                       </td>
                     )}

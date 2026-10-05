@@ -22,26 +22,26 @@ export function PatientVisitsTab({ patientId }: { patientId: string }) {
   });
 
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin mx-auto mt-8" />;
-  if (error) return <div className="text-red-500 text-center mt-8">Failed to load visits</div>;
-  if (!visits?.length) return <div className="text-slate-400 text-center mt-8">No visits found</div>;
+  if (error) return <div className="text-danger text-center mt-8">Failed to load visits</div>;
+  if (!visits?.length) return <div className="text-muted-foreground/70 text-center mt-8">No visits found</div>;
 
   const statusColor = (status: string) => {
     switch (status) {
-      case 'ARRIVED': return 'bg-amber-100 text-amber-700';
-      case 'IN_PROGRESS': return 'bg-blue-100 text-blue-700';
-      case 'COMPLETED': return 'bg-green-100 text-green-700';
-      default: return 'bg-slate-100 text-slate-600';
+      case 'ARRIVED': return 'bg-warning-muted text-warning';
+      case 'IN_PROGRESS': return 'bg-primary-muted text-primary';
+      case 'COMPLETED': return 'bg-success-muted text-success';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
   return (
     <div className="space-y-3">
       {visits.map((visit: Visit) => (
-        <div key={visit.id} className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
+        <div key={visit.id} className="bg-white border border-border rounded-lg p-4 shadow-sm">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="font-semibold text-slate-800">{visit.visitCode}</h3>
-              <p className="text-sm text-slate-500">
+              <h3 className="font-semibold text-foreground">{visit.visitCode}</h3>
+              <p className="text-sm text-muted-foreground">
                 {visit.appointment?.type || 'General'} • Dr. {visit.dentist.firstName} {visit.dentist.lastName}
               </p>
             </div>
@@ -49,7 +49,7 @@ export function PatientVisitsTab({ patientId }: { patientId: string }) {
               {visit.status.replace('_', ' ')}
             </span>
           </div>
-          <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-600">
+          <div className="mt-3 flex flex-wrap gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />
               <span>{format(new Date(visit.createdAt), 'PPP')}</span>
@@ -59,7 +59,7 @@ export function PatientVisitsTab({ patientId }: { patientId: string }) {
               <span>{format(new Date(visit.checkedInAt), 'p')}</span>
             </div>
             {visit.completedAt && (
-              <div className="flex items-center gap-1 text-green-600">
+              <div className="flex items-center gap-1 text-success">
                 <User className="w-4 h-4" />
                 <span>Completed</span>
               </div>

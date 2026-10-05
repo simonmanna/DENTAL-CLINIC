@@ -246,7 +246,7 @@ export default function AuditLogPage() {
       width: 170,
       render: (v: string) =>
         v ? (
-          <span className="font-mono text-xs text-slate-600">
+          <span className="font-mono text-xs text-muted-foreground">
             {new Date(v).toLocaleString()}
           </span>
         ) : (
@@ -259,11 +259,11 @@ export default function AuditLogPage() {
       width: 180,
       render: (_: any, row) => (
         <div className="leading-tight">
-          <div className="text-sm font-medium text-slate-800">
+          <div className="text-sm font-medium text-foreground">
             {row.userName ?? "(unknown)"}
           </div>
           {row.userId && (
-            <div className="text-[11px] text-slate-400 font-mono">{row.userId}</div>
+            <div className="text-[11px] text-muted-foreground/70 font-mono">{row.userId}</div>
           )}
         </div>
       ),
@@ -278,7 +278,7 @@ export default function AuditLogPage() {
       title: "Module",
       dataIndex: "module",
       width: 180,
-      render: (v: string) => <span className="text-sm text-slate-700">{v}</span>,
+      render: (v: string) => <span className="text-sm text-foreground">{v}</span>,
     },
     {
       title: "Entity",
@@ -287,9 +287,9 @@ export default function AuditLogPage() {
       render: (v: string | null, row) =>
         v ? (
           <div className="leading-tight">
-            <div className="text-sm text-slate-700">{v}</div>
+            <div className="text-sm text-foreground">{v}</div>
             {row.recordId && (
-              <div className="text-[11px] text-slate-400 font-mono">{row.recordId}</div>
+              <div className="text-[11px] text-muted-foreground/70 font-mono">{row.recordId}</div>
             )}
           </div>
         ) : (
@@ -303,10 +303,10 @@ export default function AuditLogPage() {
       render: (v: string | null) =>
         v ? (
           <Tooltip title={v}>
-            <span className="text-sm text-slate-600">{v}</span>
+            <span className="text-sm text-muted-foreground">{v}</span>
           </Tooltip>
         ) : (
-          <span className="text-slate-300">—</span>
+          <span className="text-muted-foreground/50">—</span>
         ),
     },
     {
@@ -314,7 +314,7 @@ export default function AuditLogPage() {
       dataIndex: "ipAddress",
       width: 130,
       render: (v: string | null) =>
-        v ? <span className="font-mono text-xs text-slate-500">{v}</span> : <span className="text-slate-300">—</span>,
+        v ? <span className="font-mono text-xs text-muted-foreground">{v}</span> : <span className="text-muted-foreground/50">—</span>,
     },
     {
       title: "",
@@ -351,8 +351,8 @@ export default function AuditLogPage() {
       {/* ── header ── */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Audit Log</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-2xl font-bold text-foreground">Audit Log</h1>
+          <p className="text-sm text-muted-foreground">
             Append-only record of every state change across the system.
           </p>
         </div>
@@ -375,11 +375,11 @@ export default function AuditLogPage() {
       </div>
 
       {/* ── filters ── */}
-      <div className="bg-white rounded-lg border border-slate-200 p-4">
+      <div className="bg-white rounded-lg border border-border p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
           <Input
             allowClear
-            prefix={<SearchOutlined className="text-slate-400" />}
+            prefix={<SearchOutlined className="text-muted-foreground/70" />}
             placeholder="Search user / record / reason…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -453,7 +453,7 @@ export default function AuditLogPage() {
       </div>
 
       {/* ── table ── */}
-      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-lg border border-border overflow-hidden">
         <Table<AuditLogRow>
           rowKey="id"
           columns={columns}
@@ -496,7 +496,7 @@ export default function AuditLogPage() {
               <Tag color={actionColor(openRow.action)}>{openRow.action}</Tag>
               <span className="font-semibold">{openRow.module}</span>
               {openRow.entityType && (
-                <span className="text-slate-500 text-sm">/ {openRow.entityType}</span>
+                <span className="text-muted-foreground text-sm">/ {openRow.entityType}</span>
               )}
             </div>
           ) : null
@@ -547,7 +547,7 @@ export default function AuditLogPage() {
                 <Field
                   label="User Agent"
                   value={
-                    <span className="text-xs text-slate-500 break-all">
+                    <span className="text-xs text-muted-foreground break-all">
                       {openRow.userAgent}
                     </span>
                   }
@@ -572,8 +572,8 @@ export default function AuditLogPage() {
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <div className="text-[11px] uppercase tracking-wide text-slate-400">{label}</div>
-      <div className="text-sm text-slate-800 mt-0.5">{value}</div>
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground/70">{label}</div>
+      <div className="text-sm text-foreground mt-0.5">{value}</div>
     </div>
   );
 }
@@ -581,13 +581,13 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 function JsonBlock({ title, value }: { title: string; value: unknown }) {
   const isEmpty = value === null || value === undefined;
   return (
-    <div className="border border-slate-200 rounded-md overflow-hidden">
-      <div className="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-50 border-b border-slate-200">
+    <div className="border border-border rounded-md overflow-hidden">
+      <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50 border-b border-border">
         {title}
       </div>
-      <pre className="m-0 p-3 text-xs font-mono text-slate-700 bg-white max-h-72 overflow-auto whitespace-pre-wrap break-all">
+      <pre className="m-0 p-3 text-xs font-mono text-foreground bg-white max-h-72 overflow-auto whitespace-pre-wrap break-all">
         {isEmpty ? (
-          <span className="text-slate-300">— empty —</span>
+          <span className="text-muted-foreground/50">— empty —</span>
         ) : (
           JSON.stringify(value, null, 2)
         )}

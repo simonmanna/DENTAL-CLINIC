@@ -77,9 +77,9 @@ export const STATUS_LABELS: Record<StockTransferStatus, string> = {
 };
 
 export const STATUS_COLORS: Record<StockTransferStatus, string> = {
-  DRAFT: 'bg-gray-100 text-gray-700',
-  PENDING: 'bg-amber-100 text-amber-700',
-  IN_TRANSIT: 'bg-blue-100 text-blue-700',
-  COMPLETED: 'bg-emerald-100 text-emerald-700',
-  CANCELLED: 'bg-red-100 text-red-700',
+  DRAFT: 'bg-muted text-foreground',
+  PENDING: 'bg-warning-muted text-warning',
+  IN_TRANSIT: 'bg-primary-muted text-primary',
+  COMPLETED: 'bg-success-muted text-success',
+  CANCELLED: 'bg-danger-muted text-danger',
 };

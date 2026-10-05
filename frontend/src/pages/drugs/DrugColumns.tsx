@@ -113,8 +113,8 @@ export function getDrugColumns({
         <Badge
           className={
             row.original.isActive
-              ? "bg-green-500 hover:bg-green-600"
-              : "bg-gray-500"
+              ? "bg-success hover:bg-success"
+              : "bg-muted-foreground"
           }
         >
           {row.original.isActive ? "Active" : "Inactive"}
@@ -129,8 +129,8 @@ export function getDrugColumns({
           variant="outline"
           className={
             row.original.requiresPrescription
-              ? "border-red-500 text-red-500"
-              : "border-sky-500 text-sky-500"
+              ? "border-danger/60 text-danger"
+              : "border-primary/60 text-primary"
           }
         >
           {row.original.requiresPrescription ? "Rx" : "OTC"}
@@ -146,7 +146,7 @@ export function getDrugColumns({
           <div className="flex items-center gap-1">
             <Button
             title="View Details"
-              className="h-6 w-8 rounded-md bg-sky-600 p-0 text-white hover:bg-sky-700 shadow-sm"
+              className="h-6 w-8 rounded-md bg-primary p-0 text-white hover:bg-primary shadow-sm"
               onClick={() => onView(drug)}
             >
               <Eye size={16} strokeWidth={3} />
@@ -155,7 +155,7 @@ export function getDrugColumns({
             {/* Edit */}
             <Button
             title="Edit Details"
-              className="h-6 w-8 rounded-md bg-amber-500 p-0 text-white hover:bg-amber-600 shadow-sm"
+              className="h-6 w-8 rounded-md bg-warning p-0 text-white hover:bg-warning shadow-sm"
               onClick={() => onEdit(drug)}
             >
               <Pencil size={16} strokeWidth={3} />
@@ -168,7 +168,7 @@ export function getDrugColumns({
             >
               <Power
                 className={`h-4 w-4 ${
-                  drug.isActive ? "text-orange-500" : "text-green-500"
+                  drug.isActive ? "text-warning" : "text-success"
                 }`}
               />
             </Button> */}
@@ -178,7 +178,7 @@ export function getDrugColumns({
               className="h-8 w-8"
               onClick={() => onDelete(drug)}
             >
-              <Trash2 className="h-4 w-4 text-red-500" />
+              <Trash2 className="h-4 w-4 text-danger" />
             </Button> */}
           </div>
         );

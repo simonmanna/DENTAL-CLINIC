@@ -118,7 +118,7 @@ function DebugPanel({
       <button
         type="button"
         onClick={onToggle}
-        className="fixed bottom-4 right-4 z-50 bg-slate-800 text-white p-3 rounded-full shadow-lg hover:bg-slate-700 transition-colors"
+        className="fixed bottom-4 right-4 z-50 bg-foreground text-white p-3 rounded-full shadow-lg hover:bg-foreground transition-colors"
         title="Show Debug Panel"
       >
         <Bug className="h-5 w-5" />
@@ -130,11 +130,11 @@ function DebugPanel({
   const validationIssues = findValidationIssues(data);
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-[500px] max-h-[70vh] bg-slate-900 text-slate-100 rounded-xl shadow-2xl border border-slate-700 overflow-hidden flex flex-col">
+    <div className="fixed bottom-4 right-4 z-50 w-[500px] max-h-[70vh] bg-foreground text-muted-foreground/30 rounded-xl shadow-2xl border border-foreground overflow-hidden flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-slate-800 border-b border-slate-700">
+      <div className="flex items-center justify-between px-4 py-3 bg-foreground border-b border-foreground">
         <div className="flex items-center gap-2">
-          <Bug className="h-4 w-4 text-amber-400" />
+          <Bug className="h-4 w-4 text-warning/70" />
           <span className="font-semibold text-sm">Debug Panel</span>
           {(emptyFields.length > 0 || validationIssues.length > 0) && (
             <Badge variant="destructive" className="text-xs">
@@ -145,14 +145,14 @@ function DebugPanel({
         <div className="flex items-center gap-2">
           <button
             onClick={() => copyToClipboard(JSON.stringify(data, null, 2))}
-            className="p-1.5 hover:bg-slate-700 rounded transition-colors"
+            className="p-1.5 hover:bg-foreground rounded transition-colors"
             title="Copy data to clipboard"
           >
             <ClipboardCopy className="h-4 w-4" />
           </button>
           <button
             onClick={onToggle}
-            className="p-1.5 hover:bg-slate-700 rounded transition-colors"
+            className="p-1.5 hover:bg-foreground rounded transition-colors"
           >
             <EyeOff className="h-4 w-4" />
           </button>
@@ -160,7 +160,7 @@ function DebugPanel({
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-700">
+      <div className="flex border-b border-foreground">
         {(["data", "errors", "raw"] as const).map((tab) => (
           <button
             key={tab}
@@ -168,8 +168,8 @@ function DebugPanel({
             className={cn(
               "flex-1 px-4 py-2 text-xs font-medium uppercase tracking-wider transition-colors",
               activeTab === tab
-                ? "bg-slate-700 text-white border-b-2 border-amber-400"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50",
+                ? "bg-foreground text-white border-b-2 border-warning/40"
+                : "text-muted-foreground/70 hover:text-muted-foreground/40 hover:bg-foreground/50",
             )}
           >
             {tab}
@@ -182,16 +182,16 @@ function DebugPanel({
         {activeTab === "data" && (
           <div className="space-y-4">
             {/* Summary */}
-            <div className="bg-slate-800/50 rounded-lg p-3 space-y-2">
-              <h4 className="text-amber-400 font-semibold uppercase text-[10px] tracking-wider">
+            <div className="bg-foreground/50 rounded-lg p-3 space-y-2">
+              <h4 className="text-warning/70 font-semibold uppercase text-[10px] tracking-wider">
                 Summary
               </h4>
-              <div className="grid grid-cols-2 gap-2 text-slate-300">
+              <div className="grid grid-cols-2 gap-2 text-muted-foreground/50">
                 <div>
                   Location ID:{" "}
                   <span
                     className={
-                      data.locationId ? "text-emerald-400" : "text-red-400"
+                      data.locationId ? "text-success/70" : "text-danger/70"
                     }
                   >
                     {data.locationId || "EMPTY"}
@@ -201,7 +201,7 @@ function DebugPanel({
                   Date:{" "}
                   <span
                     className={
-                      data.deliveryDate ? "text-emerald-400" : "text-red-400"
+                      data.deliveryDate ? "text-success/70" : "text-danger/70"
                     }
                   >
                     {data.deliveryDate || "EMPTY"}
@@ -209,13 +209,13 @@ function DebugPanel({
                 </div>
                 <div>
                   Items Count:{" "}
-                  <span className="text-emerald-400">
+                  <span className="text-success/70">
                     {data.items?.length || 0}
                   </span>
                 </div>
                 <div>
                   Total Receiving:{" "}
-                  <span className="text-emerald-400">
+                  <span className="text-success/70">
                     {data.items?.reduce(
                       (s: number, i: any) => s + (i.quantityReceivedNow || 0),
                       0,
@@ -227,16 +227,16 @@ function DebugPanel({
 
             {/* Empty Fields */}
             {emptyFields.length > 0 && (
-              <div className="bg-red-900/30 border border-red-700/50 rounded-lg p-3">
-                <h4 className="text-red-400 font-semibold uppercase text-[10px] tracking-wider mb-2">
+              <div className="bg-danger/30 border border-danger/50 rounded-lg p-3">
+                <h4 className="text-danger/70 font-semibold uppercase text-[10px] tracking-wider mb-2">
                   ⚠️ Empty/Invalid Fields ({emptyFields.length})
                 </h4>
-                <ul className="space-y-1 text-red-300">
+                <ul className="space-y-1 text-danger/60">
                   {emptyFields.map((field, idx) => (
                     <li key={idx} className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-red-500" />
+                      <span className="w-2 h-2 rounded-full bg-danger" />
                       {field.path}:{" "}
-                      <span className="text-red-400">{field.issue}</span>
+                      <span className="text-danger/70">{field.issue}</span>
                     </li>
                   ))}
                 </ul>
@@ -245,14 +245,14 @@ function DebugPanel({
 
             {/* Validation Issues */}
             {validationIssues.length > 0 && (
-              <div className="bg-amber-900/30 border border-amber-700/50 rounded-lg p-3">
-                <h4 className="text-amber-400 font-semibold uppercase text-[10px] tracking-wider mb-2">
+              <div className="bg-warning/30 border border-warning/50 rounded-lg p-3">
+                <h4 className="text-warning/70 font-semibold uppercase text-[10px] tracking-wider mb-2">
                   ⚠️ Validation Warnings ({validationIssues.length})
                 </h4>
-                <ul className="space-y-1 text-amber-300">
+                <ul className="space-y-1 text-warning/60">
                   {validationIssues.map((issue, idx) => (
                     <li key={idx} className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-amber-500" />
+                      <span className="w-2 h-2 rounded-full bg-warning" />
                       {issue}
                     </li>
                   ))}
@@ -262,36 +262,36 @@ function DebugPanel({
 
             {/* Items Detail */}
             <div className="space-y-2">
-              <h4 className="text-emerald-400 font-semibold uppercase text-[10px] tracking-wider">
+              <h4 className="text-success/70 font-semibold uppercase text-[10px] tracking-wider">
                 Items Detail
               </h4>
               {data.items?.map((item: any, idx: number) => (
                 <div
                   key={idx}
-                  className="bg-slate-800/50 rounded-lg p-3 space-y-1"
+                  className="bg-foreground/50 rounded-lg p-3 space-y-1"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-200 font-medium">
+                    <span className="text-muted-foreground/40 font-medium">
                       {item.itemName}
                     </span>
                     <Badge variant="outline" className="text-[10px]">
                       {item.purchaseOrderItemId ? "✓ ID" : "✗ No ID"}
                     </Badge>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 text-slate-400 text-[10px]">
+                  <div className="grid grid-cols-3 gap-2 text-muted-foreground/70 text-[10px]">
                     <div>Ordered: {item.quantityOrdered}</div>
                     <div>Prev: {item.quantityPreviouslyReceived}</div>
                     <div
                       className={
                         item.quantityReceivedNow > 0
-                          ? "text-emerald-400"
-                          : "text-amber-400"
+                          ? "text-success/70"
+                          : "text-warning/70"
                       }
                     >
                       Now: {item.quantityReceivedNow}
                     </div>
                   </div>
-                  <div className="text-slate-500 text-[10px]">
+                  <div className="text-muted-foreground text-[10px]">
                     Remaining: {item.remainingQty} | Billed: {item.billedQty}
                   </div>
                 </div>
@@ -303,9 +303,9 @@ function DebugPanel({
         {activeTab === "errors" && (
           <div className="space-y-2">
             {Object.keys(errors).length === 0 ? (
-              <div className="text-emerald-400">✓ No validation errors</div>
+              <div className="text-success/70">✓ No validation errors</div>
             ) : (
-              <pre className="text-red-400 whitespace-pre-wrap">
+              <pre className="text-danger/70 whitespace-pre-wrap">
                 {JSON.stringify(errors, null, 2)}
               </pre>
             )}
@@ -315,15 +315,15 @@ function DebugPanel({
         {activeTab === "raw" && (
           <div className="space-y-2">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-slate-400">Full Form Data (JSON)</span>
+              <span className="text-muted-foreground/70">Full Form Data (JSON)</span>
               <button
                 onClick={() => copyToClipboard(JSON.stringify(data, null, 2))}
-                className="text-xs text-amber-400 hover:text-amber-300"
+                className="text-xs text-warning/70 hover:text-warning/60"
               >
                 Copy
               </button>
             </div>
-            <pre className="text-slate-300 whitespace-pre-wrap break-all">
+            <pre className="text-muted-foreground/50 whitespace-pre-wrap break-all">
               {JSON.stringify(data, null, 2)}
             </pre>
           </div>
@@ -745,7 +745,7 @@ export default function RecordDeliveryModal({
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[95vh] p-0 gap-0 overflow-hidden flex flex-col bg-slate-50">
+      <DialogContent className="max-w-7xl max-h-[95vh] p-0 gap-0 overflow-hidden flex flex-col bg-muted/50">
         {/* Debug Panel */}
         <DebugPanel
           data={formData}
@@ -755,7 +755,7 @@ export default function RecordDeliveryModal({
         />
 
         {/* Header */}
-        <DialogHeader className="px-6 py-4 border-b border-white/10 bg-gradient-to-r from-blue-500 to-indigo-400 text-white shrink-0 shadow-sm">
+        <DialogHeader className="px-6 py-4 border-b border-white/10 bg-gradient-to-r from-primary to-indigo-400 text-white shrink-0 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30">
@@ -765,7 +765,7 @@ export default function RecordDeliveryModal({
                 <DialogTitle className="text-xl font-bold text-white">
                   Record Goods Receipt
                 </DialogTitle>
-                <p className="text-sm text-emerald-50 mt-1 flex items-center gap-2">
+                <p className="text-sm text-success/30 mt-1 flex items-center gap-2">
                   <span className="font-mono bg-white/20 px-2 py-0.5 rounded">
                     {purchaseOrder?.poNumber || "NO PO NUMBER"}
                   </span>
@@ -774,12 +774,12 @@ export default function RecordDeliveryModal({
                 </p>
 
                 {/* Alert Banner */}
-                {/* <div className="mb-6 bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg shadow-sm">
+                {/* <div className="mb-6 bg-warning-muted/60 border-l-4 border-warning/40 p-4 rounded-r-lg shadow-sm">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
                 <div className="text-sm">
-                  <p className="font-semibold text-amber-900">Verification Required</p>
-                  <p className="text-amber-700 mt-1">
+                  <p className="font-semibold text-warning">Verification Required</p>
+                  <p className="text-warning mt-1">
                     Enter the quantity received for each item. Remaining quantity updates automatically as you type.
                   </p>
                 </div>
@@ -817,9 +817,9 @@ export default function RecordDeliveryModal({
             <div className="grid grid-cols-4 gap-4 items-end">
               {/* Location Selection - FIXED VERSION */}
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
-                  <Warehouse className="h-3.5 w-3.5 text-emerald-600" />
-                  Delivery Location <span className="text-red-500">*</span>
+                <Label className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1">
+                  <Warehouse className="h-3.5 w-3.5 text-success" />
+                  Delivery Location <span className="text-danger">*</span>
                 </Label>
                 <Controller
                   control={control}
@@ -838,11 +838,11 @@ export default function RecordDeliveryModal({
                       >
                         <SelectTrigger
                           className={cn(
-                            "h-11 border-2 bg-slate-50",
+                            "h-11 border-2 bg-muted/50",
                             selectValue
-                              ? "border-emerald-500 bg-emerald-50/30"
-                              : "border-slate-200",
-                            errors.locationId && "border-red-400",
+                              ? "border-success/60 bg-success-muted/30"
+                              : "border-border",
+                            errors.locationId && "border-danger/40",
                           )}
                         >
                           <SelectValue placeholder="Select warehouse/location..." />
@@ -861,7 +861,7 @@ export default function RecordDeliveryModal({
                                 className="text-sm"
                               >
                                 <div className="flex items-center gap-2">
-                                  <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                                  <MapPin className="h-3.5 w-3.5 text-muted-foreground/70" />
                                   <span>{loc.name || "Unnamed"}</span>
                                   {loc.type && (
                                     <Badge
@@ -880,47 +880,47 @@ export default function RecordDeliveryModal({
                   }}
                 />
                 {errors.locationId && (
-                  <p className="text-xs text-red-500 font-medium">
+                  <p className="text-xs text-danger font-medium">
                     {errors.locationId.message}
                   </p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  <Calendar className="inline h-3.5 w-3.5 mr-1 text-emerald-600" />
+                <Label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  <Calendar className="inline h-3.5 w-3.5 mr-1 text-success" />
                   Receipt Date
                 </Label>
                 <Input
                   type="date"
-                  className="h-11 border-slate-200 bg-slate-50"
+                  className="h-11 border-border bg-muted/50"
                   {...register("deliveryDate")}
                 />
                 {errors.deliveryDate && (
-                  <p className="text-xs text-red-500">
+                  <p className="text-xs text-danger">
                     {errors.deliveryDate.message}
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  <Hash className="inline h-3.5 w-3.5 mr-1 text-emerald-600" />
+                <Label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  <Hash className="inline h-3.5 w-3.5 mr-1 text-success" />
                   Supplier Ref / AWB
                 </Label>
                 <Input
-                  className="h-11 border-slate-200 bg-slate-50"
+                  className="h-11 border-border bg-muted/50"
                   {...register("supplierRef")}
                   placeholder="Tracking number..."
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  <Receipt className="inline h-3.5 w-3.5 mr-1 text-emerald-600" />
+                <Label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  <Receipt className="inline h-3.5 w-3.5 mr-1 text-success" />
                   Supplier Invoice
                 </Label>
                 <Input
-                  className="h-11 border-slate-200 bg-slate-50"
+                  className="h-11 border-border bg-muted/50"
                   {...register("invoiceNumber")}
                   placeholder="Invoice #..."
                 />
@@ -932,14 +932,14 @@ export default function RecordDeliveryModal({
           <div className="flex-1 overflow-y-auto p-6">
             {/* No Items Warning */}
             {(!watchedItems || watchedItems.length === 0) && (
-              <div className="mb-6 bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg">
+              <div className="mb-6 bg-danger-muted/60 border-l-4 border-danger/40 p-4 rounded-r-lg">
                 <div className="flex items-center gap-3">
-                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                  <AlertTriangle className="h-5 w-5 text-danger" />
                   <div>
-                    <p className="font-semibold text-red-900">
+                    <p className="font-semibold text-danger">
                       No Items Available
                     </p>
-                    <p className="text-red-700 text-sm mt-1">
+                    <p className="text-danger text-sm mt-1">
                       This purchase order has no items to receive. Check the PO
                       data.
                     </p>
@@ -950,48 +950,48 @@ export default function RecordDeliveryModal({
 
             {/* Summary Cards */}
             <div className="grid grid-cols-4 gap-2 mb-1">
-              <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+              <Card className="bg-gradient-to-br from-primary-muted/60 to-indigo-50 border-primary/25">
                 <CardContent className="p-4 pl-10 flex items-center gap-6">
-                  <div className="p-2 bg-blue-500 rounded-lg">
+                  <div className="p-2 bg-primary rounded-lg">
                     <Boxes className="h-3 w-4 text-white" />
                   </div>
                   <div>
-                    <p className="text-xs text-blue-600 font-semibold uppercase">
+                    <p className="text-xs text-primary font-semibold uppercase">
                       Total Items
                     </p>
-                    <p className="text-2xl font-bold text-blue-900">
+                    <p className="text-2xl font-bold text-primary">
                       {totalItems}
                     </p>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200">
+              <Card className="bg-gradient-to-br from-success-muted/60 to-primary-muted/60 border-success/25">
                 <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 bg-emerald-500 rounded-lg">
+                  <div className="p-2 bg-success rounded-lg">
                     <Package className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <p className="text-xs text-emerald-600 font-semibold uppercase">
+                    <p className="text-xs text-success font-semibold uppercase">
                       Receiving Now
                     </p>
-                    <p className="text-2xl font-bold text-emerald-900">
+                    <p className="text-2xl font-bold text-success">
                       {totalReceiving}
                     </p>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200">
+              <Card className="bg-gradient-to-br from-warning-muted/60 to-warning-muted/60 border-warning/25">
                 <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 bg-amber-500 rounded-lg">
+                  <div className="p-2 bg-warning rounded-lg">
                     <TrendingDown className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <p className="text-xs text-amber-600 font-semibold uppercase">
+                    <p className="text-xs text-warning font-semibold uppercase">
                       Remaining After
                     </p>
-                    <p className="text-2xl font-bold text-amber-900">
+                    <p className="text-2xl font-bold text-warning">
                       {totalRemaining}
                     </p>
                   </div>
@@ -1017,46 +1017,46 @@ export default function RecordDeliveryModal({
 
             {/* Items Table */}
             {watchedItems && watchedItems.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="bg-slate-100 border-b border-slate-200">
-                        <th className="text-left text-xs font-bold text-slate-600 uppercase tracking-wider p-4 w-[22%]">
+                      <tr className="bg-muted border-b border-border">
+                        <th className="text-left text-xs font-bold text-muted-foreground uppercase tracking-wider p-4 w-[22%]">
                           Item Name
                         </th>
-                        <th className="text-center text-xs font-bold text-slate-600 uppercase tracking-wider p-4 w-[7%]">
+                        <th className="text-center text-xs font-bold text-muted-foreground uppercase tracking-wider p-4 w-[7%]">
                           Unit
                         </th>
-                        <th className="text-right text-xs font-bold text-slate-600 uppercase tracking-wider p-4 w-[10%]">
+                        <th className="text-right text-xs font-bold text-muted-foreground uppercase tracking-wider p-4 w-[10%]">
                           Unit Price
                         </th>
-                        <th className="text-right text-xs font-bold text-slate-600 uppercase tracking-wider p-4 w-[9%]">
+                        <th className="text-right text-xs font-bold text-muted-foreground uppercase tracking-wider p-4 w-[9%]">
                           Ordered
                         </th>
-                        <th className="text-right text-xs font-bold text-slate-600 uppercase tracking-wider p-4 w-[9%]">
+                        <th className="text-right text-xs font-bold text-muted-foreground uppercase tracking-wider p-4 w-[9%]">
                           Prev. Rec'd
                         </th>
-                        <th className="text-right text-xs font-bold text-emerald-700 uppercase tracking-wider p-4 w-[11%] bg-emerald-50/50">
+                        <th className="text-right text-xs font-bold text-success uppercase tracking-wider p-4 w-[11%] bg-success-muted/50">
                           <div className="flex flex-col items-end">
                             <span>Qty Received</span>
-                            <span className="text-[9px] text-emerald-600 font-normal">
+                            <span className="text-[9px] text-success font-normal">
                               (Type here)
                             </span>
                           </div>
                         </th>
-                        <th className="text-right text-xs font-bold text-amber-700 uppercase tracking-wider p-4 w-[11%] bg-amber-50/50">
+                        <th className="text-right text-xs font-bold text-warning uppercase tracking-wider p-4 w-[11%] bg-warning-muted/50">
                           Remaining Qty
                         </th>
-                        <th className="text-right text-xs font-bold text-slate-600 uppercase tracking-wider p-4 w-[10%]">
+                        <th className="text-right text-xs font-bold text-muted-foreground uppercase tracking-wider p-4 w-[10%]">
                           Billed Qty
                         </th>
-                        <th className="text-center text-xs font-bold text-slate-600 uppercase tracking-wider p-4 w-[11%]">
+                        <th className="text-center text-xs font-bold text-muted-foreground uppercase tracking-wider p-4 w-[11%]">
                           Batch / Expiry
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-border/60">
                       {fields.map((field, index) => {
                         const item = watchedItems[index];
                         if (!item) return null;
@@ -1076,9 +1076,9 @@ export default function RecordDeliveryModal({
                             <tr
                               className={cn(
                                 "transition-colors group",
-                                isComplete && "bg-emerald-50/40",
-                                isOver && "bg-red-50/40",
-                                hasInput && !isComplete && "bg-blue-50/20",
+                                isComplete && "bg-success-muted/40",
+                                isOver && "bg-danger-muted/40",
+                                hasInput && !isComplete && "bg-primary-muted/20",
                               )}
                             >
                               {/* Item Name */}
@@ -1089,7 +1089,7 @@ export default function RecordDeliveryModal({
                                       "p-2 rounded-lg mt-0.5",
                                       purchaseOrder?.orderType === "DRUG"
                                         ? "bg-purple-100 text-purple-600"
-                                        : "bg-blue-100 text-blue-600",
+                                        : "bg-primary-muted text-primary",
                                     )}
                                   >
                                     {purchaseOrder?.orderType === "DRUG" ? (
@@ -1099,10 +1099,10 @@ export default function RecordDeliveryModal({
                                     )}
                                   </div>
                                   <div>
-                                    <p className="font-semibold text-slate-900 text-sm leading-tight">
+                                    <p className="font-semibold text-foreground text-sm leading-tight">
                                       {item.itemName || "Unnamed Item"}
                                     </p>
-                                    <p className="text-xs text-slate-500 mt-1">
+                                    <p className="text-xs text-muted-foreground mt-1">
                                       ID:{" "}
                                       {item.purchaseOrderItemId?.slice(-8) ||
                                         "N/A"}
@@ -1110,7 +1110,7 @@ export default function RecordDeliveryModal({
                                     <button
                                       type="button"
                                       onClick={() => toggleRow(index)}
-                                      className="text-xs text-slate-400 hover:text-slate-600 mt-1 flex items-center gap-1"
+                                      className="text-xs text-muted-foreground/70 hover:text-muted-foreground mt-1 flex items-center gap-1"
                                     >
                                       {expandedRows.has(index) ? (
                                         <>
@@ -1131,33 +1131,33 @@ export default function RecordDeliveryModal({
                               <td className="p-4 text-center">
                                 <Badge
                                   variant="outline"
-                                  className="font-mono text-xs bg-slate-50"
+                                  className="font-mono text-xs bg-muted/50"
                                 >
                                   {getUOMLabel(item.uom)}
                                 </Badge>
                               </td>
 
                               {/* Unit Price */}
-                              <td className="p-4 text-right font-mono text-sm text-slate-700">
+                              <td className="p-4 text-right font-mono text-sm text-foreground">
                                 {formatUGX(Number(item.unitCost))}
                               </td>
 
                               {/* Qty Ordered */}
                               <td className="p-4 text-right">
-                                <span className="font-mono font-semibold text-slate-900 bg-slate-100 px-2 py-1 rounded">
+                                <span className="font-mono font-semibold text-foreground bg-muted px-2 py-1 rounded">
                                   {item.quantityOrdered}
                                 </span>
                               </td>
 
                               {/* Previously Received */}
                               <td className="p-4 text-right">
-                                <span className="font-mono text-slate-600">
+                                <span className="font-mono text-muted-foreground">
                                   {item.quantityPreviouslyReceived}
                                 </span>
                               </td>
 
                               {/* Qty Received - INPUT with Controller */}
-                              <td className="p-4 text-right bg-emerald-50/30">
+                              <td className="p-4 text-right bg-success-muted/30">
                                 <Controller
                                   control={control}
                                   name={`items.${index}.quantityReceivedNow`}
@@ -1169,10 +1169,10 @@ export default function RecordDeliveryModal({
                                       className={cn(
                                         "h-11 text-right font-mono font-bold text-base border-2 transition-all",
                                         hasInput
-                                          ? "border-emerald-400 bg-emerald-50/50 text-emerald-900"
-                                          : "border-slate-200 bg-white text-slate-700",
+                                          ? "border-success/40 bg-success-muted/50 text-success"
+                                          : "border-border bg-white text-foreground",
                                         isOver &&
-                                        "border-red-400 bg-red-50 text-red-900",
+                                        "border-danger/40 bg-danger-muted/60 text-danger",
                                       )}
                                       value={field.value}
                                       onChange={(e) =>
@@ -1188,17 +1188,17 @@ export default function RecordDeliveryModal({
                               </td>
 
                               {/* Remaining Qty - READ ONLY */}
-                              <td className="p-4 text-right bg-amber-50/30">
+                              <td className="p-4 text-right bg-warning-muted/30">
                                 <div
                                   className={cn(
                                     "inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-mono font-bold text-base min-w-[60px]",
                                     isComplete
-                                      ? "bg-emerald-200 text-emerald-900 shadow-sm"
+                                      ? "bg-success-muted text-success shadow-sm"
                                       : isOver
-                                        ? "bg-red-200 text-red-900 shadow-sm"
+                                        ? "bg-danger-muted text-danger shadow-sm"
                                         : hasInput
-                                          ? "bg-amber-200 text-amber-900"
-                                          : "bg-slate-100 text-slate-600",
+                                          ? "bg-warning-muted text-warning"
+                                          : "bg-muted text-muted-foreground",
                                   )}
                                 >
                                   {item.remainingQty ?? 0}
@@ -1218,7 +1218,7 @@ export default function RecordDeliveryModal({
                                       type="number"
                                       step="0.01"
                                       min="0"
-                                      className="h-11 text-right font-mono text-sm border-slate-200 bg-slate-50/50"
+                                      className="h-11 text-right font-mono text-sm border-border bg-muted/50"
                                       {...field}
                                     />
                                   )}
@@ -1242,19 +1242,19 @@ export default function RecordDeliveryModal({
                                       <>
                                         <Input
                                           className={cn(
-                                            "h-8 text-xs font-mono border-slate-200",
+                                            "h-8 text-xs font-mono border-border",
                                             // Lines 1247, 1251, 1257, 1262, 1267 ✅
                                             // watchedItems[index]?.batchTracking
 
                                             watchedItems[index]
                                               ?.batchTracking &&
                                             (!field.value?.trim() || error) &&
-                                            "border-red-400 bg-red-50",
+                                            "border-danger/40 bg-danger-muted/60",
                                             watchedItems[index]
                                               ?.batchTracking &&
                                             field.value?.trim() &&
                                             !error &&
-                                            "border-emerald-400 bg-emerald-50",
+                                            "border-success/40 bg-success-muted/60",
                                           )}
                                           placeholder={
                                             watchedItems[index]?.batchTracking
@@ -1269,14 +1269,14 @@ export default function RecordDeliveryModal({
                                         {/* ✅ Show "Required" hint when batchTracking=true and field empty */}
                                         {watchedItems[index]?.batchTracking &&
                                           !field.value?.trim() && (
-                                            <span className="text-[10px] text-red-500 flex items-center gap-1">
+                                            <span className="text-[10px] text-danger flex items-center gap-1">
                                               <AlertTriangle className="h-3 w-3" />{" "}
                                               Required
                                             </span>
                                           )}
                                         {/* ✅ Show Zod error message */}
                                         {error && (
-                                          <p className="text-[10px] text-red-500">
+                                          <p className="text-[10px] text-danger">
                                             {error.message}
                                           </p>
                                         )}
@@ -1288,13 +1288,13 @@ export default function RecordDeliveryModal({
                               {/* <td className="p-4">
                                 <div className="space-y-1.5">
                                   <Input 
-                                    className="h-8 text-xs font-mono bg-white border-slate-200" 
+                                    className="h-8 text-xs font-mono bg-white border-border" 
                                     placeholder="Batch #"
                                     {...register(`items.${index}.batchNumber`)} 
                                   />
                                   <Input 
                                     type="date"
-                                    className="h-8 text-xs bg-white border-slate-200" 
+                                    className="h-8 text-xs bg-white border-border" 
                                     {...register(`items.${index}.expiryDate`)} 
                                   />
                                 </div>
@@ -1303,33 +1303,33 @@ export default function RecordDeliveryModal({
 
                             {/* Expanded Row */}
                             {expandedRows.has(index) && (
-                              <tr className="bg-slate-50/50 border-b border-slate-100">
+                              <tr className="bg-muted/50 border-b border-border/60">
                                 <td colSpan={9} className="p-4">
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-6 text-sm">
                                       <div className="flex items-center gap-2">
-                                        <span className="text-slate-500">
+                                        <span className="text-muted-foreground">
                                           Line Total:
                                         </span>
-                                        <span className="font-mono font-bold text-slate-900 text-lg">
+                                        <span className="font-mono font-bold text-foreground text-lg">
                                           {formatUGX(lineTotal)}
                                         </span>
                                       </div>
-                                      <div className="h-4 w-px bg-slate-300" />
-                                      <div className="text-slate-500">
+                                      <div className="h-4 w-px bg-border" />
+                                      <div className="text-muted-foreground">
                                         Calculation:{" "}
-                                        <span className="font-mono text-slate-700">
+                                        <span className="font-mono text-foreground">
                                           {item.quantityReceivedNow}
                                         </span>{" "}
                                         ×{" "}
-                                        <span className="font-mono text-slate-700">
+                                        <span className="font-mono text-foreground">
                                           {formatUGX(Number(item.unitCost))}
                                         </span>
                                       </div>
                                     </div>
                                     <div className="flex-1 max-w-md ml-8">
                                       <Input
-                                        className="h-9 text-sm bg-white border-slate-200"
+                                        className="h-9 text-sm bg-white border-border"
                                         placeholder="Item notes (damages, discrepancies...)"
                                         {...register(`items.${index}.notes`)}
                                       />
@@ -1349,11 +1349,11 @@ export default function RecordDeliveryModal({
 
             {/* Delivery Notes */}
             <div className="mt-6">
-              <Label className="text-sm font-semibold text-slate-700 mb-2 block">
+              <Label className="text-sm font-semibold text-foreground mb-2 block">
                 General Delivery Notes
               </Label>
               <Textarea
-                className="min-h-[100px] bg-white border-slate-200 resize-none"
+                className="min-h-[100px] bg-white border-border resize-none"
                 placeholder="Describe any damages, discrepancies, or special handling instructions..."
                 {...register("notes")}
               />
@@ -1375,7 +1375,7 @@ export default function RecordDeliveryModal({
               disabled={
                 isSubmitting || !watchedItems || watchedItems.length === 0
               }
-              className="h-11 px-8 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold shadow-lg shadow-emerald-200 disabled:opacity-50"
+              className="h-11 px-8 bg-gradient-to-r from-success to-primary hover:from-success hover:to-primary text-white font-semibold shadow-lg shadow-emerald-200 disabled:opacity-50"
             >
               {isSubmitting ? (
                 <span className="flex items-center gap-2">

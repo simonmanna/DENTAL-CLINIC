@@ -96,7 +96,7 @@ export default function SuppliersPage() {
       cell: (info) => (
         <div className="flex flex-col">
           <span className="font-bold text-[#3c8dbc]">{info.getValue()}</span>
-          <span className="text-[11px] text-gray-500">{info.row.original.code || 'No Code'}</span>
+          <span className="text-[11px] text-muted-foreground">{info.row.original.code || 'No Code'}</span>
         </div>
       ),
     }),
@@ -113,7 +113,7 @@ export default function SuppliersPage() {
       cell: (info) => (
         <Badge className={cn(
           "rounded-none px-2 py-0 text-[10px] uppercase", 
-          info.getValue() ? "bg-green-500" : "bg-red-500"
+          info.getValue() ? "bg-success" : "bg-danger"
         )}>
           {info.getValue() ? "Active" : "Inactive"}
         </Badge>
@@ -128,14 +128,14 @@ export default function SuppliersPage() {
           <div className="flex items-center justify-center gap-1">
             {/* <Button 
               size="icon" variant="outline" title="View Details"
-              className="h-7 w-7 text-blue-600 border-blue-200 hover:bg-blue-50" 
+              className="h-7 w-7 text-primary border-primary/25 hover:bg-primary-muted/60" 
               onClick={() => {  }}
             >
               <Eye className="h-3.5 w-3.5" />
             </Button> */}
             <Button 
               size="icon" variant="outline" title="Edit Supplier"
-              className="h-7 w-7 text-amber-600 border-amber-200 hover:bg-amber-50"
+              className="h-7 w-7 text-warning border-warning/25 hover:bg-warning-muted/60"
               onClick={() => {
                 setEditingSupplier(supplier);
                 setIsFormOpen(true);
@@ -145,14 +145,14 @@ export default function SuppliersPage() {
             </Button>
             {/* <Button 
               size="icon" variant="outline" title={supplier.isActive ? "Deactivate" : "Activate"}
-              className={cn("h-7 w-7", supplier.isActive ? "text-gray-500 border-gray-200" : "text-green-600 border-green-200")}
+              className={cn("h-7 w-7", supplier.isActive ? "text-muted-foreground border-border" : "text-success border-success/25")}
               onClick={() => {  }}
             >
               {supplier.isActive ? <PowerOff className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
             </Button> */}
             {/* <Button 
               size="icon" variant="outline" title="Delete"
-              className="h-7 w-7 text-red-600 border-red-200 hover:bg-red-50"
+              className="h-7 w-7 text-danger border-danger/25 hover:bg-danger-muted/60"
               onClick={() => { }}
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -207,8 +207,8 @@ export default function SuppliersPage() {
     <div className="space-y-4 p-4 bg-[#f4f6f9] min-h-screen">
       {/* ── Header ───────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-light text-gray-800 uppercase tracking-tight">
-          Suppliers <small className="text-gray-500 text-sm normal-case ">Vendors Directory</small>
+        <h1 className="text-xl font-light text-foreground uppercase tracking-tight">
+          Suppliers <small className="text-muted-foreground text-sm normal-case ">Vendors Directory</small>
         </h1>
         <Button className="bg-[#3c8dbc] hover:bg-[#367fa9] rounded-none shadow-sm font-bold" onClick={() => setIsFormOpen(true)}>
           <Plus className="mr-1 h-4 w-4" /> ADD NEW SUPPLIER
@@ -226,21 +226,21 @@ export default function SuppliersPage() {
       {/* ── Main Content Box (AdminLTE Style) ───────────────────────────────── */}
       <div className="bg-white border-t-4 border-t-[#3c8dbc] shadow-md rounded-sm">
         {/* Filters Bar */}
-        <div className="p-4 border-b flex flex-wrap gap-3 items-center justify-between bg-gray-50/50">
+        <div className="p-4 border-b flex flex-wrap gap-3 items-center justify-between bg-muted/50">
           <div className="flex gap-2">
             <div className="relative w-72">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-muted-foreground/70">
                 <Search className="h-4 w-4" />
               </span>
               <Input
                 placeholder="Search by name, email or code..."
-                className="pl-10 rounded-none h-9 border-gray-300 focus-visible:ring-[#3c8dbc]"
+                className="pl-10 rounded-none h-9 border-input focus-visible:ring-[#3c8dbc]"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               />
             </div>
             <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-              <SelectTrigger className="w-40 h-9 rounded-none border-gray-300">
+              <SelectTrigger className="w-40 h-9 rounded-none border-input">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -255,7 +255,7 @@ export default function SuppliersPage() {
             variant="ghost" 
             size="sm" 
             onClick={() => refetch()} 
-            className={cn("text-gray-500", isFetching && "animate-spin")}
+            className={cn("text-muted-foreground", isFetching && "animate-spin")}
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -264,7 +264,7 @@ export default function SuppliersPage() {
         {/* Table Area */}
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="bg-gray-100">
+            <TableHeader className="bg-muted">
               {table.getHeaderGroups().map((hg) => (
                 <TableRow key={hg.id} className="hover:bg-transparent">
                   {hg.headers.map((header) => (
@@ -286,13 +286,13 @@ export default function SuppliersPage() {
                 ))
               ) : table.getRowModel().rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-32 text-center text-gray-500 italic">
+                  <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground italic">
                     No suppliers found matching your criteria.
                   </TableCell>
                 </TableRow>
               ) : (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} className="hover:bg-gray-50 even:bg-gray-50/30 transition-colors">
+                  <TableRow key={row.id} className="hover:bg-muted/50 even:bg-muted/30 transition-colors">
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id} className="py-2.5 px-4 border-r last:border-r-0 text-sm">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -308,8 +308,8 @@ export default function SuppliersPage() {
 
         {/* Footer / Pagination */}
         {data?.meta && (
-          <div className="p-4 border-t flex items-center justify-between bg-gray-50/50">
-            <div className="text-sm text-gray-600">
+          <div className="p-4 border-t flex items-center justify-between bg-muted/50">
+            <div className="text-sm text-muted-foreground">
               Showing <b>{(page - 1) * 10 + 1}</b> to <b>{Math.min(page * 10, data.meta.total)}</b> of <b>{data.meta.total}</b> suppliers
             </div>
             <div className="flex gap-0 border rounded overflow-hidden">

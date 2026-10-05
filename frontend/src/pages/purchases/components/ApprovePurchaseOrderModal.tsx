@@ -96,17 +96,17 @@ export default function ApprovePurchaseOrderModal({ po, onClose }: ApprovePurcha
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
         {/* Header - Fixed */}
-        <DialogHeader className="px-6 py-1 border-b bg-emerald-50/50 backdrop-blur-sm shrink-0">
+        <DialogHeader className="px-6 py-1 border-b bg-success-muted/50 backdrop-blur-sm shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-2.5 rounded-xl bg-emerald-100 text-emerald-700 shadow-sm">
+              <div className="p-2.5 rounded-xl bg-success-muted text-success shadow-sm">
                 <CheckCircle2 className="h-6 w-6" />
               </div>
               <div>
                 <DialogTitle className="text-xl font-bold tracking-tight">Approve Purchase Order</DialogTitle>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-sm font-mono text-muted-foreground bg-white px-1.5 py-0.5 rounded border">{po.poNumber}</span>
-                  <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-none capitalize">
+                  <Badge variant="secondary" className="bg-success-muted text-success hover:bg-success-muted border-none capitalize">
                     {po.status.toLowerCase()}
                   </Badge>
                 </div>
@@ -119,11 +119,11 @@ export default function ApprovePurchaseOrderModal({ po, onClose }: ApprovePurcha
           <ScrollArea className="flex-1 overflow-hidden">
             <div className="px-6 py-1 space-y-1">
               {/* Alert Section */}
-              {/* <div className="bg-amber-50/50 border border-amber-200/60 rounded-xl p-4 flex items-start gap-3 shadow-sm">
-                <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              {/* <div className="bg-warning-muted/50 border border-warning/60 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+                <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <h4 className="font-semibold text-amber-900 text-sm">Action Required: Pre-approval Verification</h4>
-                  <p className="text-xs text-amber-800/80 leading-relaxed">
+                  <h4 className="font-semibold text-warning text-sm">Action Required: Pre-approval Verification</h4>
+                  <p className="text-xs text-warning/80 leading-relaxed">
                     Check item quantities and unit costs against the official quotation. Approved orders are legally binding and initiate the logistics workflow.
                   </p>
                 </div>
@@ -132,16 +132,16 @@ export default function ApprovePurchaseOrderModal({ po, onClose }: ApprovePurcha
               {/* Info Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
                 {[
-                  { icon: Building2, label: "Supplier", value: po.supplier?.name, sub: po.paymentTerms?.replace(/_/g, " "), color: "text-blue-600" },
-                  { icon: Calendar, label: "Expected Delivery", value: po.expectedDate ? format(new Date(po.expectedDate), "dd MMM yyyy") : "TBD", sub: `Created ${format(new Date(po.createdAt), "dd MMM yyyy")}`, color: "text-orange-600" },
-                  { icon: Calculator, label: "Total Value", value: formatUGX(total), sub: `${po.items?.length || 0} Line Items`, color: "text-emerald-600", highlight: true },
+                  { icon: Building2, label: "Supplier", value: po.supplier?.name, sub: po.paymentTerms?.replace(/_/g, " "), color: "text-primary" },
+                  { icon: Calendar, label: "Expected Delivery", value: po.expectedDate ? format(new Date(po.expectedDate), "dd MMM yyyy") : "TBD", sub: `Created ${format(new Date(po.createdAt), "dd MMM yyyy")}`, color: "text-warning" },
+                  { icon: Calculator, label: "Total Value", value: formatUGX(total), sub: `${po.items?.length || 0} Line Items`, color: "text-success", highlight: true },
                 ].map((card, i) => (
-                  <div key={i} className={`p-2 rounded-xl border bg-card shadow-sm ${card.highlight ? 'ring-1 ring-emerald-500/20' : ''}`}>
+                  <div key={i} className={`p-2 rounded-xl border bg-card shadow-sm ${card.highlight ? 'ring-1 ring-success/20' : ''}`}>
                     <div className="flex items-center gap-0 mb-0">
                       <card.icon className={`h-4 w-4 ${card.color}`} />
                       <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{card.label}</span>
                     </div>
-                    <p className={`font-bold ${card.highlight ? 'text-xl text-emerald-600' : 'text-sm'}`}>{card.value}</p>
+                    <p className={`font-bold ${card.highlight ? 'text-xl text-success' : 'text-sm'}`}>{card.value}</p>
                     <p className="text-[11px] text-muted-foreground mt-1 font-medium">{card.sub}</p>
                   </div>
                 ))}
@@ -171,7 +171,7 @@ export default function ApprovePurchaseOrderModal({ po, onClose }: ApprovePurcha
                       {po.items?.map((item) => (
                         <tr key={item.id} className="hover:bg-muted/5 transition-colors">
                           <td className="p-4">
-                            <div className="font-bold text-slate-900">{item.itemName}</div>
+                            <div className="font-bold text-foreground">{item.itemName}</div>
                             <div className="text-[11px] text-muted-foreground font-medium uppercase">{item.unit}</div>
                           </td>
                           <td className="p-4">
@@ -180,7 +180,7 @@ export default function ApprovePurchaseOrderModal({ po, onClose }: ApprovePurcha
                               {item.itemType}
                             </Badge>
                           </td>
-                          <td className="p-4 text-right font-mono font-bold text-slate-700">{item.quantityOrdered}</td>
+                          <td className="p-4 text-right font-mono font-bold text-foreground">{item.quantityOrdered}</td>
                           <td className="p-4 text-right font-mono text-muted-foreground">{formatUGX(item.unitCost)}</td>
                           <td className="p-4 text-right font-mono font-bold">{formatUGX(item.quantityOrdered * item.unitCost)}</td>
                         </tr>
@@ -189,20 +189,20 @@ export default function ApprovePurchaseOrderModal({ po, onClose }: ApprovePurcha
                   </table>
 
                   {/* Summary Footer in Table */}
-                  <div className="bg-slate-50 border-t p-2 space-y-2">
+                  <div className="bg-muted/50 border-t p-2 space-y-2">
                     {/* <div className="flex justify-between text-xs font-medium text-muted-foreground">
                       <span>Subtotal</span>
                       <span>{formatUGX(subtotal)}</span>
                     </div>
                     {po.discountAmount > 0 && (
-                      <div className="flex justify-between text-xs font-medium text-red-600">
+                      <div className="flex justify-between text-xs font-medium text-danger">
                         <span>Discount</span>
                         <span>-{formatUGX(po.discountAmount)}</span>
                       </div>
                     )} */}
-                    <div className="flex justify-between text-sm font-bold text-slate-900 pt-2 border-t border-slate-200">
+                    <div className="flex justify-between text-sm font-bold text-foreground pt-2 border-t border-border">
                       <span>Total Amount Payable</span>
-                      <span className="text-emerald-700">{formatUGX(total)}</span>
+                      <span className="text-success">{formatUGX(total)}</span>
                     </div>
                   </div>
                 </div>
@@ -215,20 +215,20 @@ export default function ApprovePurchaseOrderModal({ po, onClose }: ApprovePurcha
                   Internal Approval Notes
                 </Label>
                 <Textarea
-                  className="min-h-[50px] rounded-xl border-slate-200 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-none shadow-sm"
+                  className="min-h-[50px] rounded-xl border-border focus:ring-success/20 focus:border-success/60 transition-all resize-none shadow-sm"
                   placeholder="Mention any deviations, partial approvals, or shipping instructions..."
                   {...register("approvalNotes")}
                 />
               </div>
 
               {/* Sticky-like Confirmation */}
-              <div className={`p-2 rounded-xl border-2 transition-all duration-200 ${confirmed ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`p-2 rounded-xl border-2 transition-all duration-200 ${confirmed ? 'bg-success-muted/60 border-success/25' : 'bg-muted/50 border-border'}`}>
                 <div className="flex items-start gap-4">
                   <Checkbox 
                     id="confirm" 
                     checked={confirmed} 
                     onCheckedChange={(checked) => setConfirmed(checked as boolean)}
-                    className="mt-1 bg-emerald-600"
+                    className="mt-1 bg-success"
                   />
                   <div className="grid gap-0.5 leading-none">
                     <label htmlFor="confirm" className="text-sm font-bold cursor-pointer select-none">
@@ -247,7 +247,7 @@ export default function ApprovePurchaseOrderModal({ po, onClose }: ApprovePurcha
           <DialogFooter className="px-6 py-1 border-t bg-white shrink-0 sm:justify-between items-center">
             <div className="hidden sm:block">
               <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Grand Total</p>
-              <p className="text-lg font-black text-emerald-700">{formatUGX(total)}</p>
+              <p className="text-lg font-black text-success">{formatUGX(total)}</p>
             </div>
             <div className="flex gap-3 w-full sm:w-auto">
               <Button type="button" variant="ghost" onClick={onClose} className="flex-1 sm:flex-none">
@@ -256,7 +256,7 @@ export default function ApprovePurchaseOrderModal({ po, onClose }: ApprovePurcha
               <Button 
                 type="submit" 
                 disabled={isSubmitting || mutation.isPending || !confirmed}
-                className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 shadow-lg shadow-emerald-200 transition-all active:scale-95"
+                className="flex-1 sm:flex-none bg-success hover:bg-success text-white font-bold px-8 shadow-lg shadow-emerald-200 transition-all active:scale-95"
               >
                 {mutation.isPending ? "Processing..." : "Approve Order"}
               </Button>

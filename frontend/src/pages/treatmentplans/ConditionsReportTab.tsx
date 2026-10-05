@@ -6,17 +6,17 @@ import { formatDate } from "@/lib/utils";
 import type { ConditionsReportQuery, PatientConditionRow, PatientConditionsReport } from "@/lib/api/conditions";
 
 const STATUS_CFG: Record<string, { cls: string; label: string }> = {
-  ACTIVE: { cls: "bg-emerald-50 text-emerald-700 ring-emerald-200", label: "Active" },
-  MONITORED: { cls: "bg-blue-50 text-blue-700 ring-blue-200", label: "Monitored" },
-  IN_TREATMENT: { cls: "bg-amber-50 text-amber-700 ring-amber-200", label: "In Treatment" },
-  RESOLVED: { cls: "bg-slate-100 text-slate-600 ring-slate-200", label: "Resolved" },
-  RULED_OUT: { cls: "bg-red-50 text-red-600 ring-red-200", label: "Ruled Out" },
+  ACTIVE: { cls: "bg-success-muted/60 text-success ring-success/25", label: "Active" },
+  MONITORED: { cls: "bg-primary-muted/60 text-primary ring-primary/25", label: "Monitored" },
+  IN_TREATMENT: { cls: "bg-warning-muted/60 text-warning ring-warning/25", label: "In Treatment" },
+  RESOLVED: { cls: "bg-muted text-muted-foreground ring-border", label: "Resolved" },
+  RULED_OUT: { cls: "bg-danger-muted/60 text-danger ring-danger/25", label: "Ruled Out" },
 };
 
 const SEVERITY_CFG: Record<string, { cls: string }> = {
-  MILD: { cls: "text-emerald-600" },
-  MODERATE: { cls: "text-amber-600" },
-  SEVERE: { cls: "text-red-600" },
+  MILD: { cls: "text-success" },
+  MODERATE: { cls: "text-warning" },
+  SEVERE: { cls: "text-danger" },
 };
 
 const CATEGORY_OPTIONS = [
@@ -30,7 +30,7 @@ const STATUS_OPTIONS = ["ACTIVE", "MONITORED", "IN_TREATMENT", "RESOLVED", "RULE
 const SEVERITY_OPTIONS = ["MILD", "MODERATE", "SEVERE"];
 
 function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_CFG[status] ?? { cls: "bg-gray-100 text-gray-600 ring-gray-200", label: status };
+  const cfg = STATUS_CFG[status] ?? { cls: "bg-muted text-muted-foreground ring-border", label: status };
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${cfg.cls}`}>
       {cfg.label}
@@ -39,10 +39,10 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function SeverityBadge({ severity }: { severity?: string }) {
-  if (!severity) return <span className="text-slate-300">—</span>;
+  if (!severity) return <span className="text-muted-foreground/50">—</span>;
   const cfg = SEVERITY_CFG[severity];
   return (
-    <span className={`text-xs font-medium ${cfg?.cls ?? "text-slate-500"}`}>
+    <span className={`text-xs font-medium ${cfg?.cls ?? "text-muted-foreground"}`}>
       {severity}
     </span>
   );
@@ -57,13 +57,13 @@ const fullName = (p?: { firstName: string; lastName: string } | null): string =>
 
 function StatCard({ label, value, accent, icon }: { label: string; value: React.ReactNode; accent: string; icon: string }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 px-4 py-1 flex gap-3 items-start shadow-sm">
+    <div className="bg-white rounded-xl border border-border px-4 py-1 flex gap-3 items-start shadow-sm">
       <div className="mt-0.5 size-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: accent + "18" }}>
         <span className="text-base" style={{ color: accent }}>{icon}</span>
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider truncate">{label}</p>
-        <p className="text-xl font-bold text-slate-900 mt-0.5 tabular-nums">{value}</p>
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">{label}</p>
+        <p className="text-xl font-bold text-foreground mt-0.5 tabular-nums">{value}</p>
       </div>
     </div>
   );
@@ -191,24 +191,24 @@ export default function ConditionsReportTab(): JSX.Element {
     }
   }, [exporting, filters]);
 
-  const inputCls = "h-9 rounded-lg border border-slate-200 px-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white";
+  const inputCls = "h-9 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-success/60 bg-white";
 
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-wrap gap-3 items-end shadow-sm">
+      <div className="bg-white border border-border rounded-xl p-4 flex flex-wrap gap-3 items-end shadow-sm">
         <div className="flex-1 min-w-48">
-          <label className="block text-xs font-medium text-slate-500 mb-1">Search</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Search</label>
           <input
             value={filters.search}
             onChange={(e) => update({ search: e.target.value, page: 1 })}
             placeholder="Patient name, condition…"
-            className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder:text-slate-400"
+            className="w-full h-9 rounded-lg border border-border px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-success/60 focus:border-transparent placeholder:text-muted-foreground/70"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Status</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Status</label>
           <select value={filters.status} onChange={(e) => update({ status: e.target.value, page: 1 })} className={inputCls}>
             <option value="">All statuses</option>
             {STATUS_OPTIONS.map((s) => (
@@ -218,7 +218,7 @@ export default function ConditionsReportTab(): JSX.Element {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Category</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Category</label>
           <select value={filters.category} onChange={(e) => update({ category: e.target.value, page: 1 })} className={inputCls}>
             <option value="">All categories</option>
             {CATEGORY_OPTIONS.map((c) => (
@@ -228,7 +228,7 @@ export default function ConditionsReportTab(): JSX.Element {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Severity</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Severity</label>
           <select value={filters.severity} onChange={(e) => update({ severity: e.target.value, page: 1 })} className={inputCls}>
             <option value="">All severities</option>
             {SEVERITY_OPTIONS.map((s) => (
@@ -238,17 +238,17 @@ export default function ConditionsReportTab(): JSX.Element {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">From</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">From</label>
           <input type="date" value={filters.dateFrom} onChange={(e) => update({ dateFrom: e.target.value, page: 1 })} className={inputCls} />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">To</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">To</label>
           <input type="date" value={filters.dateTo} onChange={(e) => update({ dateTo: e.target.value, page: 1 })} className={inputCls} />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Doctor</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Doctor</label>
           <select value={filters.dentistId} onChange={(e) => update({ dentistId: e.target.value, page: 1 })} className={inputCls} disabled={dentists.length === 0}>
             <option value="">{dentists.length === 0 ? "Loading dentists…" : "All dentists"}</option>
             {dentists.map((d: any) => (
@@ -258,15 +258,15 @@ export default function ConditionsReportTab(): JSX.Element {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Rows</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Rows</label>
           <select value={filters.limit} onChange={(e) => update({ limit: parseInt(e.target.value), page: 1 })} className={inputCls}>
             {[10, 20, 50, 100].map((n) => (<option key={n} value={n}>{n}</option>))}
           </select>
         </div>
 
-        <button onClick={() => setFilters(DEFAULT_FILTERS)} className="h-9 px-3 rounded-lg text-sm border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors">Reset</button>
+        <button onClick={() => setFilters(DEFAULT_FILTERS)} className="h-9 px-3 rounded-lg text-sm border border-border text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors">Reset</button>
 
-        <button onClick={handleExport} disabled={exporting || isLoading} className="h-9 px-3 rounded-lg text-sm border border-emerald-600 text-emerald-700 hover:bg-emerald-50 font-medium transition-colors disabled:opacity-50">
+        <button onClick={handleExport} disabled={exporting || isLoading} className="h-9 px-3 rounded-lg text-sm border border-success text-success hover:bg-success-muted/60 font-medium transition-colors disabled:opacity-50">
           {exporting ? "⏳ Preparing…" : "⬇ Export CSV"}
         </button>
       </div>
@@ -280,19 +280,19 @@ export default function ConditionsReportTab(): JSX.Element {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
         {isError ? (
-          <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3">
-            <p className="text-sm font-medium text-slate-600">Failed to load diagnoses</p>
-            <button onClick={() => refetch()} className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700">Retry</button>
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground/70 gap-3">
+            <p className="text-sm font-medium text-muted-foreground">Failed to load diagnoses</p>
+            <button onClick={() => refetch()} className="px-4 py-2 bg-success text-white text-sm font-medium rounded-lg hover:bg-success">Retry</button>
           </div>
         ) : isLoading ? (
-          <div className="flex items-center justify-center h-48 text-slate-400 gap-3">
-            <div className="size-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+          <div className="flex items-center justify-center h-48 text-muted-foreground/70 gap-3">
+            <div className="size-5 border-2 border-success border-t-transparent rounded-full animate-spin" />
             <span className="text-sm">Loading diagnoses…</span>
           </div>
         ) : !rows.length ? (
-          <div className="flex flex-col items-center justify-center h-48 text-slate-400">
+          <div className="flex flex-col items-center justify-center h-48 text-muted-foreground/70">
             <span className="text-3xl mb-2">🔍</span>
             <p className="text-sm font-medium">No diagnoses found</p>
             <p className="text-xs mt-1">Try adjusting your filters</p>
@@ -302,33 +302,33 @@ export default function ConditionsReportTab(): JSX.Element {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50">
+                  <tr className="border-b border-border bg-muted/50">
                     {["Patient", "Condition", "ICD-10", "Tooth", "Surfaces", "Severity", "Status", "Diagnosed", "Provider", "Visit"].map((h, i) => (
-                      <th key={i} className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                      <th key={i} className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border/60">
                   {rows.map((r) => (
-                    <tr key={r.id} className="hover:bg-slate-50/60">
+                    <tr key={r.id} className="hover:bg-muted/60">
                       <td className="px-3 py-2.5">
                         <div>
-                          <p className="font-medium text-slate-900">{r.patientName}</p>
-                          <p className="text-xs text-slate-400">{r.patientCode}</p>
+                          <p className="font-medium text-foreground">{r.patientName}</p>
+                          <p className="text-xs text-muted-foreground/70">{r.patientCode}</p>
                         </div>
                       </td>
                       <td className="px-3 py-2.5">
-                        <p className="font-medium text-slate-900">{r.conditionName}</p>
-                        <p className="text-xs text-slate-400">{r.conditionCategory?.replace(/_/g, " ")}</p>
+                        <p className="font-medium text-foreground">{r.conditionName}</p>
+                        <p className="text-xs text-muted-foreground/70">{r.conditionCategory?.replace(/_/g, " ")}</p>
                       </td>
                       <td className="px-3 py-2.5">
-                        <span className="font-mono text-xs text-slate-500">{r.icd10Code ?? "—"}</span>
+                        <span className="font-mono text-xs text-muted-foreground">{r.icd10Code ?? "—"}</span>
                       </td>
                       <td className="px-3 py-2.5">
-                        <span className="font-mono text-xs text-slate-600">{r.toothNumber ?? "—"}</span>
+                        <span className="font-mono text-xs text-muted-foreground">{r.toothNumber ?? "—"}</span>
                       </td>
                       <td className="px-3 py-2.5">
-                        <span className="text-xs text-slate-500">{(r.surfaces ?? []).length > 0 ? r.surfaces.join(" ") : "—"}</span>
+                        <span className="text-xs text-muted-foreground">{(r.surfaces ?? []).length > 0 ? r.surfaces.join(" ") : "—"}</span>
                       </td>
                       <td className="px-3 py-2.5">
                         <SeverityBadge severity={r.severity} />
@@ -336,9 +336,9 @@ export default function ConditionsReportTab(): JSX.Element {
                       <td className="px-3 py-2.5">
                         <StatusBadge status={r.status} />
                       </td>
-                      <td className="px-3 py-2.5 text-xs text-slate-500 whitespace-nowrap">{fmtDate(r.diagnosedAt)}</td>
-                      <td className="px-3 py-2.5 text-xs text-slate-600">{r.providerName ?? "—"}</td>
-                      <td className="px-3 py-2.5 font-mono text-xs text-sky-600">{r.visitCode ?? "—"}</td>
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">{fmtDate(r.diagnosedAt)}</td>
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground">{r.providerName ?? "—"}</td>
+                      <td className="px-3 py-2.5 font-mono text-xs text-primary">{r.visitCode ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -346,11 +346,11 @@ export default function ConditionsReportTab(): JSX.Element {
             </div>
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 text-xs text-slate-500">
+              <div className="flex items-center justify-between px-4 py-3 border-t border-border/60 text-xs text-muted-foreground">
                 <span>Page {pagination?.page} of {totalPages} · {total.toLocaleString()} diagnoses</span>
                 <div className="flex gap-2">
-                  <button disabled={filters.page <= 1} onClick={() => update({ page: filters.page - 1 })} className="px-3 py-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50">Prev</button>
-                  <button disabled={filters.page >= totalPages} onClick={() => update({ page: filters.page + 1 })} className="px-3 py-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50">Next</button>
+                  <button disabled={filters.page <= 1} onClick={() => update({ page: filters.page - 1 })} className="px-3 py-1.5 rounded-lg border border-border disabled:opacity-40 hover:bg-muted/50">Prev</button>
+                  <button disabled={filters.page >= totalPages} onClick={() => update({ page: filters.page + 1 })} className="px-3 py-1.5 rounded-lg border border-border disabled:opacity-40 hover:bg-muted/50">Next</button>
                 </div>
               </div>
             )}
@@ -359,7 +359,7 @@ export default function ConditionsReportTab(): JSX.Element {
       </div>
       {isFetching && (
         <div className="flex justify-center">
-          <div className="size-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+          <div className="size-4 border-2 border-success border-t-transparent rounded-full animate-spin" />
         </div>
       )}
     </div>

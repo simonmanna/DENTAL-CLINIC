@@ -120,24 +120,24 @@ const EMPTY_FORM: FormData = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const SESSION_STATUS_COLORS: Record<string, string> = {
-  PENDING    : "bg-slate-100 text-slate-600 border-slate-200",
-  IN_PROGRESS: "bg-blue-50 text-blue-700 border-blue-200",
-  COMPLETED  : "bg-emerald-50 text-emerald-700 border-emerald-200",
-  SKIPPED    : "bg-amber-50 text-amber-700 border-amber-200",
-  CANCELLED  : "bg-red-50 text-red-600 border-red-200",
+  PENDING    : "bg-muted text-muted-foreground border-border",
+  IN_PROGRESS: "bg-primary-muted/60 text-primary border-primary/25",
+  COMPLETED  : "bg-success-muted/60 text-success border-success/25",
+  SKIPPED    : "bg-warning-muted/60 text-warning border-warning/25",
+  CANCELLED  : "bg-danger-muted/60 text-danger border-danger/25",
 };
 
 const CONDITION_STATUS_COLORS: Record<string, string> = {
-  ACTIVE    : "bg-red-50 text-red-700 border-red-200",
-  MONITORED : "bg-amber-50 text-amber-700 border-amber-200",
-  RESOLVED  : "bg-emerald-50 text-emerald-700 border-emerald-200",
-  RULED_OUT : "bg-slate-100 text-slate-500 border-slate-200",
+  ACTIVE    : "bg-danger-muted/60 text-danger border-danger/25",
+  MONITORED : "bg-warning-muted/60 text-warning border-warning/25",
+  RESOLVED  : "bg-success-muted/60 text-success border-success/25",
+  RULED_OUT : "bg-muted text-muted-foreground border-border",
 };
 
 const SEVERITY_COLORS: Record<string, string> = {
-  MILD    : "text-emerald-600",
-  MODERATE: "text-amber-600",
-  SEVERE  : "text-red-600",
+  MILD    : "text-success",
+  MODERATE: "text-warning",
+  SEVERE  : "text-danger",
 };
 
 function sessionTeeth(targets: SessionTarget[]): string {
@@ -149,9 +149,9 @@ function sessionTeeth(targets: SessionTarget[]): string {
 // ─── Status / Outcome toggles ─────────────────────────────────────────────────
 function StatusToggle({ value, onChange }: { value: ComplaintStatus | ""; onChange: (v: ComplaintStatus) => void }) {
   const opts = [
-    { value: "IMPROVED" as ComplaintStatus, label: "Improved", Icon: TrendingUp,  active: "border-emerald-500 bg-emerald-50 text-emerald-700", base: "border-slate-200 text-slate-500 hover:border-emerald-300" },
-    { value: "SAME"     as ComplaintStatus, label: "Same",     Icon: Minus,       active: "border-amber-500 bg-amber-50 text-amber-700",   base: "border-slate-200 text-slate-500 hover:border-amber-300" },
-    { value: "WORSE"    as ComplaintStatus, label: "Worse",    Icon: TrendingDown, active: "border-red-500 bg-red-50 text-red-700",         base: "border-slate-200 text-slate-500 hover:border-red-300" },
+    { value: "IMPROVED" as ComplaintStatus, label: "Improved", Icon: TrendingUp,  active: "border-success/60 bg-success-muted/60 text-success", base: "border-border text-muted-foreground hover:border-success/30" },
+    { value: "SAME"     as ComplaintStatus, label: "Same",     Icon: Minus,       active: "border-warning/60 bg-warning-muted/60 text-warning",   base: "border-border text-muted-foreground hover:border-warning/30" },
+    { value: "WORSE"    as ComplaintStatus, label: "Worse",    Icon: TrendingDown, active: "border-danger/60 bg-danger-muted/60 text-danger",         base: "border-border text-muted-foreground hover:border-danger/30" },
   ];
   return (
     <div className="flex gap-1.5">
@@ -167,9 +167,9 @@ function StatusToggle({ value, onChange }: { value: ComplaintStatus | ""; onChan
 
 function OutcomeToggle({ value, onChange }: { value: Outcome | ""; onChange: (v: Outcome) => void }) {
   const opts = [
-    { value: "GOOD" as Outcome, label: "Good", Icon: CheckCircle2, active: "border-emerald-500 bg-emerald-50 text-emerald-700", base: "border-slate-200 text-slate-500 hover:border-emerald-200" },
-    { value: "FAIR" as Outcome, label: "Fair", Icon: Circle,       active: "border-blue-500 bg-blue-50 text-blue-700",          base: "border-slate-200 text-slate-500 hover:border-blue-200" },
-    { value: "POOR" as Outcome, label: "Poor", Icon: XCircle,      active: "border-red-500 bg-red-50 text-red-700",             base: "border-slate-200 text-slate-500 hover:border-red-200" },
+    { value: "GOOD" as Outcome, label: "Good", Icon: CheckCircle2, active: "border-success/60 bg-success-muted/60 text-success", base: "border-border text-muted-foreground hover:border-success/25" },
+    { value: "FAIR" as Outcome, label: "Fair", Icon: Circle,       active: "border-primary/60 bg-primary-muted/60 text-primary",          base: "border-border text-muted-foreground hover:border-primary/25" },
+    { value: "POOR" as Outcome, label: "Poor", Icon: XCircle,      active: "border-danger/60 bg-danger-muted/60 text-danger",             base: "border-border text-muted-foreground hover:border-danger/25" },
   ];
   return (
     <div className="flex gap-1.5">
@@ -208,30 +208,30 @@ function ClinicalLinksPicker({
   });
 
   return (
-    <div className="rounded-2xl border-2 border-dashed border-slate-200 overflow-hidden">
+    <div className="rounded-2xl border-2 border-dashed border-border overflow-hidden">
       {/* Toggle header */}
       <button type="button" onClick={() => setOpen((p) => !p)}
-        className="w-full flex items-center justify-between px-3 py-2 hover:bg-slate-50 transition-colors">
+        className="w-full flex items-center justify-between px-3 py-2 hover:bg-muted/50 transition-colors">
         <div className="flex items-center gap-2">
           <div className={cn("w-6 h-6 rounded-md flex items-center justify-center",
-            totalSelected > 0 ? "bg-indigo-100" : "bg-slate-100")}>
-            <Link2 className={cn("w-3 h-3", totalSelected > 0 ? "text-indigo-600" : "text-slate-400")} />
+            totalSelected > 0 ? "bg-indigo-100" : "bg-muted")}>
+            <Link2 className={cn("w-3 h-3", totalSelected > 0 ? "text-indigo-600" : "text-muted-foreground/70")} />
           </div>
-          <span className="text-xs font-semibold text-slate-700">Clinical Links</span>
+          <span className="text-xs font-semibold text-foreground">Clinical Links</span>
           {totalSelected > 0 && (
             <span className="px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-bold">
               {totalSelected} linked
             </span>
           )}
-          <span className="text-[10px] text-slate-400">optional — link sessions & conditions</span>
+          <span className="text-[10px] text-muted-foreground/70">optional — link sessions & conditions</span>
         </div>
-        {open ? <ChevronUp className="w-3.5 h-3.5 text-slate-400" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
+        {open ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground/70" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/70" />}
       </button>
 
       {open && (
-        <div className="border-t border-slate-100 bg-slate-50/60 p-3 space-y-3">
+        <div className="border-t border-border/60 bg-muted/60 p-3 space-y-3">
           {isLoading && (
-            <div className="flex items-center gap-2 text-slate-400 py-3 justify-center">
+            <div className="flex items-center gap-2 text-muted-foreground/70 py-3 justify-center">
               <Loader2 className="w-4 h-4 animate-spin" />
               <span className="text-sm">Loading clinical context…</span>
             </div>
@@ -241,15 +241,15 @@ function ClinicalLinksPicker({
           {ctx && (
             <div>
               <div className="flex items-center gap-2 mb-2.5">
-                <Activity className="w-3.5 h-3.5 text-blue-500" />
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                <Activity className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Procedure Sessions
                 </span>
-                <span className="text-xs text-slate-400">({ctx.procedureSessions.length} in this visit)</span>
+                <span className="text-xs text-muted-foreground/70">({ctx.procedureSessions.length} in this visit)</span>
               </div>
 
               {ctx.procedureSessions.length === 0 ? (
-                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-400">
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white border border-border text-xs text-muted-foreground/70">
                   <AlertCircle className="w-3.5 h-3.5" />
                   No procedure sessions are linked to this visit yet.
                 </div>
@@ -264,28 +264,28 @@ function ClinicalLinksPicker({
                         className={cn(
                           "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 text-left transition-all",
                           selected
-                            ? "border-blue-500 bg-blue-50 shadow-sm"
-                            : "border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50/40",
+                            ? "border-primary/60 bg-primary-muted/60 shadow-sm"
+                            : "border-border bg-white hover:border-primary/25 hover:bg-primary-muted/40",
                         )}>
                         <div className={cn("w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all",
-                          selected ? "border-blue-500 bg-blue-500" : "border-slate-300")}>
+                          selected ? "border-primary/60 bg-primary" : "border-input")}>
                           {selected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-semibold text-slate-800 truncate">{label}</span>
+                            <span className="text-sm font-semibold text-foreground truncate">{label}</span>
                             {teeth && (
-                              <span className="text-xs bg-slate-100 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded-md font-mono shrink-0">
+                              <span className="text-xs bg-muted text-muted-foreground border border-border px-1.5 py-0.5 rounded-md font-mono shrink-0">
                                 {teeth}
                               </span>
                             )}
                           </div>
                           {s.treatmentProcedure.procedure.code && (
-                            <span className="text-xs text-slate-400">{s.treatmentProcedure.procedure.code}</span>
+                            <span className="text-xs text-muted-foreground/70">{s.treatmentProcedure.procedure.code}</span>
                           )}
                         </div>
                         <span className={cn("text-xs font-semibold border px-2 py-0.5 rounded-lg shrink-0",
-                          SESSION_STATUS_COLORS[s.status] ?? "bg-slate-100 text-slate-500")}>
+                          SESSION_STATUS_COLORS[s.status] ?? "bg-muted text-muted-foreground")}>
                           {s.status.replace("_", " ")}
                         </span>
                       </button>
@@ -301,14 +301,14 @@ function ClinicalLinksPicker({
             <div>
               <div className="flex items-center gap-2 mb-2.5">
                 <Microscope className="w-3.5 h-3.5 text-purple-500" />
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Patient Conditions
                 </span>
-                <span className="text-xs text-slate-400">({ctx.patientConditions.length} on record)</span>
+                <span className="text-xs text-muted-foreground/70">({ctx.patientConditions.length} on record)</span>
               </div>
 
               {ctx.patientConditions.length === 0 ? (
-                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-400">
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white border border-border text-xs text-muted-foreground/70">
                   <AlertCircle className="w-3.5 h-3.5" />
                   No conditions recorded for this patient.
                 </div>
@@ -322,35 +322,35 @@ function ClinicalLinksPicker({
                           "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 text-left transition-all",
                           selected
                             ? "border-purple-500 bg-purple-50 shadow-sm"
-                            : "border-slate-200 bg-white hover:border-purple-200 hover:bg-purple-50/40",
+                            : "border-border bg-white hover:border-purple-200 hover:bg-purple-50/40",
                         )}>
                         <div className={cn("w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all",
-                          selected ? "border-purple-500 bg-purple-500" : "border-slate-300")}>
+                          selected ? "border-purple-500 bg-purple-500" : "border-input")}>
                           {selected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-semibold text-slate-800">{c.condition.name}</span>
+                            <span className="text-sm font-semibold text-foreground">{c.condition.name}</span>
                             {c.toothNumber && (
-                              <span className="text-xs font-mono bg-slate-100 border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded-md shrink-0">
+                              <span className="text-xs font-mono bg-muted border border-border text-muted-foreground px-1.5 py-0.5 rounded-md shrink-0">
                                 T{c.toothNumber}
                               </span>
                             )}
                             {c.condition.icd10Code && (
-                              <span className="text-xs text-slate-400 shrink-0">{c.condition.icd10Code}</span>
+                              <span className="text-xs text-muted-foreground/70 shrink-0">{c.condition.icd10Code}</span>
                             )}
                           </div>
                           <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="text-xs text-slate-400 capitalize">{c.condition.category.replace("_", " ")}</span>
+                            <span className="text-xs text-muted-foreground/70 capitalize">{c.condition.category.replace("_", " ")}</span>
                             {c.severity && (
-                              <span className={cn("text-xs font-semibold", SEVERITY_COLORS[c.severity] ?? "text-slate-500")}>
+                              <span className={cn("text-xs font-semibold", SEVERITY_COLORS[c.severity] ?? "text-muted-foreground")}>
                                 · {c.severity}
                               </span>
                             )}
                           </div>
                         </div>
                         <span className={cn("text-xs font-semibold border px-2 py-0.5 rounded-lg shrink-0",
-                          CONDITION_STATUS_COLORS[c.status] ?? "bg-slate-100 text-slate-500")}>
+                          CONDITION_STATUS_COLORS[c.status] ?? "bg-muted text-muted-foreground")}>
                           {c.status}
                         </span>
                       </button>
@@ -401,20 +401,20 @@ function ProgressReportForm({
       : (v as string[]).length > 0
   );
 
-  const input = "w-full rounded-lg border-2 border-slate-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400 transition-all text-slate-800 placeholder:text-slate-300 hover:border-slate-300";
-  const lbl   = "block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wide";
+  const input = "w-full rounded-lg border-2 border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/40 transition-all text-foreground placeholder:text-muted-foreground/50 hover:border-input";
+  const lbl   = "block text-[10px] font-bold text-muted-foreground mb-1 uppercase tracking-wide";
 
   return (
-    <div className="bg-white rounded-xl border-2 border-blue-200 shadow-lg overflow-hidden">
+    <div className="bg-white rounded-xl border-2 border-primary/25 shadow-lg overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-between">
+      <div className="px-4 py-2.5 bg-gradient-to-r from-primary to-indigo-600 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center">
             <FileText className="w-3.5 h-3.5 text-white" />
           </div>
           <div>
             <h3 className="text-sm font-bold text-white leading-tight">Add Progress Report</h3>
-            <p className="text-[10px] text-blue-200">All fields optional — fill what's clinically relevant</p>
+            <p className="text-[10px] text-primary/50">All fields optional — fill what's clinically relevant</p>
           </div>
         </div>
         <button onClick={onCancel} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
@@ -457,9 +457,9 @@ function ProgressReportForm({
         {/* Row 3 — Tooth + Procedure */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className={lbl}>Tooth <span className="text-slate-400 normal-case font-normal">(FDI)</span></label>
+            <label className={lbl}>Tooth <span className="text-muted-foreground/70 normal-case font-normal">(FDI)</span></label>
             <div className="relative">
-              <Hash className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <Hash className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/70" />
               <input type="number" min={11} max={48} placeholder="e.g. 36, 21…"
                 value={form.toothNumber} onChange={(e) => set("toothNumber", e.target.value)}
                 className={`${input} pl-8`} />
@@ -468,7 +468,7 @@ function ProgressReportForm({
           <div>
             <label className={lbl}>Procedure</label>
             <div className="relative">
-              <Stethoscope className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <Stethoscope className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/70" />
               <input type="text" placeholder="e.g. RCT, Filling, Extraction…"
                 value={form.procedureName} onChange={(e) => set("procedureName", e.target.value)}
                 className={`${input} pl-8`} />
@@ -485,7 +485,7 @@ function ProgressReportForm({
               className={`${input} resize-none`} />
           </div>
           <div>
-            <label className={lbl}>Clinical Links <span className="text-slate-400 normal-case font-normal">(optional)</span></label>
+            <label className={lbl}>Clinical Links <span className="text-muted-foreground/70 normal-case font-normal">(optional)</span></label>
             <ClinicalLinksPicker
               visitId={visitId}
               selectedSessionIds={form.procedureSessionIds}
@@ -513,18 +513,18 @@ function ProgressReportForm({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
+        <div className="flex items-center gap-2 pt-1 border-t border-border/60">
           <button onClick={() => onSave(form)} disabled={loading || !hasAnyField}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm">
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm">
             {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
             Save Report
           </button>
           <button onClick={onCancel} disabled={loading}
-            className="px-4 py-2 rounded-lg border-2 border-slate-200 text-sm text-slate-600 font-semibold hover:bg-slate-50 transition-colors">
+            className="px-4 py-2 rounded-lg border-2 border-border text-sm text-muted-foreground font-semibold hover:bg-muted/50 transition-colors">
             Cancel
           </button>
           {!hasAnyField && (
-            <span className="text-xs text-slate-400 italic ml-auto">Fill at least one field to save</span>
+            <span className="text-xs text-muted-foreground/70 italic ml-auto">Fill at least one field to save</span>
           )}
         </div>
       </div>
@@ -545,14 +545,14 @@ function ProgressReportCard({
   const [confirmDelete, setConfirm]   = useState(false);
 
   const csMap = {
-    IMPROVED: { label: "Improved", Icon: TrendingUp,   cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-    SAME    : { label: "Same",     Icon: Minus,         cls: "bg-amber-50 text-amber-700 border-amber-200" },
-    WORSE   : { label: "Worse",    Icon: TrendingDown,  cls: "bg-red-50 text-red-600 border-red-200" },
+    IMPROVED: { label: "Improved", Icon: TrendingUp,   cls: "bg-success-muted/60 text-success border-success/25" },
+    SAME    : { label: "Same",     Icon: Minus,         cls: "bg-warning-muted/60 text-warning border-warning/25" },
+    WORSE   : { label: "Worse",    Icon: TrendingDown,  cls: "bg-danger-muted/60 text-danger border-danger/25" },
   };
   const outMap = {
-    GOOD: { label: "Good", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-    FAIR: { label: "Fair", cls: "bg-blue-50 text-blue-700 border-blue-200" },
-    POOR: { label: "Poor", cls: "bg-red-50 text-red-600 border-red-200" },
+    GOOD: { label: "Good", cls: "bg-success-muted/60 text-success border-success/25" },
+    FAIR: { label: "Fair", cls: "bg-primary-muted/60 text-primary border-primary/25" },
+    POOR: { label: "Poor", cls: "bg-danger-muted/60 text-danger border-danger/25" },
   };
 
   const cs      = report.complaintStatus ? csMap[report.complaintStatus] : null;
@@ -561,24 +561,24 @@ function ProgressReportCard({
     report.procedureLinks.length || report.conditionLinks.length);
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow">
       {/* Card Header */}
-      <div className="px-4 py-3 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100 flex items-start justify-between gap-3">
+      <div className="px-4 py-3 bg-gradient-to-r from-muted/50 to-white border-b border-border/60 flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
-            <ClipboardList className="w-4 h-4 text-blue-600" />
+          <div className="w-8 h-8 rounded-xl bg-primary-muted flex items-center justify-center shrink-0 mt-0.5">
+            <ClipboardList className="w-4 h-4 text-primary" />
           </div>
           <div className="min-w-0">
             {/* Badges row */}
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs font-mono font-bold text-slate-700">{report.reportCode}</span>
+              <span className="text-xs font-mono font-bold text-foreground">{report.reportCode}</span>
               {report.toothNumber && (
-                <span className="text-xs font-mono bg-slate-100 border border-slate-200 text-slate-700 px-2 py-0.5 rounded-lg">
+                <span className="text-xs font-mono bg-muted border border-border text-foreground px-2 py-0.5 rounded-lg">
                   T{report.toothNumber}
                 </span>
               )}
               {report.procedureName && (
-                <span className="text-xs font-semibold bg-blue-50 border border-blue-200 text-blue-700 px-2 py-0.5 rounded-lg">
+                <span className="text-xs font-semibold bg-primary-muted/60 border border-primary/25 text-primary px-2 py-0.5 rounded-lg">
                   {report.procedureName}
                 </span>
               )}
@@ -593,7 +593,7 @@ function ProgressReportCard({
                 </span>
               )}
               {report.treatmentStatus && (
-                <span className="text-xs text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">
+                <span className="text-xs text-muted-foreground bg-muted border border-border px-2 py-0.5 rounded-lg">
                   {report.treatmentStatus}
                 </span>
               )}
@@ -613,8 +613,8 @@ function ProgressReportCard({
             </div>
             {/* Meta row */}
             <div className="flex items-center gap-2 mt-1">
-              <Calendar className="w-3 h-3 text-slate-400" />
-              <span className="text-xs text-slate-500">
+              <Calendar className="w-3 h-3 text-muted-foreground/70" />
+              <span className="text-xs text-muted-foreground">
                 {new Date(report.createdAt).toLocaleDateString("en-UG", {
                   day: "numeric", month: "short", year: "numeric",
                   hour: "2-digit", minute: "2-digit",
@@ -622,9 +622,9 @@ function ProgressReportCard({
               </span>
               {report.dentist && (
                 <>
-                  <span className="text-slate-300">·</span>
-                  <User className="w-3 h-3 text-slate-400" />
-                  <span className="text-xs text-slate-500">
+                  <span className="text-muted-foreground/50">·</span>
+                  <User className="w-3 h-3 text-muted-foreground/70" />
+                  <span className="text-xs text-muted-foreground">
                     Dr. {report.dentist.firstName} {report.dentist.lastName}
                   </span>
                 </>
@@ -639,22 +639,22 @@ function ProgressReportCard({
             confirmDelete ? (
               <div className="flex items-center gap-1">
                 <button onClick={onDelete}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700">
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-danger text-white text-xs font-semibold hover:bg-danger">
                   <Check className="w-3 h-3" /> Confirm
                 </button>
                 <button onClick={() => setConfirm(false)}
-                  className="px-2 py-1 rounded-lg border border-slate-200 text-xs text-slate-500 hover:bg-slate-50">
+                  className="px-2 py-1 rounded-lg border border-border text-xs text-muted-foreground hover:bg-muted/50">
                   Cancel
                 </button>
               </div>
             ) : (
               <>
                 <button onClick={onEdit} title="Edit"
-                  className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors">
+                  className="p-1.5 rounded-lg hover:bg-primary-muted/60 text-muted-foreground/70 hover:text-primary transition-colors">
                   <Edit3 className="w-3.5 h-3.5" />
                 </button>
                 <button onClick={() => setConfirm(true)} title="Delete"
-                  className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors">
+                  className="p-1.5 rounded-lg hover:bg-danger-muted/60 text-muted-foreground/70 hover:text-danger transition-colors">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </>
@@ -662,7 +662,7 @@ function ProgressReportCard({
           )}
           {hasBody && (
             <button onClick={() => setExpanded((p) => !p)}
-              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors">
+              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground/70 transition-colors">
               {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             </button>
           )}
@@ -672,8 +672,8 @@ function ProgressReportCard({
       {/* Complaint text */}
       {report.complaint && (
         <div className="px-4 pt-3 pb-0 flex items-start gap-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-0.5 w-20 shrink-0 pt-0.5">Complaint</span>
-          <p className="text-sm text-slate-700 font-medium">{report.complaint}</p>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 mt-0.5 w-20 shrink-0 pt-0.5">Complaint</span>
+          <p className="text-sm text-foreground font-medium">{report.complaint}</p>
         </div>
       )}
 
@@ -682,20 +682,20 @@ function ProgressReportCard({
         <div className="px-4 py-3 space-y-3">
           {report.findings && (
             <div className="flex items-start gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-0.5 w-20 shrink-0">Findings</span>
-              <p className="text-sm text-slate-600 leading-relaxed">{report.findings}</p>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 mt-0.5 w-20 shrink-0">Findings</span>
+              <p className="text-sm text-muted-foreground leading-relaxed">{report.findings}</p>
             </div>
           )}
           {report.notes && (
             <div className="flex items-start gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-0.5 w-20 shrink-0">Notes</span>
-              <p className="text-sm text-slate-600 leading-relaxed">{report.notes}</p>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 mt-0.5 w-20 shrink-0">Notes</span>
+              <p className="text-sm text-muted-foreground leading-relaxed">{report.notes}</p>
             </div>
           )}
           {report.nextPlan && (
-            <div className="flex items-start gap-2 bg-blue-50 rounded-xl px-3 py-2.5 border border-blue-100">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500 mt-0.5 w-20 shrink-0">Next Plan</span>
-              <p className="text-sm text-blue-700 leading-relaxed font-medium">{report.nextPlan}</p>
+            <div className="flex items-start gap-2 bg-primary-muted/60 rounded-xl px-3 py-2.5 border border-primary/20">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-primary mt-0.5 w-20 shrink-0">Next Plan</span>
+              <p className="text-sm text-primary leading-relaxed font-medium">{report.nextPlan}</p>
             </div>
           )}
 
@@ -704,7 +704,7 @@ function ProgressReportCard({
             <div className="pt-1">
               <div className="flex items-center gap-1.5 mb-2">
                 <Activity className="w-3.5 h-3.5 text-indigo-500" />
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Linked Sessions</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Linked Sessions</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {report.procedureLinks.map((l) => {
@@ -718,7 +718,7 @@ function ProgressReportCard({
                       <span className="font-semibold text-indigo-800">{label}</span>
                       {teeth && <span className="font-mono text-indigo-500">· {teeth}</span>}
                       <span className={cn("px-1.5 py-0.5 rounded-md text-[10px] font-bold border",
-                        SESSION_STATUS_COLORS[s.status] ?? "bg-slate-100 text-slate-500")}>
+                        SESSION_STATUS_COLORS[s.status] ?? "bg-muted text-muted-foreground")}>
                         {s.status.replace("_"," ")}
                       </span>
                     </div>
@@ -733,7 +733,7 @@ function ProgressReportCard({
             <div className="pt-1">
               <div className="flex items-center gap-1.5 mb-2">
                 <Microscope className="w-3.5 h-3.5 text-purple-500" />
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Linked Conditions</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Linked Conditions</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {report.conditionLinks.map((l) => {
@@ -746,7 +746,7 @@ function ProgressReportCard({
                       {c.toothNumber && <span className="font-mono text-purple-500">T{c.toothNumber}</span>}
                       {c.condition.icd10Code && <span className="text-purple-400">{c.condition.icd10Code}</span>}
                       <span className={cn("px-1.5 py-0.5 rounded-md text-[10px] font-bold border",
-                        CONDITION_STATUS_COLORS[c.status] ?? "bg-slate-100 text-slate-500")}>
+                        CONDITION_STATUS_COLORS[c.status] ?? "bg-muted text-muted-foreground")}>
                         {c.status}
                       </span>
                     </div>
@@ -830,14 +830,14 @@ function ProgressReportsSection({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-base font-bold text-slate-800">Progress Reports</h3>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h3 className="text-base font-bold text-foreground">Progress Reports</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
             {reports.length} note{reports.length !== 1 ? "s" : ""} for this visit
           </p>
         </div>
         {!readOnly && !showForm && !editingReport && (
           <button onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm">
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary transition-colors shadow-sm">
             <Plus className="w-4 h-4" /> New Report
           </button>
         )}
@@ -852,7 +852,7 @@ function ProgressReportsSection({
       {/* Loading */}
       {isLoading && (
         <div className="flex items-center justify-center py-16">
-          <div className="flex flex-col items-center gap-3 text-slate-400">
+          <div className="flex flex-col items-center gap-3 text-muted-foreground/70">
             <Loader2 className="w-8 h-8 animate-spin" />
             <span className="text-sm">Loading progress reports…</span>
           </div>
@@ -861,7 +861,7 @@ function ProgressReportsSection({
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+        <div className="flex items-center gap-2 px-4 py-3 bg-danger-muted/60 border border-danger/25 rounded-xl text-sm text-danger">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           Failed to load progress reports. Please refresh.
         </div>
@@ -869,19 +869,19 @@ function ProgressReportsSection({
 
       {/* Empty state */}
       {!isLoading && !error && reports.length === 0 && !showForm && (
-        <div className="flex flex-col items-center justify-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+        <div className="flex flex-col items-center justify-center py-16 bg-muted/50 rounded-2xl border border-dashed border-border">
           <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-3 shadow-sm">
-            <BarChart2 className="w-7 h-7 text-slate-300" />
+            <BarChart2 className="w-7 h-7 text-muted-foreground/50" />
           </div>
-          <p className="text-base font-semibold text-slate-600">No progress reports yet</p>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-base font-semibold text-muted-foreground">No progress reports yet</p>
+          <p className="text-sm text-muted-foreground/70 mt-1">
             {readOnly
               ? "No reports were recorded for this visit."
               : "Click 'New Report' to add the first clinical update."}
           </p>
           {!readOnly && (
             <button onClick={() => setShowForm(true)}
-              className="mt-4 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 shadow-sm">
+              className="mt-4 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary shadow-sm">
               <Plus className="w-4 h-4" /> Add First Report
             </button>
           )}
@@ -906,7 +906,7 @@ function ProgressReportsSection({
       )}
 
       {readOnly && (
-        <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
+        <div className="flex items-center gap-2 px-4 py-3 bg-warning-muted/60 border border-warning/25 rounded-xl text-sm text-warning">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           This visit is completed — reports are read-only.
         </div>
@@ -919,42 +919,42 @@ function ProgressReportsSection({
 function TreatmentPlanCard({ plan }: { plan: any }) {
   const pct = plan.summary?.completionPercent || 0;
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+    <div className="bg-white rounded-2xl border border-border p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="font-bold text-slate-800">{plan.title}</h3>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h3 className="font-bold text-foreground">{plan.title}</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
             {plan.planCode} · Dr. {plan.dentist?.firstName} {plan.dentist?.lastName}
           </p>
         </div>
         <span className={cn("px-3 py-1 rounded-full text-xs font-semibold border",
-          plan.status === "COMPLETED" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-          plan.status === "IN_PROGRESS" ? "bg-blue-50 text-blue-700 border-blue-200" :
-          plan.status === "CANCELLED" ? "bg-red-50 text-red-600 border-red-200" :
-          "bg-slate-100 text-slate-600 border-slate-200")}>
+          plan.status === "COMPLETED" ? "bg-success-muted/60 text-success border-success/25" :
+          plan.status === "IN_PROGRESS" ? "bg-primary-muted/60 text-primary border-primary/25" :
+          plan.status === "CANCELLED" ? "bg-danger-muted/60 text-danger border-danger/25" :
+          "bg-muted text-muted-foreground border-border")}>
           {plan.status}
         </span>
       </div>
       <div className="mb-4">
-        <div className="flex justify-between text-xs text-slate-500 mb-1.5">
+        <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
           <span>Completion</span>
           <span className="font-bold">{pct}%</span>
         </div>
-        <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full transition-all duration-700"
+        <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-primary to-success rounded-full transition-all duration-700"
             style={{ width: `${pct}%` }} />
         </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "Total",      value: plan.summary?.totalCost     || 0, cls: "text-slate-700" },
-          { label: "Completed",  value: plan.summary?.completedCost || 0, cls: "text-emerald-600" },
-          { label: "Remaining",  value: plan.summary?.remainingCost || 0, cls: "text-blue-600" },
-          { label: "Input Cost", value: plan.summary?.inputsCost    || 0, cls: "text-red-500" },
+          { label: "Total",      value: plan.summary?.totalCost     || 0, cls: "text-foreground" },
+          { label: "Completed",  value: plan.summary?.completedCost || 0, cls: "text-success" },
+          { label: "Remaining",  value: plan.summary?.remainingCost || 0, cls: "text-primary" },
+          { label: "Input Cost", value: plan.summary?.inputsCost    || 0, cls: "text-danger" },
         ].map(({ label, value, cls }) => (
-          <div key={label} className="text-center bg-slate-50 rounded-xl py-3 px-2">
+          <div key={label} className="text-center bg-muted/50 rounded-xl py-3 px-2">
             <div className={cn("text-sm font-bold", cls)}>UGX {value.toLocaleString()}</div>
-            <div className="text-[10px] text-slate-400 mt-0.5">{label}</div>
+            <div className="text-[10px] text-muted-foreground/70 mt-0.5">{label}</div>
           </div>
         ))}
       </div>
@@ -971,19 +971,19 @@ function TreatmentPlansSection({ patientId }: { patientId: string }) {
 
   if (isLoading) return (
     <div className="flex items-center justify-center py-12">
-      <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground/70" />
     </div>
   );
   if (error) return (
-    <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+    <div className="flex items-center gap-2 px-4 py-3 bg-danger-muted/60 border border-danger/25 rounded-xl text-sm text-danger">
       <AlertTriangle className="w-4 h-4 shrink-0" /> Failed to load treatment plans.
     </div>
   );
   if (plans.length === 0) return (
-    <div className="flex flex-col items-center justify-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-      <Target className="w-8 h-8 mb-2 text-slate-300" />
-      <p className="text-sm font-medium text-slate-600">No treatment plans</p>
-      <p className="text-xs text-slate-400 mt-1">Plans will appear here once created.</p>
+    <div className="flex flex-col items-center justify-center py-12 bg-muted/50 rounded-2xl border border-dashed border-border">
+      <Target className="w-8 h-8 mb-2 text-muted-foreground/50" />
+      <p className="text-sm font-medium text-muted-foreground">No treatment plans</p>
+      <p className="text-xs text-muted-foreground/70 mt-1">Plans will appear here once created.</p>
     </div>
   );
   return (
@@ -1013,14 +1013,14 @@ export function ProgressTab({
     <div className="space-y-5">
       {/* Section tabs */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+        <div className="flex items-center gap-1 bg-muted p-1 rounded-xl">
           {tabs.map(({ key, label, Icon }) => (
             <button key={key} onClick={() => setSection(key)}
               className={cn(
                 "flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all",
                 section === key
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-slate-500 hover:text-slate-700",
+                  ? "bg-white text-primary shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
               )}>
               <Icon className="w-3.5 h-3.5" />{label}
             </button>
@@ -1032,13 +1032,13 @@ export function ProgressTab({
         <ProgressReportsSection visitId={visitId} readOnly={readOnly} />
       )}
 
-      {section === "both" && <div className="border-t border-slate-200" />}
+      {section === "both" && <div className="border-t border-border" />}
 
       {(section === "plans" || section === "both") && (
         <div>
           <div className="flex items-center gap-2 mb-4">
-            <Target className="w-4 h-4 text-slate-400" />
-            <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Treatment Plans</h3>
+            <Target className="w-4 h-4 text-muted-foreground/70" />
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wide">Treatment Plans</h3>
           </div>
           <TreatmentPlansSection patientId={patientId} />
         </div>

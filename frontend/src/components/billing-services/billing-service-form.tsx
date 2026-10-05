@@ -73,57 +73,57 @@ export function BillingServiceForm({ initialData, onSubmit, onCancel, isLoading 
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Basic Information */}
-        <Card className="border-sky-100 shadow-sm">
-          <CardHeader className="bg-sky-50/50 border-b border-sky-100">
-            <CardTitle className="text-sky-900 text-lg">Basic Information</CardTitle>
+        <Card className="border-primary/20 shadow-sm">
+          <CardHeader className="bg-primary-muted/50 border-b border-primary/20">
+            <CardTitle className="text-primary text-lg">Basic Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="serviceCode" className="text-slate-700">Service Code *</Label>
+                <Label htmlFor="serviceCode" className="text-foreground">Service Code *</Label>
                 <Input
                   id="serviceCode"
                   {...register('serviceCode')}
                   placeholder="e.g., CONS-001"
-                  className="border-slate-200 focus:border-sky-500 focus:ring-sky-500"
+                  className="border-border focus:border-primary/60 focus:ring-primary/60"
                 />
                 {errors.serviceCode && (
-                  <p className="text-sm text-red-500">{errors.serviceCode.message}</p>
+                  <p className="text-sm text-danger">{errors.serviceCode.message}</p>
                 )}
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-slate-700">Service Name *</Label>
+                <Label htmlFor="name" className="text-foreground">Service Name *</Label>
                 <Input
                   id="name"
                   {...register('name')}
                   placeholder="e.g., General Consultation"
-                  className="border-slate-200 focus:border-sky-500 focus:ring-sky-500"
+                  className="border-border focus:border-primary/60 focus:ring-primary/60"
                 />
                 {errors.name && (
-                  <p className="text-sm text-red-500">{errors.name.message}</p>
+                  <p className="text-sm text-danger">{errors.name.message}</p>
                 )}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-slate-700">Description</Label>
+              <Label htmlFor="description" className="text-foreground">Description</Label>
               <Textarea
                 id="description"
                 {...register('description')}
                 placeholder="Brief description of the service..."
-                className="border-slate-200 focus:border-sky-500 focus:ring-sky-500 min-h-[80px]"
+                className="border-border focus:border-primary/60 focus:ring-primary/60 min-h-[80px]"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-slate-700">Type</Label>
+                <Label className="text-foreground">Type</Label>
                 <Select 
                   value={watch('type')} 
                   onValueChange={(val) => setValue('type', val as LedgerEntryType)}
                 >
-                  <SelectTrigger className="border-slate-200">
+                  <SelectTrigger className="border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -139,12 +139,12 @@ export function BillingServiceForm({ initialData, onSubmit, onCancel, isLoading 
               </div>
 
               <div className="space-y-2">
-                <Label className="text-slate-700">Category</Label>
+                <Label className="text-foreground">Category</Label>
                 <Select 
                   value={watch('category')} 
                   onValueChange={(val) => setValue('category', val as BillingServiceCategory)}
                 >
-                  <SelectTrigger className="border-slate-200">
+                  <SelectTrigger className="border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -162,30 +162,30 @@ export function BillingServiceForm({ initialData, onSubmit, onCancel, isLoading 
         </Card>
 
         {/* Pricing */}
-        <Card className="border-sky-100 shadow-sm">
-          <CardHeader className="bg-sky-50/50 border-b border-sky-100">
-            <CardTitle className="text-sky-900 text-lg">Pricing Details</CardTitle>
+        <Card className="border-primary/20 shadow-sm">
+          <CardHeader className="bg-primary-muted/50 border-b border-primary/20">
+            <CardTitle className="text-primary text-lg">Pricing Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="price" className="text-slate-700">Base Price (UGX) *</Label>
+                <Label htmlFor="price" className="text-foreground">Base Price (UGX) *</Label>
                 <Input
                   id="price"
                   type="number"
                   step="0.01"
                   {...register('price', { valueAsNumber: true })}
-                  className="border-slate-200 focus:border-sky-500 focus:ring-sky-500"
+                  className="border-border focus:border-primary/60 focus:ring-primary/60"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="currency" className="text-slate-700">Currency</Label>
+                <Label htmlFor="currency" className="text-foreground">Currency</Label>
                 <Select 
                   value={watch('currency')} 
                   onValueChange={(val) => setValue('currency', val)}
                 >
-                  <SelectTrigger className="border-slate-200">
+                  <SelectTrigger className="border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -199,47 +199,47 @@ export function BillingServiceForm({ initialData, onSubmit, onCancel, isLoading 
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="defaultTaxAmount" className="text-slate-700">Default Tax Amount</Label>
+                <Label htmlFor="defaultTaxAmount" className="text-foreground">Default Tax Amount</Label>
                 <Input
                   id="defaultTaxAmount"
                   type="number"
                   step="0.01"
                   {...register('defaultTaxAmount', { valueAsNumber: true })}
-                  className="border-slate-200 focus:border-sky-500 focus:ring-sky-500"
+                  className="border-border focus:border-primary/60 focus:ring-primary/60"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="defaultTaxLabel" className="text-slate-700">Tax Label</Label>
+                <Label htmlFor="defaultTaxLabel" className="text-foreground">Tax Label</Label>
                 <Input
                   id="defaultTaxLabel"
                   {...register('defaultTaxLabel')}
                   placeholder="e.g., VAT 18%"
-                  className="border-slate-200 focus:border-sky-500 focus:ring-sky-500"
+                  className="border-border focus:border-primary/60 focus:ring-primary/60"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="priceRangeMin" className="text-slate-700">Min Price Range</Label>
+                <Label htmlFor="priceRangeMin" className="text-foreground">Min Price Range</Label>
                 <Input
                   id="priceRangeMin"
                   type="number"
                   step="0.01"
                   {...register('priceRangeMin', { valueAsNumber: true })}
-                  className="border-slate-200 focus:border-sky-500 focus:ring-sky-500"
+                  className="border-border focus:border-primary/60 focus:ring-primary/60"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="priceRangeMax" className="text-slate-700">Max Price Range</Label>
+                <Label htmlFor="priceRangeMax" className="text-foreground">Max Price Range</Label>
                 <Input
                   id="priceRangeMax"
                   type="number"
                   step="0.01"
                   {...register('priceRangeMax', { valueAsNumber: true })}
-                  className="border-slate-200 focus:border-sky-500 focus:ring-sky-500"
+                  className="border-border focus:border-primary/60 focus:ring-primary/60"
                 />
               </div>
             </div>
@@ -248,56 +248,56 @@ export function BillingServiceForm({ initialData, onSubmit, onCancel, isLoading 
       </div>
 
       {/* Settings & Notes */}
-      <Card className="border-sky-100 shadow-sm">
-        <CardHeader className="bg-sky-50/50 border-b border-sky-100">
-          <CardTitle className="text-sky-900 text-lg">Settings & Notes</CardTitle>
+      <Card className="border-primary/20 shadow-sm">
+        <CardHeader className="bg-primary-muted/50 border-b border-primary/20">
+          <CardTitle className="text-primary text-lg">Settings & Notes</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border">
                 <div>
-                  <Label className="text-slate-700 font-medium">Active Service</Label>
-                  <p className="text-xs text-slate-500">Available for billing</p>
+                  <Label className="text-foreground font-medium">Active Service</Label>
+                  <p className="text-xs text-muted-foreground">Available for billing</p>
                 </div>
                 <Switch
                   checked={isActive}
                   onCheckedChange={(checked) => setValue('isActive', checked)}
-                  className="data-[state=checked]:bg-sky-600"
+                  className="data-[state=checked]:bg-primary"
                 />
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border">
                 <div>
-                  <Label className="text-slate-700 font-medium">Favorite</Label>
-                  <p className="text-xs text-slate-500">Pin to top of lists</p>
+                  <Label className="text-foreground font-medium">Favorite</Label>
+                  <p className="text-xs text-muted-foreground">Pin to top of lists</p>
                 </div>
                 <Switch
                   checked={watch('isFavorite')}
                   onCheckedChange={(checked) => setValue('isFavorite', checked)}
-                  className="data-[state=checked]:bg-sky-600"
+                  className="data-[state=checked]:bg-primary"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sortOrder" className="text-slate-700">Sort Order</Label>
+              <Label htmlFor="sortOrder" className="text-foreground">Sort Order</Label>
               <Input
                 id="sortOrder"
                 type="number"
                 {...register('sortOrder', { valueAsNumber: true })}
-                className="border-slate-200 focus:border-sky-500 focus:ring-sky-500"
+                className="border-border focus:border-primary/60 focus:ring-primary/60"
               />
-              <p className="text-xs text-slate-500">Lower numbers appear first</p>
+              <p className="text-xs text-muted-foreground">Lower numbers appear first</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notes" className="text-slate-700">Internal Notes</Label>
+              <Label htmlFor="notes" className="text-foreground">Internal Notes</Label>
               <Textarea
                 id="notes"
                 {...register('notes')}
                 placeholder="Private notes about this service..."
-                className="border-slate-200 focus:border-sky-500 focus:ring-sky-500 min-h-[100px]"
+                className="border-border focus:border-primary/60 focus:ring-primary/60 min-h-[100px]"
               />
             </div>
           </div>
@@ -309,14 +309,14 @@ export function BillingServiceForm({ initialData, onSubmit, onCancel, isLoading 
           type="button" 
           variant="outline" 
           onClick={onCancel}
-          className="border-slate-300 text-slate-700 hover:bg-slate-50"
+          className="border-input text-foreground hover:bg-muted/50"
         >
           Cancel
         </Button>
         <Button 
           type="submit" 
           disabled={isLoading}
-          className="bg-sky-600 hover:bg-sky-700 text-white shadow-sm"
+          className="bg-primary hover:bg-primary text-white shadow-sm"
         >
           {isLoading ? (
             <>

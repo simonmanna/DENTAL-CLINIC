@@ -19,11 +19,11 @@ interface PaymentHistoryProps {
 }
 
 const METHOD_META: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  CASH:          { label: 'Cash',          icon: Banknote,   color: 'bg-green-100 text-green-700' },
-  BANK_TRANSFER: { label: 'Bank Transfer', icon: Building2,  color: 'bg-blue-100 text-blue-700' },
-  MOBILE_MONEY:  { label: 'Mobile Money',  icon: Smartphone, color: 'bg-yellow-100 text-yellow-700' },
+  CASH:          { label: 'Cash',          icon: Banknote,   color: 'bg-success-muted text-success' },
+  BANK_TRANSFER: { label: 'Bank Transfer', icon: Building2,  color: 'bg-primary-muted text-primary' },
+  MOBILE_MONEY:  { label: 'Mobile Money',  icon: Smartphone, color: 'bg-warning-muted text-warning' },
   CHEQUE:        { label: 'Cheque',        icon: Receipt,    color: 'bg-purple-100 text-purple-700' },
-  CREDIT_NOTE:   { label: 'Credit Note',   icon: CreditCard, color: 'bg-orange-100 text-orange-700' },
+  CREDIT_NOTE:   { label: 'Credit Note',   icon: CreditCard, color: 'bg-warning-muted text-warning' },
 };
 
 function formatUGX(n: number) {
@@ -57,8 +57,8 @@ export function PaymentHistory({ contextType, contextId }: PaymentHistoryProps) 
 
   if (payments.length === 0) {
     return (
-      <div className="text-center py-8 text-slate-500 text-sm">
-        <Wallet className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+      <div className="text-center py-8 text-muted-foreground text-sm">
+        <Wallet className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
         No payments recorded yet
       </div>
     );
@@ -67,7 +67,7 @@ export function PaymentHistory({ contextType, contextId }: PaymentHistoryProps) 
   return (
     <Table>
       <TableHeader>
-        <TableRow className="bg-slate-50">
+        <TableRow className="bg-muted/50">
           <TableHead className="text-xs">Date</TableHead>
           <TableHead className="text-xs">Reference</TableHead>
           <TableHead className="text-xs">Method</TableHead>
@@ -77,14 +77,14 @@ export function PaymentHistory({ contextType, contextId }: PaymentHistoryProps) 
       </TableHeader>
       <TableBody>
         {payments.map((p: any) => {
-          const meta = METHOD_META[p.method] ?? { label: p.method, icon: Wallet, color: 'bg-slate-100 text-slate-700' };
+          const meta = METHOD_META[p.method] ?? { label: p.method, icon: Wallet, color: 'bg-muted text-foreground' };
           const Icon = meta.icon;
           return (
             <TableRow key={p.id} className="text-sm">
-              <TableCell className="text-slate-600">
+              <TableCell className="text-muted-foreground">
                 {format(new Date(p.paidAt), 'dd MMM yyyy, HH:mm')}
               </TableCell>
-              <TableCell className="font-mono text-xs text-slate-500">
+              <TableCell className="font-mono text-xs text-muted-foreground">
                 {p.reference ?? p.paymentCode}
               </TableCell>
               <TableCell>
@@ -97,11 +97,11 @@ export function PaymentHistory({ contextType, contextId }: PaymentHistoryProps) 
                     {meta.label}
                   </Badge>
                 ) : (
-                  <span className="text-slate-400 text-xs">—</span>
+                  <span className="text-muted-foreground/70 text-xs">—</span>
                 )}
               </TableCell>
-              <TableCell className="text-slate-600 text-xs">{p.account ?? '—'}</TableCell>
-              <TableCell className="text-right font-semibold text-slate-800">
+              <TableCell className="text-muted-foreground text-xs">{p.account ?? '—'}</TableCell>
+              <TableCell className="text-right font-semibold text-foreground">
                 {formatUGX(p.amount)}
               </TableCell>
             </TableRow>

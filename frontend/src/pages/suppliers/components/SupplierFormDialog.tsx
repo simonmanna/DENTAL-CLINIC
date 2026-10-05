@@ -105,9 +105,9 @@ export function SupplierFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* AdminLTE Box Style: Small rounded corners, solid top border */}
       <DialogContent className="sm:max-w-[650px] p-0 overflow-hidden border-t-4 border-t-sky-500 rounded-sm">
-        <DialogHeader className="px-6 py-1 border-b border-slate-100 bg-slate-50/50">
-          <DialogTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-sky-500" />
+        <DialogHeader className="px-6 py-1 border-b border-border/60 bg-muted/50">
+          <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-primary" />
             {supplier ? 'Edit Supplier Details' : 'Register New Supplier'}
           </DialogTitle>
         </DialogHeader>
@@ -121,11 +121,11 @@ export function SupplierFormDialog({
                 name="name"
                 render={({ field }) => (
                   <FormItem className="col-span-2">
-                    <FormLabel className="text-xs font-bold uppercase text-slate-600">Company Name <span className="text-red-500">*</span></FormLabel>
+                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Company Name <span className="text-danger">*</span></FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        <Input placeholder="e.g. Global Tech Solutions" className="pl-10 h-10 focus-visible:ring-sky-500" {...field} />
+                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
+                        <Input placeholder="e.g. Global Tech Solutions" className="pl-10 h-10 focus-visible:ring-primary/60" {...field} />
                       </div>
                     </FormControl>
                     <FormMessage className="text-[11px]" />
@@ -139,11 +139,11 @@ export function SupplierFormDialog({
                 name="contactPerson"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs font-bold uppercase text-slate-600">Contact Person</FormLabel>
+                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Contact Person</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        <Input placeholder="John Doe" className="pl-10 h-10 focus-visible:ring-sky-500" {...field} />
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
+                        <Input placeholder="John Doe" className="pl-10 h-10 focus-visible:ring-primary/60" {...field} />
                       </div>
                     </FormControl>
                     <FormMessage className="text-[11px]" />
@@ -157,11 +157,11 @@ export function SupplierFormDialog({
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs font-bold uppercase text-slate-600">Phone / Mobile</FormLabel>
+                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Phone / Mobile</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        <Input placeholder="+256..." className="pl-10 h-10 focus-visible:ring-sky-500 font-mono text-sm" {...field} />
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
+                        <Input placeholder="+256..." className="pl-10 h-10 focus-visible:ring-primary/60 font-mono text-sm" {...field} />
                       </div>
                     </FormControl>
                     <FormMessage className="text-[11px]" />
@@ -175,11 +175,11 @@ export function SupplierFormDialog({
                 name="email"
                 render={({ field }) => (
                   <FormItem className="col-span-2">
-                    <FormLabel className="text-xs font-bold uppercase text-slate-600">Email Address</FormLabel>
+                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Email Address</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        <Input type="email" placeholder="contact@supplier.com" className="pl-10 h-10 focus-visible:ring-sky-500" {...field} />
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
+                        <Input type="email" placeholder="contact@supplier.com" className="pl-10 h-10 focus-visible:ring-primary/60" {...field} />
                       </div>
                     </FormControl>
                     <FormMessage className="text-[11px]" />
@@ -193,13 +193,13 @@ export function SupplierFormDialog({
                 name="address"
                 render={({ field }) => (
                   <FormItem className="col-span-2">
-                    <FormLabel className="text-xs font-bold uppercase text-slate-600">Physical Address</FormLabel>
+                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Physical Address</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/70" />
                         <Textarea 
                           placeholder="Plot number, Street, City..." 
-                          className="pl-10 min-h-[80px] resize-none focus-visible:ring-sky-500"
+                          className="pl-10 min-h-[80px] resize-none focus-visible:ring-primary/60"
                           {...field} 
                         />
                       </div>
@@ -215,13 +215,13 @@ export function SupplierFormDialog({
                 name="notes"
                 render={({ field }) => (
                   <FormItem className="col-span-2">
-                    <FormLabel className="text-xs font-bold uppercase text-slate-600">Internal Notes</FormLabel>
+                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Internal Notes</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <FileText className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/70" />
                         <Textarea 
                           placeholder="Special delivery instructions, credit terms, etc." 
-                          className="pl-10 min-h-[80px] resize-none focus-visible:ring-sky-500"
+                          className="pl-10 min-h-[80px] resize-none focus-visible:ring-primary/60"
                           {...field} 
                         />
                       </div>
@@ -237,22 +237,22 @@ export function SupplierFormDialog({
                   control={form.control}
                   name="isActive"
                   render={({ field }) => (
-                    <FormItem className="col-span-2 flex flex-row items-center justify-between rounded border border-slate-200 bg-slate-50/50 p-3 shadow-sm">
+                    <FormItem className="col-span-2 flex flex-row items-center justify-between rounded border border-border bg-muted/50 p-3 shadow-sm">
                       <div className="space-y-0.5">
-                        <FormLabel className="text-sm font-bold text-slate-700">Account Status</FormLabel>
-                        <div className="text-[11px] text-slate-500">
+                        <FormLabel className="text-sm font-bold text-foreground">Account Status</FormLabel>
+                        <div className="text-[11px] text-muted-foreground">
                           Toggle whether this supplier is currently available for orders.
                         </div>
                       </div>
                       <FormControl>
                         <div className="flex items-center gap-2">
-                            <span className={`text-[10px] font-bold uppercase ${field.value ? 'text-emerald-600' : 'text-slate-400'}`}>
+                            <span className={`text-[10px] font-bold uppercase ${field.value ? 'text-success' : 'text-muted-foreground/70'}`}>
                                 {field.value ? 'Active' : 'Inactive'}
                             </span>
                             <Switch
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
-                                className="data-[state=checked]:bg-sky-500"
+                                className="data-[state=checked]:bg-primary"
                             />
                         </div>
                       </FormControl>
@@ -263,11 +263,11 @@ export function SupplierFormDialog({
             </div>
 
             {/* AdminLTE Footer Buttons */}
-            <div className="flex justify-end gap-3 pt-1 mt-1 border-t border-slate-100">
+            <div className="flex justify-end gap-3 pt-1 mt-1 border-t border-border/60">
               <Button
                 type="button"
                 variant="outline"
-                className="h-9 px-4 rounded border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-xs"
+                className="h-9 px-4 rounded border-border text-muted-foreground hover:bg-muted font-semibold text-xs"
                 onClick={() => onOpenChange(false)}
               >
                 <X className="mr-2 h-3.5 w-3.5" /> Close
@@ -275,7 +275,7 @@ export function SupplierFormDialog({
               <Button 
                 type="submit" 
                 disabled={isSubmitting}
-                className="h-9 px-6 rounded bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs shadow-sm transition-all"
+                className="h-9 px-6 rounded bg-primary hover:bg-primary text-white font-semibold text-xs shadow-sm transition-all"
               >
                 {isSubmitting ? (
                   'Processing...'

@@ -79,7 +79,7 @@ function StatCard({
         onClick
           ? "cursor-pointer hover:brightness-110 hover:shadow-md active:scale-[0.98]"
           : ""
-      } ${isActive ? "ring-2 ring-offset-2 ring-slate-900 brightness-110" : ""}`}
+      } ${isActive ? "ring-2 ring-offset-2 ring-foreground brightness-110" : ""}`}
     >
       <div className="relative z-10">
         <h3 className="text-xl font-bold leading-tight">{value}</h3>
@@ -195,22 +195,22 @@ export default function InventoryListPage() {
           title: "Low Stock Items",
           subtitle: "Items below minimum quantity threshold",
           icon: AlertTriangle,
-          headerBg: "bg-orange-50",
-          headerBorder: "border-orange-200",
-          headerText: "text-orange-800",
-          badgeBg: "bg-orange-100",
-          badgeText: "text-orange-700",
+          headerBg: "bg-warning-muted/60",
+          headerBorder: "border-warning/25",
+          headerText: "text-warning",
+          badgeBg: "bg-warning-muted",
+          badgeText: "text-warning",
         };
       case "out":
         return {
           title: "Out of Stock Items",
           subtitle: "Items with zero quantity available",
           icon: TrendingDown,
-          headerBg: "bg-red-50",
-          headerBorder: "border-red-200",
-          headerText: "text-red-800",
-          badgeBg: "bg-red-100",
-          badgeText: "text-red-700",
+          headerBg: "bg-danger-muted/60",
+          headerBorder: "border-danger/25",
+          headerText: "text-danger",
+          badgeBg: "bg-danger-muted",
+          badgeText: "text-danger",
         };
       default:
         return {
@@ -218,10 +218,10 @@ export default function InventoryListPage() {
           subtitle: "Complete inventory list",
           icon: Layers,
           headerBg: "bg-white",
-          headerBorder: "border-slate-200",
-          headerText: "text-slate-800",
-          badgeBg: "bg-slate-100",
-          badgeText: "text-slate-700",
+          headerBorder: "border-border",
+          headerText: "text-foreground",
+          badgeBg: "bg-muted",
+          badgeText: "text-foreground",
         };
     }
   };
@@ -243,8 +243,8 @@ export default function InventoryListPage() {
         {/* ── Header ── */}
         <div className="px-2 py-1 flex items-center justify-between bg-white border-b shadow-sm">
           <div className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-sky-600" />
-            <h1 className="text-lg font-bold text-slate-800 tracking-tight">
+            <Package className="h-5 w-5 text-primary" />
+            <h1 className="text-lg font-bold text-foreground tracking-tight">
               Inventory Manager
             </h1>
           </div>
@@ -261,7 +261,7 @@ export default function InventoryListPage() {
             </Button>
             <Button
               onClick={() => navigate("/inventory/new")}
-              className="h-8 bg-sky-600 hover:bg-sky-700 text-xs font-semibold uppercase py-2 px-4"
+              className="h-8 bg-primary hover:bg-primary text-xs font-semibold uppercase py-2 px-4"
             >
               <PlusCircle
                 className="mr-2 h-5 w-5"
@@ -282,7 +282,7 @@ export default function InventoryListPage() {
                 label="Total Items"
                 value={stats.total}
                 icon={Boxes}
-                bgColor="bg-sky-500"
+                bgColor="bg-primary"
                 isActive={viewMode === "all"}
                 onClick={() => handleViewModeChange("all")}
               />
@@ -290,7 +290,7 @@ export default function InventoryListPage() {
                 label="Low Stock"
                 value={stats.lowStock}
                 icon={AlertTriangle}
-                bgColor="bg-orange-400"
+                bgColor="bg-warning/80"
                 isActive={viewMode === "low"}
                 onClick={() => handleViewModeChange("low")}
               />
@@ -298,7 +298,7 @@ export default function InventoryListPage() {
                 label="Out of Stock"
                 value={stats.outOfStock}
                 icon={TrendingDown}
-                bgColor="bg-red-500"
+                bgColor="bg-danger"
                 isActive={viewMode === "out"}
                 onClick={() => handleViewModeChange("out")}
               />
@@ -306,7 +306,7 @@ export default function InventoryListPage() {
                 label="Inventory Value"
                 value={formatCurrency(stats.stockValue)}
                 icon={DollarSign}
-                bgColor="bg-emerald-500"
+                bgColor="bg-success"
               />
             </div>
           )}
@@ -321,7 +321,7 @@ export default function InventoryListPage() {
                 <h2 className={`text-sm font-bold ${viewContext.headerText}`}>
                   {viewContext.title}
                 </h2>
-                <p className="text-xs text-slate-500">{viewContext.subtitle}</p>
+                <p className="text-xs text-muted-foreground">{viewContext.subtitle}</p>
               </div>
             </div>
             {viewMode !== "all" && (
@@ -329,7 +329,7 @@ export default function InventoryListPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => handleViewModeChange("all")}
-                className="h-8 text-xs text-slate-600 hover:text-slate-900"
+                className="h-8 text-xs text-muted-foreground hover:text-foreground"
               >
                 <X className="h-3 w-3 mr-1" />
                 Clear Filter
@@ -340,7 +340,7 @@ export default function InventoryListPage() {
           {/* ── Action Bar / Filters ── */}
           <div className="bg-white px-2 rounded border shadow-sm flex flex-wrap gap-2 items-center">
             <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-slate-400" />
+              <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground/70" />
               <Input
                 placeholder="Search..."
                 value={search}
@@ -348,7 +348,7 @@ export default function InventoryListPage() {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                className="pl-8 h-8 text-xs border-slate-200"
+                className="pl-8 h-8 text-xs border-border"
               />
             </div>
             <Select
@@ -358,7 +358,7 @@ export default function InventoryListPage() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-8 w-[150px] text-xs bg-slate-50">
+              <SelectTrigger className="h-8 w-[150px] text-xs bg-muted/50">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
@@ -374,7 +374,7 @@ export default function InventoryListPage() {
               <Button
                 variant={viewMode === "low" ? "default" : "outline"}
                 onClick={() => handleViewModeChange("low")}
-                className={`h-8 py-1 px-3 text-[11px] ${viewMode === "low" ? "bg-orange-500 hover:bg-orange-600" : ""}`}
+                className={`h-8 py-1 px-3 text-[11px] ${viewMode === "low" ? "bg-warning hover:bg-warning" : ""}`}
               >
                 <AlertTriangle className="h-3 w-3 mr-1" />
                 Low
@@ -382,7 +382,7 @@ export default function InventoryListPage() {
               <Button
                 variant={viewMode === "out" ? "default" : "outline"}
                 onClick={() => handleViewModeChange("out")}
-                className={`h-8 py-1 px-3 text-[11px] ${viewMode === "out" ? "bg-red-500 hover:bg-red-600 text-white" : ""}`}
+                className={`h-8 py-1 px-3 text-[11px] ${viewMode === "out" ? "bg-danger hover:bg-danger text-white" : ""}`}
               >
                 <TrendingDown className="h-3 w-3 mr-1" />
                 Out
@@ -393,27 +393,27 @@ export default function InventoryListPage() {
           {/* ── Data Table ── */}
           <Card className="border-none shadow-sm rounded overflow-hidden">
             <Table>
-              <TableHeader className="bg-slate-100 border-b">
+              <TableHeader className="bg-muted border-b">
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="h-9 py-0 text-[12px] font-bold uppercase text-slate-600">
+                  <TableHead className="h-9 py-0 text-[12px] font-bold uppercase text-muted-foreground">
                     Code
                   </TableHead>
-                  <TableHead className="h-9 py-0 text-[12px] font-bold uppercase text-slate-600">
+                  <TableHead className="h-9 py-0 text-[12px] font-bold uppercase text-muted-foreground">
                     Name
                   </TableHead>
-                  <TableHead className="h-9 py-0 text-[12px] font-bold uppercase text-slate-600">
+                  <TableHead className="h-9 py-0 text-[12px] font-bold uppercase text-muted-foreground">
                     Category
                   </TableHead>
-                  <TableHead className="h-9 py-0 text-[12px] font-bold uppercase text-slate-600 text-right">
+                  <TableHead className="h-9 py-0 text-[12px] font-bold uppercase text-muted-foreground text-right">
                     Qty
                   </TableHead>
-                  <TableHead className="h-9 py-0 text-[12px] font-bold uppercase text-slate-600 text-right">
+                  <TableHead className="h-9 py-0 text-[12px] font-bold uppercase text-muted-foreground text-right">
                     Cost
                   </TableHead>
-                  <TableHead className="h-9 py-0 text-[12px] font-bold uppercase text-slate-600">
+                  <TableHead className="h-9 py-0 text-[12px] font-bold uppercase text-muted-foreground">
                     Status
                   </TableHead>
-                  <TableHead className="h-9 py-0 text-[12px] font-bold uppercase text-slate-600 text-center">
+                  <TableHead className="h-9 py-0 text-[12px] font-bold uppercase text-muted-foreground text-center">
                     Actions
                   </TableHead>
                 </TableRow>
@@ -422,7 +422,7 @@ export default function InventoryListPage() {
                 {items.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-32 text-center">
-                      <div className="flex flex-col items-center justify-center text-slate-400">
+                      <div className="flex flex-col items-center justify-center text-muted-foreground/70">
                         <ViewIcon className="h-8 w-8 mb-2 opacity-50" />
                         <p className="text-sm font-medium">
                           No{" "}
@@ -447,20 +447,20 @@ export default function InventoryListPage() {
                     return (
                       <TableRow
                         key={item.id}
-                        className={`hover:bg-sky-50/30 border-b border-slate-100 last:border-0 group ${
-                          lowStock ? "bg-orange-50/30" : ""
-                        } ${outOfStock ? "bg-red-50/30" : ""}`}
+                        className={`hover:bg-primary-muted/30 border-b border-border/60 last:border-0 group ${
+                          lowStock ? "bg-warning-muted/30" : ""
+                        } ${outOfStock ? "bg-danger-muted/30" : ""}`}
                       >
-                        <TableCell className="py-1 text-[12px] text-sky-700 font-bold">
+                        <TableCell className="py-1 text-[12px] text-primary font-bold">
                           {item.itemCode}
                         </TableCell>
                         <TableCell className="py-1">
-                          <div className="font-semibold text-xs text-slate-700">
+                          <div className="font-semibold text-xs text-foreground">
                             {item.name}
                           </div>
                         </TableCell>
                         <TableCell className="py-2">
-                          <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                          <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-muted text-muted-foreground border border-border">
                             {item.category?.name || "Uncategorized"}
                           </span>
                         </TableCell>
@@ -468,15 +468,15 @@ export default function InventoryListPage() {
                           <span
                             className={`text-sm font-bold ${
                               outOfStock
-                                ? "text-red-600"
+                                ? "text-danger"
                                 : lowStock
-                                  ? "text-orange-600"
-                                  : "text-slate-700"
+                                  ? "text-warning"
+                                  : "text-foreground"
                             }`}
                           >
                             {totalQty}
                           </span>
-                          <span className="text-[12px] text-slate-400 ml-1">
+                          <span className="text-[12px] text-muted-foreground/70 ml-1">
                             {UOM_LABELS[item.unit as keyof typeof UOM_LABELS] ||
                               item.unit}
                           </span>
@@ -501,7 +501,7 @@ export default function InventoryListPage() {
                               </span>
                             </div>
                           ) : (
-                            <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-emerald-50 border border-emerald-200 rounded text-[11px] text-emerald-800">
+                            <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-success-muted/60 border border-success/25 rounded text-[11px] text-success">
                               <Boxes className="h-3 w-3 flex-shrink-0" />
                               <span className="font-semibold">In Stock</span>
                             </div>
@@ -511,14 +511,14 @@ export default function InventoryListPage() {
                           <div className="flex items-center justify-center gap-1">
                             <Button
                               size="icon"
-                              className="h-7 w-7 bg-sky-500 hover:bg-sky-600 text-white shadow-sm"
+                              className="h-7 w-7 bg-primary hover:bg-primary text-white shadow-sm"
                               onClick={() => navigate(`/inventory/${item.id}`)}
                             >
                               <Eye className="h-3.5 w-3.5 stroke-[3px]" />
                             </Button>
                             <Button
                               size="icon"
-                              className="h-7 w-7 bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm"
+                              className="h-7 w-7 bg-success hover:bg-success text-white shadow-sm"
                               onClick={() =>
                                 navigate(`/inventory/${item.id}/edit`)
                               }
@@ -535,8 +535,8 @@ export default function InventoryListPage() {
             </Table>
 
             {/* Pagination */}
-            <div className="bg-slate-50 px-4 py-2 flex items-center justify-between border-t text-[11px]">
-              <span className="text-slate-500">
+            <div className="bg-muted/50 px-4 py-2 flex items-center justify-between border-t text-[11px]">
+              <span className="text-muted-foreground">
                 Showing {items.length} of {displayMeta.total}
               </span>
               <div className="flex gap-1">

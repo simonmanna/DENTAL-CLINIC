@@ -129,7 +129,7 @@ function Spinner({ size = "sm" }: { size?: "sm" | "md" }) {
   return (
     <Loader2
       className={cn(
-        "animate-spin text-blue-600",
+        "animate-spin text-primary",
         size === "sm" ? "w-4 h-4" : "w-6 h-6",
       )}
     />
@@ -156,34 +156,34 @@ function VoidInvoiceDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-2">
-            <Ban className="w-4 h-4 text-red-500" />
-            <h2 className="text-sm font-semibold text-slate-800">
+            <Ban className="w-4 h-4 text-danger" />
+            <h2 className="text-sm font-semibold text-foreground">
               Void Invoice
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600"
+            className="text-muted-foreground/70 hover:text-muted-foreground"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
         <div className="px-5 py-4 space-y-4">
-          <div className="bg-slate-50 rounded-lg px-3 py-2 text-xs text-slate-600">
+          <div className="bg-muted/50 rounded-lg px-3 py-2 text-xs text-muted-foreground">
             <span className="font-medium">{invoice.invoiceNumber}</span>
-            <span className="mx-1.5 text-slate-400">·</span>
+            <span className="mx-1.5 text-muted-foreground/70">·</span>
             <span>{getDisplayStatus(invoice.status)}</span>
-            <span className="mx-1.5 text-slate-400">·</span>
+            <span className="mx-1.5 text-muted-foreground/70">·</span>
             <span className="font-medium">
               {formatCurrency(invoice.total, invoice.currency)}
             </span>
           </div>
           {isPartialOrPaid && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 text-xs text-amber-800">
+            <div className="bg-warning-muted/60 border border-warning/25 rounded-lg px-3 py-2.5 text-xs text-warning">
               <div className="flex items-start gap-2">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
+                <AlertTriangle className="w-3.5 h-3.5 text-warning mt-0.5 shrink-0" />
                 <div>
                   <p className="font-semibold mb-0.5">
                     Receipts will be automatically reversed
@@ -199,29 +199,29 @@ function VoidInvoiceDialog({
             </div>
           )}
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1.5">
-              Reason <span className="text-red-500">*</span>
+            <label className="block text-xs font-medium text-foreground mb-1.5">
+              Reason <span className="text-danger">*</span>
             </label>
             <textarea
               rows={3}
-              className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-300 resize-none"
+              className="w-full text-sm border border-input rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-danger/30 resize-none"
               placeholder="Describe why this invoice is being voided..."
               value={reason}
               onChange={(e) => setReason(e.target.value)}
             />
           </div>
         </div>
-        <div className="px-5 py-3 border-t border-slate-100 flex justify-end gap-2">
+        <div className="px-5 py-3 border-t border-border/60 flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg"
+            className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-lg"
           >
             Cancel
           </button>
           <button
             onClick={() => onConfirm(reason)}
             disabled={!reason.trim() || isPending}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-danger text-white text-sm font-medium hover:bg-danger disabled:opacity-50"
           >
             {isPending ? (
               <>
@@ -380,27 +380,27 @@ function PaymentDialog({
         aria-labelledby="dialog-title"
       >
         {/* Header */}
-        <div className="px-3 py-1 border-b bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-between shrink-0">
+        <div className="px-3 py-1 border-b bg-gradient-to-r from-success-muted/60 via-primary-muted/60 to-primary-muted/60 flex items-center justify-between shrink-0">
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-emerald-100 rounded-xl">
-              <CreditCard className="w-5 h-5 text-emerald-600" />
+            <div className="p-2 bg-success-muted rounded-xl">
+              <CreditCard className="w-5 h-5 text-success" />
             </div>
             <div>
               <h2
                 id="dialog-title"
-                className="text-lg font-bold text-slate-800 flex items-center gap-1"
+                className="text-lg font-bold text-foreground flex items-center gap-1"
               >
                 Record Payment Receipt
               </h2>
-              <p className="text-sm text-slate-500 mt-1">
-                <span className="font-mono font-semibold bg-slate-100 px-2 py-0.5 rounded">
+              <p className="text-sm text-muted-foreground mt-1">
+                <span className="font-mono font-semibold bg-muted px-2 py-0.5 rounded">
                   {invoice.invoiceNumber}
                 </span>
                 {(invoice as any).patient && (
                   <>
                     {" "}
                     ·{" "}
-                    <span className="font-medium text-slate-700">
+                    <span className="font-medium text-foreground">
                       {(invoice as any).patient.firstName}{" "}
                       {(invoice as any).patient.lastName}
                     </span>
@@ -414,29 +414,29 @@ function PaymentDialog({
             className="p-2 rounded-xl hover:bg-white/70 transition-colors"
             aria-label="Close dialog"
           >
-            <X className="w-5 h-5 text-slate-500 hover:text-slate-700" />
+            <X className="w-5 h-5 text-muted-foreground hover:text-foreground" />
           </button>
         </div>
 
         {/* Scrollable Content */}
         <div className="p-2 space-y-2 overflow-y-auto flex-1">
           {/* Invoice Summary Cards - More spacious layout */}
-          <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-0 mx-1 grid grid-cols-3 gap-1 text-center">
+          <div className="bg-gradient-to-br from-muted/50 to-muted rounded-xl p-0 mx-1 grid grid-cols-3 gap-1 text-center">
             <div className="p-1">
-              <p className="text-sm font-medium text-slate-500">Total Amount</p>
-              <p className="text-sm font-bold text-slate-800 mt-1">
+              <p className="text-sm font-medium text-muted-foreground">Total Amount</p>
+              <p className="text-sm font-bold text-foreground mt-1">
                 {formatCurrency(invoice.total, invoice.currency)}
               </p>
             </div>
-            <div className="p-2 border-x border-slate-200">
-              <p className="text-sm font-medium text-slate-500">Amount Paid</p>
-              <p className="text-sm font-bold text-emerald-600 mt-1">
+            <div className="p-2 border-x border-border">
+              <p className="text-sm font-medium text-muted-foreground">Amount Paid</p>
+              <p className="text-sm font-bold text-success mt-1">
                 {formatCurrency(invoice.amountPaid, invoice.currency)}
               </p>
             </div>
             <div className="p-2">
-              <p className="text-sm font-medium text-slate-500">Balance Due</p>
-              <p className="text-sm font-bold text-red-600 mt-1">
+              <p className="text-sm font-medium text-muted-foreground">Balance Due</p>
+              <p className="text-sm font-bold text-danger mt-1">
                 {formatCurrency(invoice.balance, invoice.currency)}
               </p>
             </div>
@@ -445,8 +445,8 @@ function PaymentDialog({
           {/* Amount & Currency Row */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-2">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Payment Amount <span className="text-red-500">*</span>
+              <label className="block text-sm font-semibold text-foreground mb-2">
+                Payment Amount <span className="text-danger">*</span>
               </label>
               <div className="relative">
                 <input
@@ -466,19 +466,19 @@ function PaymentDialog({
                     amountInInvCurrRef.current =
                       paymentCurrency === invoice.currency ? num : num * rate;
                   }}
-                  className="w-full border border-slate-300 rounded-xl px-4 py-3 text-base font-semibold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none transition-shadow"
+                  className="w-full border border-input rounded-xl px-4 py-3 text-base font-semibold focus:ring-2 focus:ring-success/60 focus:border-success/60 focus:outline-none transition-shadow"
                   placeholder="Enter amount"
                   min="0"
                   step="0.01"
                 />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium pr-8">
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/70 font-medium pr-8">
                   {paymentCurrency}
                 </span>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-foreground mb-2">
                 Currency
               </label>
               <select
@@ -487,7 +487,7 @@ function PaymentDialog({
                   fromInitialPayment.current = false;
                   setPaymentCurrency(e.target.value);
                 }}
-                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-base focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none bg-white transition-shadow"
+                className="w-full border border-input rounded-xl px-4 py-3 text-base focus:ring-2 focus:ring-success/60 focus:border-success/60 focus:outline-none bg-white transition-shadow"
               >
                 <option value={invoice.currency}>{invoice.currency}</option>
                 {Object.keys(CURRENCY_CONFIG as any)
@@ -503,9 +503,9 @@ function PaymentDialog({
 
           {/* Exchange Rate Section - Enhanced */}
           {isDiffCurrency && (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
+            <div className="bg-warning-muted/60 border border-warning/25 rounded-2xl p-4 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-1">
-                <span className="text-amber-800 font-medium text-sm">
+                <span className="text-warning font-medium text-sm">
                   {liveRate > 0 ? (
                     <>
                       💱 1 {paymentCurrency} ={" "}
@@ -517,19 +517,19 @@ function PaymentDialog({
                       {invoice.currency}
                     </>
                   ) : (
-                    <span className="italic text-amber-600">
+                    <span className="italic text-warning">
                       Fetching exchange rate...
                     </span>
                   )}
                 </span>
                 {liveRate > 0 && (
-                  <span className="text-xs text-amber-600 bg-amber-100 px-2 py-0 rounded-full">
+                  <span className="text-xs text-warning bg-warning-muted px-2 py-0 rounded-full">
                     Live rate
                   </span>
                 )}
               </div>
 
-              {/* <label className="flex items-center gap-2.5 text-slate-700 cursor-pointer group">
+              {/* <label className="flex items-center gap-2.5 text-foreground cursor-pointer group">
                 <div className="relative">
                   <input
                     type="checkbox"
@@ -541,13 +541,13 @@ function PaymentDialog({
                     }}
                     className="sr-only peer"
                   />
-                  <div className="w-5 h-5 border-2 border-amber-300 rounded-md peer-checked:bg-emerald-500 peer-checked:border-emerald-500 transition-colors flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-warning/30 rounded-md peer-checked:bg-success peer-checked:border-success/60 transition-colors flex items-center justify-center">
                     {useCustomRate && (
                       <Check className="w-3.5 h-3.5 text-white" />
                     )}
                   </div>
                 </div>
-                <span className="font-medium text-sm group-hover:text-amber-900 transition-colors">
+                <span className="font-medium text-sm group-hover:text-warning transition-colors">
                   Use custom exchange rate
                 </span>
               </label> */}
@@ -558,7 +558,7 @@ function PaymentDialog({
                     type="number"
                     value={customRate}
                     onChange={(e) => setCustomRate(e.target.value)}
-                    className="w-full border border-amber-300 rounded-xl px-4 py-2.5 text-base bg-white focus:ring-2 focus:ring-amber-400 focus:border-amber-400 focus:outline-none"
+                    className="w-full border border-warning/30 rounded-xl px-4 py-2.5 text-base bg-white focus:ring-2 focus:ring-warning/40 focus:border-warning/40 focus:outline-none"
                     placeholder={`Enter rate: 1 ${paymentCurrency} = ? ${invoice.currency}`}
                     step="0.0001"
                   />
@@ -569,8 +569,8 @@ function PaymentDialog({
 
           {/* Payment Methods - Better touch targets */}
           <div>
-            <label className="block text-base font-semibold text-slate-700 mt-3 mb-2">
-              Payment Method <span className="text-red-500">*</span>
+            <label className="block text-base font-semibold text-foreground mt-3 mb-2">
+              Payment Method <span className="text-danger">*</span>
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
               {PAYMENT_METHODS.map((m) => (
@@ -580,8 +580,8 @@ function PaymentDialog({
                   className={cn(
                     "flex flex-col items-center justify-center gap-1 p-1 rounded-xl border-2 text-sm font-medium transition-all duration-150",
                     method === m.value
-                      ? "bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-200"
-                      : "bg-white text-slate-700 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50",
+                      ? "bg-success text-white border-success shadow-md shadow-emerald-200"
+                      : "bg-white text-foreground border-border hover:border-success/40 hover:bg-success-muted/60",
                   )}
                 >
                   <span className="text-base">{m.label}</span>
@@ -593,7 +593,7 @@ function PaymentDialog({
           {/* Reference & Received By */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1 mt-1">
+              <label className="block text-sm font-semibold text-foreground mb-1 mt-1">
                 Transaction Reference
               </label>
               <input
@@ -601,7 +601,7 @@ function PaymentDialog({
                 value={reference}
                 onChange={(e) => setReference(e.target.value)}
                 placeholder="e.g., TXN-2024-XYZ, Check #1234"
-                className="w-full border border-slate-300 rounded-xl px-1 py-1 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none transition-shadow"
+                className="w-full border border-input rounded-xl px-1 py-1 text-sm focus:ring-2 focus:ring-success/60 focus:border-success/60 focus:outline-none transition-shadow"
               />
             </div>
             <ReceivedByPicker
@@ -614,19 +614,19 @@ function PaymentDialog({
 
           {/* Payment Summary Card */}
           {numAmount > 0 && (
-            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-4 space-y-3">
+            <div className="bg-gradient-to-r from-success-muted/60 to-primary-muted/60 border border-success/25 rounded-2xl p-4 space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-slate-600 font-medium">This payment</span>
-                <span className="text-lg font-bold text-emerald-700">
+                <span className="text-muted-foreground font-medium">This payment</span>
+                <span className="text-lg font-bold text-success">
                   {formatCurrency(numAmount, paymentCurrency)}
                 </span>
               </div>
               {isDiffCurrency && (
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-500">
+                  <span className="text-muted-foreground">
                     Converted to {invoice.currency}
                   </span>
-                  <span className="font-semibold text-slate-700">
+                  <span className="font-semibold text-foreground">
                     {formatCurrency(
                       numAmountInInvoiceCurrency,
                       invoice.currency,
@@ -634,14 +634,14 @@ function PaymentDialog({
                   </span>
                 </div>
               )}
-              <div className="border-t border-emerald-200 pt-3 flex justify-between items-center">
-                <span className="text-slate-600 font-medium">
+              <div className="border-t border-success/25 pt-3 flex justify-between items-center">
+                <span className="text-muted-foreground font-medium">
                   Balance Remaining
                 </span>
                 <span
                   className={cn(
                     "text-lg font-bold",
-                    remaining <= 0 ? "text-emerald-600" : "text-amber-600",
+                    remaining <= 0 ? "text-success" : "text-warning",
                   )}
                 >
                   {remaining <= 0
@@ -654,7 +654,7 @@ function PaymentDialog({
 
           {/* Error Message */}
           {error && (
-            <div className="flex items-start gap-3 text-red-700 text-sm bg-red-50 border border-red-200 rounded-xl p-4">
+            <div className="flex items-start gap-3 text-danger text-sm bg-danger-muted/60 border border-danger/25 rounded-xl p-4">
               <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
               <span className="font-medium">{error}</span>
             </div>
@@ -662,11 +662,11 @@ function PaymentDialog({
         </div>
 
         {/* Footer Actions */}
-        <div className="px-6 py-4 border-t bg-slate-50 flex gap-3 shrink-0">
+        <div className="px-6 py-4 border-t bg-muted/50 flex gap-3 shrink-0">
           <button
             onClick={onClose}
             disabled={mutation.isPending}
-            className="flex-1 px-4 py-3 rounded-xl border border-slate-300 text-base font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 px-4 py-3 rounded-xl border border-input text-base font-semibold text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Cancel
           </button>
@@ -698,7 +698,7 @@ function PaymentDialog({
               });
             }}
             disabled={mutation.isPending || !amount}
-            className="flex-1 px-4 py-3 rounded-xl bg-emerald-600 text-white text-base font-bold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 transition-all shadow-lg shadow-emerald-200 hover:shadow-emerald-300"
+            className="flex-1 px-4 py-3 rounded-xl bg-success text-white text-base font-bold hover:bg-success disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 transition-all shadow-lg shadow-emerald-200 hover:shadow-emerald-300"
           >
             {mutation.isPending ? (
               <>
@@ -739,22 +739,22 @@ function ReceiptModal({
   return (
     <div className="print-shell fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
-        <div className="no-print flex items-center justify-between px-5 py-4 border-b bg-slate-50">
-          <h2 className="text-base font-semibold text-slate-800">
+        <div className="no-print flex items-center justify-between px-5 py-4 border-b bg-muted/50">
+          <h2 className="text-base font-semibold text-foreground">
             Invoice
           </h2>
           <div className="flex items-center gap-2">
             <button
               onClick={() => window.print()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded border text-sm text-slate-600 hover:bg-slate-100"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded border text-sm text-muted-foreground hover:bg-muted"
             >
               <Printer className="w-3.5 h-3.5" /> Print
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded hover:bg-slate-200"
+              className="p-1.5 rounded hover:bg-muted"
             >
-              <X className="w-4 h-4 text-slate-500" />
+              <X className="w-4 h-4 text-muted-foreground" />
             </button>
           </div>
         </div>
@@ -766,7 +766,7 @@ function ReceiptModal({
           ) : data ? (
             <InvoiceDocument data={data} />
           ) : (
-            <p className="text-center text-slate-400 py-8">
+            <p className="text-center text-muted-foreground/70 py-8">
               Failed to load receipt
             </p>
           )}
@@ -795,9 +795,9 @@ function InvoiceDocument({ data }: { data: ReceiptData }) {
     computedDiscount + (Number(invoice?.discountAmount) || 0);
 
   return (
-    <div className="text-sm text-slate-800">
+    <div className="text-sm text-foreground">
       {/* Header */}
-      <div className="flex items-start justify-between border-b-2 border-slate-800 pb-4">
+      <div className="flex items-start justify-between border-b-2 border-foreground pb-4">
         <div className="flex items-center gap-3">
           <svg width="44" height="44" viewBox="0 0 60 80" fill="none">
             <path
@@ -806,22 +806,22 @@ function InvoiceDocument({ data }: { data: ReceiptData }) {
             />
           </svg>
           <div>
-            <h1 className="text-base font-bold text-slate-900 leading-tight">
+            <h1 className="text-base font-bold text-foreground leading-tight">
               {clinic?.name || "Bright Smile Dental Clinic"}
             </h1>
-            <p className="text-[11px] text-slate-500 font-semibold tracking-wide">
+            <p className="text-[11px] text-muted-foreground font-semibold tracking-wide">
               DENTAL CLINIC
             </p>
-            <p className="text-[10px] text-slate-500">
+            <p className="text-[10px] text-muted-foreground">
               Healthy Smile, Healthy Life
             </p>
           </div>
         </div>
         <div className="text-right">
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+          <h2 className="text-xl font-bold text-foreground tracking-tight">
             INVOICE
           </h2>
-          <div className="mt-1 space-y-0.5 text-[11px] text-slate-600">
+          <div className="mt-1 space-y-0.5 text-[11px] text-muted-foreground">
             <p>
               <span className="font-semibold">Invoice No.</span> :{" "}
               <span className="font-mono">{invoice?.invoiceNumber}</span>
@@ -854,33 +854,33 @@ function InvoiceDocument({ data }: { data: ReceiptData }) {
       </div>
 
       {/* BILL TO / PATIENT */}
-      <div className="grid grid-cols-2 gap-0 border-b border-slate-200">
-        <div className="pr-6 border-r border-slate-200 py-3">
-          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+      <div className="grid grid-cols-2 gap-0 border-b border-border">
+        <div className="pr-6 border-r border-border py-3">
+          <h3 className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest mb-1.5">
             BILL TO
           </h3>
-          <p className="font-bold text-slate-800 text-sm">
+          <p className="font-bold text-foreground text-sm">
             {patient
               ? `${patient.firstName ?? ""} ${patient.lastName ?? ""}`.trim() ||
                 "John Doe"
               : "John Doe"}
           </p>
           {patient?.phone && (
-            <p className="text-[11px] text-slate-500">{patient.phone}</p>
+            <p className="text-[11px] text-muted-foreground">{patient.phone}</p>
           )}
-          <p className="text-[11px] text-slate-500">Kampala, Uganda</p>
+          <p className="text-[11px] text-muted-foreground">Kampala, Uganda</p>
         </div>
         <div className="pl-6 py-3">
-          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+          <h3 className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest mb-1.5">
             PATIENT
           </h3>
-          <p className="font-bold text-slate-800 text-sm">
+          <p className="font-bold text-foreground text-sm">
             {patient
               ? `${patient.firstName ?? ""} ${patient.lastName ?? ""}`.trim() ||
                 "John Doe"
               : "John Doe"}
           </p>
-          <p className="text-[11px] text-slate-500 mt-1">
+          <p className="text-[11px] text-muted-foreground mt-1">
             Patient ID: {patient?.patientCode ?? "--"}
           </p>
         </div>
@@ -889,23 +889,23 @@ function InvoiceDocument({ data }: { data: ReceiptData }) {
       {/* Line Items Table */}
       <table className="w-full text-xs">
         <thead>
-          <tr className="border-b-2 border-slate-200">
-            <th className="text-center py-1.5 text-slate-500 font-semibold w-8">
+          <tr className="border-b-2 border-border">
+            <th className="text-center py-1.5 text-muted-foreground font-semibold w-8">
               #
             </th>
-            <th className="text-left py-1.5 text-slate-500 font-semibold">
+            <th className="text-left py-1.5 text-muted-foreground font-semibold">
               DESCRIPTION
             </th>
-            <th className="text-center py-1.5 text-slate-500 font-semibold w-16">
+            <th className="text-center py-1.5 text-muted-foreground font-semibold w-16">
               QTY
             </th>
-            <th className="text-right py-1.5 text-slate-500 font-semibold w-28">
+            <th className="text-right py-1.5 text-muted-foreground font-semibold w-28">
               UNIT PRICE (UGX)
             </th>
-            <th className="text-right py-1.5 text-slate-500 font-semibold w-24">
+            <th className="text-right py-1.5 text-muted-foreground font-semibold w-24">
               DISCOUNT (UGX)
             </th>
-            <th className="text-right py-1.5 text-slate-500 font-semibold w-28">
+            <th className="text-right py-1.5 text-muted-foreground font-semibold w-28">
               AMOUNT (UGX)
             </th>
           </tr>
@@ -916,28 +916,28 @@ function InvoiceDocument({ data }: { data: ReceiptData }) {
               Number(item.quantity) * Number(item.unitPrice);
             const lineDiscount = Number(item.discount) || 0;
             return (
-              <tr key={item.id} className="border-b border-slate-100">
-                <td className="py-1.5 text-slate-600 text-center">
+              <tr key={item.id} className="border-b border-border/60">
+                <td className="py-1.5 text-muted-foreground text-center">
                   {idx + 1}
                 </td>
                 <td className="py-1.5">
-                  <p className="text-slate-800 font-medium">
+                  <p className="text-foreground font-medium">
                     {item.description}
                   </p>
                   {item.notes && (
-                    <p className="text-[10px] text-slate-500">{item.notes}</p>
+                    <p className="text-[10px] text-muted-foreground">{item.notes}</p>
                   )}
                 </td>
-                <td className="py-1.5 text-center text-slate-600">
+                <td className="py-1.5 text-center text-muted-foreground">
                   {item.quantity}
                 </td>
-                <td className="py-1.5 text-right text-slate-600">
+                <td className="py-1.5 text-right text-muted-foreground">
                   {fmt(lineSubtotal, invoice?.currency)}
                 </td>
-                <td className="py-1.5 text-right text-slate-600">
+                <td className="py-1.5 text-right text-muted-foreground">
                   {lineDiscount > 0 ? fmt(lineDiscount, invoice?.currency) : "0"}
                 </td>
-                <td className="py-1.5 text-right font-semibold text-slate-800">
+                <td className="py-1.5 text-right font-semibold text-foreground">
                   {fmt(item.total, invoice?.currency)}
                 </td>
               </tr>
@@ -947,24 +947,24 @@ function InvoiceDocument({ data }: { data: ReceiptData }) {
       </table>
 
       {/* Bottom: Notes + Summary */}
-      <div className="grid grid-cols-2 gap-0 border-t border-slate-200 mt-0">
-        <div className="pr-6 border-r border-slate-200 py-3">
-          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+      <div className="grid grid-cols-2 gap-0 border-t border-border mt-0">
+        <div className="pr-6 border-r border-border py-3">
+          <h3 className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest mb-1">
             Notes
           </h3>
           <div>
-            <p className="text-[11px] text-slate-500 leading-relaxed">
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
               {invoice?.notes ||
                 "Thank you for trusting Bright Smile Dental Clinic. Please make payments to our clinic."}
             </p>
           </div>
         </div>
         <div className="pl-6 py-3 space-y-1.5">
-          <div className="flex justify-between text-xs text-slate-600">
+          <div className="flex justify-between text-xs text-muted-foreground">
             <span>Subtotal</span>
             <span>{fmt(displaySubtotal, invoice?.currency)}</span>
           </div>
-          <div className="flex justify-between text-xs text-slate-600">
+          <div className="flex justify-between text-xs text-muted-foreground">
             <span>Discount</span>
             <span>
               {displayDiscount
@@ -972,18 +972,18 @@ function InvoiceDocument({ data }: { data: ReceiptData }) {
                 : "0"}
             </span>
           </div>
-          <div className="flex justify-between text-sm font-bold text-slate-900 border-t border-slate-300 pt-2">
+          <div className="flex justify-between text-sm font-bold text-foreground border-t border-input pt-2">
             <span>TOTAL</span>
-            <span className="text-red-600">
+            <span className="text-danger">
               {fmt(invoice?.total ?? 0, invoice?.currency)}
             </span>
           </div>
-          <div className="flex justify-between text-xs font-bold text-emerald-700">
+          <div className="flex justify-between text-xs font-bold text-success">
             <span>Paid so far</span>
             <span>{fmt(invoice?.amountPaid ?? 0, invoice?.currency)}</span>
           </div>
           {(invoice?.balance ?? 0) > 0 && (
-            <div className="flex justify-between text-sm font-bold text-red-600 bg-red-50 rounded px-2 py-1.5">
+            <div className="flex justify-between text-sm font-bold text-danger bg-danger-muted/60 rounded px-2 py-1.5">
               <span>Balance due</span>
               <span>{fmt(invoice.balance, invoice.currency)}</span>
             </div>
@@ -992,12 +992,12 @@ function InvoiceDocument({ data }: { data: ReceiptData }) {
       </div>
 
       {/* Clinic Details + Payment Information */}
-      <div className="grid grid-cols-2 gap-0 border-t border-slate-200 mt-0">
-        <div className="pr-6 border-r border-slate-200 py-3">
-          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+      <div className="grid grid-cols-2 gap-0 border-t border-border mt-0">
+        <div className="pr-6 border-r border-border py-3">
+          <h3 className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest mb-1.5">
             Clinic Details
           </h3>
-          <div className="space-y-0.5 text-[10px] text-slate-500">
+          <div className="space-y-0.5 text-[10px] text-muted-foreground">
             <p>Plot 12, Kisementi Road,</p>
             <p>Kampala, Uganda</p>
             <p>Tel: +256 393 123456</p>
@@ -1006,10 +1006,10 @@ function InvoiceDocument({ data }: { data: ReceiptData }) {
           </div>
         </div>
         <div className="pl-6 py-3">
-          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+          <h3 className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest mb-1.5">
             Payment Information
           </h3>
-          <div className="space-y-0.5 text-[10px] text-slate-500">
+          <div className="space-y-0.5 text-[10px] text-muted-foreground">
             <p>Bank: Stanbic Bank Uganda</p>
             <p>Account Name: Bright Smile Dental Clinic</p>
             <p>Account No: 903001234567</p>
@@ -1018,8 +1018,8 @@ function InvoiceDocument({ data }: { data: ReceiptData }) {
       </div>
 
       {/* Footer */}
-      <div className="text-center border-t border-slate-200 pt-4 mt-0">
-        <p className="text-sm text-slate-600">Thank you for your visit!</p>
+      <div className="text-center border-t border-border pt-4 mt-0">
+        <p className="text-sm text-muted-foreground">Thank you for your visit!</p>
       </div>
     </div>
   );
@@ -1688,7 +1688,7 @@ export function VisitBillingPage() {
 
   if (!visitId || !patientId) {
     return (
-      <div className="flex items-center justify-center h-64 text-slate-400">
+      <div className="flex items-center justify-center h-64 text-muted-foreground/70">
         <p>Missing visit or patient information.</p>
       </div>
     );
@@ -1699,32 +1699,32 @@ export function VisitBillingPage() {
   // ═══════════════════════════════════════════════════════════════════════════
 
   return (
-    <div className="flex flex-col h-screen bg-slate-100 overflow-hidden">
+    <div className="flex flex-col h-screen bg-muted overflow-hidden">
       {/* ── Toasts ─────────────────────────────────────────────────── */}
       {toastError && (
-        <div className="fixed top-4 right-4 z-[60] bg-red-50 border border-red-200 rounded-lg px-4 py-3 shadow-lg flex items-start gap-2 max-w-sm">
-          <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+        <div className="fixed top-4 right-4 z-[60] bg-danger-muted/60 border border-danger/25 rounded-lg px-4 py-3 shadow-lg flex items-start gap-2 max-w-sm">
+          <AlertTriangle className="w-4 h-4 text-danger mt-0.5 shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-red-800">Error</p>
-            <p className="text-xs text-red-600 mt-0.5">{toastError}</p>
+            <p className="text-sm font-medium text-danger">Error</p>
+            <p className="text-xs text-danger mt-0.5">{toastError}</p>
           </div>
           <button
             onClick={() => setToastError(null)}
-            className="text-red-400 hover:text-red-600"
+            className="text-danger/70 hover:text-danger"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
       {toastSuccess && (
-        <div className="fixed top-4 right-4 z-[60] bg-green-50 border border-green-200 rounded-lg px-4 py-3 shadow-lg flex items-start gap-2 max-w-sm">
-          <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+        <div className="fixed top-4 right-4 z-[60] bg-success-muted/60 border border-success/25 rounded-lg px-4 py-3 shadow-lg flex items-start gap-2 max-w-sm">
+          <CheckCircle className="w-4 h-4 text-success mt-0.5 shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-green-800">{toastSuccess}</p>
+            <p className="text-sm font-medium text-success">{toastSuccess}</p>
           </div>
           <button
             onClick={() => setToastSuccess(null)}
-            className="text-green-400 hover:text-green-600"
+            className="text-success/70 hover:text-success"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -1732,32 +1732,32 @@ export function VisitBillingPage() {
       )}
 
       {/* ── Page header ──────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-slate-200 px-5 py-2 flex items-center gap-4 shrink-0">
+      <div className="bg-white border-b border-border px-5 py-2 flex items-center gap-4 shrink-0">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 text-sm font-medium"
+          className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-sm font-medium"
         >
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
-        <div className="h-5 w-px bg-slate-200" />
+        <div className="h-5 w-px bg-muted" />
         <div className="flex items-center gap-2">
-          <ClipboardCheck className="w-4 h-4 text-blue-600" />
-          <h1 className="text-sm font-bold text-slate-800">
+          <ClipboardCheck className="w-4 h-4 text-primary" />
+          <h1 className="text-sm font-bold text-foreground">
             Check-out & Billing
           </h1>
         </div>
         {(patientName || visitCode) && (
           <>
-            <div className="h-5 w-px bg-slate-200" />
+            <div className="h-5 w-px bg-muted" />
             <div className="flex items-center gap-3 text-sm">
               {patientName && (
-                <span className="flex items-center gap-1.5 text-slate-700 font-medium">
-                  <User className="w-3.5 h-3.5 text-slate-400" />
+                <span className="flex items-center gap-1.5 text-foreground font-medium">
+                  <User className="w-3.5 h-3.5 text-muted-foreground/70" />
                   {patientName}
                 </span>
               )}
               {visitCode && (
-                <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-500 font-mono text-xs">
+                <span className="px-2 py-0.5 rounded bg-muted text-muted-foreground font-mono text-xs">
                   {visitCode}
                 </span>
               )}
@@ -1769,7 +1769,7 @@ export function VisitBillingPage() {
             <select
               value={selectedInvoice?.id ?? ""}
               onChange={(e) => setActiveTabInvoiceId(e.target.value)}
-              className="text-xs border border-slate-200 rounded px-2 py-1 text-slate-600"
+              className="text-xs border border-border rounded px-2 py-1 text-muted-foreground"
             >
               {invoices.map((inv) => (
                 <option key={inv.id} value={inv.id}>
@@ -1784,12 +1784,12 @@ export function VisitBillingPage() {
       {/* ── Main content — single-column invoice document ────────────── */}
       <div className="flex-1 overflow-y-auto p-1">
         {selectedInvoice ? (
-          <div className="max-w-7xl mx-auto bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="max-w-7xl mx-auto bg-white rounded-xl border border-border shadow-sm overflow-hidden">
             {/* ── HEADER ──────────────────────────────────────────────── */}
-            <div className="px-7 pt-1 pb-1 border-b border-slate-100">
+            <div className="px-7 pt-1 pb-1 border-b border-border/60">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+                  <h2 className="text-2xl font-bold text-foreground tracking-tight">
                     <span>Customer Invoice: </span>{" "}
                     {selectedInvoice.invoiceNumber}
                   </h2>
@@ -1798,10 +1798,10 @@ export function VisitBillingPage() {
                       className={cn(
                         "px-2.5 py-0.5 rounded text-xs font-semibold border",
                         displayStatus === "Draft"
-                          ? "bg-slate-100 text-slate-600 border-slate-300"
+                          ? "bg-muted text-muted-foreground border-input"
                           : displayStatus === "Void"
-                            ? "bg-red-50 text-red-600 border-red-200"
-                            : "bg-blue-50 text-blue-700 border-blue-200",
+                            ? "bg-danger-muted/60 text-danger border-danger/25"
+                            : "bg-primary-muted/60 text-primary border-primary/25",
                       )}
                     >
                       {displayStatus}
@@ -1811,10 +1811,10 @@ export function VisitBillingPage() {
                         className={cn(
                           "px-2.5 py-0.5 rounded text-xs font-semibold border",
                           paymentStatusLabel === "Paid"
-                            ? "bg-green-50 text-green-700 border-green-200"
+                            ? "bg-success-muted/60 text-success border-success/25"
                             : paymentStatusLabel === "Partially Paid"
-                              ? "bg-amber-50 text-amber-700 border-amber-200"
-                              : "bg-slate-50 text-slate-500 border-slate-200",
+                              ? "bg-warning-muted/60 text-warning border-warning/25"
+                              : "bg-muted/50 text-muted-foreground border-border",
                         )}
                       >
                         {paymentStatusLabel}
@@ -1828,7 +1828,7 @@ export function VisitBillingPage() {
                       <button
                         onClick={saveDraft}
                         disabled={isSaving}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-input text-foreground text-sm font-semibold hover:bg-muted/50 disabled:opacity-50"
                       >
                         {isSaving ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1845,7 +1845,7 @@ export function VisitBillingPage() {
                           activateMutation.isPending ||
                           !(selectedInvoice as any).items?.length
                         }
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary disabled:opacity-50"
                       >
                         {activateMutation.isPending ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1860,7 +1860,7 @@ export function VisitBillingPage() {
                     Number(selectedInvoice.balance ?? 0) > 0 && (
                       <button
                         onClick={() => setShowPayment(true)}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700"
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-success text-white text-sm font-semibold hover:bg-success"
                       >
                         <CreditCard className="w-3.5 h-3.5" /> Receive{" "}
                         {formatCurrency(
@@ -1872,7 +1872,7 @@ export function VisitBillingPage() {
                   {selectedInvoice.status !== "VOID" && (
                     <button
                       onClick={() => setShowReceipt(true)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-success text-white text-sm font-medium hover:bg-success"
                     >
                       <Printer className="w-3.5 h-3.5" /> Print Invoice
                     </button>
@@ -1884,7 +1884,7 @@ export function VisitBillingPage() {
                   ) && (
                     <button
                       onClick={() => setShowVoidDialog(true)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-red-200 bg-red-600 text-white text-sm hover:bg-red-50"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-danger/25 bg-danger text-white text-sm hover:bg-danger-muted/60"
                     >
                       <Ban className="w-3.5 h-3.5" /> Void
                     </button>
@@ -1895,15 +1895,15 @@ export function VisitBillingPage() {
             </div>
 
               {selectedInvoice.status === "VOID" && (
-                <div className="mt-4 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+                <div className="mt-4 bg-danger-muted/60 border border-danger/25 rounded-lg px-4 py-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <Ban className="w-4 h-4 text-red-500" />
-                    <span className="text-sm font-semibold text-red-700">
+                    <Ban className="w-4 h-4 text-danger" />
+                    <span className="text-sm font-semibold text-danger">
                       Invoice Voided
                     </span>
                   </div>
                   {selectedInvoice.voidReason && (
-                    <p className="text-xs text-red-600 ml-6">
+                    <p className="text-xs text-danger ml-6">
                       Reason: {selectedInvoice.voidReason}
                     </p>
                   )}
@@ -1911,25 +1911,25 @@ export function VisitBillingPage() {
               )}
 
               {/* Patient + meta grid */}
-              <div className="mt-2 grid grid-cols-2 gap-0 border-t border-slate-100 pt-5">
+              <div className="mt-2 grid grid-cols-2 gap-0 border-t border-border/60 pt-5">
                 {/* Left — Customer */}
                 {/* Left — Customer */}
 
                 {/* Left — Customer & Statuses */}
-                <div className="pl-3 pr-8 border-r border-slate-100 space-y-2">
+                <div className="pl-3 pr-8 border-r border-border/60 space-y-2">
                   {/* Customer (inline label + value) */}
                   <div className="flex items-baseline gap-2">
-                    <p className="text-sm text-slate-600 font-semibold tracking-wide w-32 shrink-0">
+                    <p className="text-sm text-muted-foreground font-semibold tracking-wide w-32 shrink-0">
                       Customer
                     </p>
                     <div>
-                      <p className="text-sm font-semibold text-slate-700 uppercase leading-tight">
+                      <p className="text-sm font-semibold text-foreground uppercase leading-tight">
                         {(selectedInvoice as any).patient
                           ? `${(selectedInvoice as any).patient.firstName} ${(selectedInvoice as any).patient.lastName}`
                           : patientName}
                       </p>
                       {(selectedInvoice as any).patient?.patientCode && (
-                        <p className="text-[12px] font-mono text-slate-400">
+                        <p className="text-[12px] font-mono text-muted-foreground/70">
                           {(selectedInvoice as any).patient.patientCode}
                         </p>
                       )}
@@ -1938,17 +1938,17 @@ export function VisitBillingPage() {
 
                   {/* Invoice Status (inline label + badge) */}
                   <div className="flex items-center gap-2">
-                    <p className="text-sm text-slate-600 font-semibold tracking-wide w-32 shrink-0">
+                    <p className="text-sm text-muted-foreground font-semibold tracking-wide w-32 shrink-0">
                       Invoice Status
                     </p>
                     <span
                       className={cn(
                         "px-2 py-0.5 rounded text-[14px] font-semibold border",
                         displayStatus === "Draft"
-                          ? "bg-slate-100 text-slate-600 border-slate-300"
+                          ? "bg-muted text-muted-foreground border-input"
                           : displayStatus === "Void"
-                            ? "bg-red-50 text-red-600 border-red-200"
-                            : "bg-blue-50 text-blue-700 border-blue-200",
+                            ? "bg-danger-muted/60 text-danger border-danger/25"
+                            : "bg-primary-muted/60 text-primary border-primary/25",
                       )}
                     >
                       {displayStatus.toUpperCase()}
@@ -1958,17 +1958,17 @@ export function VisitBillingPage() {
                   {/* Payment Status (inline label + badge) */}
                   {displayStatus !== "Void" && paymentStatusLabel && (
                     <div className="flex items-center gap-2">
-                      <p className="text-sm text-slate-600 font-semibold tracking-wide w-32 shrink-0">
+                      <p className="text-sm text-muted-foreground font-semibold tracking-wide w-32 shrink-0">
                         Payment Status
                       </p>
                       <span
                         className={cn(
                           "px-2 py-0.5 rounded text-[14px] font-semibold border",
                           paymentStatusLabel === "Paid"
-                            ? "bg-green-50 text-green-700 border-green-200"
+                            ? "bg-success-muted/60 text-success border-success/25"
                             : paymentStatusLabel === "Partially Paid"
-                              ? "bg-amber-50 text-amber-700 border-amber-200"
-                              : "bg-slate-50 text-slate-500 border-slate-200",
+                              ? "bg-warning-muted/60 text-warning border-warning/25"
+                              : "bg-muted/50 text-muted-foreground border-border",
                         )}
                       >
                         {paymentStatusLabel}
@@ -1979,16 +1979,16 @@ export function VisitBillingPage() {
 
                 {/* Right — Invoice details */}
                 <div className="pl-8 space-y-2.5">
-                  {/* <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-3">
+                  {/* <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-3">
                     Invoice details
                   </p> */}
 
                   {/* Invoice Date */}
                   <div className="flex items-baseline gap-2">
-                    <p className="text-sm text-slate-600 w-32 shrink-0">
+                    <p className="text-sm text-muted-foreground w-32 shrink-0">
                       Invoice Date
                     </p>
-                    <p className="text-sm font-semibold text-slate-800">
+                    <p className="text-sm font-semibold text-foreground">
                       {selectedInvoice.createdAt
                         ? new Date(
                             selectedInvoice.createdAt,
@@ -2003,7 +2003,7 @@ export function VisitBillingPage() {
 
                   {/* Currency — changing this re-converts everything on the invoice */}
                   <div className="flex items-baseline gap-2">
-                    <p className="text-sm text-slate-600 w-32 shrink-0">
+                    <p className="text-sm text-muted-foreground w-32 shrink-0">
                       Currency
                     </p>
                     {isEditable && (isAdmin || userRole === UserRole.DENTIST || userRole === UserRole.RECEPTIONIST) ? (
@@ -2030,7 +2030,7 @@ export function VisitBillingPage() {
                               });
                             }
                           }}
-                          className="text-base font-semibold text-blue-600 border-0 border-b border-dashed border-blue-300 bg-transparent focus:outline-none cursor-pointer disabled:opacity-50"
+                          className="text-base font-semibold text-primary border-0 border-b border-dashed border-primary/30 bg-transparent focus:outline-none cursor-pointer disabled:opacity-50"
                         >
                           {(
                             Object.keys(CURRENCY_CONFIG as any) as string[]
@@ -2041,23 +2041,23 @@ export function VisitBillingPage() {
                           ))}
                         </select>
                         {changeCurrencyMutation.isPending && (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
                         )}
                       </div>
                     ) : (
-                      <p className="text-sm font-semibold text-slate-800">
+                      <p className="text-sm font-semibold text-foreground">
                         {selectedInvoice.currency}
                       </p>
                     )}
                   </div>
 
                   {/* Totals strip */}
-                  <div className="mt-2 pt-3 border-t border-slate-100 grid grid-cols-3 gap-4">
+                  <div className="mt-2 pt-3 border-t border-border/60 grid grid-cols-3 gap-4">
                     <div>
-                      <p className="text-sm text-slate-400 mb-0.5">
+                      <p className="text-sm text-muted-foreground/70 mb-0.5">
                         Total Bill
                       </p>
-                      <p className="text-base font-bold text-slate-900">
+                      <p className="text-base font-bold text-foreground">
                         {formatCurrency(
                           Number(selectedInvoice.total ?? 0),
                           selectedInvoice.currency,
@@ -2066,8 +2066,8 @@ export function VisitBillingPage() {
                     </div>
 
                     <div>
-                      <p className="text-sm text-slate-400 mb-0.5">Paid</p>
-                      <p className="text-base font-bold text-green-600">
+                      <p className="text-sm text-muted-foreground/70 mb-0.5">Paid</p>
+                      <p className="text-base font-bold text-success">
                         {formatCurrency(
                           Number(selectedInvoice.amountPaid ?? 0),
                           selectedInvoice.currency,
@@ -2077,10 +2077,10 @@ export function VisitBillingPage() {
 
                     {/* {Number(selectedInvoice.balance ?? 0) > 0.01 && ( */}
                     <div>
-                      <p className="text-sm text-slate-400 mb-0.5">
+                      <p className="text-sm text-muted-foreground/70 mb-0.5">
                         Balance Due
                       </p>
-                      <p className="text-base font-bold text-red-600">
+                      <p className="text-base font-bold text-danger">
                         {formatCurrency(
                           Number(selectedInvoice.balance),
                           selectedInvoice.currency,
@@ -2095,11 +2095,11 @@ export function VisitBillingPage() {
             {/* ── INVOICE ITEMS TABLE ─────────────────────────────────── */}
             <div className="px-4 pt-2">
               <div className="flex items-center gap-2 mb-3">
-                <Package className="w-4 h-4 text-blue-500" />
-                <span className="text-sm font-semibold text-slate-700">
+                <Package className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">
                   Invoice Items
                 </span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200 font-medium">
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border font-medium">
                   {((selectedInvoice as any).items ?? []).length} item(s)
                 </span>
                 {isEditable &&
@@ -2107,7 +2107,7 @@ export function VisitBillingPage() {
                   selectedInvoice.status !== "VOID" && (
                     <button
                       onClick={appendDraftRow}
-                      className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                      className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-white hover:bg-primary transition-colors"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       Add Items
@@ -2115,42 +2115,42 @@ export function VisitBillingPage() {
                   )}
               </div>
 
-              <div className="border border-slate-200 rounded-lg overflow-hidden">
+              <div className="border border-border rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-50 border-b border-slate-200">
+                  <thead className="bg-muted/50 border-b border-border">
                     <tr>
-                      <th className="text-left text-xs font-semibold text-slate-500 p-3 w-[30%]">
+                      <th className="text-left text-xs font-semibold text-muted-foreground p-3 w-[30%]">
                         Product
                       </th>
-                      <th className="text-center text-xs font-semibold text-slate-500 p-3 w-[14%]">
+                      <th className="text-center text-xs font-semibold text-muted-foreground p-3 w-[14%]">
                         Type
                       </th>
-                      <th className="text-right text-xs font-semibold text-slate-500 p-3 w-[10%]">
+                      <th className="text-right text-xs font-semibold text-muted-foreground p-3 w-[10%]">
                         Qty
                       </th>
-                      <th className="text-right text-xs font-semibold text-slate-500 p-3 w-[18%]">
+                      <th className="text-right text-xs font-semibold text-muted-foreground p-3 w-[18%]">
                         Unit Price({selectedInvoice.currency})
                       </th>
-                      <th className="text-right text-xs font-semibold text-slate-500 p-3 w-[10%]">
+                      <th className="text-right text-xs font-semibold text-muted-foreground p-3 w-[10%]">
                         Discount({selectedInvoice.currency})
                       </th>
-                      <th className="text-right text-xs font-semibold text-slate-500">
+                      <th className="text-right text-xs font-semibold text-muted-foreground">
                         Amount({selectedInvoice.currency})
                       </th>
                       {isEditable && <th className="w-[4%]"></th>}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-border/60">
                     {/* Existing invoice items */}
                     {((selectedInvoice as any).items ?? []).map((item: any) => {
                       const canRemove = isEditable;
                       return (
                         <tr
                           key={item.id}
-                          className="hover:bg-slate-50/60 group"
+                          className="hover:bg-muted/60 group"
                         >
                           <td className="p-3">
-                            <span className="text-slate-800">
+                            <span className="text-foreground">
                               {item.description}
                             </span>
                           </td>
@@ -2160,26 +2160,26 @@ export function VisitBillingPage() {
                                 className={cn(
                                   "text-[10px] px-1.5 py-0.5 rounded border inline-flex items-center",
                                   item.itemType === "PRESCRIPTION"
-                                    ? "bg-green-50 text-green-600 border-green-200"
+                                    ? "bg-success-muted/60 text-success border-success/25"
                                     : item.itemType === "TREATMENT_PROCEDURE"
                                       ? "bg-purple-50 text-purple-600 border-purple-200"
-                                      : "bg-slate-100 text-slate-400 border-slate-200",
+                                      : "bg-muted text-muted-foreground/70 border-border",
                                 )}
                               >
                                 {item.itemType}
                               </span>
                             )}
                           </td>
-                          <td className="p-3 text-right text-slate-600">
+                          <td className="p-3 text-right text-muted-foreground">
                             {item.quantity}
                           </td>
-                          <td className="p-3 text-right text-slate-600">
+                          <td className="p-3 text-right text-muted-foreground">
                             {formatCurrency(
                               Number(item.unitPrice),
                               selectedInvoice.currency,
                             )}
                           </td>
-                          <td className="p-3 text-right text-slate-500">
+                          <td className="p-3 text-right text-muted-foreground">
                             {Number(item.discount) > 0
                               ? formatCurrency(
                                   Number(item.discount),
@@ -2187,7 +2187,7 @@ export function VisitBillingPage() {
                                 )
                               : "0"}
                           </td>
-                          <td className="p-3 text-right font-semibold text-slate-800">
+                          <td className="p-3 text-right font-semibold text-foreground">
                             {formatCurrency(
                               Number(item.total),
                               selectedInvoice.currency,
@@ -2204,7 +2204,7 @@ export function VisitBillingPage() {
                                     })
                                   }
                                   disabled={removeItemMutation.isPending || selectedInvoice.status =="POSTED" || selectedInvoice.status =="VOID"}
-                                  className="opacity-100 group-hover:opacity-100 p-1 rounded bg-red-50 text-red-500"
+                                  className="opacity-100 group-hover:opacity-100 p-1 rounded bg-danger-muted/60 text-danger"
                                   title="Remove"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -2228,7 +2228,7 @@ export function VisitBillingPage() {
                         return (
                           <tr
                             key={draft.tempId}
-                            className="bg-blue-50/40 hover:bg-blue-50/70"
+                            className="bg-primary-muted/40 hover:bg-primary-muted/70"
                           >
                             {/* Product picker */}
                             <td className="p-2">
@@ -2240,7 +2240,7 @@ export function VisitBillingPage() {
                                     e.target.value,
                                   )
                                 }
-                                className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-400 focus:outline-none"
+                                className="w-full px-2 py-1.5 text-sm border border-border rounded bg-white focus:ring-1 focus:ring-primary/60 focus:border-primary/40 focus:outline-none"
                                 autoFocus
                               >
                                 <option value="">
@@ -2285,7 +2285,7 @@ export function VisitBillingPage() {
                                     ),
                                   })
                                 }
-                                className="w-full px-2 py-1.5 text-sm text-right border border-slate-200 rounded bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                className="w-full px-2 py-1.5 text-sm text-right border border-border rounded bg-white focus:ring-1 focus:ring-primary/60 focus:outline-none"
                               />
                             </td>
                             {/* Unit Price */}
@@ -2303,7 +2303,7 @@ export function VisitBillingPage() {
                                     ),
                                   })
                                 }
-                                className="w-full px-2 py-1.5 text-sm text-right border border-slate-200 rounded bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                className="w-full px-2 py-1.5 text-sm text-right border border-border rounded bg-white focus:ring-1 focus:ring-primary/60 focus:outline-none"
                               />
                             </td>
                             {/* Disc% */}
@@ -2322,11 +2322,11 @@ export function VisitBillingPage() {
                                     ),
                                   })
                                 }
-                                className="w-full px-2 py-1.5 text-sm text-right border border-slate-200 rounded bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                className="w-full px-2 py-1.5 text-sm text-right border border-border rounded bg-white focus:ring-1 focus:ring-primary/60 focus:outline-none"
                               />
                             </td>
                             {/* Computed total */}
-                            <td className="p-3 text-right font-semibold text-slate-800">
+                            <td className="p-3 text-right font-semibold text-foreground">
                               {formatCurrency(
                                 Math.max(0, lineTotal),
                                 selectedInvoice.currency,
@@ -2342,7 +2342,7 @@ export function VisitBillingPage() {
                                     !draft.serviceId ||
                                     draft.quantity <= 0
                                   }
-                                  className="p-1 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400"
+                                  className="p-1 rounded bg-primary text-white hover:bg-primary disabled:bg-muted disabled:text-muted-foreground/70"
                                   title="Save row"
                                 >
                                   {isSaving ? (
@@ -2354,7 +2354,7 @@ export function VisitBillingPage() {
                                 <button
                                   onClick={() => removeDraftRow(draft.tempId)}
                                   disabled={isSaving}
-                                  className="p-1 rounded hover:bg-red-50 hover:text-red-500 text-slate-400"
+                                  className="p-1 rounded hover:bg-danger-muted/60 hover:text-danger text-muted-foreground/70"
                                   title="Discard row"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -2371,11 +2371,11 @@ export function VisitBillingPage() {
                         <tr>
                           <td
                             colSpan={isEditable ? 6 : 5}
-                            className="py-6 text-center text-slate-400 text-sm"
+                            className="py-6 text-center text-muted-foreground/70 text-sm"
                           >
                             <FileText className="w-5 h-5 mx-auto mb-1 opacity-20" />{" "}
                             No items yet — click{" "}
-                            <span className="font-medium text-blue-600">
+                            <span className="font-medium text-primary">
                               Add Items
                             </span>{" "}
                             to start
@@ -2393,12 +2393,12 @@ export function VisitBillingPage() {
             {isEditable && (
               <div className="px-7 pt-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <Pill className="w-4 h-4 text-green-500" />
-                  <span className="text-sm font-semibold text-slate-700">
+                  <Pill className="w-4 h-4 text-success" />
+                  <span className="text-sm font-semibold text-foreground">
                     Prescriptions
                   </span>
                   {visitPrescriptions && visitPrescriptions.length > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-50 text-green-600 border border-green-200 font-medium">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-success-muted/60 text-success border border-success/25 font-medium">
                       {visitPrescriptions.reduce(
                         (s, rx) => s + rx.items.length,
                         0,
@@ -2408,31 +2408,31 @@ export function VisitBillingPage() {
                   )}
                 </div>
 
-                <div className="border border-slate-200 rounded-lg overflow-hidden">
+                <div className="border border-border rounded-lg overflow-hidden">
                   <table className="w-full text-sm">
-                    <thead className="bg-slate-50 border-b border-slate-200">
+                    <thead className="bg-muted/50 border-b border-border">
                       <tr>
-                        <th className="text-center text-xs font-semibold text-slate-500 p-3 w-[6%]">
+                        <th className="text-center text-xs font-semibold text-muted-foreground p-3 w-[6%]">
                           Add
                         </th>
-                        <th className="text-left text-xs font-semibold text-slate-500 p-3 w-[38%]">
+                        <th className="text-left text-xs font-semibold text-muted-foreground p-3 w-[38%]">
                           Medication
                         </th>
-                        <th className="text-right text-xs font-semibold text-slate-500 p-3 w-[10%]">
+                        <th className="text-right text-xs font-semibold text-muted-foreground p-3 w-[10%]">
                           Qty
                         </th>
-                        <th className="text-right text-xs font-semibold text-slate-500 p-3 w-[18%]">
+                        <th className="text-right text-xs font-semibold text-muted-foreground p-3 w-[18%]">
                           Unit Price(UGX)
                         </th>
-                        <th className="text-right text-xs font-semibold text-slate-500 p-3 w-[10%]">
+                        <th className="text-right text-xs font-semibold text-muted-foreground p-3 w-[10%]">
                           Discount(UGX)
                         </th>
-                        <th className="text-right text-xs font-semibold text-slate-500 p-3 w-[18%]">
+                        <th className="text-right text-xs font-semibold text-muted-foreground p-3 w-[18%]">
                           Amount(UGX)
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-border/60">
                       {rxLoading ? (
                         <tr>
                           <td colSpan={6} className="py-6 text-center">
@@ -2443,10 +2443,10 @@ export function VisitBillingPage() {
                         <tr>
                           <td
                             colSpan={6}
-                            className="py-2 text-center text-slate-400 text-sm"
+                            className="py-2 text-center text-muted-foreground/70 text-sm"
                           >
                             <span className="inline-flex items-center gap-1.5">
-                              <Pill className="w-4 h-4 text-slate-400" />
+                              <Pill className="w-4 h-4 text-muted-foreground/70" />
                               No active prescriptions for this visit
                             </span>
                           </td>
@@ -2465,25 +2465,25 @@ export function VisitBillingPage() {
                                 key={item.id}
                                 className={cn(
                                   "transition-colors",
-                                  isAdded && "bg-green-50/40",
+                                  isAdded && "bg-success-muted/40",
                                 )}
                               >
                                 {/* <td className="p-3 text-center">
                                   {isPending ? (
-                                    <Loader2 className="w-4 h-4 animate-spin text-blue-500 mx-auto" />
+                                    <Loader2 className="w-4 h-4 animate-spin text-primary mx-auto" />
                                   ) : (
                                     <input
                                       type="checkbox"
                                       checked={isAdded}
                                       onChange={() => toggleRxItem(item, rx)}
-                                      className="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500 cursor-pointer"
+                                      className="w-4 h-4 rounded border-input text-success focus:ring-success/60 cursor-pointer"
                                     />
                                   )}
                                 </td> */}
 
                                 <td className="p-3 text-center">
                                   {isPending ? (
-                                    <Loader2 className="w-4 h-4 animate-spin text-blue-500 mx-auto" />
+                                    <Loader2 className="w-4 h-4 animate-spin text-primary mx-auto" />
                                   ) : (
                                     <input
                                       type="checkbox"
@@ -2491,7 +2491,7 @@ export function VisitBillingPage() {
                                       disabled={!isEditable || selectedInvoice.status =="POSTED" } // ← disables when not editable (e.g. POSTED)
                                       onChange={() => toggleRxItem(item, rx)}
                                       className={cn(
-                                        "w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500",
+                                        "w-4 h-4 rounded border-input text-success focus:ring-success/60",
                                         isEditable
                                           ? "cursor-pointer"
                                           : "cursor-not-allowed opacity-60", // visual cue
@@ -2502,21 +2502,21 @@ export function VisitBillingPage() {
 
                                 <td className="p-3">
                                   <div className="flex items-center gap-1.5">
-                                    <span className="text-slate-800 font-medium">
+                                    <span className="text-foreground font-medium">
                                       {item.drug?.name ?? "Unknown"}
                                     </span>
                                     {item.drug?.form && (
-                                      <span className="text-[9px] px-1 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">
+                                      <span className="text-[9px] px-1 py-0.5 rounded bg-muted text-muted-foreground border border-border">
                                         {item.drug.form}
                                       </span>
                                     )}
                                     {item.drug?.strength && (
-                                      <span className="text-[10px] text-slate-400">
+                                      <span className="text-[10px] text-muted-foreground/70">
                                         {item.drug.strength}
                                       </span>
                                     )}
                                   </div>
-                                  <div className="text-[10px] text-slate-400 mt-0.5">
+                                  <div className="text-[10px] text-muted-foreground/70 mt-0.5">
                                     <span className="font-mono">
                                       {rx.prescriptionCode}
                                     </span>
@@ -2524,16 +2524,16 @@ export function VisitBillingPage() {
                                     {item.frequency && <> · {item.frequency}</>}
                                   </div>
                                 </td>
-                                <td className="p-3 text-right text-slate-600">
+                                <td className="p-3 text-right text-muted-foreground">
                                   {item.quantity}
                                 </td>
-                                <td className="p-3 text-right text-slate-600">
+                                <td className="p-3 text-right text-muted-foreground">
                                   {formatCurrency(unitPrice, BASE_CURRENCY)}
                                 </td>
-                                <td className="p-3 text-right text-slate-500">
+                                <td className="p-3 text-right text-muted-foreground">
                                   --
                                 </td>
-                                <td className="p-3 text-right font-semibold text-slate-800">
+                                <td className="p-3 text-right font-semibold text-foreground">
                                   {formatCurrency(total, BASE_CURRENCY)}
                                 </td>
                               </tr>
@@ -2548,11 +2548,11 @@ export function VisitBillingPage() {
             )}
 
             {/* ── TOTALS ──────────────────────────────────────────────── */}
-            <div className="px-7 py-5 flex justify-end border-t border-slate-100 mt-5">
+            <div className="px-7 py-5 flex justify-end border-t border-border/60 mt-5">
               <div className="w-72 space-y-1.5 text-sm">
                 {(Number(selectedInvoice.discountAmount ?? 0) > 0 ||
                   canSetDiscount) && (
-                  <div className="flex justify-between text-slate-600">
+                  <div className="flex justify-between text-muted-foreground">
                     <span>Subtotal:</span>
                     <span>
                       {formatCurrency(
@@ -2565,12 +2565,12 @@ export function VisitBillingPage() {
                 {(Number(selectedInvoice.discountAmount ?? 0) > 0 ||
                   canSetDiscount) && (
                   <div>
-                    <div className="flex justify-between items-center text-red-500">
+                    <div className="flex justify-between items-center text-danger">
                       <span className="flex items-center gap-1.5">
                         Additional discount:
                         {selectedInvoice.discountType === "PERCENT" &&
                           Number(selectedInvoice.discountValue ?? 0) > 0 && (
-                            <span className="text-xs text-red-400">
+                            <span className="text-xs text-danger/70">
                               ({Number(selectedInvoice.discountValue)}%)
                             </span>
                           )}
@@ -2578,7 +2578,7 @@ export function VisitBillingPage() {
                           <button
                             type="button"
                             onClick={() => setDiscountEditorOpen((o) => !o)}
-                            className="text-slate-400 hover:text-slate-600"
+                            className="text-muted-foreground/70 hover:text-muted-foreground"
                             title="Edit additional discount"
                           >
                             <Pencil className="w-3.5 h-3.5" />
@@ -2603,7 +2603,7 @@ export function VisitBillingPage() {
                             )
                           }
                           disabled={setDiscountMutation.isPending}
-                          className="border border-slate-200 rounded px-1.5 py-1 text-xs bg-white text-slate-700"
+                          className="border border-border rounded px-1.5 py-1 text-xs bg-white text-foreground"
                         >
                           <option value="PERCENT">%</option>
                           <option value="FIXED">
@@ -2626,13 +2626,13 @@ export function VisitBillingPage() {
                           }}
                           disabled={setDiscountMutation.isPending}
                           placeholder="0"
-                          className="w-24 border border-slate-200 rounded px-2 py-1 text-xs text-right text-slate-700"
+                          className="w-24 border border-border rounded px-2 py-1 text-xs text-right text-foreground"
                         />
                         <button
                           type="button"
                           onClick={applyInvoiceDiscount}
                           disabled={setDiscountMutation.isPending}
-                          className="px-2 py-1 rounded bg-slate-800 text-white text-xs hover:bg-slate-700 disabled:opacity-50 inline-flex items-center gap-1"
+                          className="px-2 py-1 rounded bg-foreground text-white text-xs hover:bg-foreground disabled:opacity-50 inline-flex items-center gap-1"
                         >
                           {setDiscountMutation.isPending && (
                             <Loader2 className="w-3 h-3 animate-spin" />
@@ -2650,7 +2650,7 @@ export function VisitBillingPage() {
                               })
                             }
                             disabled={setDiscountMutation.isPending}
-                            className="px-2 py-1 rounded border border-slate-200 text-slate-600 text-xs hover:bg-slate-50 disabled:opacity-50"
+                            className="px-2 py-1 rounded border border-border text-muted-foreground text-xs hover:bg-muted/50 disabled:opacity-50"
                           >
                             Clear
                           </button>
@@ -2659,7 +2659,7 @@ export function VisitBillingPage() {
                           type="button"
                           onClick={() => setDiscountEditorOpen(false)}
                           disabled={setDiscountMutation.isPending}
-                          className="p-1 rounded text-slate-400 hover:text-slate-600"
+                          className="p-1 rounded text-muted-foreground/70 hover:text-muted-foreground"
                           title="Cancel"
                         >
                           <X className="w-3.5 h-3.5" />
@@ -2669,7 +2669,7 @@ export function VisitBillingPage() {
                   </div>
                 )}
                 {Number(selectedInvoice.taxAmount ?? 0) > 0 && (
-                  <div className="flex justify-between text-slate-600">
+                  <div className="flex justify-between text-muted-foreground">
                     <span>Tax ({selectedInvoice.taxPercent}%):</span>
                     <span>
                       {formatCurrency(
@@ -2679,7 +2679,7 @@ export function VisitBillingPage() {
                     </span>
                   </div>
                 )}
-                <div className="flex justify-between font-bold text-base text-slate-900 border-t border-slate-200 pt-2 mt-1">
+                <div className="flex justify-between font-bold text-base text-foreground border-t border-border pt-2 mt-1">
                   <span>Total:</span>
                   <span>
                     {formatCurrency(
@@ -2689,7 +2689,7 @@ export function VisitBillingPage() {
                   </span>
                 </div>
                 {Number(selectedInvoice.amountPaid ?? 0) > 0 && (
-                  <div className="flex justify-between text-green-600 font-medium">
+                  <div className="flex justify-between text-success font-medium">
                     <span>Amount Paid:</span>
                     <span>
                       {formatCurrency(
@@ -2700,7 +2700,7 @@ export function VisitBillingPage() {
                   </div>
                 )}
                 {Number(selectedInvoice.balance ?? 0) > 0.01 && (
-                  <div className="flex justify-between font-semibold text-amber-700">
+                  <div className="flex justify-between font-semibold text-warning">
                     <span>Balance Due:</span>
                     <span>
                       {formatCurrency(
@@ -2715,54 +2715,54 @@ export function VisitBillingPage() {
 
             {/* ── Receipts list ────────────────────────────────────────── */}
             {/* ── PAYMENT HISTORY / RECEIPTS SECTION ─────────────────── */}
-            <div className="px-7 py-5 border-t border-slate-200 bg-slate-50/30">
+            <div className="px-7 py-5 border-t border-border bg-muted/30">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <Receipt className="w-4 h-4 text-slate-500" />
-                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">
+                  <Receipt className="w-4 h-4 text-muted-foreground" />
+                  <h3 className="text-sm font-bold text-foreground uppercase tracking-wide">
                     Receipts History
                   </h3>
-                  <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-600 text-[10px] font-semibold">
+                  <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-semibold">
                     {((selectedInvoice as any).receipts ?? []).length}
                   </span>
                 </div>
               </div>
 
               {((selectedInvoice as any).receipts ?? []).length === 0 && (
-                <div className="py-3 text-center text-slate-400 text-sm">
+                <div className="py-3 text-center text-muted-foreground/70 text-sm">
                   <span className="inline-flex items-center gap-1.5">
-                    <Receipt className="w-4 h-4 text-slate-400" />
+                    <Receipt className="w-4 h-4 text-muted-foreground/70" />
                     No Receipts Available
                   </span>
                 </div>
               )}
 
               {((selectedInvoice as any).receipts ?? []).length > 0 && (
-                <div className="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                <div className="border border-border rounded-lg overflow-hidden bg-white shadow-sm">
       <table className="w-full text-sm">
-        <thead className="bg-slate-100 border-b border-slate-200">
+        <thead className="bg-muted border-b border-border">
           <tr>
-            <th className="text-left text-xs font-semibold text-slate-600 px-4 py-3 w-[10%]">
+            <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[10%]">
               #
             </th>
-            <th className="text-left text-xs font-semibold text-slate-600 px-4 py-3 w-[20%]">
+            <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[20%]">
               Date
             </th>
-            <th className="text-left text-xs font-semibold text-slate-600 px-4 py-3 w-[25%]">
+            <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[25%]">
               Payment Method
             </th>
-            <th className="text-left text-xs font-semibold text-slate-600 px-4 py-3 w-[25%]">
+            <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[25%]">
               Reference
             </th>
-            <th className="text-right text-xs font-semibold text-slate-600 px-4 py-3 w-[20%]">
+            <th className="text-right text-xs font-semibold text-muted-foreground px-4 py-3 w-[20%]">
               Amount
             </th>
-            <th className="text-right text-xs font-semibold text-slate-600 px-4 py-3 w-[10%]">
+            <th className="text-right text-xs font-semibold text-muted-foreground px-4 py-3 w-[10%]">
               Actions
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-border/60">
           {((selectedInvoice as any).receipts ?? []).map((r: any, index: number) => {
             const receivedByLabel = r.receivedBy
               ? `${r.receivedBy.firstName} ${r.receivedBy.lastName}`
@@ -2778,18 +2778,18 @@ export function VisitBillingPage() {
               <tr 
                 key={r.id} 
                 className={cn(
-                  "transition-colors hover:bg-slate-50",
-                  isVoid && "bg-red-50/30"
+                  "transition-colors hover:bg-muted/50",
+                  isVoid && "bg-danger-muted/30"
                 )}
               >
-                <td className="px-4 py-3 text-slate-500 font-mono text-xs">
+                <td className="px-4 py-3 text-muted-foreground font-mono text-xs">
                   {index + 1}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-col">
                     <span className={cn(
                       "text-sm font-medium",
-                      isVoid ? "text-slate-400 line-through" : "text-slate-700"
+                      isVoid ? "text-muted-foreground/70 line-through" : "text-foreground"
                     )}>
                       {r.generatedAt 
                         ? new Date(r.generatedAt).toLocaleDateString("en-UG", {
@@ -2814,14 +2814,14 @@ export function VisitBillingPage() {
                     <span className={cn(
                       "inline-flex items-center px-2 py-1 rounded-md text-xs font-medium",
                       isVoid 
-                        ? "bg-slate-100 text-slate-400"
+                        ? "bg-muted text-muted-foreground/70"
                         : paymentMethod.toLowerCase().includes("cash")
-                        ? "bg-green-50 text-green-700 border border-green-200"
+                        ? "bg-success-muted/60 text-success border border-success/25"
                         : paymentMethod.toLowerCase().includes("mobile") || paymentMethod.toLowerCase().includes("money")
-                        ? "bg-blue-50 text-blue-700 border border-blue-200"
+                        ? "bg-primary-muted/60 text-primary border border-primary/25"
                         : paymentMethod.toLowerCase().includes("card")
                         ? "bg-purple-50 text-purple-700 border border-purple-200"
-                        : "bg-slate-50 text-slate-600 border border-slate-200"
+                        : "bg-muted/50 text-muted-foreground border border-border"
                     )}>
                       {paymentMethod}
                     </span>
@@ -2831,16 +2831,16 @@ export function VisitBillingPage() {
                   <div className="flex flex-col">
                     <span className={cn(
                       "text-sm font-mono",
-                      isVoid ? "text-slate-400 line-through" : "text-slate-700"
+                      isVoid ? "text-muted-foreground/70 line-through" : "text-foreground"
                     )}>
                       {r.receiptNumber || "--"}
                     </span>
                     {r.reference && (
-                      <span className="text-[11px] text-slate-400">
+                      <span className="text-[11px] text-muted-foreground/70">
                         Ref: {r.reference}
                       </span>
                     )}
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-[11px] text-muted-foreground/70">
                       by {receivedByLabel}
                     </span>
                   </div>
@@ -2850,8 +2850,8 @@ export function VisitBillingPage() {
                     <span className={cn(
                       "text-sm font-bold",
                       isVoid 
-                        ? "text-slate-400 line-through" 
-                        : "text-green-600"
+                        ? "text-muted-foreground/70 line-through" 
+                        : "text-success"
                     )}>
                       {formatCurrency(
                         Number(r.amountReceived),
@@ -2859,7 +2859,7 @@ export function VisitBillingPage() {
                       )}
                     </span>
                     {isVoid && (
-                      <span className="text-[10px] text-red-500 font-medium mt-0.5">
+                      <span className="text-[10px] text-danger font-medium mt-0.5">
                         Voided
                       </span>
                     )}
@@ -2870,7 +2870,7 @@ export function VisitBillingPage() {
                     type="button"
                     onClick={() => navigate(`/receipts/${r.id}`)}
                     title="View receipt detail"
-                    className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
+                    className="p-1.5 rounded-lg hover:bg-primary-muted/60 text-muted-foreground/70 hover:text-primary transition-colors"
                   >
                     <Eye className="w-4 h-4" />
                   </button>
@@ -2887,8 +2887,8 @@ export function VisitBillingPage() {
               {/* Payment Summary Footer */}
               <div className="mt-4 flex flex-col items-end justify-end gap-6 text-sm">
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-500">Total Paid:</span>
-                  <span className="text-base font-bold text-green-600">
+                  <span className="text-muted-foreground">Total Paid:</span>
+                  <span className="text-base font-bold text-success">
                     {formatCurrency(
                       ((selectedInvoice as any).receipts ?? [])
                         .filter((r: any) => r.status !== "VOID")
@@ -2899,8 +2899,8 @@ export function VisitBillingPage() {
                 </div>
                 {Number(selectedInvoice.balance ?? 0) > 0 && (
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-500">Remaining Balance:</span>
-                    <span className="text-base font-bold text-amber-600">
+                    <span className="text-muted-foreground">Remaining Balance:</span>
+                    <span className="text-base font-bold text-warning">
                       {formatCurrency(
                         Number(selectedInvoice.balance),
                         selectedInvoice.currency,
@@ -2912,13 +2912,13 @@ export function VisitBillingPage() {
             </div>
           </div>
         ) : (
-          <div className="max-w-5xl mx-auto bg-white rounded-xl border border-slate-200 flex flex-col items-center justify-center py-16 text-slate-400">
+          <div className="max-w-5xl mx-auto bg-white rounded-xl border border-border flex flex-col items-center justify-center py-16 text-muted-foreground/70">
             {invoicesLoading ? (
               <Loader2 className="w-8 h-8 animate-spin opacity-30" />
             ) : (
               <>
                 <Receipt className="w-10 h-10 mb-2 opacity-20" />
-                <p className="text-sm font-medium text-slate-500">
+                <p className="text-sm font-medium text-muted-foreground">
                   No invoice for this visit
                 </p>
                 <p className="text-xs mt-1 mb-4">
@@ -2927,7 +2927,7 @@ export function VisitBillingPage() {
                 <button
                   onClick={() => createDraftMutation.mutate()}
                   disabled={createDraftMutation.isPending}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary disabled:opacity-50 transition-colors"
                 >
                   {createDraftMutation.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

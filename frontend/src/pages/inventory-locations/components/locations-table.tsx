@@ -121,7 +121,7 @@ export function LocationsTable({
                     {location.isActive ? (
                       <Badge
                         variant="default"
-                        className="bg-green-100 text-green-800 hover:bg-green-100"
+                        className="bg-success-muted text-success hover:bg-success-muted"
                       >
                         Active
                       </Badge>
@@ -131,7 +131,7 @@ export function LocationsTable({
                     {location.isDefault && (
                       <Badge
                         variant="outline"
-                        className="border-blue-500 text-blue-600"
+                        className="border-primary/60 text-primary"
                       >
                         Default
                       </Badge>
@@ -141,7 +141,7 @@ export function LocationsTable({
                 <TableCell className="flex items-center gap-2">
                   <Button
                     title="Edit Details"
-                    className="mx-1 h-6 w-8 rounded-md bg-amber-500 p-0 text-white hover:bg-amber-600 shadow-sm"
+                    className="mx-1 h-6 w-8 rounded-md bg-warning p-0 text-white hover:bg-warning shadow-sm"
                     onClick={(e) => {
                       e.stopPropagation();
                       onEdit(location);
@@ -152,7 +152,7 @@ export function LocationsTable({
 
                   <Button
                     title="Delete"
-                    className="h-6 w-8 rounded-md bg-red-600 p-0 text-white hover:bg-red-700 shadow-sm"
+                    className="h-6 w-8 rounded-md bg-danger p-0 text-white hover:bg-danger shadow-sm"
                     onClick={(e) => {
                       e.stopPropagation();
                       onDelete(location);

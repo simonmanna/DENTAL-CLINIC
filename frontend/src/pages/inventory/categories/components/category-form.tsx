@@ -145,8 +145,8 @@ export function CategoryForm({ initialData, onSuccess, onCancel }: CategoryFormP
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-0">
-        {/* <div className="bg-sky-50/50 p-4 border-b border-sky-100 mb-4 rounded-t-lg">
-           <p className="text-xs font-medium text-sky-600 uppercase tracking-wider flex items-center gap-2">
+        {/* <div className="bg-primary-muted/50 p-4 border-b border-primary/20 mb-4 rounded-t-lg">
+           <p className="text-xs font-medium text-primary uppercase tracking-wider flex items-center gap-2">
             <Info className="h-3 w-3" /> Basic Information
            </p>
         </div> */}
@@ -158,11 +158,11 @@ export function CategoryForm({ initialData, onSuccess, onCancel }: CategoryFormP
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-slate-700 font-bold">Category Name <span className="text-red-500">*</span></FormLabel>
+                  <FormLabel className="text-foreground font-bold">Category Name <span className="text-danger">*</span></FormLabel>
                   <FormControl>
                     <Input 
                       placeholder="e.g., Office Supplies" 
-                      className="border-slate-200 focus:border-sky-400 focus:ring-sky-100 transition-all" 
+                      className="border-border focus:border-primary/40 focus:ring-primary/20 transition-all" 
                       {...field} 
                     />
                   </FormControl>
@@ -176,11 +176,11 @@ export function CategoryForm({ initialData, onSuccess, onCancel }: CategoryFormP
               name="code"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-slate-700 font-bold">Category Code</FormLabel>
+                  <FormLabel className="text-foreground font-bold">Category Code</FormLabel>
                   <FormControl>
                     <Input 
                       placeholder="e.g., OFF-SUP" 
-                      className="border-slate-200 focus:border-sky-400 focus:ring-sky-100 uppercase" 
+                      className="border-border focus:border-primary/40 focus:ring-primary/20 uppercase" 
                       {...field} 
                     />
                   </FormControl>
@@ -195,11 +195,11 @@ export function CategoryForm({ initialData, onSuccess, onCancel }: CategoryFormP
             name="description"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-slate-700 font-bold">Description</FormLabel>
+                <FormLabel className="text-foreground font-bold">Description</FormLabel>
                 <FormControl>
                   <Textarea 
                     placeholder="Provide context for this category..." 
-                    className="resize-none border-slate-200 focus:border-sky-400 focus:ring-sky-100 min-h-[80px]" 
+                    className="resize-none border-border focus:border-primary/40 focus:ring-primary/20 min-h-[80px]" 
                     {...field} 
                   />
                 </FormControl>
@@ -208,14 +208,14 @@ export function CategoryForm({ initialData, onSuccess, onCancel }: CategoryFormP
             )}
           />
 
-          <div className="bg-slate-50 px-4 py-2 rounded-lg border border-slate-100 space-y-4">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider flex items-center gap-2">
+          <div className="bg-muted/50 px-4 py-2 rounded-lg border border-border/60 space-y-4">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
               <Layers className="h-3 w-3" /> Hierarchy & Display
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               <FormItem>
-                <FormLabel className="text-slate-700 font-bold text-sm">Parent Category</FormLabel>
+                <FormLabel className="text-foreground font-bold text-sm">Parent Category</FormLabel>
                 <Select
                   value={parentId ?? 'null'}
                   onValueChange={(value) => {
@@ -226,12 +226,12 @@ export function CategoryForm({ initialData, onSuccess, onCancel }: CategoryFormP
                   disabled={parentsLoading}
                 >
                   <FormControl>
-                    <SelectTrigger className="bg-white border-slate-200">
+                    <SelectTrigger className="bg-white border-border">
                       <SelectValue placeholder="Select parent" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="null" className="font-medium text-sky-600">None (Top-Level)</SelectItem>
+                    <SelectItem value="null" className="font-medium text-primary">None (Top-Level)</SelectItem>
                     {parentCategories?.map((cat) => (
                       <SelectItem key={cat.id} value={cat.id}>
                         {cat.name}
@@ -240,7 +240,7 @@ export function CategoryForm({ initialData, onSuccess, onCancel }: CategoryFormP
                   </SelectContent>
                 </Select>
                 {initialData?.children && initialData.children.length > 0 && (
-                  <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1 font-medium">
+                  <p className="text-[10px] text-warning mt-1 flex items-center gap-1 font-medium">
                      Contains subcategories
                   </p>
                 )}
@@ -251,7 +251,7 @@ export function CategoryForm({ initialData, onSuccess, onCancel }: CategoryFormP
                 name="sortOrder"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-700 font-bold text-sm">Display Order</FormLabel>
+                    <FormLabel className="text-foreground font-bold text-sm">Display Order</FormLabel>
                     <FormControl>
                       <Input type="number" className="bg-white" {...field} />
                     </FormControl>
@@ -266,10 +266,10 @@ export function CategoryForm({ initialData, onSuccess, onCancel }: CategoryFormP
                 name="color"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-700 font-bold text-sm flex items-center gap-2">
+                    <FormLabel className="text-foreground font-bold text-sm flex items-center gap-2">
                       <Tag className="h-3 w-3" /> Badge Color
                     </FormLabel>
-                    <div className="flex items-center gap-2 p-1 bg-white border rounded-md border-slate-200">
+                    <div className="flex items-center gap-2 p-1 bg-white border rounded-md border-border">
                       <ColorPicker value={field.value} onChange={field.onChange} />
                       <Input 
                         className="border-none focus-visible:ring-0 h-8 text-xs font-mono" 
@@ -284,15 +284,15 @@ export function CategoryForm({ initialData, onSuccess, onCancel }: CategoryFormP
                 control={form.control}
                 name="isActive"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-md border border-slate-200 bg-white py-1 px-3 shadow-sm">
+                  <FormItem className="flex flex-row items-center justify-between rounded-md border border-border bg-white py-1 px-3 shadow-sm">
                     <div className="space-y-0.5">
-                      <FormLabel className="text-sm font-bold text-slate-700">Active Status</FormLabel>
+                      <FormLabel className="text-sm font-bold text-foreground">Active Status</FormLabel>
                     </div>
                     <FormControl>
                       <Switch
                         checked={field.value}
                         onCheckedChange={field.onChange}
-                        className="data-[state=checked]:bg-sky-500"
+                        className="data-[state=checked]:bg-primary"
                       />
                     </FormControl>
                   </FormItem>
@@ -303,13 +303,13 @@ export function CategoryForm({ initialData, onSuccess, onCancel }: CategoryFormP
         </div>
 
         {/* Footer actions */}
-        <div className="flex items-center justify-end gap-3 px-6 py-1 bg-slate-50 border-t border-slate-100 rounded-b-lg">
+        <div className="flex items-center justify-end gap-3 px-6 py-1 bg-muted/50 border-t border-border/60 rounded-b-lg">
           <Button 
             type="button" 
             variant="ghost" 
             size="sm"
             onClick={onCancel}
-            className="text-slate-500 hover:text-slate-700 hover:bg-slate-200"
+            className="text-muted-foreground hover:text-foreground hover:bg-muted"
           >
             <X className="mr-2 h-4 w-4" />
             Cancel
@@ -318,7 +318,7 @@ export function CategoryForm({ initialData, onSuccess, onCancel }: CategoryFormP
             type="submit" 
             size="sm"
             disabled={form.formState.isSubmitting}
-            className="bg-sky-600 hover:bg-sky-700 text-white shadow-md shadow-sky-100 px-6"
+            className="bg-primary hover:bg-primary text-white shadow-md shadow-sky-100 px-6"
           >
             {form.formState.isSubmitting ? (
               <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />

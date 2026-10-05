@@ -29,17 +29,17 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const STATUS_BG: Record<string, string> = {
-  PLANNED: 'bg-blue-100 text-blue-700',
-  IN_PROGRESS: 'bg-amber-100 text-amber-700',
-  COMPLETED: 'bg-emerald-100 text-emerald-700',
-  CANCELLED: 'bg-red-100 text-red-700',
-  ON_HOLD: 'bg-slate-100 text-slate-600',
+  PLANNED: 'bg-primary-muted text-primary',
+  IN_PROGRESS: 'bg-warning-muted text-warning',
+  COMPLETED: 'bg-success-muted text-success',
+  CANCELLED: 'bg-danger-muted text-danger',
+  ON_HOLD: 'bg-muted text-muted-foreground',
   PENDING: 'bg-violet-100 text-violet-700',
-  SKIPPED: 'bg-orange-100 text-orange-700',
-  ARRIVED: 'bg-cyan-100 text-cyan-700',
-  OPEN: 'bg-sky-100 text-sky-700',
-  PAID: 'bg-emerald-100 text-emerald-700',
-  PARTIAL: 'bg-amber-100 text-amber-700',
+  SKIPPED: 'bg-warning-muted text-warning',
+  ARRIVED: 'bg-primary-muted text-primary',
+  OPEN: 'bg-primary-muted text-primary',
+  PAID: 'bg-success-muted text-success',
+  PARTIAL: 'bg-warning-muted text-warning',
 };
 
 const PERIODS = [
@@ -64,7 +64,7 @@ function shortDate(s?: string | null) {
 function Badge({ status }: { status: string }) {
   return (
     <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide uppercase',
-      STATUS_BG[status] ?? 'bg-slate-100 text-slate-600')}>
+      STATUS_BG[status] ?? 'bg-muted text-muted-foreground')}>
       {status.replace(/_/g, ' ')}
     </span>
   );
@@ -79,19 +79,19 @@ function KpiCard({
   return (
     <div className={cn(
       'relative overflow-hidden rounded-xl border px-4 py-2 flex flex-col gap-3',
-      accent ? 'bg-teal-600 border-teal-500 text-white' : 'bg-white border-slate-100 shadow-sm',
+      accent ? 'bg-primary border-primary/60 text-white' : 'bg-white border-border/60 shadow-sm',
     )}>
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className={cn('p-2 rounded-xl shrink-0', accent ? 'bg-white/20' : 'bg-teal-50')}>
-            <Icon className={cn('w-5 h-5', accent ? 'text-white' : 'text-teal-600')} />
+          <div className={cn('p-2 rounded-xl shrink-0', accent ? 'bg-white/20' : 'bg-primary-muted/60')}>
+            <Icon className={cn('w-5 h-5', accent ? 'text-white' : 'text-primary')} />
           </div>
           <div>
-            <p className={cn('text-xs font-medium', accent ? 'text-teal-100' : 'text-slate-500')}>
-              {title}: <span className={accent ? 'text-white' : 'text-slate-900'}>{value}</span>
+            <p className={cn('text-xs font-medium', accent ? 'text-primary/40' : 'text-muted-foreground')}>
+              {title}: <span className={accent ? 'text-white' : 'text-foreground'}>{value}</span>
             </p>
             {sub && (
-              <p className={cn('text-[10px] leading-tight font-medium', accent ? 'text-white/70' : 'text-slate-400')}>
+              <p className={cn('text-[10px] leading-tight font-medium', accent ? 'text-white/70' : 'text-muted-foreground/70')}>
                 {sub}
               </p>
             )}
@@ -99,9 +99,9 @@ function KpiCard({
         </div>
         {trend && (
           <span className={cn('flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full shrink-0',
-            trend === 'up' ? (accent ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-700') :
-              trend === 'down' ? (accent ? 'bg-white/20 text-white' : 'bg-red-100 text-red-700') :
-                (accent ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'))}>
+            trend === 'up' ? (accent ? 'bg-white/20 text-white' : 'bg-success-muted text-success') :
+              trend === 'down' ? (accent ? 'bg-white/20 text-white' : 'bg-danger-muted text-danger') :
+                (accent ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'))}>
             {trend === 'up' ? <ArrowUpRight className="w-3 h-3" /> :
               trend === 'down' ? <ArrowDownRight className="w-3 h-3" /> :
                 <Minus className="w-3 h-3" />}
@@ -117,9 +117,9 @@ function SectionCard({ title, children, className, action }: {
   title: string; children: React.ReactNode; className?: string; action?: React.ReactNode;
 }) {
   return (
-    <div className={cn('bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden', className)}>
-      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-50">
-        <h3 className="text-sm font-semibold text-slate-700 tracking-wide">{title}</h3>
+    <div className={cn('bg-white border border-border/60 rounded-2xl shadow-sm overflow-hidden', className)}>
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border/40">
+        <h3 className="text-sm font-semibold text-foreground tracking-wide">{title}</h3>
         {action}
       </div>
       {children}
@@ -128,7 +128,7 @@ function SectionCard({ title, children, className, action }: {
 }
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={cn('animate-pulse bg-slate-100 rounded-lg', className)} />;
+  return <div className={cn('animate-pulse bg-muted rounded-lg', className)} />;
 }
 
 function LoadingSkeleton() {
@@ -148,8 +148,8 @@ function LoadingSkeleton() {
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3">
-      <FileText className="w-10 h-10 text-slate-200" />
+    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground/70 gap-3">
+      <FileText className="w-10 h-10 text-muted-foreground/40" />
       <p className="text-sm">{message}</p>
     </div>
   );
@@ -159,7 +159,7 @@ function EmptyState({ message }: { message: string }) {
 function ProgressBar({ value, max, color = '#0d9488' }: { value: number; max: number; color?: string }) {
   const percentage = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
-    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
       <div className="h-full rounded-full transition-all duration-500" style={{ width: `${percentage}%`, backgroundColor: color }} />
     </div>
   );
@@ -170,15 +170,15 @@ function CollapsibleRow({ children, detail }: { children: React.ReactNode; detai
   const [open, setOpen] = useState(false);
   return (
     <>
-      <tr className="hover:bg-slate-70 transition-colors cursor-pointer" onClick={() => setOpen(o => !o)}>
+      <tr className="hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setOpen(o => !o)}>
         {children}
-        <td className="px-4 py-3 text-slate-400">
+        <td className="px-4 py-3 text-muted-foreground/70">
           {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </td>
       </tr>
       {open && (
         <tr>
-          <td colSpan={999} className="bg-slate-50 px-6 py-4 border-b border-slate-100">
+          <td colSpan={999} className="bg-muted/50 px-6 py-4 border-b border-border/60">
             {detail}
           </td>
         </tr>
@@ -211,12 +211,12 @@ function FilterBar({
   onExport: () => void;
   isLoading: boolean;
 }) {
-  const inputCls = 'px-3 py-1 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 focus:outline-none bg-white transition-all';
+  const inputCls = 'px-3 py-1 text-sm border border-border rounded-xl focus:ring-2 focus:ring-primary/60 focus:border-primary/60 focus:outline-none bg-white transition-all';
   return (
-    <div className="bg-white border border-slate-100 rounded-xl shadow-sm px-4 py-0.5 flex flex-wrap gap-3 items-center">
-      <div className="flex items-center gap-2 text-slate-400">
+    <div className="bg-white border border-border/60 rounded-xl shadow-sm px-4 py-0.5 flex flex-wrap gap-3 items-center">
+      <div className="flex items-center gap-2 text-muted-foreground/70">
         <Filter className="w-4 h-4" />
-        <span className="text-xs font-medium text-slate-500">Filters</span>
+        <span className="text-xs font-medium text-muted-foreground">Filters</span>
       </div>
 
       {/* Period */}
@@ -230,7 +230,7 @@ function FilterBar({
         <>
           <input type="date" value={filters.startDate} onChange={e => onChange({ startDate: e.target.value, page: 1 })}
             className={inputCls} />
-          <span className="text-slate-300 text-sm">→</span>
+          <span className="text-muted-foreground/50 text-sm">→</span>
           <input type="date" value={filters.endDate} onChange={e => onChange({ endDate: e.target.value, page: 1 })}
             className={inputCls} />
         </>
@@ -255,9 +255,9 @@ function FilterBar({
       </select>
 
       <div className="ml-auto flex gap-2">
-        {isLoading && <RefreshCw className="w-4 h-4 text-teal-500 animate-spin self-center" />}
+        {isLoading && <RefreshCw className="w-4 h-4 text-primary animate-spin self-center" />}
         <button onClick={onExport}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground border border-border rounded-xl hover:bg-muted/50 transition-colors">
           <Download className="w-4 h-4" /> Export CSV
         </button>
       </div>
@@ -269,8 +269,8 @@ function FilterBar({
 const ChartTooltip = ({ active, payload, label, currency = false }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-lg px-3 py-2 text-xs">
-      <p className="font-semibold text-slate-700 mb-1">{label}</p>
+    <div className="bg-white border border-border rounded-xl shadow-lg px-3 py-2 text-xs">
+      <p className="font-semibold text-foreground mb-1">{label}</p>
       {payload.map((p: any, i: number) => (
         <p key={i} style={{ color: p.color }} className="flex gap-2">
           <span>{p.name}:</span>
@@ -285,13 +285,13 @@ const ChartTooltip = ({ active, payload, label, currency = false }: any) => {
 function Paginator({ page, totalPages, onChange }: { page: number; totalPages: number; onChange: (p: number) => void }) {
   if (totalPages <= 1) return null;
   return (
-    <div className="flex items-center justify-between px-5 py-3 border-t border-slate-50 text-xs text-slate-500">
+    <div className="flex items-center justify-between px-5 py-3 border-t border-border/40 text-xs text-muted-foreground">
       <span>Page {page} of {totalPages}</span>
       <div className="flex gap-2">
         <button disabled={page <= 1} onClick={() => onChange(page - 1)}
-          className="px-3 py-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors">Prev</button>
+          className="px-3 py-1.5 rounded-lg border border-border disabled:opacity-40 hover:bg-muted/50 transition-colors">Prev</button>
         <button disabled={page >= totalPages} onClick={() => onChange(page + 1)}
-          className="px-3 py-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors">Next</button>
+          className="px-3 py-1.5 rounded-lg border border-border disabled:opacity-40 hover:bg-muted/50 transition-colors">Next</button>
       </div>
     </div>
   );
@@ -318,9 +318,9 @@ function PatientVisitsPanel({ report, onPageChange }: { report: PatientVisitsRep
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-slate-100">
+              <tr className="border-b border-border/60">
                 {['Visit Code', 'Date', 'Patient', 'Dentist', 'Procedures', 'Procedure Sessions', 'Status', 'Total'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left font-semibold text-slate-500 whitespace-nowrap">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
                 ))}
                 <th className="px-4 py-3" />
               </tr>
@@ -334,9 +334,9 @@ function PatientVisitsPanel({ report, onPageChange }: { report: PatientVisitsRep
                   <div className="space-y-2">
                     {v.diagnosis.length > 0 && (
                       <div>
-                        <span className="text-xs font-semibold text-slate-500 mr-2">Diagnoses:</span>
+                        <span className="text-xs font-semibold text-muted-foreground mr-2">Diagnoses:</span>
                         {v.diagnosis.map((d, i) => (
-                          <span key={i} className="mr-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-[10px] font-medium">
+                          <span key={i} className="mr-1 px-2 py-0.5 bg-primary-muted/60 text-primary rounded-full text-[10px] font-medium">
                             {d}
                           </span>
                         ))}
@@ -344,8 +344,8 @@ function PatientVisitsPanel({ report, onPageChange }: { report: PatientVisitsRep
                     )}
 
                     {v.treatmentProcedures?.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-slate-200">
-                        <span className="text-xs font-semibold text-slate-500 mr-2">Planned Treatment Procedures:</span>
+                      <div className="mt-2 pt-2 border-t border-border">
+                        <span className="text-xs font-semibold text-muted-foreground mr-2">Planned Treatment Procedures:</span>
                         <div className="flex flex-wrap gap-1">
                           {v.treatmentProcedures.map((tp, i) => (
                             <span key={i} className="px-2 py-0.5 bg-violet-50 text-violet-700 rounded-full text-[10px] font-medium">
@@ -359,8 +359,8 @@ function PatientVisitsPanel({ report, onPageChange }: { report: PatientVisitsRep
                     )}
 
                     {v.procedureSessions?.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-slate-200">
-                        <span className="text-xs font-semibold text-slate-500 mr-2">Procedure Sessions:</span>
+                      <div className="mt-2 pt-2 border-t border-border">
+                        <span className="text-xs font-semibold text-muted-foreground mr-2">Procedure Sessions:</span>
                         <div className="flex flex-wrap gap-1">
                           {v.procedureSessions.map((ps, i) => (
                             <span key={i} className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full text-[10px] font-medium">
@@ -376,35 +376,35 @@ function PatientVisitsPanel({ report, onPageChange }: { report: PatientVisitsRep
                     )}
 
                     {v.followUpDate && (
-                      <p className="text-xs text-slate-500">
-                        Follow-up: <span className="font-medium text-slate-700">{shortDate(v.followUpDate)}</span>
+                      <p className="text-xs text-muted-foreground">
+                        Follow-up: <span className="font-medium text-foreground">{shortDate(v.followUpDate)}</span>
                       </p>
                     )}
 
                   </div>
                 }>
-                  <td className="px-4 py-3 font-mono font-semibold text-teal-600">{v.visitCode}</td>
-                  <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{shortDate(v.createdAt)}</td>
+                  <td className="px-4 py-3 font-mono font-semibold text-primary">{v.visitCode}</td>
+                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{shortDate(v.createdAt)}</td>
                   <td className="px-4 py-3">
-                    <p className="font-medium text-slate-800">{v.patientName}</p>
-                    <p className="text-slate-400">{v.patientCode}</p>
+                    <p className="font-medium text-foreground">{v.patientName}</p>
+                    <p className="text-muted-foreground/70">{v.patientCode}</p>
                   </td>
-                  <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{v.dentistName}</td>
+                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{v.dentistName}</td>
                   <td className="px-4 py-3 text-center">
-                    <span className="px-2 py-0.5 bg-slate-100 rounded-full font-semibold text-slate-700">
+                    <span className="px-2 py-0.5 bg-muted rounded-full font-semibold text-foreground">
                       {v.procedureCount}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className="px-2 py-0.5 bg-slate-100 rounded-full font-semibold text-slate-700">
+                    <span className="px-2 py-0.5 bg-muted rounded-full font-semibold text-foreground">
                       {v.sessionCount}
                     </span>
                   </td>
                   <td className="px-4 py-3"><Badge status={v.status} /></td>
                   {/* <td className="px-4 py-3"><Badge status={v.paymentStatus} /></td> */}
                   <td className="px-4 py-3">
-                    <p className="font-semibold text-slate-800">{formatCurrency(v.amountPaid ?? 0)}</p>
-                    {/* {v.balance > 0 && <p className="text-red-500 text-[10px]">Bal: {formatCurrency(v.balance)}</p>} */}
+                    <p className="font-semibold text-foreground">{formatCurrency(v.amountPaid ?? 0)}</p>
+                    {/* {v.balance > 0 && <p className="text-danger text-[10px]">Bal: {formatCurrency(v.balance)}</p>} */}
                   </td>
                 </CollapsibleRow>
               ))}
@@ -475,17 +475,17 @@ export function VisitReports() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2 text-xs text-slate-400 mb-0">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground/70 mb-0">
             <span>Reports</span>
             <ChevronRight className="w-3 h-3" />
-            <span className="text-teal-600 font-medium">Patient Visits</span>
+            <span className="text-primary font-medium">Patient Visits</span>
           </div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Patient Visits Report</h2>
-          {/* <p className="text-sm text-slate-500 mt-0.5">All visits with procedures, payments & diagnoses</p> */}
+          <h2 className="text-2xl font-bold text-foreground tracking-tight">Patient Visits Report</h2>
+          {/* <p className="text-sm text-muted-foreground mt-0.5">All visits with procedures, payments & diagnoses</p> */}
         </div>
         <button onClick={() => refetch()}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
-          <RefreshCw className={cn('w-4 h-4', isLoading && 'animate-spin text-teal-500')} />
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground border border-border rounded-xl hover:bg-muted/50 transition-colors">
+          <RefreshCw className={cn('w-4 h-4', isLoading && 'animate-spin text-primary')} />
           Refresh
         </button>
       </div>
@@ -504,15 +504,15 @@ export function VisitReports() {
 
       {isError && (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center">
-            <FileText className="w-7 h-7 text-red-400" />
+          <div className="w-14 h-14 rounded-2xl bg-danger-muted/60 flex items-center justify-center">
+            <FileText className="w-7 h-7 text-danger/70" />
           </div>
           <div className="text-center">
-            <p className="font-semibold text-slate-700">Failed to load visits report</p>
-            <p className="text-sm text-slate-400 mt-1">Check your connection and try again</p>
+            <p className="font-semibold text-foreground">Failed to load visits report</p>
+            <p className="text-sm text-muted-foreground/70 mt-1">Check your connection and try again</p>
           </div>
           <button onClick={() => refetch()}
-            className="px-5 py-2 bg-teal-600 text-white text-sm font-medium rounded-xl hover:bg-teal-700 transition-colors">
+            className="px-5 py-2 bg-primary text-white text-sm font-medium rounded-xl hover:bg-primary transition-colors">
             Retry
           </button>
         </div>

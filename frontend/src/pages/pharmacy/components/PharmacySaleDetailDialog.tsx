@@ -135,11 +135,11 @@ export function PharmacySaleDetailDialog({ sale, open, onOpenChange, onAddPaymen
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Amount Paid</span>
-                <span className="text-green-600">{formatCurrency(sale.amountPaid)}</span>
+                <span className="text-success">{formatCurrency(sale.amountPaid)}</span>
               </div>
               <div className="flex justify-between pt-2 border-t">
                 <span className="font-medium">Balance</span>
-                <span className={`font-bold ${sale.balance > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                <span className={`font-bold ${sale.balance > 0 ? 'text-warning' : 'text-success'}`}>
                   {formatCurrency(sale.balance)}
                 </span>
               </div>

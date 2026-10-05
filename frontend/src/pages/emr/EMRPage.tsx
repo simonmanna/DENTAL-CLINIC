@@ -35,10 +35,10 @@ export function EMRPage() {
       <PageHeader title="Electronic Medical Records" subtitle="SOAP notes, clinical records and patient histories"
         actions={<Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowCreate(true)}>New EMR Record</Button>} />
 
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-8 text-center">
-        <FileText className="w-12 h-12 mx-auto text-slate-300 mb-3" />
-        <p className="text-slate-600 font-medium">Search by patient or navigate from Patient Detail</p>
-        <p className="text-slate-400 text-sm mt-1">Go to a patient profile and select the Medical Records tab to view their EMR history</p>
+      <div className="bg-white rounded-xl border border-border/60 shadow-sm p-8 text-center">
+        <FileText className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
+        <p className="text-muted-foreground font-medium">Search by patient or navigate from Patient Detail</p>
+        <p className="text-muted-foreground/70 text-sm mt-1">Go to a patient profile and select the Medical Records tab to view their EMR history</p>
         <Button className="mt-4" variant="outline" onClick={() => navigate('/patients')}>Go to Patients</Button>
       </div>
 
@@ -58,7 +58,7 @@ export function EMRPage() {
 
           {/* Vitals */}
           <div>
-            <h3 className="text-sm font-semibold text-slate-700 mb-3">Vitals</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-3">Vitals</h3>
             <div className="grid grid-cols-3 gap-3">
               {[
                 { label: 'Blood Pressure', key: 'bloodPressure', placeholder: '120/80 mmHg' },
@@ -77,7 +77,7 @@ export function EMRPage() {
 
           {/* SOAP */}
           <div>
-            <h3 className="text-sm font-semibold text-slate-700 mb-3">SOAP Notes</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-3">SOAP Notes</h3>
             <div className="grid grid-cols-2 gap-4">
               {[
                 { label: 'S — Subjective', key: 'subjective', placeholder: "Chief complaint, patient's description of symptoms..." },
@@ -88,7 +88,7 @@ export function EMRPage() {
                 <FormField key={field.key} label={field.label}>
                   <textarea value={form[field.key]} onChange={e => setForm({ ...form, [field.key]: e.target.value })}
                     rows={3} placeholder={field.placeholder}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 resize-none" />
                 </FormField>
               ))}
             </div>
@@ -103,7 +103,7 @@ export function EMRPage() {
             </FormField>
           </div>
 
-          <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+          <div className="flex justify-end gap-3 pt-2 border-t border-border/60">
             <Button variant="outline" type="button" onClick={() => setShowCreate(false)}>Cancel</Button>
             <Button type="submit" loading={createMutation.isPending}>Save EMR Record</Button>
           </div>
@@ -148,17 +148,17 @@ export function ImagingPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {records.length === 0 ? (
             <div className="col-span-full py-16 text-center">
-              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-muted-foreground/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <p className="text-slate-500 font-medium">No imaging records</p>
+              <p className="text-muted-foreground font-medium">No imaging records</p>
               <Button className="mt-4" onClick={() => setShowUpload(true)}>Upload First Image</Button>
             </div>
           ) : records.map((rec: any) => (
-            <div key={rec.id} className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-              <div className="aspect-video bg-gradient-to-br from-slate-800 to-slate-700 flex items-center justify-center relative">
+            <div key={rec.id} className="bg-white rounded-xl border border-border/60 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+              <div className="aspect-video bg-gradient-to-br from-foreground to-foreground flex items-center justify-center relative">
                 {rec.fileUrl ? (
                   <img src={rec.fileUrl} alt={rec.title} className="w-full h-full object-cover" onError={e => (e.currentTarget.style.display = 'none')} />
                 ) : null}
@@ -167,9 +167,9 @@ export function ImagingPage() {
                 </div>
               </div>
               <div className="p-3">
-                <p className="font-semibold text-slate-800 text-sm truncate">{rec.title}</p>
-                <p className="text-xs text-slate-500">{rec.patient?.firstName} {rec.patient?.lastName}</p>
-                <p className="text-xs text-slate-400 mt-1">{formatDateTime(rec.takenAt)}</p>
+                <p className="font-semibold text-foreground text-sm truncate">{rec.title}</p>
+                <p className="text-xs text-muted-foreground">{rec.patient?.firstName} {rec.patient?.lastName}</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">{formatDateTime(rec.takenAt)}</p>
               </div>
             </div>
           ))}
@@ -198,9 +198,9 @@ export function ImagingPage() {
           <FormField label="Findings">
             <textarea value={form.findings} onChange={e => setForm({ ...form, findings: e.target.value })} rows={2}
               placeholder="Clinical findings from this image..."
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 resize-none" />
           </FormField>
-          <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+          <div className="flex justify-end gap-3 pt-2 border-t border-border/60">
             <Button variant="outline" type="button" onClick={() => setShowUpload(false)}>Cancel</Button>
             <Button type="submit" loading={createMutation.isPending}>Upload</Button>
           </div>
@@ -251,30 +251,30 @@ export function PharmacyPage() {
 
       {/* Low stock alert */}
       {lowStock?.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
-          <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center shrink-0">
-            <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+        <div className="bg-warning-muted/60 border border-warning/25 rounded-xl p-4 flex items-center gap-3">
+          <div className="w-8 h-8 bg-warning-muted rounded-full flex items-center justify-center shrink-0">
+            <svg className="w-4 h-4 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
           </div>
-          <p className="text-sm text-amber-800 font-medium">{lowStock.length} drug(s) running low on stock. Restock needed.</p>
+          <p className="text-sm text-warning font-medium">{lowStock.length} drug(s) running low on stock. Restock needed.</p>
         </div>
       )}
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-slate-200">
+      <div className="flex gap-2 border-b border-border">
         {(['drugs', 'prescriptions'] as const).map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)}
             className={cn('px-4 py-2.5 text-sm font-medium border-b-2 transition-colors capitalize',
-              activeTab === tab ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700')}>
+              activeTab === tab ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground')}>
             {tab}
           </button>
         ))}
       </div>
 
       {activeTab === 'drugs' && (
-        <div className="bg-white rounded-xl border border-slate-100 shadow-sm">
-          <div className="p-4 border-b border-slate-100 flex items-center gap-3">
+        <div className="bg-white rounded-xl border border-border/60 shadow-sm">
+          <div className="p-4 border-b border-border/60 flex items-center gap-3">
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search drugs..."
-              className="flex-1 max-w-xs px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="flex-1 max-w-xs px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60" />
             <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowAddDrug(true)}>Add Drug</Button>
           </div>
           {drugsLoading ? <LoadingSpinner /> : (
@@ -282,22 +282,22 @@ export function PharmacyPage() {
               {drugsList.map((drug: any) => (
                 <Tr key={drug.id}>
                   <Td>
-                    <p className="font-semibold text-slate-800 text-sm">{drug.name}</p>
-                    <p className="text-xs text-slate-400">{drug.genericName}</p>
+                    <p className="font-semibold text-foreground text-sm">{drug.name}</p>
+                    <p className="text-xs text-muted-foreground/70">{drug.genericName}</p>
                   </Td>
-                  <Td><span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full">{drug.category}</span></Td>
-                  <Td><span className="text-sm text-slate-600">{drug.form} • {drug.strength}</span></Td>
+                  <Td><span className="px-2 py-0.5 bg-primary-muted/60 text-primary text-xs rounded-full">{drug.category}</span></Td>
+                  <Td><span className="text-sm text-muted-foreground">{drug.form} • {drug.strength}</span></Td>
                   <Td>
-                    <span className={cn('font-semibold text-sm', drug.stockQuantity <= drug.minStock ? 'text-red-600' : 'text-slate-800')}>
+                    <span className={cn('font-semibold text-sm', drug.stockQuantity <= drug.minStock ? 'text-danger' : 'text-foreground')}>
                       {drug.stockQuantity} {drug.unit}s
                     </span>
                     {drug.stockQuantity <= drug.minStock && (
-                      <span className="ml-2 text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">Low</span>
+                      <span className="ml-2 text-xs bg-danger-muted text-danger px-1.5 py-0.5 rounded-full">Low</span>
                     )}
                   </Td>
-                  <Td><span className="font-medium text-emerald-700 text-sm">{drug.sellPrice?.toLocaleString()} UGX</span></Td>
+                  <Td><span className="font-medium text-success text-sm">{drug.sellPrice?.toLocaleString()} UGX</span></Td>
                   <Td>
-                    <span className={cn('text-xs px-2 py-0.5 rounded-full', drug.requiresPrescription ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700')}>
+                    <span className={cn('text-xs px-2 py-0.5 rounded-full', drug.requiresPrescription ? 'bg-danger-muted/60 text-danger' : 'bg-success-muted/60 text-success')}>
                       {drug.requiresPrescription ? 'Rx' : 'OTC'}
                     </span>
                   </Td>
@@ -309,17 +309,17 @@ export function PharmacyPage() {
       )}
 
       {activeTab === 'prescriptions' && (
-        <div className="bg-white rounded-xl border border-slate-100 shadow-sm">
+        <div className="bg-white rounded-xl border border-border/60 shadow-sm">
           {rxLoading ? <LoadingSpinner /> : (
             <Table headers={['Code', 'Patient', 'Dentist', 'Items', 'Status', 'Date']}>
               {rxList.map((rx: any) => (
                 <Tr key={rx.id}>
-                  <Td><span className="font-mono text-sm text-blue-600">{rx.prescriptionCode}</span></Td>
-                  <Td><p className="text-sm font-medium text-slate-800">{rx.patient?.firstName} {rx.patient?.lastName}</p></Td>
-                  <Td><p className="text-sm text-slate-600">Dr. {rx.dentist?.firstName} {rx.dentist?.lastName}</p></Td>
-                  <Td><span className="text-sm text-slate-600">{rx.items?.length || 0} items</span></Td>
-                  <Td><span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', rx.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : rx.status === 'DISPENSED' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600')}>{rx.status}</span></Td>
-                  <Td><span className="text-xs text-slate-400">{formatDateTime(rx.createdAt)}</span></Td>
+                  <Td><span className="font-mono text-sm text-primary">{rx.prescriptionCode}</span></Td>
+                  <Td><p className="text-sm font-medium text-foreground">{rx.patient?.firstName} {rx.patient?.lastName}</p></Td>
+                  <Td><p className="text-sm text-muted-foreground">Dr. {rx.dentist?.firstName} {rx.dentist?.lastName}</p></Td>
+                  <Td><span className="text-sm text-muted-foreground">{rx.items?.length || 0} items</span></Td>
+                  <Td><span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', rx.status === 'ACTIVE' ? 'bg-success-muted text-success' : rx.status === 'DISPENSED' ? 'bg-primary-muted text-primary' : 'bg-muted text-muted-foreground')}>{rx.status}</span></Td>
+                  <Td><span className="text-xs text-muted-foreground/70">{formatDateTime(rx.createdAt)}</span></Td>
                 </Tr>
               ))}
             </Table>
@@ -348,7 +348,7 @@ export function PharmacyPage() {
               </label>
             </FormField>
           </div>
-          <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+          <div className="flex justify-end gap-3 pt-2 border-t border-border/60">
             <Button variant="outline" type="button" onClick={() => setShowAddDrug(false)}>Cancel</Button>
             <Button type="submit" loading={addDrugMutation.isPending}>Add Drug</Button>
           </div>

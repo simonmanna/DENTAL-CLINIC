@@ -83,26 +83,26 @@ export function SessionDeleteDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-foreground/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* UI CHANGE: Wider (max-w-2xl) and height-constrained (max-h-[90vh]) */}
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
 
         {/* ── Header ─────────────────────────────────────────────────────── */}
-        <div className="px-6 py-3 bg-red-50 border-b border-red-200 flex items-center justify-between shrink-0">
+        <div className="px-6 py-3 bg-danger-muted/60 border-b border-danger/25 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
-              <Trash2 className="w-4 h-4 text-red-600" />
+            <div className="w-8 h-8 rounded-lg bg-danger-muted flex items-center justify-center">
+              <Trash2 className="w-4 h-4 text-danger" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-red-900">Delete Session</h2>
-              <p className="text-xs text-red-600">
+              <h2 className="text-base font-semibold text-danger">Delete Session</h2>
+              <p className="text-xs text-danger">
                 Soft-deletes the session and reverses every side effect. Audit trail is preserved.
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-red-100 transition-colors">
-            <X className="w-4 h-4 text-red-500" />
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-danger-muted transition-colors">
+            <X className="w-4 h-4 text-danger" />
           </button>
         </div>
 
@@ -111,9 +111,9 @@ export function SessionDeleteDialog({
 
           {/* ── Invoiced block ─── */}
           {isBilled && (
-            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 border border-amber-300">
-              <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-              <p className="text-xs text-amber-900 font-medium">
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-warning-muted/60 border border-warning/30">
+              <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+              <p className="text-xs text-warning font-medium">
                 This session has been invoiced and cannot be deleted. Please raise a credit note
                 through the billing module to reverse the charge.
               </p>
@@ -121,12 +121,12 @@ export function SessionDeleteDialog({
           )}
 
           {/* ── Session summary ─── */}
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 space-y-2">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Session to delete</p>
-            <p className="text-sm font-semibold text-slate-800">
+          <div className="rounded-xl border border-border bg-muted/50 px-4 py-3 space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Session to delete</p>
+            <p className="text-sm font-semibold text-foreground">
               {session.sessionLabel ?? `Session #${session.sessionNumber}`}
             </p>
-            <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
               <span>{procedureName}</span>
               {session.performedDate && (
                 <span>{new Date(session.performedDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
@@ -135,14 +135,14 @@ export function SessionDeleteDialog({
             </div>
             {toothNumbers.length > 0 && (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500">Tooth {toothNumbers.join(', ')}</span>
+                <span className="text-xs text-muted-foreground">Tooth {toothNumbers.join(', ')}</span>
                 {surfaces.length > 0 && (
                   <div className="flex gap-1">
                     {surfaces.map((s) => (
                       <span
                         key={s}
                         title={surfaceLabel(s)}
-                        className="text-[10px] font-mono bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded"
+                        className="text-[10px] font-mono bg-muted text-muted-foreground px-1.5 py-0.5 rounded"
                       >
                         {surfaceShort(s)}
                       </span>
@@ -155,19 +155,19 @@ export function SessionDeleteDialog({
 
           {/* ── Consequences ─── */}
           <div className="space-y-1.5">
-            <p className="text-xs font-semibold text-slate-600">This will:</p>
+            <p className="text-xs font-semibold text-muted-foreground">This will:</p>
             <div className="space-y-1">
               {[
-                { icon: Trash2,     text: 'Soft-delete this session (kept for audit, hidden from lists)', color: 'text-red-500' },
-                { icon: FileText,   text: `Void ${toothNumbers.length} chart entr${toothNumbers.length !== 1 ? 'ies' : 'y'} created during this session`, color: 'text-red-500' },
-                { icon: FileText,   text: 'Restore PLANNED status on the dental chart for affected teeth', color: 'text-amber-500' },
+                { icon: Trash2,     text: 'Soft-delete this session (kept for audit, hidden from lists)', color: 'text-danger' },
+                { icon: FileText,   text: `Void ${toothNumbers.length} chart entr${toothNumbers.length !== 1 ? 'ies' : 'y'} created during this session`, color: 'text-danger' },
+                { icon: FileText,   text: 'Restore PLANNED status on the dental chart for affected teeth', color: 'text-warning' },
                 ...(hasPendingLedger
-                  ? [{ icon: DollarSign, text: 'Void the pending ledger entry for this session', color: 'text-amber-500' }]
+                  ? [{ icon: DollarSign, text: 'Void the pending ledger entry for this session', color: 'text-warning' }]
                   : []),
-                { icon: ImageIcon,  text: 'Unlink any imaging records (the images themselves are preserved)', color: 'text-slate-500' },
-                { icon: ClipboardX, text: 'Remove this session from any linked progress reports (reports themselves are preserved)', color: 'text-slate-500' },
+                { icon: ImageIcon,  text: 'Unlink any imaging records (the images themselves are preserved)', color: 'text-muted-foreground' },
+                { icon: ClipboardX, text: 'Remove this session from any linked progress reports (reports themselves are preserved)', color: 'text-muted-foreground' },
               ].map((item, i) => (
-                <div key={i} className="flex items-center gap-2 text-xs text-slate-600">
+                <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
                   <item.icon className={`w-3.5 h-3.5 ${item.color} shrink-0`} />
                   {item.text}
                 </div>
@@ -177,13 +177,13 @@ export function SessionDeleteDialog({
 
           {/* ── Reason ─── */}
           <div>
-            <label className="text-sm font-semibold text-slate-700 block mb-2">
-              Reason for deletion <span className="text-red-500">*</span>
+            <label className="text-sm font-semibold text-foreground block mb-2">
+              Reason for deletion <span className="text-danger">*</span>
             </label>
             <div className="space-y-1.5">
               {DELETE_REASONS.map((r) => (
                 <label key={r.value} className={`flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors ${
-                  reason === r.value ? 'border-red-300 bg-red-50' : 'border-slate-200 hover:border-slate-300'
+                  reason === r.value ? 'border-danger/30 bg-danger-muted/60' : 'border-border hover:border-input'
                 }`}>
                   <input
                     type="radio"
@@ -191,9 +191,9 @@ export function SessionDeleteDialog({
                     value={r.value}
                     checked={reason === r.value}
                     onChange={() => setReason(r.value)}
-                    className="text-red-600 border-slate-300 focus:ring-red-500"
+                    className="text-danger border-input focus:ring-danger/60"
                   />
-                  <span className="text-xs text-slate-700">{r.label}</span>
+                  <span className="text-xs text-foreground">{r.label}</span>
                 </label>
               ))}
             </div>
@@ -203,21 +203,21 @@ export function SessionDeleteDialog({
                 value={customReason}
                 onChange={(e) => setCustomReason(e.target.value)}
                 placeholder="Describe the reason…"
-                className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="mt-2 w-full rounded-xl border border-input px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-danger/60"
               />
             )}
           </div>
 
           {/* ── Confirm ─── */}
           {!isBilled && (
-            <label className="flex items-start gap-2.5 p-3 rounded-xl border-2 border-slate-200 cursor-pointer hover:border-red-200 transition-colors">
+            <label className="flex items-start gap-2.5 p-3 rounded-xl border-2 border-border cursor-pointer hover:border-danger/25 transition-colors">
               <input
                 type="checkbox"
                 checked={confirmed}
                 onChange={(e) => setConfirmed(e.target.checked)}
-                className="mt-0.5 w-4 h-4 rounded border-slate-300 text-red-600 focus:ring-red-500"
+                className="mt-0.5 w-4 h-4 rounded border-input text-danger focus:ring-danger/60"
               />
-              <span className="text-xs text-slate-700">
+              <span className="text-xs text-foreground">
                 I understand this session will be soft-deleted and every side effect
                 created at execution time will be reversed. The action is logged in
                 the audit trail.
@@ -227,17 +227,17 @@ export function SessionDeleteDialog({
         </div>
 
         {/* ── Footer ─────────────────────────────────────────────────────── */}
-        <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
+        <div className="px-6 py-3 bg-muted/50 border-t border-border flex items-center justify-between shrink-0">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors"
+            className="px-4 py-2 text-sm rounded-lg border border-input bg-white text-foreground hover:bg-muted/50 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleVoid}
             disabled={voiding || !confirmed || isBilled || (reason === 'OTHER' && !customReason.trim())}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-danger text-white text-sm font-medium hover:bg-danger transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
             {voiding ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Deleting…</>

@@ -147,36 +147,36 @@ function RecordPaymentModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
         {/* Header — styled like Expenses PayExpenseDialog */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border/60">
           <div>
-            <h2 className="text-lg font-bold text-slate-800">Process Payment</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Record cash-out and mark as paid</p>
+            <h2 className="text-lg font-bold text-foreground">Process Payment</h2>
+            <p className="text-xs text-muted-foreground/70 mt-0.5">Record cash-out and mark as paid</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-100">
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-muted">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-6 space-y-4">
           {/* Summary Card — slate gradient like Expenses */}
-          <div className="p-4 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 text-white">
+          <div className="p-4 rounded-xl bg-gradient-to-br from-foreground to-foreground text-white">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs text-slate-400 font-medium uppercase">Paying</p>
+                <p className="text-xs text-muted-foreground/70 font-medium uppercase">Paying</p>
                 <p className="font-semibold text-sm mt-0.5">{po.supplier?.name}</p>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-muted-foreground/70 mt-0.5">
                   {po.poNumber}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-slate-400 font-medium uppercase">Balance Due</p>
+                <p className="text-xs text-muted-foreground/70 font-medium uppercase">Balance Due</p>
                 <p className="text-2xl font-bold">{formatUGX(po.balance)}</p>
               </div>
             </div>
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+            <div className="flex items-center gap-2 p-3 bg-danger-muted/60 border border-danger/25 rounded-xl text-danger text-sm">
               <AlertCircle className="w-4 h-4 shrink-0" />
               {error}
             </div>
@@ -184,14 +184,14 @@ function RecordPaymentModal({
 
           {/* Amount */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
               Amount (UGX) *
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">UGX</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground/70">UGX</span>
               <input
                 type="number"
-                className="w-full pl-12 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+                className="w-full pl-12 pr-3 py-2.5 bg-muted/50 border border-border rounded-xl text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40"
                 value={form.amount}
                 onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value }))}
                 min={0}
@@ -200,19 +200,19 @@ function RecordPaymentModal({
               />
             </div>
             {+form.amount > po.balance && (
-              <p className="text-xs text-red-500 mt-1">Amount exceeds remaining balance</p>
+              <p className="text-xs text-danger mt-1">Amount exceeds remaining balance</p>
             )}
           </div>
 
           {/* Paid By — matches Expenses UserSelector pattern */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
               Paid By *
             </label>
             <div className="relative">
-              <UserCheck className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <UserCheck className="w-4 h-4 text-muted-foreground/70 absolute left-3 top-1/2 -translate-y-1/2" />
               <select
-                className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 appearance-none cursor-pointer"
+                className="w-full pl-10 pr-8 py-2.5 bg-muted/50 border border-border rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 appearance-none cursor-pointer"
                 value={form.paidBy}
                 onChange={(e) => setForm((p) => ({ ...p, paidBy: e.target.value }))}
               >
@@ -223,17 +223,17 @@ function RecordPaymentModal({
                   </option>
                 ))}
               </select>
-              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-4 h-4 text-muted-foreground/70 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
 
           {/* Account */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
               Debit from Account *
             </label>
             <select
-              className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+              className="w-full px-3 py-2.5 bg-muted/50 border border-border rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40"
               value={form.accountId}
               onChange={(e) => setForm((p) => ({ ...p, accountId: e.target.value }))}
             >
@@ -245,7 +245,7 @@ function RecordPaymentModal({
               ))}
             </select>
             {selectedAccount && (
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground/70 mt-1">
                 Balance after: UGX{" "}
                 {(selectedAccount.currentBalance - (+form.amount || 0)).toLocaleString()}
               </p>
@@ -254,11 +254,11 @@ function RecordPaymentModal({
 
           {/* Payment Method */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
               Payment Method *
             </label>
             <select
-              className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+              className="w-full px-3 py-2.5 bg-muted/50 border border-border rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40"
               value={form.method}
               onChange={(e) => setForm((p) => ({ ...p, method: e.target.value }))}
             >
@@ -272,11 +272,11 @@ function RecordPaymentModal({
 
           {/* Reference */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
               Reference / Txn ID
             </label>
             <input
-              className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+              className="w-full px-3 py-2.5 bg-muted/50 border border-border rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40"
               value={form.reference}
               onChange={(e) => setForm((p) => ({ ...p, reference: e.target.value }))}
               placeholder="Optional"
@@ -285,11 +285,11 @@ function RecordPaymentModal({
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
               Payment Notes
             </label>
             <textarea
-              className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+              className="w-full px-3 py-2.5 bg-muted/50 border border-border rounded-xl text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40"
               rows={2}
               value={form.notes}
               onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
@@ -299,17 +299,17 @@ function RecordPaymentModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-3">
+        <div className="px-6 py-4 border-t border-border/60 flex items-center justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted rounded-xl transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handlePay}
             disabled={saving || !canSubmit}
-            className="px-5 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors shadow-md shadow-emerald-200"
+            className="px-5 py-2 bg-success text-white text-sm font-semibold rounded-xl hover:bg-success disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors shadow-md shadow-emerald-200"
           >
             <CreditCard className="w-4 h-4" />
             {saving ? "Processing…" : "Confirm Payment"}
@@ -360,15 +360,15 @@ export default function PurchaseOrderDetailPage() {
     );
   if (!po)
     return (
-      <div className="p-20 text-center text-slate-500">Order not found</div>
+      <div className="p-20 text-center text-muted-foreground">Order not found</div>
     );
 
   const currentStep = STEPS.indexOf(po.status);
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-900">
+    <div className="min-h-screen bg-[#f8fafc] font-sans text-foreground">
       {/* 1. TOP WIZARD BAR */}
-      <div className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-20">
+      <div className="bg-white border-b border-border shadow-sm sticky top-0 z-20">
         <div className="max-w-[1600px] mx-auto px-6 py-4">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             {/* Back & ID */}
@@ -377,22 +377,22 @@ export default function PurchaseOrderDetailPage() {
                 variant="outline"
                 size="icon"
                 onClick={() => navigate(-1)}
-                className="rounded-full h-10 w-10 border-slate-200 text-slate-500 hover:text-sky-600 hover:border-sky-200"
+                className="rounded-full h-10 w-10 border-border text-muted-foreground hover:text-primary hover:border-primary/25"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">
                   {po.poNumber}
                 </h1>
-                <p className="text-sm font-medium text-slate-500 flex items-center gap-1.5">
+                <p className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
                   <Circle className="h-3.5 w-3.5" /> {po.supplier?.name}
                 </p>
               </div>
             </div>
 
             {/* The "Wizard" Stepper */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl overflow-hidden hidden xl:flex">
+            <div className="flex items-center bg-muted p-1 rounded-xl overflow-hidden hidden xl:flex">
               {STEPS.map((step, idx) => {
                 const isActive = idx === currentStep;
                 const isCompleted = idx < currentStep;
@@ -402,20 +402,20 @@ export default function PurchaseOrderDetailPage() {
                     className={cn(
                       "flex items-center px-4 py-2 rounded-lg text-xs font-bold transition-all duration-300 gap-2",
                       isActive
-                        ? "bg-sky-600 text-white shadow-lg scale-105"
+                        ? "bg-primary text-white shadow-lg scale-105"
                         : isCompleted
-                          ? "text-sky-700"
-                          : "text-slate-400",
+                          ? "text-primary"
+                          : "text-muted-foreground/70",
                     )}
                   >
                     <div
                       className={cn(
                         "h-5 w-5 rounded-full flex items-center justify-center border-2",
                         isActive
-                          ? "border-white bg-sky-500"
+                          ? "border-white bg-primary"
                           : isCompleted
-                            ? "border-sky-200 bg-sky-50"
-                            : "border-slate-300",
+                            ? "border-primary/25 bg-primary-muted/60"
+                            : "border-input",
                       )}
                     >
                       {isCompleted ? (
@@ -429,7 +429,7 @@ export default function PurchaseOrderDetailPage() {
                       <ChevronRight
                         className={cn(
                           "h-4 w-4 ml-2",
-                          isCompleted ? "text-sky-200" : "text-slate-300",
+                          isCompleted ? "text-primary/50" : "text-muted-foreground/50",
                         )}
                       />
                     )}
@@ -442,7 +442,7 @@ export default function PurchaseOrderDetailPage() {
             <div className="flex items-center gap-2">
               {po.status === "DRAFT" && (
                 <Button
-                  className="bg-sky-600 hover:bg-sky-700 shadow-md shadow-sky-200 font-bold"
+                  className="bg-primary hover:bg-primary shadow-md shadow-sky-200 font-bold"
                   onClick={() => submitMutation.mutate(po.id)}
                 >
                   Submit for Approval
@@ -450,7 +450,7 @@ export default function PurchaseOrderDetailPage() {
               )}
               {po.status === "SUBMITTED" && (
                 <Button
-                  className="bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-200 font-bold"
+                  className="bg-success hover:bg-success shadow-md shadow-emerald-200 font-bold"
                   onClick={() =>
                     approveMutation.mutate({ id: po.id, data: {} })
                   }
@@ -461,7 +461,7 @@ export default function PurchaseOrderDetailPage() {
               {["APPROVED", "PARTIALLY_RECEIVED"].includes(po.status) && (
                 <Button
                   variant="outline"
-                  className="border-sky-600 text-sky-600 hover:bg-sky-50 font-bold"
+                  className="border-primary text-primary hover:bg-primary-muted/60 font-bold"
                   onClick={() => setShowDelivery(true)}
                 >
                   <Truck className="mr-2 h-4 w-4" /> Record Receipt
@@ -470,7 +470,7 @@ export default function PurchaseOrderDetailPage() {
               {po.balance > 0 && po.status !== "DRAFT" && po.status !== "CANCELLED" && (
                 <Button
                   variant="outline"
-                  className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 font-bold"
+                  className="border-success text-success hover:bg-success-muted/60 font-bold"
                   onClick={() => setShowPayment(true)}
                 >
                   <CreditCard className="mr-2 h-4 w-4" /> Record Payment
@@ -488,16 +488,16 @@ export default function PurchaseOrderDetailPage() {
             {/* 1. KEY INFO GRID */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card className="border-none shadow-sm bg-white overflow-hidden group">
-                <div className="h-1 bg-sky-500 w-full" />
+                <div className="h-1 bg-primary w-full" />
                 <CardContent className="p-5 flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-sky-50 text-sky-600 group-hover:scale-110 transition-transform">
+                  <div className="p-3 rounded-xl bg-primary-muted/60 text-primary group-hover:scale-110 transition-transform">
                     <Calendar className="h-6 w-6" />
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    <p className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-wider">
                       Expected Delivery
                     </p>
-                    <p className="text-base font-bold text-slate-800">
+                    <p className="text-base font-bold text-foreground">
                       {po.expectedDate
                         ? format(new Date(po.expectedDate), "EEE, dd MMM yyyy")
                         : "Not Set"}
@@ -513,10 +513,10 @@ export default function PurchaseOrderDetailPage() {
                     <MapPin className="h-6 w-6" />
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    <p className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-wider">
                       Shipping To
                     </p>
-                    <p className="text-base font-bold text-slate-800">
+                    <p className="text-base font-bold text-foreground">
                       {po.location?.name}
                     </p>
                   </div>
@@ -524,16 +524,16 @@ export default function PurchaseOrderDetailPage() {
               </Card>
 
               <Card className="border-none shadow-sm bg-white overflow-hidden group">
-                <div className="h-1 bg-amber-500 w-full" />
+                <div className="h-1 bg-warning w-full" />
                 <CardContent className="p-5 flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-amber-50 text-amber-600 group-hover:scale-110 transition-transform">
+                  <div className="p-3 rounded-xl bg-warning-muted/60 text-warning group-hover:scale-110 transition-transform">
                     <Info className="h-6 w-6" />
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    <p className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-wider">
                       Payment Terms
                     </p>
-                    <p className="text-base font-bold text-slate-800">
+                    <p className="text-base font-bold text-foreground">
                       {po.paymentTerms?.replace(/_/g, " ")}
                     </p>
                   </div>
@@ -544,29 +544,29 @@ export default function PurchaseOrderDetailPage() {
             {/* 2. TABLE AREA WITH PAYMENTS TAB */}
             <Card className="border-none shadow-sm bg-white overflow-hidden">
               <Tabs defaultValue="items" className="w-full">
-                <div className="px-6 pt-1 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="px-6 pt-1 border-b border-border/60 flex items-center justify-between bg-muted/50">
                   <TabsList className="bg-transparent gap-6">
                     <TabsTrigger
                       value="items"
-                      className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-600 data-[state=active]:text-sky-600 font-bold px-0 pb-4"
+                      className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary font-bold px-0 pb-4"
                     >
                       Purchase Items
                     </TabsTrigger>
                     <TabsTrigger
                       value="history"
-                      className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-600 data-[state=active]:text-sky-600 font-bold px-0 pb-4"
+                      className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary font-bold px-0 pb-4"
                     >
                       Order History
                     </TabsTrigger>
                     <TabsTrigger
                       value="payments"
-                      className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-600 data-[state=active]:text-sky-600 font-bold px-0 pb-4"
+                      className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary font-bold px-0 pb-4"
                     >
                       Payments
                       {po.payments?.length > 0 && (
                         <Badge
                           variant="secondary"
-                          className="ml-2 bg-emerald-100 text-emerald-700"
+                          className="ml-2 bg-success-muted text-success"
                         >
                           {po.payments.length}
                         </Badge>
@@ -575,7 +575,7 @@ export default function PurchaseOrderDetailPage() {
                   </TabsList>
                   <Badge
                     variant="outline"
-                    className="mb-4 bg-white text-slate-500 border-slate-200"
+                    className="mb-4 bg-white text-muted-foreground border-border"
                   >
                     {po.items?.length} Items
                   </Badge>
@@ -583,18 +583,18 @@ export default function PurchaseOrderDetailPage() {
 
                 <TabsContent value="items" className="m-0">
                   <Table>
-                    <TableHeader className="bg-slate-50/50">
+                    <TableHeader className="bg-muted/50">
                       <TableRow>
-                        <TableHead className="w-[400px] font-bold text-slate-700 py-4">
+                        <TableHead className="w-[400px] font-bold text-foreground py-4">
                           Item Description
                         </TableHead>
-                        <TableHead className="text-center font-bold text-slate-700">
+                        <TableHead className="text-center font-bold text-foreground">
                           Quantity
                         </TableHead>
-                        <TableHead className="text-right font-bold text-slate-700">
+                        <TableHead className="text-right font-bold text-foreground">
                           Unit Price
                         </TableHead>
-                        <TableHead className="text-right font-bold text-slate-700">
+                        <TableHead className="text-right font-bold text-foreground">
                           Total
                         </TableHead>
                       </TableRow>
@@ -603,11 +603,11 @@ export default function PurchaseOrderDetailPage() {
                       {po.items?.map((item: any) => (
                         <TableRow
                           key={item.id}
-                          className="hover:bg-slate-50/50 border-slate-100 group"
+                          className="hover:bg-muted/50 border-border/60 group"
                         >
                           <TableCell className="py-4">
                             <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
+                              <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-primary-muted group-hover:text-primary transition-colors">
                                 {item.itemType === "DRUG" ? (
                                   <Pill className="h-5 w-5" />
                                 ) : (
@@ -615,10 +615,10 @@ export default function PurchaseOrderDetailPage() {
                                 )}
                               </div>
                               <div>
-                                <p className="font-bold text-slate-900 leading-none mb-1">
+                                <p className="font-bold text-foreground leading-none mb-1">
                                   {item.itemName}
                                 </p>
-                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">
+                                <p className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-tighter">
                                   {item.itemType}
                                 </p>
                               </div>
@@ -626,19 +626,19 @@ export default function PurchaseOrderDetailPage() {
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="inline-flex flex-col items-center">
-                              <span className="font-bold text-slate-800">
+                              <span className="font-bold text-foreground">
                                 {item.quantityOrdered} {item.unit}
                               </span>
-                              <span className="text-[10px] font-bold text-emerald-600">
+                              <span className="text-[10px] font-bold text-success">
                                 Received: {item.quantityReceived}
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-right font-medium text-slate-600">
+                          <TableCell className="text-right font-medium text-muted-foreground">
                             {formatUGX(item.unitCost)}
                           </TableCell>
                           <TableCell className="text-right">
-                            <span className="font-bold text-slate-900">
+                            <span className="font-bold text-foreground">
                               {formatUGX(item.total)}
                             </span>
                           </TableCell>
@@ -659,15 +659,15 @@ export default function PurchaseOrderDetailPage() {
 
             {/* 3. NOTES AREA */}
             {po.notes && (
-              <div className="flex gap-4 p-6 bg-amber-50 border border-amber-100 rounded-2xl">
-                <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center text-amber-500 shadow-sm border border-amber-100">
+              <div className="flex gap-4 p-6 bg-warning-muted/60 border border-warning/20 rounded-2xl">
+                <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center text-warning shadow-sm border border-warning/20">
                   <FileText className="h-5 w-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-amber-900 mb-1">
+                  <h4 className="text-sm font-bold text-warning mb-1">
                     Additional Instructions
                   </h4>
-                  <p className="text-sm text-amber-800/80 leading-relaxed">
+                  <p className="text-sm text-warning/80 leading-relaxed">
                     {po.notes}
                   </p>
                 </div>
@@ -679,17 +679,17 @@ export default function PurchaseOrderDetailPage() {
           <div className="lg:col-span-4 space-y-4">
             {/* Financial Summary Card */}
             <Card className="border-none shadow-xl bg-white overflow-hidden">
-              <div className="bg-amber-700 px-6 pt-2 pb-1 text-white shadow-inner relative overflow-hidden">
+              <div className="bg-warning px-6 pt-2 pb-1 text-white shadow-inner relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4 opacity-10">
                   <AlertCircle className="h-24 w-24 -mr-8 -mt-8" />
                 </div>
 
                 <div className="relative z-10">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-bold uppercase tracking-widest text-amber-100">
+                    <span className="text-xs font-bold uppercase tracking-widest text-warning/40">
                       Grand Total
                     </span>
-                    <Badge className="bg-amber-800/40 text-white border-amber-400/30 backdrop-blur-sm">
+                    <Badge className="bg-warning/40 text-white border-warning/30 backdrop-blur-sm">
                       {po.status}
                     </Badge>
                   </div>
@@ -698,7 +698,7 @@ export default function PurchaseOrderDetailPage() {
                     {formatUGX(po.total)}
                   </h2>
 
-                  <div className="flex justify-between items-center text-xs font-medium text-amber-100 pt-4 border-t border-amber-500 mt-4">
+                  <div className="flex justify-between items-center text-xs font-medium text-warning/40 pt-4 border-t border-warning/60 mt-4">
                     <span className="flex items-center gap-1.5 font-bold">
                       Balance Due:
                     </span>
@@ -711,23 +711,23 @@ export default function PurchaseOrderDetailPage() {
 
               <CardContent className="p-6 space-y-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500 font-medium">Subtotal</span>
-                  <span className="font-bold text-slate-800">
+                  <span className="text-muted-foreground font-medium">Subtotal</span>
+                  <span className="font-bold text-foreground">
                     {formatUGX(po.subtotal)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500 font-medium">Tax</span>
-                  <span className="font-bold text-slate-800">
+                  <span className="text-muted-foreground font-medium">Tax</span>
+                  <span className="font-bold text-foreground">
                     {formatUGX(po.taxAmount)}
                   </span>
                 </div>
-                <Separator className="bg-slate-100" />
+                <Separator className="bg-muted" />
                 <div className="flex justify-between text-sm pt-2">
-                  <span className="text-emerald-600 font-bold flex items-center gap-2">
+                  <span className="text-success font-bold flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4" /> Paid to Date
                   </span>
-                  <span className="font-bold text-emerald-600">
+                  <span className="font-bold text-success">
                     {formatUGX(po.amountPaid)}
                   </span>
                 </div>
@@ -741,7 +741,7 @@ export default function PurchaseOrderDetailPage() {
                       po.status === "CANCELLED" ||
                       po.balance <= 0
                     }
-                    className="w-full bg-green-600 text-white font-bold hover:bg-green-700 py-6 shadow-lg shadow-green-200 border-none transition-all active:scale-[0.98] disabled:bg-gray-400 disabled:cursor-not-allowed h-auto"
+                    className="w-full bg-success text-white font-bold hover:bg-success py-6 shadow-lg shadow-green-200 border-none transition-all active:scale-[0.98] disabled:bg-muted-foreground/70 disabled:cursor-not-allowed h-auto"
                   >
                     <CreditCard className="mr-2 h-4 w-4" />
                     Pay — Balance {formatUGX(po.balance)}
@@ -752,19 +752,19 @@ export default function PurchaseOrderDetailPage() {
 
             {/* Quick Stats/Metadata */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-slate-100">
-                <span className="text-xs font-bold text-slate-400 uppercase">
+              <div className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-border/60">
+                <span className="text-xs font-bold text-muted-foreground/70 uppercase">
                   PO ID
                 </span>
-                <span className="text-sm font-mono font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded">
+                <span className="text-sm font-mono font-bold text-primary bg-primary-muted/60 px-2 py-0.5 rounded">
                   #{poId.slice(-8).toUpperCase()}
                 </span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-slate-100">
-                <span className="text-xs font-bold text-slate-400 uppercase">
+              <div className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-border/60">
+                <span className="text-xs font-bold text-muted-foreground/70 uppercase">
                   Created By
                 </span>
-                <span className="text-sm font-bold text-slate-700">
+                <span className="text-sm font-bold text-foreground">
                   Procurement Team
                 </span>
               </div>

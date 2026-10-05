@@ -75,14 +75,14 @@ export function JournalTab() {
       key: 'entryNumber',
       header: 'Entry #',
       accessor: (e) => e.entryNumber,
-      cell: (e) => <span className="font-mono text-xs text-slate-500">{e.entryNumber}</span>,
+      cell: (e) => <span className="font-mono text-xs text-muted-foreground">{e.entryNumber}</span>,
     },
     {
       key: 'memo',
       header: 'Memo',
       accessor: (e) => e.memo,
       cell: (e) => (
-        <span className="block max-w-[320px] truncate font-medium text-slate-800" title={e.memo}>
+        <span className="block max-w-[320px] truncate font-medium text-foreground" title={e.memo}>
           {e.memo}
         </span>
       ),
@@ -93,11 +93,11 @@ export function JournalTab() {
       accessor: (e) => e.sourceType ?? '',
       cell: (e) =>
         e.sourceType ? (
-          <Badge variant="outline" className="bg-slate-50 text-slate-500 border-slate-200 font-normal">
+          <Badge variant="outline" className="bg-muted/50 text-muted-foreground border-border font-normal">
             {e.sourceType}
           </Badge>
         ) : (
-          <span className="text-slate-300">—</span>
+          <span className="text-muted-foreground/50">—</span>
         ),
     },
     {
@@ -117,8 +117,8 @@ export function JournalTab() {
           variant="outline"
           className={
             e.status === 'VOID'
-              ? 'bg-slate-100 text-slate-400 border-slate-200'
-              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              ? 'bg-muted text-muted-foreground/70 border-border'
+              : 'bg-success-muted/60 text-success border-success/25'
           }
         >
           {e.status}
@@ -135,14 +135,14 @@ export function JournalTab() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 hover:bg-amber-50"
+            className="h-8 w-8 hover:bg-warning-muted/60"
             title="Reverse entry"
             onClick={(ev) => {
               ev.stopPropagation();
               askReverse(e);
             }}
           >
-            <Undo2 className="h-4 w-4 text-amber-600" />
+            <Undo2 className="h-4 w-4 text-warning" />
           </Button>
         ) : null,
     },
@@ -208,37 +208,37 @@ function EntryDetailDialog({
                 variant="outline"
                 className={
                   entry.status === 'VOID'
-                    ? 'bg-slate-100 text-slate-400 border-slate-200'
-                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    ? 'bg-muted text-muted-foreground/70 border-border'
+                    : 'bg-success-muted/60 text-success border-success/25'
                 }
               >
                 {entry.status}
               </Badge>
               {entry.sourceType && (
-                <span className="text-slate-400">source: {entry.sourceType}</span>
+                <span className="text-muted-foreground/70">source: {entry.sourceType}</span>
               )}
             </div>
 
-            <div className="rounded-lg border border-slate-200 overflow-hidden">
+            <div className="rounded-lg border border-border overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="bg-sky-50 text-[#0369a1] text-[11px] uppercase tracking-wider">
+                    <TableHead className="bg-primary-muted/60 text-[#0369a1] text-[11px] uppercase tracking-wider">
                       Account
                     </TableHead>
-                    <TableHead className="bg-sky-50 text-[#0369a1] text-[11px] uppercase tracking-wider text-right">
+                    <TableHead className="bg-primary-muted/60 text-[#0369a1] text-[11px] uppercase tracking-wider text-right">
                       Debit
                     </TableHead>
-                    <TableHead className="bg-sky-50 text-[#0369a1] text-[11px] uppercase tracking-wider text-right">
+                    <TableHead className="bg-primary-muted/60 text-[#0369a1] text-[11px] uppercase tracking-wider text-right">
                       Credit
                     </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {entry.lines.map((l) => (
-                    <TableRow key={l.id} className="border-b border-slate-100">
+                    <TableRow key={l.id} className="border-b border-border/60">
                       <TableCell className="py-2">
-                        <span className="font-mono text-xs text-slate-500 mr-2">
+                        <span className="font-mono text-xs text-muted-foreground mr-2">
                           {l.account.code}
                         </span>
                         {l.account.name}
@@ -251,7 +251,7 @@ function EntryDetailDialog({
                       </TableCell>
                     </TableRow>
                   ))}
-                  <TableRow className="bg-slate-50 font-semibold">
+                  <TableRow className="bg-muted/50 font-semibold">
                     <TableCell className="py-2 text-right">Totals</TableCell>
                     <TableCell className="py-2 text-right font-mono tabular-nums">
                       {fmtMoney(totalDr)}
@@ -272,7 +272,7 @@ function EntryDetailDialog({
             {entry.status === 'POSTED' && (
               <Button
                 variant="outline"
-                className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                className="border-warning/30 text-warning hover:bg-warning-muted/60"
                 onClick={() => onReverse(entry)}
               >
                 <Undo2 className="h-4 w-4 mr-1" /> Reverse Entry
@@ -368,25 +368,25 @@ function ManualEntryDialog({
             </div>
           </div>
 
-          <div className="rounded-lg border border-slate-200 overflow-hidden">
+          <div className="rounded-lg border border-border overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="bg-sky-50 text-[#0369a1] text-[11px] uppercase tracking-wider">
+                  <TableHead className="bg-primary-muted/60 text-[#0369a1] text-[11px] uppercase tracking-wider">
                     Account
                   </TableHead>
-                  <TableHead className="bg-sky-50 text-[#0369a1] text-[11px] uppercase tracking-wider text-right w-32">
+                  <TableHead className="bg-primary-muted/60 text-[#0369a1] text-[11px] uppercase tracking-wider text-right w-32">
                     Debit
                   </TableHead>
-                  <TableHead className="bg-sky-50 text-[#0369a1] text-[11px] uppercase tracking-wider text-right w-32">
+                  <TableHead className="bg-primary-muted/60 text-[#0369a1] text-[11px] uppercase tracking-wider text-right w-32">
                     Credit
                   </TableHead>
-                  <TableHead className="bg-sky-50 w-8" />
+                  <TableHead className="bg-primary-muted/60 w-8" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {lines.map((l, i) => (
-                  <TableRow key={i} className="border-b border-slate-100">
+                  <TableRow key={i} className="border-b border-border/60">
                     <TableCell className="py-1.5">
                       <Select value={l.code} onValueChange={(v) => setLine(i, { code: v })}>
                         <SelectTrigger className="h-9">
@@ -425,7 +425,7 @@ function ManualEntryDialog({
                         disabled={lines.length <= 2}
                         onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}
                       >
-                        <Trash2 className="h-4 w-4 text-rose-400" />
+                        <Trash2 className="h-4 w-4 text-danger/70" />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -445,9 +445,9 @@ function ManualEntryDialog({
             <div className="text-sm font-mono tabular-nums">
               DR {fmtMoney(totals.debit)} · CR {fmtMoney(totals.credit)}{' '}
               {totals.balanced ? (
-                <span className="text-emerald-600 font-sans font-medium">✓ balanced</span>
+                <span className="text-success font-sans font-medium">✓ balanced</span>
               ) : (
-                <span className="text-rose-500 font-sans font-medium">✗ unbalanced</span>
+                <span className="text-danger font-sans font-medium">✗ unbalanced</span>
               )}
             </div>
           </div>

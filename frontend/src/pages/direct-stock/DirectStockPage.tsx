@@ -289,7 +289,7 @@ export default function DirectStockPage() {
 
       {/* Feedback toast */}
       {feedback && (
-        <div className={`p-3 rounded-md text-sm ${feedback.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+        <div className={`p-3 rounded-md text-sm ${feedback.type === 'success' ? 'bg-success-muted/60 text-success border border-success/25' : 'bg-danger-muted/60 text-danger border border-danger/25'}`}>
           {feedback.message}
         </div>
       )}
@@ -299,11 +299,11 @@ export default function DirectStockPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Total Stock In Value</CardTitle></CardHeader>
-            <CardContent><p className="text-2xl font-bold text-green-600">KES {stats.totalInValue.toLocaleString()}</p></CardContent>
+            <CardContent><p className="text-2xl font-bold text-success">KES {stats.totalInValue.toLocaleString()}</p></CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Total Stock Out Value</CardTitle></CardHeader>
-            <CardContent><p className="text-2xl font-bold text-red-600">KES {stats.totalOutValue.toLocaleString()}</p></CardContent>
+            <CardContent><p className="text-2xl font-bold text-danger">KES {stats.totalOutValue.toLocaleString()}</p></CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Today In</CardTitle></CardHeader>
@@ -490,14 +490,14 @@ export default function DirectStockPage() {
                             <TableRow key={idx}>
                               <TableCell className="font-medium">{item.itemName}</TableCell>
                               <TableCell>
-                                <span className={`text-sm ${item.availableQty < item.quantity ? 'text-red-600 font-bold' : 'text-muted-foreground'}`}>
+                                <span className={`text-sm ${item.availableQty < item.quantity ? 'text-danger font-bold' : 'text-muted-foreground'}`}>
                                   {item.availableQty}
                                 </span>
                               </TableCell>
                               <TableCell>
                                 <Input type="number" min={0.001} max={item.availableQty} step="any" value={item.quantity}
                                   onChange={(e) => updateOutItem(idx, 'quantity', parseFloat(e.target.value) || 0)}
-                                  className={`h-8 w-20 ${item.quantity > item.availableQty ? 'border-red-500' : ''}`} />
+                                  className={`h-8 w-20 ${item.quantity > item.availableQty ? 'border-danger/60' : ''}`} />
                               </TableCell>
                               <TableCell>
                                 {item.batchTracking ? (
@@ -627,7 +627,7 @@ export default function DirectStockPage() {
                         <TableRow key={tx.code}>
                           <TableCell className="font-mono text-xs">{tx.code}</TableCell>
                           <TableCell>
-                            <Badge className={tx.type === 'IN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                            <Badge className={tx.type === 'IN' ? 'bg-success-muted text-success' : 'bg-danger-muted text-danger'}>
                               {tx.type === 'IN' ? 'IN' : 'OUT'}
                             </Badge>
                           </TableCell>

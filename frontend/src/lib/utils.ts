@@ -106,24 +106,24 @@ export function formatCurrency(
 
 // Status color mappings
 export const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  confirmed: 'bg-blue-100 text-blue-800 border-blue-200',
-  completed: 'bg-green-100 text-green-800 border-green-200',
-  cancelled: 'bg-red-100 text-red-800 border-red-200',
-  no_show: 'bg-gray-100 text-gray-800 border-gray-200',
-  active: 'bg-green-100 text-green-800 border-green-200',
-  inactive: 'bg-gray-100 text-gray-800 border-gray-200',
-  paid: 'bg-green-100 text-green-800 border-green-200',
-  unpaid: 'bg-red-100 text-red-800 border-red-200',
-  partially_paid: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  overdue: 'bg-red-100 text-red-800 border-red-200',
-  low: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  medium: 'bg-blue-100 text-blue-800 border-blue-200',
-  high: 'bg-red-100 text-red-800 border-red-200',
-  healthy: 'bg-green-100 text-green-800 border-green-200',
-  decayed: 'bg-red-100 text-red-800 border-red-200',
-  filled: 'bg-blue-100 text-blue-800 border-blue-200',
-  missing: 'bg-gray-100 text-gray-800 border-gray-200',
+  pending: 'bg-warning-muted text-warning border-warning/25',
+  confirmed: 'bg-primary-muted text-primary border-primary/25',
+  completed: 'bg-success-muted text-success border-success/25',
+  cancelled: 'bg-danger-muted text-danger border-danger/25',
+  no_show: 'bg-muted text-foreground border-border',
+  active: 'bg-success-muted text-success border-success/25',
+  inactive: 'bg-muted text-foreground border-border',
+  paid: 'bg-success-muted text-success border-success/25',
+  unpaid: 'bg-danger-muted text-danger border-danger/25',
+  partially_paid: 'bg-warning-muted text-warning border-warning/25',
+  overdue: 'bg-danger-muted text-danger border-danger/25',
+  low: 'bg-warning-muted text-warning border-warning/25',
+  medium: 'bg-primary-muted text-primary border-primary/25',
+  high: 'bg-danger-muted text-danger border-danger/25',
+  healthy: 'bg-success-muted text-success border-success/25',
+  decayed: 'bg-danger-muted text-danger border-danger/25',
+  filled: 'bg-primary-muted text-primary border-primary/25',
+  missing: 'bg-muted text-foreground border-border',
   treated: 'bg-purple-100 text-purple-800 border-purple-200',
 }
 
@@ -151,13 +151,13 @@ export const PAYMENT_METHODS = [
 ] as const
 
 export const TOOTH_STATUS_COLORS: Record<string, string> = {
-  healthy: 'bg-emerald-500',
-  decayed: 'bg-red-500',
-  filled: 'bg-blue-500',
-  missing: 'bg-gray-400',
+  healthy: 'bg-success',
+  decayed: 'bg-danger',
+  filled: 'bg-primary',
+  missing: 'bg-muted-foreground/70',
   treated: 'bg-purple-500',
-  crown: 'bg-amber-500',
-  implant: 'bg-cyan-500',
+  crown: 'bg-warning',
+  implant: 'bg-primary',
 }
 
 // src/lib/utils.ts
@@ -235,12 +235,12 @@ export function getStatusVariant(status: string): StatusVariant {
 }
 
 const variantClasses: Record<StatusVariant, string> = {
-  success: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  warning: 'bg-amber-100 text-amber-700 border-amber-200',
-  danger: 'bg-red-100 text-red-700 border-red-200',
-  info: 'bg-blue-100 text-blue-700 border-blue-200',
-  muted: 'bg-gray-100 text-gray-600 border-gray-200',
-  default: 'bg-slate-100 text-slate-700 border-slate-200',
+  success: 'bg-success-muted text-success border-success/25',
+  warning: 'bg-warning-muted text-warning border-warning/25',
+  danger: 'bg-danger-muted text-danger border-danger/25',
+  info: 'bg-primary-muted text-primary border-primary/25',
+  muted: 'bg-muted text-muted-foreground border-border',
+  default: 'bg-muted text-foreground border-border',
 };
 
 export function statusBadgeClass(status: string): string {

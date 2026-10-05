@@ -20,7 +20,7 @@ import { GL_HEADER } from './components/theme';
 import { generalLedgerApi } from '@/lib/api/general-ledger';
 
 const TAB =
-  'data-[state=active]:bg-[#0369a1] data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md px-4 py-1.5 text-sm font-medium text-slate-600 transition-colors';
+  'data-[state=active]:bg-[#0369a1] data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors';
 
 /** Toggle automatic double-entry posting on/off. Accounting is optional: when
  *  off, expenses/invoices/payments still work but create no journal entries. */
@@ -54,7 +54,7 @@ function AutoPostingToggle() {
     <div className="ml-auto flex items-center gap-3 rounded-xl bg-white/10 px-4 py-2">
       <div className="text-right">
         <p className="text-sm font-semibold leading-tight">Auto-posting</p>
-        <p className="text-[11px] text-sky-100 leading-tight">
+        <p className="text-[11px] text-primary/40 leading-tight">
           {enabled === null
             ? 'Loading…'
             : enabled
@@ -73,7 +73,7 @@ function AutoPostingToggle() {
 
 export default function GeneralLedgerPage() {
   return (
-    <div className="min-h-screen bg-slate-50/60">
+    <div className="min-h-screen bg-muted/60">
       {/* Header banner */}
       <div className="px-6 pt-6">
         <div
@@ -87,7 +87,7 @@ export default function GeneralLedgerPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">General Ledger</h1>
-            <p className="text-sm text-sky-100">
+            <p className="text-sm text-primary/40">
               Double-entry accounting — chart of accounts, journal, and financial
               statements.
             </p>
@@ -98,7 +98,7 @@ export default function GeneralLedgerPage() {
 
       <div className="p-6">
         <Tabs defaultValue="accounts">
-          <TabsList className="bg-white border border-slate-200 p-1 h-auto shadow-sm">
+          <TabsList className="bg-white border border-border p-1 h-auto shadow-sm">
             <TabsTrigger value="accounts" className={TAB}>
               <ListTree className="h-4 w-4 mr-1.5" /> Chart of Accounts
             </TabsTrigger>

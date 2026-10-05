@@ -20,25 +20,25 @@ interface Props {
 }
 
 const statusColors: Record<string, string> = {
-  PLANNED: "bg-blue-100 text-blue-700 border-blue-200",
-  IN_PROGRESS: "bg-amber-100 text-amber-700 border-amber-200",
-  COMPLETED: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  ACTIVE: "bg-blue-100 text-blue-700 border-blue-200",
-  RESOLVED: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  CANCELLED: "bg-gray-100 text-gray-600 border-gray-200",
-  VOIDED: "bg-gray-100 text-gray-600 border-gray-200",
-  SCHEDULED: "bg-blue-100 text-blue-700 border-blue-200",
+  PLANNED: "bg-primary-muted text-primary border-primary/25",
+  IN_PROGRESS: "bg-warning-muted text-warning border-warning/25",
+  COMPLETED: "bg-success-muted text-success border-success/25",
+  ACTIVE: "bg-primary-muted text-primary border-primary/25",
+  RESOLVED: "bg-success-muted text-success border-success/25",
+  CANCELLED: "bg-muted text-muted-foreground border-border",
+  VOIDED: "bg-muted text-muted-foreground border-border",
+  SCHEDULED: "bg-primary-muted text-primary border-primary/25",
   MONITORED: "bg-purple-100 text-purple-700 border-purple-200",
-  IN_TREATMENT: "bg-amber-100 text-amber-700 border-amber-200",
-  RULED_OUT: "bg-gray-100 text-gray-600 border-gray-200",
-  ON_HOLD: "bg-orange-100 text-orange-700 border-orange-200",
-  PENDING: "bg-amber-100 text-amber-700 border-amber-200",
-  SKIPPED: "bg-gray-100 text-gray-600 border-gray-200",
+  IN_TREATMENT: "bg-warning-muted text-warning border-warning/25",
+  RULED_OUT: "bg-muted text-muted-foreground border-border",
+  ON_HOLD: "bg-warning-muted text-warning border-warning/25",
+  PENDING: "bg-warning-muted text-warning border-warning/25",
+  SKIPPED: "bg-muted text-muted-foreground border-border",
 };
 
 function Badge({ status, label }: { status: string; label?: string }) {
   const key = status?.toUpperCase().replace(/\s+/g, "_");
-  const colorClass = statusColors[key as keyof typeof statusColors] || "bg-gray-100 text-gray-600 border-gray-200";
+  const colorClass = statusColors[key as keyof typeof statusColors] || "bg-muted text-muted-foreground border-border";
   return (
     <span className={cn("inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border", colorClass)}>
       {label || status?.replace(/_/g, " ")}
@@ -50,7 +50,7 @@ function Section({
   title,
   children,
   icon: Icon,
-  iconBg = "bg-blue-600",
+  iconBg = "bg-primary",
   subtitle,
   className,
   noPadding,
@@ -67,15 +67,15 @@ function Section({
 }) {
   return (
     <div className={cn(
-      "print-section bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden",
+      "print-section bg-white rounded-2xl border border-border shadow-sm overflow-hidden",
       accentBorder ? "border-l-4 " + accentBorder : "",
       className
     )}>
       <div className={cn(
         "flex items-center gap-3",
         noPadding ? "px-4 py-2.5" : "px-5 py-3",
-        "border-b border-slate-100",
-        "bg-gradient-to-r from-slate-50/80 to-white"
+        "border-b border-border/60",
+        "bg-gradient-to-r from-muted/80 to-white"
       )}>
         {Icon && (
           <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0", iconBg)}>
@@ -83,8 +83,8 @@ function Section({
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <h2 className="text-sm font-bold text-slate-800 leading-tight">{title}</h2>
-          {subtitle && <p className="text-[11px] text-slate-400 mt-0.5 leading-tight">{subtitle}</p>}
+          <h2 className="text-sm font-bold text-foreground leading-tight">{title}</h2>
+          {subtitle && <p className="text-[11px] text-muted-foreground/70 mt-0.5 leading-tight">{subtitle}</p>}
         </div>
       </div>
       <div className={cn("no-print", !noPadding && "p-5")}>
@@ -107,12 +107,12 @@ function StatChip({
   color?: "blue" | "emerald" | "amber" | "purple" | "rose" | "slate";
 }) {
   const colorMap: Record<string, { bg: string; text: string; ring: string }> = {
-    blue:   { bg: "bg-blue-50",    text: "text-blue-700",  ring: "ring-blue-200" },
-    emerald:{ bg: "bg-emerald-50", text: "text-emerald-700", ring: "ring-emerald-200" },
-    amber:  { bg: "bg-amber-50",   text: "text-amber-700", ring: "ring-amber-200" },
+    blue:   { bg: "bg-primary-muted/60",    text: "text-primary",  ring: "ring-primary/25" },
+    emerald:{ bg: "bg-success-muted/60", text: "text-success", ring: "ring-success/25" },
+    amber:  { bg: "bg-warning-muted/60",   text: "text-warning", ring: "ring-warning/25" },
     purple: { bg: "bg-purple-50",  text: "text-purple-700", ring: "ring-purple-200" },
-    rose:   { bg: "bg-rose-50",    text: "text-rose-700", ring: "ring-rose-200" },
-    slate:  { bg: "bg-slate-100",  text: "text-slate-700", ring: "ring-slate-200" },
+    rose:   { bg: "bg-danger-muted/60",    text: "text-danger", ring: "ring-danger/25" },
+    slate:  { bg: "bg-muted",  text: "text-foreground", ring: "ring-border" },
   };
   const c = colorMap[color];
   return (
@@ -126,9 +126,9 @@ function StatChip({
 
 function DataRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-baseline gap-2 py-1.5 border-b border-slate-100/80 last:border-0">
-      <span className="text-xs font-semibold text-slate-500 w-36 shrink-0">{label}</span>
-      <span className="text-sm text-slate-800 font-medium">{value || "—"}</span>
+    <div className="flex items-baseline gap-2 py-1.5 border-b border-border/80 last:border-0">
+      <span className="text-xs font-semibold text-muted-foreground w-36 shrink-0">{label}</span>
+      <span className="text-sm text-foreground font-medium">{value || "—"}</span>
     </div>
   );
 }
@@ -136,8 +136,8 @@ function DataRow({ label, value }: { label: string; value: React.ReactNode }) {
 function InfoItem({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="py-1.5">
-      <span className="text-[11px] font-semibold text-slate-400 block uppercase tracking-wider">{label}</span>
-      <span className="text-sm text-slate-800 font-semibold">{value || "—"}</span>
+      <span className="text-[11px] font-semibold text-muted-foreground/70 block uppercase tracking-wider">{label}</span>
+      <span className="text-sm text-foreground font-semibold">{value || "—"}</span>
     </div>
   );
 }
@@ -145,26 +145,26 @@ function InfoItem({ label, value }: { label: string; value: React.ReactNode }) {
 function EmptyRow({ message, icon: Icon }: { message?: string; icon?: React.ElementType }) {
   return (
     <div className="flex flex-col items-center justify-center py-10 text-center">
-      {Icon && <Icon className="w-8 h-8 text-slate-300 mb-2" />}
-      <p className="text-sm text-slate-400 italic">{message || "No data recorded"}</p>
+      {Icon && <Icon className="w-8 h-8 text-muted-foreground/50 mb-2" />}
+      <p className="text-sm text-muted-foreground/70 italic">{message || "No data recorded"}</p>
     </div>
   );
 }
 
 function Table({ headers, children, className }: { headers: string[]; children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("overflow-x-auto rounded-xl border border-slate-200", className)}>
+    <div className={cn("overflow-x-auto rounded-xl border border-border", className)}>
       <table className="w-full text-sm border-collapse">
         <thead>
-          <tr className="bg-slate-50 border-b border-slate-200">
+          <tr className="bg-muted/50 border-b border-border">
             {headers.map((h, i) => (
-              <th key={i} className="text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider py-2.5 px-3 first:pl-4 last:pr-4">
+              <th key={i} className="text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider py-2.5 px-3 first:pl-4 last:pr-4">
                 {h}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">{children}</tbody>
+        <tbody className="divide-y divide-border/60">{children}</tbody>
       </table>
     </div>
   );
@@ -178,8 +178,8 @@ interface CellProps extends React.TdHTMLAttributes<HTMLTableCellElement> {
 function Cell({ children, className, bold, ...rest }: CellProps) {
   return (
     <td className={cn(
-      "py-2.5 px-3 text-sm text-slate-700 first:pl-4 last:pr-4",
-      bold && "font-semibold text-slate-800",
+      "py-2.5 px-3 text-sm text-foreground first:pl-4 last:pr-4",
+      bold && "font-semibold text-foreground",
       className
     )} {...rest}>{children}</td>
   );
@@ -263,14 +263,14 @@ export function PatientReportTab({ patientId, visit }: Props) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-        <span className="ml-3 text-sm text-slate-500">Compiling patient report…</span>
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <span className="ml-3 text-sm text-muted-foreground">Compiling patient report…</span>
       </div>
     );
   }
 
   if (!patient) {
-    return <p className="text-sm text-slate-400 py-10 text-center">Patient not found.</p>;
+    return <p className="text-sm text-muted-foreground/70 py-10 text-center">Patient not found.</p>;
   }
 
   const age = patient.dateOfBirth ? getAge(patient.dateOfBirth) : null;
@@ -405,20 +405,20 @@ export function PatientReportTab({ patientId, visit }: Props) {
 
   /* ─── Timeline icon map ────────────────────────────────────────────── */
   const timelineIconMap: Record<string, { Icon: React.ElementType; color: string; bg: string }> = {
-    registration: { Icon: User,                     color: "text-slate-600",  bg: "bg-slate-100" },
-    visit:        { Icon: CalendarDays,             color: "text-blue-600",   bg: "bg-blue-100" },
+    registration: { Icon: User,                     color: "text-muted-foreground",  bg: "bg-muted" },
+    visit:        { Icon: CalendarDays,             color: "text-primary",   bg: "bg-primary-muted" },
     plan:         { Icon: ClipboardList,            color: "text-purple-600", bg: "bg-purple-100" },
-    procedure:    { Icon: FlaskConical,             color: "text-amber-600",  bg: "bg-amber-100" },
-    session:      { Icon: CheckCircle,              color: "text-emerald-600",bg: "bg-emerald-100" },
+    procedure:    { Icon: FlaskConical,             color: "text-warning",  bg: "bg-warning-muted" },
+    session:      { Icon: CheckCircle,              color: "text-success",bg: "bg-success-muted" },
   };
 
   /* ─── Condition status config ───────────────────────────────────────── */
   const statusCfg: Record<string, { label: string; icon: any; color: string; bg: string; border: string; iconColor: string }> = {
-    ACTIVE:     { label: "Active",     icon: Activity,   color: "text-blue-700",   bg: "bg-blue-50",    border: "border-blue-200",    iconColor: "text-blue-600" },
+    ACTIVE:     { label: "Active",     icon: Activity,   color: "text-primary",   bg: "bg-primary-muted/60",    border: "border-primary/25",    iconColor: "text-primary" },
     MONITORED:  { label: "Monitored",  icon: Clock,      color: "text-purple-700", bg: "bg-purple-50",  border: "border-purple-200",  iconColor: "text-purple-600" },
-    IN_TREATMENT:{ label: "In Treatment",icon: Syringe,   color: "text-amber-700",  bg: "bg-amber-50",   border: "border-amber-200",   iconColor: "text-amber-600" },
-    RESOLVED:   { label: "Resolved",   icon: CheckCircle,color: "text-emerald-700",bg: "bg-emerald-50", border: "border-emerald-200",iconColor: "text-emerald-600" },
-    RULED_OUT:  { label: "Ruled Out",  icon: XCircle,    color: "text-gray-600",   bg: "bg-gray-50",    border: "border-gray-200",    iconColor: "text-gray-500" },
+    IN_TREATMENT:{ label: "In Treatment",icon: Syringe,   color: "text-warning",  bg: "bg-warning-muted/60",   border: "border-warning/25",   iconColor: "text-warning" },
+    RESOLVED:   { label: "Resolved",   icon: CheckCircle,color: "text-success",bg: "bg-success-muted/60", border: "border-success/25",iconColor: "text-success" },
+    RULED_OUT:  { label: "Ruled Out",  icon: XCircle,    color: "text-muted-foreground",   bg: "bg-muted/50",    border: "border-border",    iconColor: "text-muted-foreground" },
   };
   const groupOrder = ["ACTIVE", "IN_TREATMENT", "MONITORED", "RESOLVED", "RULED_OUT"];
 
@@ -456,12 +456,12 @@ export function PatientReportTab({ patientId, visit }: Props) {
           h2 { font-size: 12px !important; }
           .text-sm { font-size: 10px !important; }
           .text-xs { font-size: 9px !important; }
-          .text-gray-400 { color: #666 !important; }
-          .text-gray-500 { color: #666 !important; }
-          .text-gray-700 { color: #222 !important; }
-          .text-gray-800 { color: #000 !important; }
-          .bg-gray-50 { background: #f5f5f5 !important; }
-          .border-gray-200 { border-color: #ccc !important; }
+          .text-muted-foreground/70 { color: #666 !important; }
+          .text-muted-foreground { color: #666 !important; }
+          .text-foreground { color: #222 !important; }
+          .text-foreground { color: #000 !important; }
+          .bg-muted/50 { background: #f5f5f5 !important; }
+          .border-border { border-color: #ccc !important; }
         }
       `}</style>
 
@@ -469,19 +469,19 @@ export function PatientReportTab({ patientId, visit }: Props) {
       <div className="no-print mb-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-600/20">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-600/20">
               <FileText className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-slate-800 leading-tight">Patient Clinical Report</h1>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <h1 className="text-lg font-bold text-foreground leading-tight">Patient Clinical Report</h1>
+              <p className="text-xs text-muted-foreground/70 mt-0.5">
                 {patient.firstName} {patient.lastName} · {patient.patientCode || "—"} · Generated {generatedDate}
               </p>
             </div>
           </div>
           <button
             onClick={triggerPrint}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 text-sm font-semibold transition-all shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/30"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-indigo-600 text-white rounded-xl hover:from-primary hover:to-indigo-700 text-sm font-semibold transition-all shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/30"
           >
             <Printer className="w-4 h-4" />
             Print Report
@@ -490,14 +490,14 @@ export function PatientReportTab({ patientId, visit }: Props) {
       </div>
 
       {/* Print-only header */}
-      <div className="print-only mb-5 border-b-2 border-blue-600 pb-3">
+      <div className="print-only mb-5 border-b-2 border-primary pb-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
             <FileText className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-900 leading-tight">Patient Clinical Report</h1>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <h1 className="text-xl font-bold text-foreground leading-tight">Patient Clinical Report</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
               {patient.firstName} {patient.lastName} · {patient.patientCode || "—"} · Generated {generatedDate}
             </p>
           </div>
@@ -516,17 +516,17 @@ export function PatientReportTab({ patientId, visit }: Props) {
           <Section
             title="Patient Profile"
             icon={User}
-            iconBg="bg-gradient-to-br from-blue-600 to-indigo-600"
+            iconBg="bg-gradient-to-br from-primary to-indigo-600"
             subtitle="Demographic overview"
-            accentBorder="border-blue-400"
+            accentBorder="border-primary/40"
           >
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center ring-2 ring-blue-200">
-                <span className="text-base font-black text-blue-700">{getInitials(patient)}</span>
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-muted to-indigo-100 flex items-center justify-center ring-2 ring-primary/25">
+                <span className="text-base font-black text-primary">{getInitials(patient)}</span>
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-800">{patient.firstName} {patient.lastName}</h3>
-                <p className="text-xs text-slate-500 font-mono">{patient.patientCode}</p>
+                <h3 className="text-base font-bold text-foreground">{patient.firstName} {patient.lastName}</h3>
+                <p className="text-xs text-muted-foreground font-mono">{patient.patientCode}</p>
               </div>
             </div>
             <div className="space-y-0">
@@ -534,33 +534,33 @@ export function PatientReportTab({ patientId, visit }: Props) {
               <InfoItem label="Gender" value={patient.gender || "—"} />
               <InfoItem label="Blood Group" value={
                 <span className="inline-flex items-center gap-1.5">
-                  <Droplets className="w-3 h-3 text-rose-400" />
+                  <Droplets className="w-3 h-3 text-danger/70" />
                   {patient.bloodGroup || "—"}
                 </span>
               } />
               <InfoItem label="Phone" value={
                 <span className="inline-flex items-center gap-1.5">
-                  <Phone className="w-3 h-3 text-slate-400" />
+                  <Phone className="w-3 h-3 text-muted-foreground/70" />
                   {patient.phone || "—"}
                 </span>
               } />
               <InfoItem label="Email" value={
                 patient.email ?
                   <span className="inline-flex items-center gap-1.5">
-                    <Mail className="w-3 h-3 text-slate-400" />
+                    <Mail className="w-3 h-3 text-muted-foreground/70" />
                     {patient.email}
                   </span> : "—"
               } />
               <InfoItem label="Address" value={
                 <span className="inline-flex items-center gap-1.5">
-                  <MapPin className="w-3 h-3 text-slate-400" />
+                  <MapPin className="w-3 h-3 text-muted-foreground/70" />
                   {patient.address || "—"}
                 </span>
               } />
               <InfoItem label="First Visit" value={firstVisitDate ? formatDate(firstVisitDate.createdAt || firstVisitDate.date) : "—"} />
               <InfoItem label="Latest Visit" value={latestVisitDate ? formatDate(latestVisitDate.createdAt || latestVisitDate.date) : "—"} />
               <InfoItem label="Total Visits" value={
-                <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md text-xs font-bold ring-1 ring-blue-200">
+                <span className="inline-flex items-center gap-1 bg-primary-muted/60 text-primary px-2 py-0.5 rounded-md text-xs font-bold ring-1 ring-primary/25">
                   {visits.length}
                 </span>
               } />
@@ -571,9 +571,9 @@ export function PatientReportTab({ patientId, visit }: Props) {
           <Section
             title="Overall Summary"
             icon={Award}
-            iconBg="bg-gradient-to-br from-amber-500 to-orange-500"
+            iconBg="bg-gradient-to-br from-warning to-warning"
             subtitle="Key metrics at a glance"
-            accentBorder="border-amber-400"
+            accentBorder="border-warning/40"
           >
             <div className="grid grid-cols-2 gap-2.5">
               {[
@@ -586,31 +586,31 @@ export function PatientReportTab({ patientId, visit }: Props) {
               ].map(({ label, value, color, icon: SIcon }) => (
                 <div key={label} className={cn(
                   "flex items-center gap-2.5 rounded-xl p-3 ring-1",
-                  color === "blue"    && "bg-blue-50  ring-blue-200",
-                  color === "emerald" && "bg-emerald-50 ring-emerald-200",
+                  color === "blue"    && "bg-primary-muted/60  ring-primary/25",
+                  color === "emerald" && "bg-success-muted/60 ring-success/25",
                   color === "purple"  && "bg-purple-50 ring-purple-200",
-                  color === "rose"    && "bg-rose-50   ring-rose-200",
-                  color === "amber"   && "bg-amber-50  ring-amber-200",
+                  color === "rose"    && "bg-danger-muted/60   ring-danger/25",
+                  color === "amber"   && "bg-warning-muted/60  ring-warning/25",
                 )}>
                   <SIcon className={cn(
                     "w-4 h-4 shrink-0",
-                    color === "blue"    && "text-blue-600",
-                    color === "emerald" && "text-emerald-600",
+                    color === "blue"    && "text-primary",
+                    color === "emerald" && "text-success",
                     color === "purple"  && "text-purple-600",
-                    color === "rose"    && "text-rose-600",
-                    color === "amber"   && "text-amber-600",
+                    color === "rose"    && "text-danger",
+                    color === "amber"   && "text-warning",
                   )} />
                   <div>
-                    <p className="text-lg font-black text-slate-800 leading-none">{value}</p>
-                    <p className="text-[10px] text-slate-500 font-medium mt-0.5 leading-tight">{label}</p>
+                    <p className="text-lg font-black text-foreground leading-none">{value}</p>
+                    <p className="text-[10px] text-muted-foreground font-medium mt-0.5 leading-tight">{label}</p>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="mt-4 bg-gradient-to-br from-slate-50 to-blue-50/50 rounded-xl p-3.5 ring-1 ring-slate-200">
+            <div className="mt-4 bg-gradient-to-br from-muted/50 to-primary-muted/50 rounded-xl p-3.5 ring-1 ring-border">
               <div className="flex items-start gap-2">
-                <ClipboardCheck className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <ClipboardCheck className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   {patient.firstName} {patient.lastName} has <strong>{visits.length} visit{visits.length !== 1 ? "s" : ""}</strong> on record,
                   with <strong>{plans.length} treatment plan{plans.length !== 1 ? "s" : ""}</strong> ({totalCompletedPlans} completed).
                   {mergedConditions.length > 0
@@ -639,28 +639,28 @@ export function PatientReportTab({ patientId, visit }: Props) {
             <Section
               title="Chief Complaint & Present Illness"
               icon={Stethoscope}
-              iconBg="bg-gradient-to-br from-rose-500 to-pink-600"
+              iconBg="bg-gradient-to-br from-danger to-pink-600"
               subtitle="Presenting symptoms and clinical history"
-              accentBorder="border-rose-400"
+              accentBorder="border-danger/40"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="bg-gradient-to-br from-rose-50 to-white rounded-xl p-4 ring-1 ring-rose-200/60">
+                <div className="bg-gradient-to-br from-danger-muted/60 to-white rounded-xl p-4 ring-1 ring-danger/60">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-5 h-5 rounded-md bg-rose-100 flex items-center justify-center">
-                      <Heart className="w-3 h-3 text-rose-600" />
+                    <div className="w-5 h-5 rounded-md bg-danger-muted flex items-center justify-center">
+                      <Heart className="w-3 h-3 text-danger" />
                     </div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-rose-700">Chief Complaint</span>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-danger">Chief Complaint</span>
                   </div>
-                  <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{chiefComplaint || <em className="text-slate-400">None recorded</em>}</p>
+                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{chiefComplaint || <em className="text-muted-foreground/70">None recorded</em>}</p>
                 </div>
-                <div className="bg-gradient-to-br from-amber-50 to-white rounded-xl p-4 ring-1 ring-amber-200/60">
+                <div className="bg-gradient-to-br from-warning-muted/60 to-white rounded-xl p-4 ring-1 ring-warning/60">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-5 h-5 rounded-md bg-amber-100 flex items-center justify-center">
-                      <ClipboardList className="w-3 h-3 text-amber-600" />
+                    <div className="w-5 h-5 rounded-md bg-warning-muted flex items-center justify-center">
+                      <ClipboardList className="w-3 h-3 text-warning" />
                     </div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">History of Present Illness</span>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-warning">History of Present Illness</span>
                   </div>
-                  <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{historyOfPresentIllness || <em className="text-slate-400">None recorded</em>}</p>
+                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{historyOfPresentIllness || <em className="text-muted-foreground/70">None recorded</em>}</p>
                 </div>
               </div>
             </Section>
@@ -670,9 +670,9 @@ export function PatientReportTab({ patientId, visit }: Props) {
           <Section
             title="Patient Medical History"
             icon={ShieldAlert}
-            iconBg="bg-gradient-to-br from-amber-500 to-orange-500"
+            iconBg="bg-gradient-to-br from-warning to-warning"
             subtitle="Allergies, conditions &amp; medications"
-            accentBorder="border-amber-400"
+            accentBorder="border-warning/40"
           >
             {hasMedicalData ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -681,15 +681,15 @@ export function PatientReportTab({ patientId, visit }: Props) {
                   {patient.allergies && patient.allergies.length > 0 && (
                     <div className="mb-3">
                       <div className="flex items-center gap-1.5 mb-2">
-                        <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-rose-700">
+                        <AlertTriangle className="w-3.5 h-3.5 text-danger" />
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-danger">
                           Allergies
                         </span>
-                        <span className="text-[10px] font-bold bg-rose-600 text-white px-1.5 py-0.5 rounded-full">{patient.allergies.length}</span>
+                        <span className="text-[10px] font-bold bg-danger text-white px-1.5 py-0.5 rounded-full">{patient.allergies.length}</span>
                       </div>
                       <div className="flex flex-wrap gap-1.5">
                         {patient.allergies.map((a, i) => (
-                          <span key={i} className="bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-lg text-xs font-semibold ring-1 ring-rose-100">{a}</span>
+                          <span key={i} className="bg-danger-muted/60 text-danger border border-danger/25 px-2.5 py-1 rounded-lg text-xs font-semibold ring-1 ring-danger/20">{a}</span>
                         ))}
                       </div>
                     </div>
@@ -700,15 +700,15 @@ export function PatientReportTab({ patientId, visit }: Props) {
                   {patient.medicalConditions && patient.medicalConditions.length > 0 && (
                     <div className="mb-3">
                       <div className="flex items-center gap-1.5 mb-2">
-                        <Heart className="w-3.5 h-3.5 text-amber-600" />
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">
+                        <Heart className="w-3.5 h-3.5 text-warning" />
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-warning">
                           Medical Conditions
                         </span>
-                        <span className="text-[10px] font-bold bg-amber-600 text-white px-1.5 py-0.5 rounded-full">{patient.medicalConditions.length}</span>
+                        <span className="text-[10px] font-bold bg-warning text-white px-1.5 py-0.5 rounded-full">{patient.medicalConditions.length}</span>
                       </div>
                       <div className="flex flex-wrap gap-1.5">
                         {patient.medicalConditions.map((m, i) => (
-                          <span key={i} className="bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-lg text-xs font-semibold ring-1 ring-amber-100">{m}</span>
+                          <span key={i} className="bg-warning-muted/60 text-warning border border-warning/25 px-2.5 py-1 rounded-lg text-xs font-semibold ring-1 ring-warning/20">{m}</span>
                         ))}
                       </div>
                     </div>
@@ -750,12 +750,12 @@ export function PatientReportTab({ patientId, visit }: Props) {
             >
               <div className="space-y-3">
                 {/* S/O/A/P color bar */}
-                <div className="grid grid-cols-4 rounded-xl overflow-hidden ring-1 ring-slate-200">
+                <div className="grid grid-cols-4 rounded-xl overflow-hidden ring-1 ring-border">
                   {[
                     { letter: "S", label: "Subjective",    color: "bg-violet-500" },
-                    { letter: "O", label: "Objective",     color: "bg-blue-500" },
-                    { letter: "A", label: "Assessment",    color: "bg-emerald-500" },
-                    { letter: "P", label: "Plan",          color: "bg-amber-500" },
+                    { letter: "O", label: "Objective",     color: "bg-primary" },
+                    { letter: "A", label: "Assessment",    color: "bg-success" },
+                    { letter: "P", label: "Plan",          color: "bg-warning" },
                   ].map(({ letter, label, color }) => (
                     <div key={letter} className={`${color} py-2 flex items-center justify-center gap-1.5`}>
                       <span className="text-white font-black text-sm">{letter}</span>
@@ -767,25 +767,25 @@ export function PatientReportTab({ patientId, visit }: Props) {
                   {visit.subjective && (
                     <div className="bg-violet-50/60 rounded-xl p-3.5 border border-violet-200/60">
                       <span className="text-[11px] font-black uppercase tracking-widest text-violet-600 block mb-1">Subjective (S)</span>
-                      <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{visit.subjective}</p>
+                      <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{visit.subjective}</p>
                     </div>
                   )}
                   {visit.objective && (
-                    <div className="bg-blue-50/60 rounded-xl p-3.5 border border-blue-200/60">
-                      <span className="text-[11px] font-black uppercase tracking-widest text-blue-600 block mb-1">Objective (O)</span>
-                      <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{visit.objective}</p>
+                    <div className="bg-primary-muted/60 rounded-xl p-3.5 border border-primary/60">
+                      <span className="text-[11px] font-black uppercase tracking-widest text-primary block mb-1">Objective (O)</span>
+                      <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{visit.objective}</p>
                     </div>
                   )}
                   {visit.assessment && (
-                    <div className="bg-emerald-50/60 rounded-xl p-3.5 border border-emerald-200/60">
-                      <span className="text-[11px] font-black uppercase tracking-widest text-emerald-600 block mb-1">Assessment (A)</span>
-                      <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{visit.assessment}</p>
+                    <div className="bg-success-muted/60 rounded-xl p-3.5 border border-success/60">
+                      <span className="text-[11px] font-black uppercase tracking-widest text-success block mb-1">Assessment (A)</span>
+                      <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{visit.assessment}</p>
                     </div>
                   )}
                   {visit.plan && (
-                    <div className="bg-amber-50/60 rounded-xl p-3.5 border border-amber-200/60">
-                      <span className="text-[11px] font-black uppercase tracking-widest text-amber-600 block mb-1">Plan (P)</span>
-                      <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{visit.plan}</p>
+                    <div className="bg-warning-muted/60 rounded-xl p-3.5 border border-warning/60">
+                      <span className="text-[11px] font-black uppercase tracking-widest text-warning block mb-1">Plan (P)</span>
+                      <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{visit.plan}</p>
                     </div>
                   )}
                 </div>
@@ -798,21 +798,21 @@ export function PatientReportTab({ patientId, visit }: Props) {
             <Section
               title="Findings &amp; Recommendations"
               icon={Eye}
-              iconBg="bg-gradient-to-br from-slate-600 to-slate-700"
+              iconBg="bg-gradient-to-br from-muted-foreground to-foreground"
               subtitle="Clinical observations"
-              accentBorder="border-slate-400"
+              accentBorder="border-input"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {visit.findings && (
-                  <div className="bg-slate-50 rounded-xl p-4 ring-1 ring-slate-200">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-2">Clinical Findings</span>
-                    <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{visit.findings}</p>
+                  <div className="bg-muted/50 rounded-xl p-4 ring-1 ring-border">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-2">Clinical Findings</span>
+                    <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{visit.findings}</p>
                   </div>
                 )}
                 {visit.recommendations && (
-                  <div className="bg-blue-50 rounded-xl p-4 ring-1 ring-blue-100">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600 block mb-2">Recommendations</span>
-                    <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{visit.recommendations}</p>
+                  <div className="bg-primary-muted/60 rounded-xl p-4 ring-1 ring-primary/20">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-primary block mb-2">Recommendations</span>
+                    <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{visit.recommendations}</p>
                   </div>
                 )}
               </div>
@@ -842,14 +842,14 @@ export function PatientReportTab({ patientId, visit }: Props) {
                       <div className={cn("flex items-center gap-2.5 px-4 py-2.5 rounded-xl mb-2.5", cfg.bg, "border", cfg.border)}>
                         <Icon className={cn("w-4 h-4", cfg.iconColor)} />
                         <span className={cn("text-sm font-bold", cfg.color)}>{cfg.label}</span>
-                        <span className="ml-auto inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold bg-white/80 text-slate-700 ring-1 ring-slate-200">
+                        <span className="ml-auto inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold bg-white/80 text-foreground ring-1 ring-border">
                           {items.length}
                         </span>
                       </div>
                       {/* Condition cards */}
                       <div className="space-y-2">
                         {items.map((c: any) => (
-                          <div key={c.id} className={cn("bg-white rounded-xl p-4 ring-1", "ring-slate-200", "border-l-4", {
+                          <div key={c.id} className={cn("bg-white rounded-xl p-4 ring-1", "ring-border", "border-l-4", {
                             "border-l-blue-500":   c.status === "ACTIVE",
                             "border-l-amber-500": c.status === "IN_TREATMENT",
                             "border-l-purple-500":c.status === "MONITORED",
@@ -858,9 +858,9 @@ export function PatientReportTab({ patientId, visit }: Props) {
                           })}>
                             <div className="flex items-start justify-between mb-2">
                               <div className="flex-1 pr-3">
-                                <h4 className="text-sm font-bold text-slate-800">{c.condition?.name || "—"}</h4>
+                                <h4 className="text-sm font-bold text-foreground">{c.condition?.name || "—"}</h4>
                                 {c.toothNumber && (
-                                  <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
+                                  <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
                                     <Hash className="w-3 h-3" />
                                     Tooth #{c.toothNumber}{c.surfaces?.length > 0 ? ` (${c.surfaces.join(", ")})` : ""}
                                   </p>
@@ -870,15 +870,15 @@ export function PatientReportTab({ patientId, visit }: Props) {
                                 {c.severity && (
                                   <span className={cn(
                                     "text-[11px] font-bold px-2 py-0.5 rounded-md",
-                                    String(c.severity).toUpperCase() === "SEVERE"   ? "bg-rose-100 text-rose-700 ring-1 ring-rose-200" :
-                                    String(c.severity).toUpperCase() === "MODERATE" ? "bg-amber-100 text-amber-700 ring-1 ring-amber-200" :
-                                                                                   "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200"
+                                    String(c.severity).toUpperCase() === "SEVERE"   ? "bg-danger-muted text-danger ring-1 ring-danger/25" :
+                                    String(c.severity).toUpperCase() === "MODERATE" ? "bg-warning-muted text-warning ring-1 ring-warning/25" :
+                                                                                   "bg-success-muted text-success ring-1 ring-success/25"
                                   )}>
                                     {c.severity}
                                   </span>
                                 )}
                                 {c.conditionStatus && c.conditionStatus !== c.status && (
-                                  <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200">
+                                  <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground border border-border">
                                     {String(c.conditionStatus).replace(/_/g, " ")}
                                   </span>
                                 )}
@@ -887,13 +887,13 @@ export function PatientReportTab({ patientId, visit }: Props) {
                                 </span>
                               </div>
                             </div>
-                            <div className="flex flex-wrap gap-3 text-xs text-slate-500 mb-1.5">
+                            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mb-1.5">
                               <span className="inline-flex items-center gap-1"><Calendar className="w-3 h-3" /> Diagnosed: {formatDate(c.diagnosedAt)}</span>
                               {c.diagnosedBy && <span>By: {typeof c.diagnosedBy === "object" ? `${c.diagnosedBy.firstName} ${c.diagnosedBy.lastName}` : c.diagnosedBy}</span>}
-                              {c.resolvedAt && <span className="inline-flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Resolved: {formatDate(c.resolvedAt)}</span>}
+                              {c.resolvedAt && <span className="inline-flex items-center gap-1"><CheckCircle className="w-3 h-3 text-success" /> Resolved: {formatDate(c.resolvedAt)}</span>}
                             </div>
                             {c.notes && (
-                              <p className="mt-2 text-xs text-slate-600 bg-slate-50 rounded-lg px-3 py-2 italic">{c.notes}</p>
+                              <p className="mt-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2 italic">{c.notes}</p>
                             )}
                           </div>
                         ))}
@@ -910,19 +910,19 @@ export function PatientReportTab({ patientId, visit }: Props) {
             <Section
               title="Visit History"
               icon={CalendarDays}
-              iconBg="bg-gradient-to-br from-sky-500 to-blue-600"
+              iconBg="bg-gradient-to-br from-primary to-primary"
               subtitle={`${visits.length} visit${visits.length !== 1 ? "s" : ""} on record`}
-              accentBorder="border-sky-400"
+              accentBorder="border-primary/40"
             >
               <Table headers={["#", "Date", "Visit Code", "Type", "Dentist", "Status"]}>
                 {sortedVisits.slice(0, 50).map((v: any, i: number) => (
                   <tr key={v.id} className={cn(
-                    "hover:bg-blue-50/40 transition-colors",
-                    i === 0 && "bg-blue-50/30"
+                    "hover:bg-primary-muted/40 transition-colors",
+                    i === 0 && "bg-primary-muted/30"
                   )}>
-                    <Cell className="text-slate-400 text-xs tabular-nums">{sortedVisits.length - i}</Cell>
+                    <Cell className="text-muted-foreground/70 text-xs tabular-nums">{sortedVisits.length - i}</Cell>
                     <Cell className="whitespace-nowrap">{formatDate(v.createdAt || v.date)}</Cell>
-                    <Cell className="text-xs font-mono text-slate-500">{v.visitCode || v.id.slice(0, 8)}</Cell>
+                    <Cell className="text-xs font-mono text-muted-foreground">{v.visitCode || v.id.slice(0, 8)}</Cell>
                     <Cell>{v.appointment?.type || v.reason || "—"}</Cell>
                     <Cell className="text-xs">{v.dentist ? `Dr. ${v.dentist.firstName} ${v.dentist.lastName}` : "—"}</Cell>
                     <Cell><Badge status={v.status} /></Cell>
@@ -930,7 +930,7 @@ export function PatientReportTab({ patientId, visit }: Props) {
                 ))}
               </Table>
               {sortedVisits.length > 50 && (
-                <p className="text-xs text-slate-400 mt-2">Showing last 50 of {sortedVisits.length} visits.</p>
+                <p className="text-xs text-muted-foreground/70 mt-2">Showing last 50 of {sortedVisits.length} visits.</p>
               )}
             </Section>
           )}
@@ -940,50 +940,50 @@ export function PatientReportTab({ patientId, visit }: Props) {
             <Section
               title="Treatment Plans"
               icon={ClipboardList}
-              iconBg="bg-gradient-to-br from-emerald-500 to-teal-600"
+              iconBg="bg-gradient-to-br from-success to-primary"
               subtitle={`${plans.length} plan${plans.length !== 1 ? "s" : ""} for this patient`}
-              accentBorder="border-emerald-400"
+              accentBorder="border-success/40"
             >
               <div className="space-y-4">
                 {plans.map((plan: any) => {
                   const planProcs = proceduresByPlanId[plan.id] || [];
-                  const statusC = plan.status === "COMPLETED" ? { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", iconBg: "bg-emerald-100", iconColor: "text-emerald-600" } :
-                                   plan.status === "IN_PROGRESS" ? { bg: "bg-blue-50",    text: "text-blue-700",    border: "border-blue-200",    iconBg: "bg-blue-100",    iconColor: "text-blue-600" } :
-                                   plan.status === "CANCELLED" ? { bg: "bg-rose-50",    text: "text-rose-700",    border: "border-rose-200",    iconBg: "bg-rose-100",    iconColor: "text-rose-600" } :
-                                                                       { bg: "bg-slate-100",  text: "text-slate-700",   border: "border-slate-200",   iconBg: "bg-slate-200",   iconColor: "text-slate-600" };
+                  const statusC = plan.status === "COMPLETED" ? { bg: "bg-success-muted/60", text: "text-success", border: "border-success/25", iconBg: "bg-success-muted", iconColor: "text-success" } :
+                                   plan.status === "IN_PROGRESS" ? { bg: "bg-primary-muted/60",    text: "text-primary",    border: "border-primary/25",    iconBg: "bg-primary-muted",    iconColor: "text-primary" } :
+                                   plan.status === "CANCELLED" ? { bg: "bg-danger-muted/60",    text: "text-danger",    border: "border-danger/25",    iconBg: "bg-danger-muted",    iconColor: "text-danger" } :
+                                                                       { bg: "bg-muted",  text: "text-foreground",   border: "border-border",   iconBg: "bg-muted",   iconColor: "text-muted-foreground" };
                   return (
-                    <div key={plan.id} className="rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div key={plan.id} className="rounded-2xl border border-border shadow-sm overflow-hidden">
                       {/* Plan header bar */}
                       <div className={cn("px-4 py-3 flex items-center justify-between", statusC.bg, "border-b", statusC.border)}>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-bold text-slate-800">{plan.title}</h4>
+                            <h4 className="text-sm font-bold text-foreground">{plan.title}</h4>
                             <Badge status={plan.status} />
                             {plan.priority && <Badge status={plan.priority} />}
                           </div>
-                          <p className="text-xs text-slate-500 mt-0.5">{plan.planCode} · Created {formatDate(plan.createdAt)}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{plan.planCode} · Created {formatDate(plan.createdAt)}</p>
                         </div>
                       </div>
                       <div className="p-4 space-y-3">
                         {plan.diagnosis && (
-                          <p className="text-xs text-slate-600"><span className="font-bold uppercase tracking-wider text-[11px] text-slate-500 mr-1.5">Diagnosis</span>{plan.diagnosis}</p>
+                          <p className="text-xs text-muted-foreground"><span className="font-bold uppercase tracking-wider text-[11px] text-muted-foreground mr-1.5">Diagnosis</span>{plan.diagnosis}</p>
                         )}
                         {plan.summary && (
-                          <div className="flex flex-wrap gap-3 text-xs text-slate-500">
-                            <span className="inline-flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg ring-1 ring-slate-200"><ClipboardList className="w-3 h-3 text-blue-500" /> {plan.summary.totalProcedures || 0} procedures</span>
-                            <span className="inline-flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg ring-1 ring-slate-200"><CheckCircle className="w-3 h-3 text-emerald-500" /> {plan.summary.completedCount || 0} completed</span>
+                          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                            <span className="inline-flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg ring-1 ring-border"><ClipboardList className="w-3 h-3 text-primary" /> {plan.summary.totalProcedures || 0} procedures</span>
+                            <span className="inline-flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg ring-1 ring-border"><CheckCircle className="w-3 h-3 text-success" /> {plan.summary.completedCount || 0} completed</span>
                             {typeof plan.summary.completionPercent === "number" && (
-                              <span className="inline-flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg ring-1 ring-slate-200"><TrendingUp className="w-3 h-3 text-blue-500" /> {plan.summary.completionPercent}%</span>
+                              <span className="inline-flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg ring-1 ring-border"><TrendingUp className="w-3 h-3 text-primary" /> {plan.summary.completionPercent}%</span>
                             )}
                           </div>
                         )}
                         {planProcs.length > 0 ? (
                           <Table headers={["#", "Procedure", "Code", "Teeth", "Status", "Price"]}>
                             {planProcs.map((pr: any) => (
-                              <tr key={pr.id} className="hover:bg-slate-50/60 transition-colors">
-                                <Cell className="text-slate-400 text-xs">{pr.sequence || "—"}</Cell>
+                              <tr key={pr.id} className="hover:bg-muted/60 transition-colors">
+                                <Cell className="text-muted-foreground/70 text-xs">{pr.sequence || "—"}</Cell>
                                 <Cell className="font-semibold">{pr.procedure?.name || "—"}</Cell>
-                                <Cell className="text-xs text-slate-500">{pr.procedure?.code || "—"}</Cell>
+                                <Cell className="text-xs text-muted-foreground">{pr.procedure?.code || "—"}</Cell>
                                 <Cell>{pr.targets?.map((t: any) => `#${t.toothNumber}`).join(", ") || pr.toothNumbers?.join(", ") || "—"}</Cell>
                                 <Cell><Badge status={pr.status} /></Cell>
                                 <Cell className="text-xs font-mono">{pr.totalPrice != null ? `UGX ${pr.totalPrice.toLocaleString()}` : "—"}</Cell>
@@ -1012,36 +1012,36 @@ export function PatientReportTab({ patientId, visit }: Props) {
             {hasPrescriptions ? (
               <div className="space-y-4">
                 {sortedPrescriptions.map((rx: any) => (
-                  <div key={rx.id} className="rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div key={rx.id} className="rounded-2xl border border-border shadow-sm overflow-hidden">
                     <div className="px-4 py-3 bg-gradient-to-r from-violet-50 to-purple-50 border-b border-violet-200/60 flex items-start justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
                           <Pill className="w-4 h-4 text-violet-600" />
-                          <h4 className="text-sm font-bold text-slate-800">{rx.prescriptionCode}</h4>
+                          <h4 className="text-sm font-bold text-foreground">{rx.prescriptionCode}</h4>
                           <Badge status={rx.status} />
                         </div>
-                        <p className="text-xs text-slate-500 mt-0.5 ml-6">
+                        <p className="text-xs text-muted-foreground mt-0.5 ml-6">
                           {formatDate(rx.createdAt)} — Dr. {rx.dentist?.firstName} {rx.dentist?.lastName}
                         </p>
                       </div>
                     </div>
                     {rx.notes && (
-                      <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mr-1.5">Notes</span>
-                        <span className="text-xs text-slate-700">{rx.notes}</span>
+                      <div className="px-4 py-2.5 bg-muted/50 border-b border-border/60">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mr-1.5">Notes</span>
+                        <span className="text-xs text-foreground">{rx.notes}</span>
                       </div>
                     )}
                     {rx.items?.length > 0 && (
                       <Table headers={["Drug", "Dosage", "Frequency", "Duration", "Route", "Qty", "Instructions"]}>
                         {rx.items.map((item: any) => (
-                          <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                          <tr key={item.id} className="hover:bg-muted/50 transition-colors">
                             <Cell className="font-semibold">{item.drug?.name || "—"}</Cell>
                             <Cell>{item.dosage || "—"}</Cell>
                             <Cell>{item.frequency || "—"}</Cell>
                             <Cell>{item.duration || "—"}</Cell>
                             <Cell className="text-xs">{item.route || "—"}</Cell>
                             <Cell className="text-xs tabular-nums">{item.quantity ?? "—"}</Cell>
-                            <Cell className="text-slate-500 max-w-[180px] truncate" title={item.instructions}>{item.instructions || "—"}</Cell>
+                            <Cell className="text-muted-foreground max-w-[180px] truncate" title={item.instructions}>{item.instructions || "—"}</Cell>
                           </tr>
                         ))}
                       </Table>
@@ -1059,24 +1059,24 @@ export function PatientReportTab({ patientId, visit }: Props) {
             <Section
               title="Completed Procedures &amp; Sessions"
               icon={ClipboardCheck}
-              iconBg="bg-gradient-to-br from-emerald-500 to-green-600"
+              iconBg="bg-gradient-to-br from-success to-success"
               subtitle={`${sessions.length} session${sessions.length !== 1 ? "s" : ""} performed`}
-              accentBorder="border-emerald-400"
+              accentBorder="border-success/40"
             >
               <Table headers={["Date", "Procedure", "Tooth", "Surfaces", "Session", "Outcome"]}>
                 {sortedSessions.slice(0, 100).map((s: any) => (
-                  <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={s.id} className="hover:bg-muted/50 transition-colors">
                     <Cell className="whitespace-nowrap">{s.performedDate ? formatDate(s.performedDate) : formatDate(s.createdAt)}</Cell>
                     <Cell className="font-semibold">{s.treatmentProcedure?.procedure?.name || s.procedure?.name || s.sessionLabel || `Session ${s.sessionNumber || ""}`}</Cell>
                     <Cell>{s.targets?.map((t: any) => `#${t.toothNumber}`).join(", ") || "—"}</Cell>
                     <Cell>{s.surfaces?.join(", ") || "—"}</Cell>
-                    <Cell className="text-xs text-slate-500">{s.sessionNumber ? `Session ${s.sessionNumber}` : "—"}</Cell>
+                    <Cell className="text-xs text-muted-foreground">{s.sessionNumber ? `Session ${s.sessionNumber}` : "—"}</Cell>
                     <Cell>{s.outcome || <Badge status={s.status} />}</Cell>
                   </tr>
                 ))}
               </Table>
               {sortedSessions.length > 100 && (
-                <p className="text-xs text-slate-400 mt-2">Showing last 100 of {sortedSessions.length} sessions.</p>
+                <p className="text-xs text-muted-foreground/70 mt-2">Showing last 100 of {sortedSessions.length} sessions.</p>
               )}
             </Section>
           )}
@@ -1090,7 +1090,7 @@ export function PatientReportTab({ patientId, visit }: Props) {
               subtitle="Chronological record of key events"
               accentBorder="border-indigo-400"
             >
-              <div className="relative pl-7 border-l-2 border-dashed border-blue-300/70 space-y-4">
+              <div className="relative pl-7 border-l-2 border-dashed border-primary/70 space-y-4">
                 {/* Timeline line */}
                 {timelineEvents.slice(0, 30).map((evt, i) => {
                   const tIcon = timelineIconMap[evt.type] || timelineIconMap.visit;
@@ -1103,15 +1103,15 @@ export function PatientReportTab({ patientId, visit }: Props) {
                       )}>
                         <Icon className={cn("w-2 h-2", tIcon.color)} />
                       </div>
-                      <p className="text-[11px] font-semibold text-slate-400 tabular-nums">{formatDate(evt.date)}</p>
-                      <p className="text-sm font-bold text-slate-800">{evt.label}</p>
-                      <p className="text-xs text-slate-500 leading-relaxed">{evt.desc}</p>
+                      <p className="text-[11px] font-semibold text-muted-foreground/70 tabular-nums">{formatDate(evt.date)}</p>
+                      <p className="text-sm font-bold text-foreground">{evt.label}</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{evt.desc}</p>
                     </div>
                   );
                 })}
               </div>
               {timelineEvents.length > 30 && (
-                <p className="text-xs text-slate-400 mt-3">Showing last 30 of {timelineEvents.length} events.</p>
+                <p className="text-xs text-muted-foreground/70 mt-3">Showing last 30 of {timelineEvents.length} events.</p>
               )}
             </Section>
           )}
@@ -1121,13 +1121,13 @@ export function PatientReportTab({ patientId, visit }: Props) {
             <Section
               title="Imaging"
               icon={Camera}
-              iconBg="bg-gradient-to-br from-sky-500 to-cyan-600"
+              iconBg="bg-gradient-to-br from-primary to-primary"
               subtitle={`${images.length} image${images.length !== 1 ? "s" : ""} captured`}
-              accentBorder="border-sky-400"
+              accentBorder="border-primary/40"
             >
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 no-print">
                 {images.map((img: any) => (
-                  <div key={img.id} className="group rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm hover:shadow-md hover:border-blue-300 transition-all">
+                  <div key={img.id} className="group rounded-xl border border-border overflow-hidden bg-white shadow-sm hover:shadow-md hover:border-primary/30 transition-all">
                     <div className="relative">
                       <img
                         src={resolveUrl(img.thumbnailUrl || img.fileUrl)}
@@ -1146,16 +1146,16 @@ export function PatientReportTab({ patientId, visit }: Props) {
                       </div>
                     </div>
                     <div className="p-2.5 space-y-1">
-                      <p className="text-xs font-bold text-slate-700">{img.type?.replace(/_/g, " ") || "—"}</p>
-                      <p className="text-[11px] text-slate-500">{img.takenAt ? formatDate(img.takenAt) : ""}</p>
+                      <p className="text-xs font-bold text-foreground">{img.type?.replace(/_/g, " ") || "—"}</p>
+                      <p className="text-[11px] text-muted-foreground">{img.takenAt ? formatDate(img.takenAt) : ""}</p>
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {img.stage && (
-                          <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-200 ring-1 ring-blue-200">
+                          <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-md bg-primary-muted text-primary border border-primary/25 ring-1 ring-primary/25">
                             {img.stage}
                           </span>
                         )}
                       </div>
-                      {img.notes && <p className="text-[10px] text-slate-500 truncate" title={img.notes}>{img.notes}</p>}
+                      {img.notes && <p className="text-[10px] text-muted-foreground truncate" title={img.notes}>{img.notes}</p>}
                     </div>
                   </div>
                 ))}
@@ -1164,20 +1164,20 @@ export function PatientReportTab({ patientId, visit }: Props) {
               <div className="print-only">
                 <table className="w-full text-sm border-collapse">
                   <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left text-[11px] font-semibold text-gray-500 py-1.5 px-2">Type</th>
-                      <th className="text-left text-[11px] font-semibold text-gray-500 py-1.5 px-2">Date</th>
-                      <th className="text-left text-[11px] font-semibold text-gray-500 py-1.5 px-2">Stage</th>
-                      <th className="text-left text-[11px] font-semibold text-gray-500 py-1.5 px-2">Notes</th>
+                    <tr className="border-b border-border">
+                      <th className="text-left text-[11px] font-semibold text-muted-foreground py-1.5 px-2">Type</th>
+                      <th className="text-left text-[11px] font-semibold text-muted-foreground py-1.5 px-2">Date</th>
+                      <th className="text-left text-[11px] font-semibold text-muted-foreground py-1.5 px-2">Stage</th>
+                      <th className="text-left text-[11px] font-semibold text-muted-foreground py-1.5 px-2">Notes</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-border/60">
                     {images.map((img: any) => (
                       <tr key={img.id}>
                         <td className="py-1.5 px-2 text-sm">{img.type?.replace(/_/g, " ") || "—"}</td>
                         <td className="py-1.5 px-2 text-sm">{img.takenAt ? formatDate(img.takenAt) : ""}</td>
                         <td className="py-1.5 px-2 text-sm">{img.stage || "—"}</td>
-                        <td className="py-1.5 px-2 text-sm text-gray-500">{img.notes || "—"}</td>
+                        <td className="py-1.5 px-2 text-sm text-muted-foreground">{img.notes || "—"}</td>
                       </tr>
                     ))}
                   </tbody>

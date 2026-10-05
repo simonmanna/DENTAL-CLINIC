@@ -134,29 +134,29 @@ const OUT_COLOR = "#ef4444";
 
 // ── Invoice status (canonical: DRAFT / POSTED / VOID) ────────────────────────
 const STATUS_CFG: Record<string, { cls: string; label: string }> = {
-  DRAFT: { cls: "bg-slate-100 text-slate-600 ring-slate-200", label: "Draft" },
-  POSTED: { cls: "bg-sky-50 text-sky-700 ring-sky-200", label: "Posted" },
-  VOID: { cls: "bg-red-50 text-red-500 ring-red-200", label: "Void" },
+  DRAFT: { cls: "bg-muted text-muted-foreground ring-border", label: "Draft" },
+  POSTED: { cls: "bg-primary-muted/60 text-primary ring-primary/25", label: "Posted" },
+  VOID: { cls: "bg-danger-muted/60 text-danger ring-danger/25", label: "Void" },
   // Payment & expense statuses (non-invoice)
-  COMPLETED: { cls: "bg-emerald-50 text-emerald-700 ring-emerald-200", label: "Completed" },
-  PENDING: { cls: "bg-orange-50 text-orange-700 ring-orange-200", label: "Pending" },
-  FAILED: { cls: "bg-red-50 text-red-600 ring-red-200", label: "Failed" },
-  APPROVED: { cls: "bg-blue-50 text-blue-700 ring-blue-200", label: "Approved" },
-  REJECTED: { cls: "bg-red-50 text-red-600 ring-red-200", label: "Rejected" },
-  PAID: { cls: "bg-emerald-50 text-emerald-700 ring-emerald-200", label: "Paid" },
-  CANCELLED: { cls: "bg-slate-100 text-slate-500 ring-slate-200", label: "Cancelled" },
+  COMPLETED: { cls: "bg-success-muted/60 text-success ring-success/25", label: "Completed" },
+  PENDING: { cls: "bg-warning-muted/60 text-warning ring-warning/25", label: "Pending" },
+  FAILED: { cls: "bg-danger-muted/60 text-danger ring-danger/25", label: "Failed" },
+  APPROVED: { cls: "bg-primary-muted/60 text-primary ring-primary/25", label: "Approved" },
+  REJECTED: { cls: "bg-danger-muted/60 text-danger ring-danger/25", label: "Rejected" },
+  PAID: { cls: "bg-success-muted/60 text-success ring-success/25", label: "Paid" },
+  CANCELLED: { cls: "bg-muted text-muted-foreground ring-border", label: "Cancelled" },
 };
 
 // ── Payment status (separate from invoice status) ────────────────────────────
 const PAYMENT_STATUS_CFG: Record<string, { cls: string; label: string }> = {
-  UNPAID: { cls: "bg-red-50 text-red-600 ring-red-200", label: "Unpaid" },
-  PARTIALLY_PAID: { cls: "bg-amber-50 text-amber-700 ring-amber-200", label: "Partial" },
-  PAID: { cls: "bg-emerald-50 text-emerald-700 ring-emerald-200", label: "Paid" },
+  UNPAID: { cls: "bg-danger-muted/60 text-danger ring-danger/25", label: "Unpaid" },
+  PARTIALLY_PAID: { cls: "bg-warning-muted/60 text-warning ring-warning/25", label: "Partial" },
+  PAID: { cls: "bg-success-muted/60 text-success ring-success/25", label: "Paid" },
 };
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_CFG[status] ?? {
-    cls: "bg-gray-100 text-gray-600 ring-gray-200",
+    cls: "bg-muted text-muted-foreground ring-border",
     label: status,
   };
   return (
@@ -169,9 +169,9 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function PaymentStatusBadge({ status }: { status?: string | null }) {
-  if (!status) return <span className="text-xs text-slate-400">—</span>;
+  if (!status) return <span className="text-xs text-muted-foreground/70">—</span>;
   const cfg = PAYMENT_STATUS_CFG[status] ?? {
-    cls: "bg-gray-100 text-gray-600 ring-gray-200",
+    cls: "bg-muted text-muted-foreground ring-border",
     label: status,
   };
   return (
@@ -187,11 +187,11 @@ function PaymentStatusBadge({ status }: { status?: string | null }) {
 
 function DirectionBadge({ direction }: { direction: string }) {
   return direction === "IN" ? (
-    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200">
+    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold bg-success-muted/60 text-success ring-1 ring-inset ring-success/25">
       ↑ IN
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold bg-red-50 text-red-700 ring-1 ring-inset ring-red-200">
+    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold bg-danger-muted/60 text-danger ring-1 ring-inset ring-danger/25">
       ↓ OUT
     </span>
   );
@@ -213,7 +213,7 @@ function StatCard({
   icon?: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 px-1 py-2 flex gap-2 items-start shadow-sm">
+    <div className="bg-white rounded-xl border border-border px-1 py-2 flex gap-2 items-start shadow-sm">
       {icon && (
         <div
           className="mt-0.5 size-8 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -225,13 +225,13 @@ function StatCard({
         </div>
       )}
       <div className="min-w-0">
-        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider truncate">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
           {label}
         </p>
-        <p className="text-xl font-bold text-slate-900 mt-0.5 tabular-nums">
+        <p className="text-xl font-bold text-foreground mt-0.5 tabular-nums">
           {value}
         </p>
-        {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+        {sub && <p className="text-xs text-muted-foreground/70 mt-0.5">{sub}</p>}
       </div>
     </div>
   );
@@ -248,9 +248,9 @@ function SortIcon({
   sortBy: string;
   sortOrder: SortOrder;
 }) {
-  if (sortBy !== col) return <span className="ml-1 text-slate-300">↕</span>;
+  if (sortBy !== col) return <span className="ml-1 text-muted-foreground/50">↕</span>;
   return (
-    <span className="ml-1 text-sky-600">{sortOrder === "asc" ? "↑" : "↓"}</span>
+    <span className="ml-1 text-primary">{sortOrder === "asc" ? "↑" : "↓"}</span>
   );
 }
 
@@ -277,7 +277,7 @@ function Pagination({
 
   return (
     <div className="flex items-center justify-between px-1 py-3">
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-muted-foreground">
         Showing <span className="font-medium">{(page - 1) * limit + 1}</span>–
         <span className="font-medium">{Math.min(page * limit, total)}</span> of{" "}
         <span className="font-medium">{total}</span>
@@ -288,7 +288,7 @@ function Pagination({
             key={label}
             onClick={() => onPage(i === 0 ? 1 : page - 1)}
             disabled={page === 1}
-            className="px-2 py-1 text-xs rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+            className="px-2 py-1 text-xs rounded border border-border text-muted-foreground hover:bg-muted/50 disabled:opacity-40"
           >
             {label}
           </button>
@@ -297,7 +297,7 @@ function Pagination({
           <button
             key={p}
             onClick={() => onPage(p)}
-            className={`px-2.5 py-1 text-xs rounded border ${p === page ? "bg-sky-600 border-sky-600 text-white font-medium" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+            className={`px-2.5 py-1 text-xs rounded border ${p === page ? "bg-primary border-primary text-white font-medium" : "border-border text-muted-foreground hover:bg-muted/50"}`}
           >
             {p}
           </button>
@@ -307,7 +307,7 @@ function Pagination({
             key={label}
             onClick={() => onPage(i === 0 ? page + 1 : totalPages)}
             disabled={page === totalPages}
-            className="px-2 py-1 text-xs rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+            className="px-2 py-1 text-xs rounded border border-border text-muted-foreground hover:bg-muted/50 disabled:opacity-40"
           >
             {label}
           </button>
@@ -336,49 +336,49 @@ function FilterBar({
       setFilters((f) => ({ ...f, [key]: e.target.value }));
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-1 flex flex-wrap gap-3 items-end shadow-sm">
+    <div className="bg-white border border-border rounded-xl p-1 flex flex-wrap gap-3 items-end shadow-sm">
       <div className="flex-1 min-w-48">
-        <label className="block text-xs font-medium text-slate-500 mb-1">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
           Search
         </label>
         <input
           value={filters.search}
           onChange={set("search")}
           placeholder="Invoice #, patient, reference…"
-          className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent placeholder:text-slate-400"
+          className="w-full h-9 rounded-lg border border-border px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent placeholder:text-muted-foreground/70"
         />
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
           From
         </label>
         <input
           type="date"
           value={filters.startDate}
           onChange={set("startDate")}
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
+          className="h-9 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/60"
         />
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
           To
         </label>
         <input
           type="date"
           value={filters.endDate}
           onChange={set("endDate")}
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
+          className="h-9 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/60"
         />
       </div>
       {extra}
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
           Rows
         </label>
         <select
           value={filters.limit}
           onChange={set("limit")}
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white"
+          className="h-9 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/60 bg-white"
         >
           {[10, 20, 50, 100].map((n) => (
             <option key={n} value={n}>
@@ -389,7 +389,7 @@ function FilterBar({
       </div>
       <button
         onClick={onReset}
-        className="h-9 px-3 rounded-lg text-sm border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+        className="h-9 px-3 rounded-lg text-sm border border-border text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
       >
         Reset
       </button>
@@ -424,9 +424,9 @@ function DataTable<T extends { id?: string }>({
 }) {
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-48 text-slate-400">
+      <div className="flex items-center justify-center h-48 text-muted-foreground/70">
         <div className="flex items-center gap-3">
-          <div className="size-5 border-2 border-sky-600 border-t-transparent rounded-full animate-spin" />
+          <div className="size-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           <span className="text-sm">Loading report…</span>
         </div>
       </div>
@@ -434,7 +434,7 @@ function DataTable<T extends { id?: string }>({
   }
   if (!rows.length) {
     return (
-      <div className="flex flex-col items-center justify-center h-48 text-slate-400">
+      <div className="flex flex-col items-center justify-center h-48 text-muted-foreground/70">
         <span className="text-3xl mb-2">📊</span>
         <p className="text-sm font-medium">No records found</p>
         <p className="text-xs mt-1">Try adjusting your filters</p>
@@ -445,12 +445,12 @@ function DataTable<T extends { id?: string }>({
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-slate-200 bg-slate-50">
+          <tr className="border-b border-border bg-muted/50">
             {columns.map((col) => (
               <th
                 key={col.key}
                 onClick={() => col.sortable !== false && onSort(col.key)}
-                className={`px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap ${col.sortable !== false ? "cursor-pointer hover:text-slate-900 select-none" : ""}`}
+                className={`px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap ${col.sortable !== false ? "cursor-pointer hover:text-foreground select-none" : ""}`}
               >
                 {col.label}
                 {col.sortable !== false && (
@@ -464,16 +464,16 @@ function DataTable<T extends { id?: string }>({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-border/60">
           {rows.map((row, i) => (
             <tr
               key={row.id ?? i}
-              className="hover:bg-slate-50/60 transition-colors"
+              className="hover:bg-muted/60 transition-colors"
             >
               {columns.map((col) => (
                 <td
                   key={col.key}
-                  className="px-3 py-2.5 text-slate-700 whitespace-nowrap"
+                  className="px-3 py-2.5 text-foreground whitespace-nowrap"
                 >
                   {col.render(row as any)}
                 </td>
@@ -524,8 +524,8 @@ function PieBreakdown({
 }) {
   if (!data?.length) return null;
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+    <div className="bg-white rounded-xl border border-border p-4 shadow-sm">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
         {title}
       </p>
       <ResponsiveContainer width="100%" height={160}>
@@ -565,7 +565,7 @@ const INVOICE_COLUMNS = (navigate: (to: string) => void): ColDef<InvoiceRow>[] =
     key: "invoiceNumber",
     label: "Invoice #",
     render: (r) => (
-      <span className="font-mono text-xs text-slate-600 font-medium">
+      <span className="font-mono text-xs text-muted-foreground font-medium">
         {r.invoiceNumber}
       </span>
     ),
@@ -577,10 +577,10 @@ const INVOICE_COLUMNS = (navigate: (to: string) => void): ColDef<InvoiceRow>[] =
     sortable: false,
     render: (r) => (
       <div>
-        <p className="font-medium text-slate-900 text-sm">
+        <p className="font-medium text-foreground text-sm">
           {fullName(r.patient)}
         </p>
-        <p className="text-xs text-slate-400">{r.patient?.patientCode}</p>
+        <p className="text-xs text-muted-foreground/70">{r.patient?.patientCode}</p>
       </div>
     ),
     csv: (r) => `${fullName(r.patient)} (${r.patient?.patientCode ?? ""})`,
@@ -590,7 +590,7 @@ const INVOICE_COLUMNS = (navigate: (to: string) => void): ColDef<InvoiceRow>[] =
     label: "Prev Card",
     sortable: false,
     render: (r) => (
-      <span className="text-xs font-mono text-slate-500">
+      <span className="text-xs font-mono text-muted-foreground">
         {r.patient?.previousCardNumber ?? "—"}
       </span>
     ),
@@ -621,7 +621,7 @@ const INVOICE_COLUMNS = (navigate: (to: string) => void): ColDef<InvoiceRow>[] =
     key: "total",
     label: "Total",
     render: (r) => (
-      <span className="tabular-nums font-semibold text-slate-900">
+      <span className="tabular-nums font-semibold text-foreground">
         {fmtCurrency(r.total, r.currency)}
       </span>
     ),
@@ -631,7 +631,7 @@ const INVOICE_COLUMNS = (navigate: (to: string) => void): ColDef<InvoiceRow>[] =
     key: "amountPaid",
     label: "Paid",
     render: (r) => (
-      <span className="tabular-nums text-emerald-700 font-medium">
+      <span className="tabular-nums text-success font-medium">
         {fmtCurrency(r.amountPaid, r.currency)}
       </span>
     ),
@@ -642,7 +642,7 @@ const INVOICE_COLUMNS = (navigate: (to: string) => void): ColDef<InvoiceRow>[] =
     label: "Balance",
     render: (r) => (
       <span
-        className={`tabular-nums font-medium ${r.balance > 0 ? "text-red-600" : "text-slate-400"}`}
+        className={`tabular-nums font-medium ${r.balance > 0 ? "text-danger" : "text-muted-foreground/70"}`}
       >
         {fmtCurrency(r.balance, r.currency)}
       </span>
@@ -654,7 +654,7 @@ const INVOICE_COLUMNS = (navigate: (to: string) => void): ColDef<InvoiceRow>[] =
     label: "Items",
     sortable: false,
     render: (r) => (
-      <span className="text-xs text-slate-500 tabular-nums">
+      <span className="text-xs text-muted-foreground tabular-nums">
         {r.items?.length ?? 0} items
       </span>
     ),
@@ -664,7 +664,7 @@ const INVOICE_COLUMNS = (navigate: (to: string) => void): ColDef<InvoiceRow>[] =
     key: "createdAt",
     label: "Created",
     render: (r) => (
-      <span className="text-xs text-slate-400">{fmtDate(r.createdAt)}</span>
+      <span className="text-xs text-muted-foreground/70">{fmtDate(r.createdAt)}</span>
     ),
     csv: (r) => fmtDate(r.createdAt),
   },
@@ -680,7 +680,7 @@ const INVOICE_COLUMNS = (navigate: (to: string) => void): ColDef<InvoiceRow>[] =
           navigate(`/billing?invoiceId=${r.id}`);
         }}
         title="View invoice detail"
-        className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
+        className="p-1.5 rounded-lg hover:bg-primary-muted/60 text-muted-foreground/70 hover:text-primary transition-colors"
       >
         <Eye className="w-4 h-4" />
       </button>
@@ -694,7 +694,7 @@ const RECEIPT_COLUMNS = (navigate: (to: string) => void): ColDef<ReceiptRow>[] =
     key: "receiptNumber",
     label: "Receipt #",
     render: (r) => (
-      <span className="font-mono text-xs font-medium text-slate-600">
+      <span className="font-mono text-xs font-medium text-muted-foreground">
         {r.receiptNumber}
       </span>
     ),
@@ -706,10 +706,10 @@ const RECEIPT_COLUMNS = (navigate: (to: string) => void): ColDef<ReceiptRow>[] =
     sortable: false,
     render: (r) => (
       <div>
-        <p className="font-medium text-slate-900 text-sm">
+        <p className="font-medium text-foreground text-sm">
           {fullName(r.invoice?.patient)}
         </p>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-muted-foreground/70">
           {r.invoice?.patient?.patientCode}
         </p>
       </div>
@@ -721,7 +721,7 @@ const RECEIPT_COLUMNS = (navigate: (to: string) => void): ColDef<ReceiptRow>[] =
     label: "Prev Card",
     sortable: false,
     render: (r) => (
-      <span className="text-xs font-mono text-slate-500">
+      <span className="text-xs font-mono text-muted-foreground">
         {r.invoice?.patient?.previousCardNumber ?? "—"}
       </span>
     ),
@@ -733,7 +733,7 @@ const RECEIPT_COLUMNS = (navigate: (to: string) => void): ColDef<ReceiptRow>[] =
     sortable: false,
     render: (r) => (
       <div>
-        <span className="font-mono text-xs text-sky-600">
+        <span className="font-mono text-xs text-primary">
           {r.invoice?.invoiceNumber}
         </span>
         {r.invoice?.paymentStatus && (
@@ -753,7 +753,7 @@ const RECEIPT_COLUMNS = (navigate: (to: string) => void): ColDef<ReceiptRow>[] =
       return (
         <span
           className={`tabular-nums font-semibold ${
-            isVoid ? "text-slate-400 line-through" : "text-emerald-700"
+            isVoid ? "text-muted-foreground/70 line-through" : "text-success"
           }`}
         >
           {fmtCurrency(r.amountReceived, r.currency ?? r.currencyCode)}
@@ -767,7 +767,7 @@ const RECEIPT_COLUMNS = (navigate: (to: string) => void): ColDef<ReceiptRow>[] =
     label: "Method",
     sortable: false,
     render: (r) => (
-      <span className="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+      <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
         {r.paymentMethod ?? "—"}
       </span>
     ),
@@ -778,7 +778,7 @@ const RECEIPT_COLUMNS = (navigate: (to: string) => void): ColDef<ReceiptRow>[] =
     label: "Reference",
     sortable: false,
     render: (r) => (
-      <span className="text-xs text-slate-500 font-mono">
+      <span className="text-xs text-muted-foreground font-mono">
         {r.reference ?? "—"}
       </span>
     ),
@@ -789,7 +789,7 @@ const RECEIPT_COLUMNS = (navigate: (to: string) => void): ColDef<ReceiptRow>[] =
     label: "Cashier",
     sortable: false,
     render: (r) => (
-      <span className="text-xs text-slate-500">{fullName(r.receivedBy)}</span>
+      <span className="text-xs text-muted-foreground">{fullName(r.receivedBy)}</span>
     ),
     csv: (r) => fullName(r.receivedBy),
   },
@@ -812,7 +812,7 @@ const RECEIPT_COLUMNS = (navigate: (to: string) => void): ColDef<ReceiptRow>[] =
       return (
         <span
           className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-            isUsd ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-700"
+            isUsd ? "bg-primary-muted/60 text-primary" : "bg-success-muted/60 text-success"
           }`}
         >
           {cur}
@@ -829,8 +829,8 @@ const RECEIPT_COLUMNS = (navigate: (to: string) => void): ColDef<ReceiptRow>[] =
       const s = r.status ?? "ACTIVE";
       const cls =
         s === "VOID"
-          ? "bg-rose-50 text-rose-700 border-rose-200"
-          : "bg-emerald-50 text-emerald-700 border-emerald-200";
+          ? "bg-danger-muted/60 text-danger border-danger/25"
+          : "bg-success-muted/60 text-success border-success/25";
       return (
         <span
           className={`text-xs font-medium px-2 py-0.5 rounded-full border ${cls}`}
@@ -846,7 +846,7 @@ const RECEIPT_COLUMNS = (navigate: (to: string) => void): ColDef<ReceiptRow>[] =
     key: "generatedAt",
     label: "Date",
     render: (r) => (
-      <span className="text-xs text-slate-500">
+      <span className="text-xs text-muted-foreground">
         {fmtDateTime(r.generatedAt)}
       </span>
     ),
@@ -864,7 +864,7 @@ const RECEIPT_COLUMNS = (navigate: (to: string) => void): ColDef<ReceiptRow>[] =
           navigate(`/receipts/${r.id}`);
         }}
         title="View receipt detail"
-        className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
+        className="p-1.5 rounded-lg hover:bg-primary-muted/60 text-muted-foreground/70 hover:text-primary transition-colors"
       >
         <Eye className="w-4 h-4" />
       </button>
@@ -878,7 +878,7 @@ const PAYMENT_COLUMNS: ColDef<PaymentRow>[] = [
     key: "paymentCode",
     label: "Payment #",
     render: (r) => (
-      <span className="font-mono text-xs text-slate-500 font-medium">
+      <span className="font-mono text-xs text-muted-foreground font-medium">
         {r.paymentCode}
       </span>
     ),
@@ -894,7 +894,7 @@ const PAYMENT_COLUMNS: ColDef<PaymentRow>[] = [
     key: "type",
     label: "Type",
     render: (r) => (
-      <span className="text-xs font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+      <span className="text-xs font-medium bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
         {r.type.replace(/_/g, " ")}
       </span>
     ),
@@ -905,7 +905,7 @@ const PAYMENT_COLUMNS: ColDef<PaymentRow>[] = [
     label: "Party",
     sortable: false,
     render: (r) => (
-      <span className="text-sm font-medium text-slate-700">
+      <span className="text-sm font-medium text-foreground">
         {r.party ?? "—"}
       </span>
     ),
@@ -916,7 +916,7 @@ const PAYMENT_COLUMNS: ColDef<PaymentRow>[] = [
     label: "Reference Doc",
     sortable: false,
     render: (r) => (
-      <span className="font-mono text-xs text-sky-600">
+      <span className="font-mono text-xs text-primary">
         {r.contextLabel ?? "—"}
       </span>
     ),
@@ -927,7 +927,7 @@ const PAYMENT_COLUMNS: ColDef<PaymentRow>[] = [
     label: "Amount",
     render: (r) => (
       <span
-        className={`tabular-nums font-semibold ${r.direction === "IN" ? "text-emerald-700" : "text-red-600"}`}
+        className={`tabular-nums font-semibold ${r.direction === "IN" ? "text-success" : "text-danger"}`}
       >
         {r.direction === "OUT" ? "-" : "+"}
         {fmtCurrency(r.amount, r.currency)}
@@ -939,7 +939,7 @@ const PAYMENT_COLUMNS: ColDef<PaymentRow>[] = [
     key: "method",
     label: "Method",
     render: (r) => (
-      <span className="text-xs font-medium text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full">
+      <span className="text-xs font-medium text-primary bg-primary-muted/60 px-2 py-0.5 rounded-full">
         {r.method?.replace(/_/g, " ")}
       </span>
     ),
@@ -956,7 +956,7 @@ const PAYMENT_COLUMNS: ColDef<PaymentRow>[] = [
     label: "Account",
     sortable: false,
     render: (r) => (
-      <span className="text-xs text-slate-500">{r.account ?? "—"}</span>
+      <span className="text-xs text-muted-foreground">{r.account ?? "—"}</span>
     ),
     csv: (r) => r.account ?? "",
   },
@@ -965,7 +965,7 @@ const PAYMENT_COLUMNS: ColDef<PaymentRow>[] = [
     label: "Reference",
     sortable: false,
     render: (r) => (
-      <span className="font-mono text-xs text-slate-400">
+      <span className="font-mono text-xs text-muted-foreground/70">
         {r.reference ?? "—"}
       </span>
     ),
@@ -976,7 +976,7 @@ const PAYMENT_COLUMNS: ColDef<PaymentRow>[] = [
     label: "Received By",
     sortable: false,
     render: (r) => (
-      <span className="text-xs text-slate-500">{r.receivedBy ?? "—"}</span>
+      <span className="text-xs text-muted-foreground">{r.receivedBy ?? "—"}</span>
     ),
     csv: (r) => r.receivedBy ?? "",
   },
@@ -984,7 +984,7 @@ const PAYMENT_COLUMNS: ColDef<PaymentRow>[] = [
     key: "paidAt",
     label: "Date",
     render: (r) => (
-      <span className="text-xs text-slate-400">{fmtDateTime(r.paidAt)}</span>
+      <span className="text-xs text-muted-foreground/70">{fmtDateTime(r.paidAt)}</span>
     ),
     csv: (r) => fmtDateTime(r.paidAt),
   },
@@ -995,7 +995,7 @@ const EXPENSE_COLUMNS: ColDef<ExpenseRow>[] = [
     key: "expenseCode",
     label: "Expense #",
     render: (r) => (
-      <span className="font-mono text-xs text-slate-600 font-medium">
+      <span className="font-mono text-xs text-muted-foreground font-medium">
         {r.expenseCode}
       </span>
     ),
@@ -1006,10 +1006,10 @@ const EXPENSE_COLUMNS: ColDef<ExpenseRow>[] = [
     label: "Title",
     render: (r) => (
       <div>
-        <p className="font-medium text-slate-900 text-sm">{r.title}</p>
+        <p className="font-medium text-foreground text-sm">{r.title}</p>
         {r.description && (
           <p
-            className="text-xs text-slate-400 max-w-[200px] truncate"
+            className="text-xs text-muted-foreground/70 max-w-[200px] truncate"
             title={r.description}
           >
             {r.description}
@@ -1023,7 +1023,7 @@ const EXPENSE_COLUMNS: ColDef<ExpenseRow>[] = [
     key: "category",
     label: "Category",
     render: (r) => (
-      <span className="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+      <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
         {r.category.replace(/_/g, " ")}
       </span>
     ),
@@ -1033,7 +1033,7 @@ const EXPENSE_COLUMNS: ColDef<ExpenseRow>[] = [
     key: "amount",
     label: "Amount",
     render: (r) => (
-      <span className="tabular-nums font-semibold text-slate-900">
+      <span className="tabular-nums font-semibold text-foreground">
         {fmtCurrency(r.amount)}
       </span>
     ),
@@ -1044,7 +1044,7 @@ const EXPENSE_COLUMNS: ColDef<ExpenseRow>[] = [
     label: "Paid",
     sortable: false,
     render: (r) => (
-      <span className="tabular-nums text-emerald-700 font-medium">
+      <span className="tabular-nums text-success font-medium">
         {fmtCurrency(r.totalPaid)}
       </span>
     ),
@@ -1061,7 +1061,7 @@ const EXPENSE_COLUMNS: ColDef<ExpenseRow>[] = [
     label: "Created By",
     sortable: false,
     render: (r) => (
-      <span className="text-xs text-slate-600">{r.createdByName ?? "—"}</span>
+      <span className="text-xs text-muted-foreground">{r.createdByName ?? "—"}</span>
     ),
     csv: (r) => r.createdByName ?? "",
   },
@@ -1070,7 +1070,7 @@ const EXPENSE_COLUMNS: ColDef<ExpenseRow>[] = [
     label: "Approved By",
     sortable: false,
     render: (r) => (
-      <span className="text-xs text-slate-600">{r.approvedByName ?? "—"}</span>
+      <span className="text-xs text-muted-foreground">{r.approvedByName ?? "—"}</span>
     ),
     csv: (r) => r.approvedByName ?? "",
   },
@@ -1078,7 +1078,7 @@ const EXPENSE_COLUMNS: ColDef<ExpenseRow>[] = [
     key: "expenseDate",
     label: "Date",
     render: (r) => (
-      <span className="text-xs text-slate-500">{fmtDate(r.expenseDate)}</span>
+      <span className="text-xs text-muted-foreground">{fmtDate(r.expenseDate)}</span>
     ),
     csv: (r) => fmtDate(r.expenseDate),
   },
@@ -1086,7 +1086,7 @@ const EXPENSE_COLUMNS: ColDef<ExpenseRow>[] = [
     key: "paidAt",
     label: "Paid At",
     render: (r) => (
-      <span className="text-xs text-slate-400">{fmtDate(r.paidAt)}</span>
+      <span className="text-xs text-muted-foreground/70">{fmtDate(r.paidAt)}</span>
     ),
     csv: (r) => fmtDate(r.paidAt),
   },
@@ -1352,7 +1352,7 @@ const fetchReport = useCallback(async () => {
   const invoiceExtras = (
     <>
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
           Invoice Status
         </label>
         <select
@@ -1360,7 +1360,7 @@ const fetchReport = useCallback(async () => {
           onChange={(e) =>
             setFilters((f) => ({ ...f, status: e.target.value }))
           }
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+          className="h-9 rounded-lg border border-border px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/60"
         >
           <option value="">All</option>
           {["DRAFT", "POSTED", "VOID"].map((s) => (
@@ -1371,7 +1371,7 @@ const fetchReport = useCallback(async () => {
         </select>
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
           Payment Status
         </label>
         <select
@@ -1379,7 +1379,7 @@ const fetchReport = useCallback(async () => {
           onChange={(e) =>
             setFilters((f) => ({ ...f, paymentStatus: e.target.value }))
           }
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+          className="h-9 rounded-lg border border-border px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/60"
         >
           <option value="">All</option>
           {["UNPAID", "PARTIALLY_PAID", "PAID"].map((s) => (
@@ -1395,13 +1395,13 @@ const fetchReport = useCallback(async () => {
   const paymentExtras = (
     <>
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
           Type
         </label>
         <select
           value={filters.type}
           onChange={(e) => setFilters((f) => ({ ...f, type: e.target.value }))}
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+          className="h-9 rounded-lg border border-border px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/60"
         >
           <option value="">All</option>
           {["INVOICE_RECEIPT", "PURCHASE_ORDER", "EXPENSE", "OTHER"].map(
@@ -1414,7 +1414,7 @@ const fetchReport = useCallback(async () => {
         </select>
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
           Direction
         </label>
         <select
@@ -1422,7 +1422,7 @@ const fetchReport = useCallback(async () => {
           onChange={(e) =>
             setFilters((f) => ({ ...f, direction: e.target.value }))
           }
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+          className="h-9 rounded-lg border border-border px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/60"
         >
           <option value="">All</option>
           <option value="IN">IN</option>
@@ -1430,7 +1430,7 @@ const fetchReport = useCallback(async () => {
         </select>
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
           Method
         </label>
         <select
@@ -1438,7 +1438,7 @@ const fetchReport = useCallback(async () => {
           onChange={(e) =>
             setFilters((f) => ({ ...f, method: e.target.value }))
           }
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+          className="h-9 rounded-lg border border-border px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/60"
         >
           <option value="">All</option>
           {[
@@ -1463,7 +1463,7 @@ const fetchReport = useCallback(async () => {
   const expenseExtras = (
     <>
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
           Status
         </label>
         <select
@@ -1471,7 +1471,7 @@ const fetchReport = useCallback(async () => {
           onChange={(e) =>
             setFilters((f) => ({ ...f, status: e.target.value }))
           }
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+          className="h-9 rounded-lg border border-border px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/60"
         >
           <option value="">All</option>
           {["PENDING", "APPROVED", "PAID", "REJECTED", "CANCELLED"].map((s) => (
@@ -1482,7 +1482,7 @@ const fetchReport = useCallback(async () => {
         </select>
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
           Category
         </label>
         <select
@@ -1490,7 +1490,7 @@ const fetchReport = useCallback(async () => {
           onChange={(e) =>
             setFilters((f) => ({ ...f, category: e.target.value }))
           }
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+          className="h-9 rounded-lg border border-border px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/60"
         >
           <option value="">All</option>
           {[
@@ -1545,7 +1545,7 @@ const fetchReport = useCallback(async () => {
                 value={
                   <>
                     <span className="tabular-nums">UGX {Number(revenueByCurrency.ugx).toLocaleString("en-UG")}</span>
-                    <span className="text-sm font-normal text-slate-500 block tabular-nums">
+                    <span className="text-sm font-normal text-muted-foreground block tabular-nums">
                       USD {Number(revenueByCurrency.usd).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </>
@@ -1558,7 +1558,7 @@ const fetchReport = useCallback(async () => {
                 value={
                   <>
                     <span className="tabular-nums">UGX {Number(revenueByCurrency.collectedUgx).toLocaleString("en-UG")}</span>
-                    <span className="text-sm font-normal text-slate-500 block tabular-nums">
+                    <span className="text-sm font-normal text-muted-foreground block tabular-nums">
                       USD {Number(revenueByCurrency.collectedUsd).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </>
@@ -1571,7 +1571,7 @@ const fetchReport = useCallback(async () => {
                 value={
                   <>
                     <span className="tabular-nums">UGX {Number(revenueByCurrency.balanceUgx).toLocaleString("en-UG")}</span>
-                    <span className="text-sm font-normal text-slate-500 block tabular-nums">
+                    <span className="text-sm font-normal text-muted-foreground block tabular-nums">
                       USD {Number(revenueByCurrency.balanceUsd).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </>
@@ -1633,8 +1633,8 @@ const fetchReport = useCallback(async () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {/* Aging buckets */}
                   {(summary.agingBuckets ?? []).length > 0 && (
-                    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                    <div className="bg-white rounded-xl border border-border p-4 shadow-sm">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                         Accounts Receivable Aging
                       </p>
                       <div className="space-y-2">
@@ -1647,14 +1647,14 @@ const fetchReport = useCallback(async () => {
                           return (
                             <div key={i}>
                               <div className="flex items-center justify-between mb-0.5">
-                                <span className="text-xs font-medium text-slate-600">
+                                <span className="text-xs font-medium text-muted-foreground">
                                   {b.label}
                                 </span>
-                                <span className="text-xs tabular-nums text-slate-500">
+                                <span className="text-xs tabular-nums text-muted-foreground">
                                   {fmtCurrency(b.amount)} ({b.count})
                                 </span>
                               </div>
-                              <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                                 <div
                                   className="h-full rounded-full transition-all"
                                   style={{
@@ -1671,8 +1671,8 @@ const fetchReport = useCallback(async () => {
                   )}
 
                   {/* Revenue by procedure */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                  <div className="bg-white rounded-xl border border-border p-4 shadow-sm">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                       Revenue by Procedure (Top 8)
                     </p>
                     <ResponsiveContainer width="100%" height={160}>
@@ -1706,8 +1706,8 @@ const fetchReport = useCallback(async () => {
                   </div>
 
                   {/* Revenue by doctor */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                  <div className="bg-white rounded-xl border border-border p-4 shadow-sm">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                       Revenue by Doctor
                     </p>
                     <div className="space-y-2">
@@ -1717,16 +1717,16 @@ const fetchReport = useCallback(async () => {
                           <div key={i} className="flex items-center gap-2">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between mb-0.5">
-                                <span className="text-xs font-medium text-slate-700 truncate">
+                                <span className="text-xs font-medium text-foreground truncate">
                                   {d.name}
                                 </span>
-                                <span className="text-xs tabular-nums text-slate-500 ml-2">
+                                <span className="text-xs tabular-nums text-muted-foreground ml-2">
                                   {fmtCurrency(d.total)}
                                 </span>
                               </div>
-                              <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                                 <div
-                                  className="h-full rounded-full bg-sky-500"
+                                  className="h-full rounded-full bg-primary"
                                   style={{
                                     width: `${summary.totalRevenue ? Math.round((d.total / summary.totalRevenue) * 100) : 0}%`,
                                   }}
@@ -1736,7 +1736,7 @@ const fetchReport = useCallback(async () => {
                           </div>
                         ))}
                       {!summary.revenueByDoctor?.length && (
-                        <p className="text-xs text-slate-400 text-center py-1">
+                        <p className="text-xs text-muted-foreground/70 text-center py-1">
                           No data
                         </p>
                       )}
@@ -1822,41 +1822,41 @@ const fetchReport = useCallback(async () => {
                   return (
                     <div
                       key={c.currency}
-                      className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-2"
+                      className="bg-white border border-border rounded-xl p-4 shadow-sm space-y-2"
                     >
-                      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                      <div className="flex items-center justify-between border-b border-border/60 pb-2">
                         <div className="flex items-center gap-2">
                           <span
                             className={`text-xs font-bold px-2 py-0.5 rounded-md tracking-wide ${
                               c.currency === "USD"
-                                ? "bg-blue-100 text-blue-700"
+                                ? "bg-primary-muted text-primary"
                                 : c.currency === "UGX"
-                                  ? "bg-emerald-100 text-emerald-700"
-                                  : "bg-slate-100 text-slate-700"
+                                  ? "bg-success-muted text-success"
+                                  : "bg-muted text-foreground"
                             }`}
                           >
                             {c.currency}
                           </span>
-                          <span className="text-xs text-slate-500">
+                          <span className="text-xs text-muted-foreground">
                             {c.count} {c.count === 1 ? "receipt" : "receipts"}
                           </span>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <p className="text-[10px] uppercase tracking-wider text-slate-400">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
                             Collected
                           </p>
-                          <p className="text-base font-bold text-slate-800 tabular-nums">
+                          <p className="text-base font-bold text-foreground tabular-nums">
                             {fmtCurrency(c.total, c.currency)}
                           </p>
                         </div>
                         {!isBase && (
-                          <div className="pl-2 border-l border-slate-100">
-                            <p className="text-[10px] uppercase tracking-wider text-slate-400">
+                          <div className="pl-2 border-l border-border/60">
+                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
                               ≈ Base (UGX)
                             </p>
-                            <p className="text-sm font-semibold text-emerald-600 tabular-nums">
+                            <p className="text-sm font-semibold text-success tabular-nums">
                               {fmtCurrency(c.totalBase, "UGX")}
                             </p>
                           </div>
@@ -1870,8 +1870,8 @@ const fetchReport = useCallback(async () => {
 
             {/* Daily chart — values are in BASE currency (UGX-equivalent) */}
             {showCharts && (dailyChartData ?? []).length > 0 && (
-              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+              <div className="bg-white rounded-xl border border-border p-4 shadow-sm">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                   Daily Collections (UGX-equivalent) — {fmtCurrency(summary.totalCollected, "UGX")}
                 </p>
                 <ResponsiveContainer width="100%" height={200}>
@@ -1902,8 +1902,8 @@ const fetchReport = useCallback(async () => {
 
             {/* Payment method pie */}
             {showCharts && (summary.methodBreakdown ?? []).length > 0 && (
-              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+              <div className="bg-white rounded-xl border border-border p-4 shadow-sm">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                   Collections by Payment Methods
                 </p>
                 <ResponsiveContainer width="100%" height={200}>
@@ -2055,8 +2055,8 @@ const fetchReport = useCallback(async () => {
                 />
 
                 {/* Monthly trend */}
-                <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm md:col-span-2">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                <div className="bg-white rounded-xl border border-border p-4 shadow-sm md:col-span-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                     Monthly Expense Trend
                   </p>
                   <ResponsiveContainer width="100%" height={160}>
@@ -2080,8 +2080,8 @@ const fetchReport = useCallback(async () => {
                 </div>
 
                 {/* By status */}
-                <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm md:col-span-3">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                <div className="bg-white rounded-xl border border-border p-4 shadow-sm md:col-span-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                     By Status
                   </p>
                   <ResponsiveContainer width="100%" height={140}>
@@ -2132,34 +2132,34 @@ const fetchReport = useCallback(async () => {
   </table>`;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-muted/50">
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-slate-200 px-1 py-2 sticky top-0 z-10">
+      <div className="bg-white border-b border-border px-1 py-2 sticky top-0 z-10">
         <div className="max-w-screen-2xl mx-auto">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              <h1 className="text-xl font-bold text-foreground tracking-tight">
                 {title}
               </h1>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowCharts((v) => !v)}
-                className="px-1 py-2 text-sm rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center gap-1.5 transition-colors"
+                className="px-1 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted/50 flex items-center gap-1.5 transition-colors"
               >
                 {showCharts ? "🙈 Hide Charts" : "📊 Show Charts"}
               </button>
               <button
                 onClick={handleExportCSV}
                 disabled={loading}
-                className="px-3 py-2 text-sm rounded-lg border border-sky-600 text-sky-700 hover:bg-sky-50 flex items-center gap-1.5 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-2 text-sm rounded-lg border border-primary text-primary hover:bg-primary-muted/60 flex items-center gap-1.5 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? "⏳ Loading…" : "⬇ Export CSV"}
               </button>
               <button
                 onClick={handlePrint}
                 disabled={loading}
-                className="px-3 py-2 text-sm rounded-lg bg-slate-800 text-white hover:bg-slate-700 flex items-center gap-1.5 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-2 text-sm rounded-lg bg-foreground text-white hover:bg-foreground flex items-center gap-1.5 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? "⏳ Loading…" : "🖨 Print"}
               </button>
@@ -2174,14 +2174,14 @@ const fetchReport = useCallback(async () => {
                 onClick={() => handleTabChange(t.id)}
                 className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === t.id
-                    ? "border-sky-600 text-sky-700"
-                    : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-input"
                 }`}
               >
                 <span>{t.icon}</span>
                 {t.label}
                 {currentData.pagination.total > 0 && activeTab === t.id && (
-                  <span className="bg-sky-100 text-sky-700 text-xs rounded-full px-1.5 py-0.5 font-semibold tabular-nums">
+                  <span className="bg-primary-muted text-primary text-xs rounded-full px-1.5 py-0.5 font-semibold tabular-nums">
                     {currentData.pagination.total.toLocaleString()}
                   </span>
                 )}
@@ -2194,11 +2194,11 @@ const fetchReport = useCallback(async () => {
       {/* ── Body ────────────────────────────────────────────────────────── */}
       <div className="max-w-screen-2xl mx-auto px-1 py-2 space-y-1">
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+          <div className="bg-danger-muted/60 border border-danger/25 text-danger px-4 py-3 rounded-lg text-sm flex items-center gap-2">
             <span>⚠️</span> {error}
             <button
               onClick={fetchReport}
-              className="ml-auto text-red-600 underline text-xs"
+              className="ml-auto text-danger underline text-xs"
             >
               Retry
             </button>
@@ -2220,19 +2220,19 @@ const fetchReport = useCallback(async () => {
         {renderSummary()}
 
         {/* Table card */}
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-            <p className="text-sm font-semibold text-slate-700">
+        <div className="bg-white border border-border rounded-xl shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/60">
+            <p className="text-sm font-semibold text-foreground">
               {TABS.find((t) => t.id === activeTab)?.label}
               {!loading && currentData.pagination.total > 0 && (
-                <span className="ml-2 text-slate-400 font-normal text-xs">
+                <span className="ml-2 text-muted-foreground/70 font-normal text-xs">
                   {currentData.pagination.total.toLocaleString()} total
                 </span>
               )}
             </p>
             <button
               onClick={fetchReport}
-              className={`text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1 transition-colors ${loading ? "animate-pulse" : ""}`}
+              className={`text-xs text-muted-foreground/70 hover:text-muted-foreground flex items-center gap-1 transition-colors ${loading ? "animate-pulse" : ""}`}
             >
               🔄 {loading ? "Loading…" : "Refresh"}
             </button>
@@ -2247,7 +2247,7 @@ const fetchReport = useCallback(async () => {
             loading={loading}
           />
 
-          <div className="border-t border-slate-100 px-4">
+          <div className="border-t border-border/60 px-4">
             <Pagination
               page={page}
               totalPages={currentData.pagination.totalPages ?? 1}

@@ -73,16 +73,16 @@ export interface TreatmentPlan {
 }
 
 const STATUS_META: Record<TxStatus, { label: string; color: string; bg: string; border: string; dot: string }> = {
-  PLANNED: { label: 'Planned', color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200', dot: 'bg-slate-400' },
-  IN_PROGRESS: { label: 'In Progress', color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200', dot: 'bg-blue-500' },
-  COMPLETED: { label: 'Completed', color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-200', dot: 'bg-green-500' },
-  ON_HOLD: { label: 'On Hold', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-500' },
-  CANCELLED: { label: 'Cancelled', color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200', dot: 'bg-red-400' },
+  PLANNED: { label: 'Planned', color: 'text-muted-foreground', bg: 'bg-muted/50', border: 'border-border', dot: 'bg-muted-foreground/70' },
+  IN_PROGRESS: { label: 'In Progress', color: 'text-primary', bg: 'bg-primary-muted/60', border: 'border-primary/25', dot: 'bg-primary' },
+  COMPLETED: { label: 'Completed', color: 'text-success', bg: 'bg-success-muted/60', border: 'border-success/25', dot: 'bg-success' },
+  ON_HOLD: { label: 'On Hold', color: 'text-warning', bg: 'bg-warning-muted/60', border: 'border-warning/25', dot: 'bg-warning' },
+  CANCELLED: { label: 'Cancelled', color: 'text-danger', bg: 'bg-danger-muted/60', border: 'border-danger/25', dot: 'bg-danger/80' },
 };
 
 function cn(...c: (string | boolean | undefined | null)[]) { return c.filter(Boolean).join(' '); }
 function Spinner({ size = 'md' }: { size?: 'sm' | 'md' }) {
-  return <Loader2 className={cn('animate-spin text-blue-600', size === 'sm' ? 'w-4 h-4' : 'w-6 h-6')} />;
+  return <Loader2 className={cn('animate-spin text-primary', size === 'sm' ? 'w-4 h-4' : 'w-6 h-6')} />;
 }
 
 function StatusBadge({ status }: { status: TxStatus }) {
@@ -175,9 +175,9 @@ export default function TreatmentsTab({ patientId, patient }: TreatmentsTabProps
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-        <AlertTriangle className="w-10 h-10 mb-3 text-red-400" />
-        <p className="text-sm font-medium text-slate-500">Failed to load treatments</p>
+      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground/70">
+        <AlertTriangle className="w-10 h-10 mb-3 text-danger/70" />
+        <p className="text-sm font-medium text-muted-foreground">Failed to load treatments</p>
       </div>
     );
   }
@@ -186,33 +186,33 @@ export default function TreatmentsTab({ patientId, patient }: TreatmentsTabProps
     <div className="space-y-4">
       {/* Header Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+        <div className="bg-muted/50 border border-border rounded-xl p-4">
           <div className="flex items-center gap-1 mb-1">
-            <ClipboardList className="w-4 h-4 text-blue-500" />
-            <span className="text-xs text-slate-400 uppercase">Active Plans</span>
+            <ClipboardList className="w-4 h-4 text-primary" />
+            <span className="text-xs text-muted-foreground/70 uppercase">Active Plans</span>
           </div>
-          <p className="text-2xl font-bold text-slate-800">{stats.activePlans}</p>
+          <p className="text-2xl font-bold text-foreground">{stats.activePlans}</p>
         </div>
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+        <div className="bg-muted/50 border border-border rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1">
             <Activity className="w-4 h-4 text-indigo-500" />
-            <span className="text-xs text-slate-400 uppercase">Total Procedures</span>
+            <span className="text-xs text-muted-foreground/70 uppercase">Total Procedures</span>
           </div>
-          <p className="text-2xl font-bold text-slate-800">{stats.totalProcedures}</p>
+          <p className="text-2xl font-bold text-foreground">{stats.totalProcedures}</p>
         </div>
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+        <div className="bg-muted/50 border border-border rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <DollarSign className="w-4 h-4 text-amber-500" />
-            <span className="text-xs text-slate-400 uppercase">Total Value</span>
+            <DollarSign className="w-4 h-4 text-warning" />
+            <span className="text-xs text-muted-foreground/70 uppercase">Total Value</span>
           </div>
-          <p className="text-2xl font-bold text-slate-800">{formatCurrency(stats.totalCost)}</p>
+          <p className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalCost)}</p>
         </div>
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+        <div className="bg-muted/50 border border-border rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className="w-4 h-4 text-green-500" />
-            <span className="text-xs text-slate-400 uppercase">Completion</span>
+            <TrendingUp className="w-4 h-4 text-success" />
+            <span className="text-xs text-muted-foreground/70 uppercase">Completion</span>
           </div>
-          <p className="text-2xl font-bold text-slate-800">{stats.completionPercent}%</p>
+          <p className="text-2xl font-bold text-foreground">{stats.completionPercent}%</p>
         </div>
       </div>
 
@@ -223,7 +223,7 @@ export default function TreatmentsTab({ patientId, patient }: TreatmentsTabProps
             onClick={() => setViewMode('list')}
             className={cn(
               'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-              viewMode === 'list' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              viewMode === 'list' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:bg-muted'
             )}
           >
             By Plan
@@ -232,7 +232,7 @@ export default function TreatmentsTab({ patientId, patient }: TreatmentsTabProps
             onClick={() => setViewMode('timeline')}
             className={cn(
               'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-              viewMode === 'timeline' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              viewMode === 'timeline' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:bg-muted'
             )}
           >
             Timeline
@@ -250,10 +250,10 @@ export default function TreatmentsTab({ patientId, patient }: TreatmentsTabProps
       {viewMode === 'list' ? (
         <div className="space-y-3">
           {treatmentPlans.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground/70 bg-muted/50 rounded-xl border border-dashed border-border">
               <ClipboardList className="w-12 h-12 mb-3 opacity-20" />
-              <p className="text-sm font-medium text-slate-500">No treatment plans yet</p>
-              <p className="text-xs text-slate-400 mt-1">Create a treatment plan to track procedures</p>
+              <p className="text-sm font-medium text-muted-foreground">No treatment plans yet</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">Create a treatment plan to track procedures</p>
             </div>
           ) : (
             treatmentPlans.map((plan) => (
@@ -262,7 +262,7 @@ export default function TreatmentsTab({ patientId, patient }: TreatmentsTabProps
                 onClick={() => setSelectedPlanId(plan.id === selectedPlanId ? null : plan.id)}
                 className={cn(
                   'rounded-xl border transition-all cursor-pointer overflow-hidden',
-                  selectedPlanId === plan.id ? 'border-blue-300 bg-blue-50/30 ring-1 ring-blue-200' : 'border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50/20'
+                  selectedPlanId === plan.id ? 'border-primary/30 bg-primary-muted/30 ring-1 ring-primary/25' : 'border-border bg-white hover:border-primary/25 hover:bg-primary-muted/20'
                 )}
               >
                 {/* Plan Header */}
@@ -271,16 +271,16 @@ export default function TreatmentsTab({ patientId, patient }: TreatmentsTabProps
                     <div className="flex items-center gap-3">
                       <div className={cn(
                         'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-                        plan.status === 'COMPLETED' ? 'bg-green-100' : 'bg-blue-100'
+                        plan.status === 'COMPLETED' ? 'bg-success-muted' : 'bg-primary-muted'
                       )}>
                         <ClipboardList className={cn(
                           'w-5 h-5',
-                          plan.status === 'COMPLETED' ? 'text-green-600' : 'text-blue-600'
+                          plan.status === 'COMPLETED' ? 'text-success' : 'text-primary'
                         )} />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-slate-800">{plan.title}</h3>
-                        <p className="text-xs text-slate-400 mt-0.5">
+                        <h3 className="font-semibold text-foreground">{plan.title}</h3>
+                        <p className="text-xs text-muted-foreground/70 mt-0.5">
                           {plan.planCode} • Created {formatDate(plan.createdAt)}
                           {plan.dentist && ` • Dr. ${plan.dentist.firstName} ${plan.dentist.lastName}`}
                         </p>
@@ -289,7 +289,7 @@ export default function TreatmentsTab({ patientId, patient }: TreatmentsTabProps
                     <div className="flex items-center gap-2">
                       <StatusBadge status={plan.status} />
                       <ChevronDown className={cn(
-                        'w-4 h-4 text-slate-400 transition-transform',
+                        'w-4 h-4 text-muted-foreground/70 transition-transform',
                         selectedPlanId === plan.id && 'rotate-180'
                       )} />
                     </div>
@@ -298,13 +298,13 @@ export default function TreatmentsTab({ patientId, patient }: TreatmentsTabProps
                   {/* Progress Bar */}
                   {plan.summary && (
                     <div className="mb-3">
-                      <div className="flex justify-between text-[10px] text-slate-400 mb-1">
+                      <div className="flex justify-between text-[10px] text-muted-foreground/70 mb-1">
                         <span>{plan.summary.completedCount} of {plan.summary.totalProcedures} completed</span>
                         <span className="font-bold">{plan.summary.completionPercent}%</span>
                       </div>
-                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-blue-500 to-green-500 rounded-full transition-all duration-700"
+                          className="h-full bg-gradient-to-r from-primary to-success rounded-full transition-all duration-700"
                           style={{ width: `${plan.summary.completionPercent}%` }}
                         />
                       </div>
@@ -313,25 +313,25 @@ export default function TreatmentsTab({ patientId, patient }: TreatmentsTabProps
 
                   {/* Cost Summary */}
                   <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="bg-slate-50 rounded-lg py-2">
-                      <p className="text-xs font-bold text-slate-700">{formatCurrency(plan.summary?.totalCost || 0)}</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Total</p>
+                    <div className="bg-muted/50 rounded-lg py-2">
+                      <p className="text-xs font-bold text-foreground">{formatCurrency(plan.summary?.totalCost || 0)}</p>
+                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">Total</p>
                     </div>
-                    <div className="bg-slate-50 rounded-lg py-2">
-                      <p className="text-xs font-bold text-green-600">{formatCurrency(plan.summary?.completedCost || 0)}</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Completed</p>
+                    <div className="bg-muted/50 rounded-lg py-2">
+                      <p className="text-xs font-bold text-success">{formatCurrency(plan.summary?.completedCost || 0)}</p>
+                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">Completed</p>
                     </div>
-                    <div className="bg-slate-50 rounded-lg py-2">
-                      <p className="text-xs font-bold text-blue-600">{formatCurrency(plan.summary?.remainingCost || 0)}</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Remaining</p>
+                    <div className="bg-muted/50 rounded-lg py-2">
+                      <p className="text-xs font-bold text-primary">{formatCurrency(plan.summary?.remainingCost || 0)}</p>
+                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">Remaining</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Expanded Procedures List */}
                 {selectedPlanId === plan.id && plan.procedures && plan.procedures.length > 0 && (
-                  <div className="border-t border-slate-100 bg-slate-50/50 p-4">
-                    <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Procedures</h4>
+                  <div className="border-t border-border/60 bg-muted/50 p-4">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Procedures</h4>
                     <div className="space-y-2">
                       {plan.procedures
                         .sort((a, b) => a.sequence - b.sequence)
@@ -342,30 +342,30 @@ export default function TreatmentsTab({ patientId, patient }: TreatmentsTabProps
                             e.stopPropagation();
                             navigate(`/treatment-plans/${plan.id}/procedures/${proc.id}`);
                           }}
-                          className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 hover:border-blue-300 transition-colors"
+                          className="flex items-center justify-between p-3 bg-white rounded-lg border border-border hover:border-primary/30 transition-colors"
                         >
                           <div className="flex items-center gap-3">
                             <div className={cn(
                               'w-8 h-8 rounded-lg flex items-center justify-center shrink-0',
-                              proc.status === 'COMPLETED' ? 'bg-green-100 text-green-600' :
-                              proc.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-600' :
-                              'bg-slate-100 text-slate-500'
+                              proc.status === 'COMPLETED' ? 'bg-success-muted text-success' :
+                              proc.status === 'IN_PROGRESS' ? 'bg-primary-muted text-primary' :
+                              'bg-muted text-muted-foreground'
                             )}>
                               {proc.status === 'COMPLETED' ? <CheckCircle className="w-4 h-4" /> :
                                proc.status === 'IN_PROGRESS' ? <Clock className="w-4 h-4" /> :
                                <FileText className="w-4 h-4" />}
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-slate-800">{proc.procedure.name}</p>
-                              <p className="text-[11px] text-slate-400">
-                                {proc.procedure.code && <span className="font-mono text-blue-600 mr-2">{proc.procedure.code}</span>}
+                              <p className="text-sm font-medium text-foreground">{proc.procedure.name}</p>
+                              <p className="text-[11px] text-muted-foreground/70">
+                                {proc.procedure.code && <span className="font-mono text-primary mr-2">{proc.procedure.code}</span>}
                                 {proc.toothNumbers.length > 0 && `Teeth: ${proc.toothNumbers.join(', ')}`}
                                 {(proc.surfaces?.length ?? 0) > 0 && ` [${formatSurfaces(proc.surfaces)}]`}
                               </p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm font-semibold text-slate-700">{formatCurrency(proc.cost)}</p>
+                            <p className="text-sm font-semibold text-foreground">{formatCurrency(proc.cost)}</p>
                             <StatusBadge status={proc.status} />
                           </div>
                         </div>
@@ -376,7 +376,7 @@ export default function TreatmentsTab({ patientId, patient }: TreatmentsTabProps
                         e.stopPropagation();
                         navigate(`/treatment-plans/${plan.id}`);
                       }}
-                      className="w-full mt-3 py-2 text-xs text-blue-600 hover:text-blue-700 font-medium border border-dashed border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+                      className="w-full mt-3 py-2 text-xs text-primary hover:text-primary font-medium border border-dashed border-primary/25 rounded-lg hover:bg-primary-muted/60 transition-colors"
                     >
                       View Full Plan Details
                     </button>
@@ -390,37 +390,37 @@ export default function TreatmentsTab({ patientId, patient }: TreatmentsTabProps
         /* Timeline View */
         <div className="space-y-3">
           {allProcedures.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground/70 bg-muted/50 rounded-xl border border-dashed border-border">
               <Calendar className="w-12 h-12 mb-3 opacity-20" />
-              <p className="text-sm font-medium text-slate-500">No procedures scheduled</p>
+              <p className="text-sm font-medium text-muted-foreground">No procedures scheduled</p>
             </div>
           ) : (
-            <div className="relative pl-6 border-l-2 border-slate-200 space-y-4">
+            <div className="relative pl-6 border-l-2 border-border space-y-4">
               {allProcedures.map((proc) => (
                 <div key={proc.id} className="relative">
                   <div className={cn(
                     'absolute -left-[29px] w-4 h-4 rounded-full border-2 border-white shadow-sm',
-                    proc.status === 'COMPLETED' ? 'bg-green-500' :
-                    proc.status === 'IN_PROGRESS' ? 'bg-blue-500' :
-                    proc.status === 'PLANNED' ? 'bg-slate-300' :
-                    'bg-amber-500'
+                    proc.status === 'COMPLETED' ? 'bg-success' :
+                    proc.status === 'IN_PROGRESS' ? 'bg-primary' :
+                    proc.status === 'PLANNED' ? 'bg-border' :
+                    'bg-warning'
                   )} />
                   <div
                     onClick={() => navigate(`/treatment-plans/${proc.planId}/procedures/${proc.id}`)}
-                    className="bg-white rounded-xl border border-slate-200 p-4 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
+                    className="bg-white rounded-xl border border-border p-4 hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <p className="text-xs text-slate-400 mb-1">
+                        <p className="text-xs text-muted-foreground/70 mb-1">
                           {proc.scheduledDate ? formatDate(proc.scheduledDate) : 'Not scheduled'} • {proc.planTitle}
                         </p>
-                        <h4 className="font-semibold text-slate-800">{proc.procedure.name}</h4>
+                        <h4 className="font-semibold text-foreground">{proc.procedure.name}</h4>
                       </div>
                       <StatusBadge status={proc.status} />
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-slate-500">
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       {proc.procedure.code && (
-                        <span className="font-mono text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{proc.procedure.code}</span>
+                        <span className="font-mono text-primary bg-primary-muted/60 px-2 py-0.5 rounded">{proc.procedure.code}</span>
                       )}
                       {proc.toothNumbers.length > 0 && (
                         <span>Teeth: {proc.toothNumbers.join(', ')}</span>
@@ -428,10 +428,10 @@ export default function TreatmentsTab({ patientId, patient }: TreatmentsTabProps
                       {(proc.surfaces?.length ?? 0) > 0 && (
                         <span>Surfaces: [{formatSurfaces(proc.surfaces)}]</span>
                       )}
-                      <span className="ml-auto font-semibold text-slate-700">{formatCurrency(proc.cost)}</span>
+                      <span className="ml-auto font-semibold text-foreground">{formatCurrency(proc.cost)}</span>
                     </div>
                     {proc.notes && (
-                      <p className="mt-2 text-xs text-slate-400 italic">{proc.notes}</p>
+                      <p className="mt-2 text-xs text-muted-foreground/70 italic">{proc.notes}</p>
                     )}
                   </div>
                 </div>

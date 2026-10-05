@@ -109,11 +109,11 @@ export function LocationForm({ location, initialParentId, onSubmit, isLoading }:
         
         {/* Section: Basic Information */}
         <div className="space-y-2">
-          <div className="flex items-center gap-1 pb-2 border-b border-sky-100">
-            <div className="p-1.5 bg-sky-100 rounded-md">
-              <Building2 className="h-4 w-4 text-sky-600" />
+          <div className="flex items-center gap-1 pb-2 border-b border-primary/20">
+            <div className="p-1.5 bg-primary-muted rounded-md">
+              <Building2 className="h-4 w-4 text-primary" />
             </div>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-sky-800">General Information</h3>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-primary">General Information</h3>
           </div>
 
           <FormField
@@ -121,12 +121,12 @@ export function LocationForm({ location, initialParentId, onSubmit, isLoading }:
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sky-900 font-semibold">Location Name</FormLabel>
+                <FormLabel className="text-primary font-semibold">Location Name</FormLabel>
                 <FormControl>
                   <Input 
                     placeholder="e.g., Dental Wing A - Storage" 
                     {...field} 
-                    className="focus-visible:ring-sky-500 border-sky-100"
+                    className="focus-visible:ring-primary/60 border-primary/20"
                   />
                 </FormControl>
                 <FormMessage />
@@ -140,10 +140,10 @@ export function LocationForm({ location, initialParentId, onSubmit, isLoading }:
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sky-900 font-semibold">Classification</FormLabel>
+                  <FormLabel className="text-primary font-semibold">Classification</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger className="border-sky-100 focus:ring-sky-500">
+                      <SelectTrigger className="border-primary/20 focus:ring-primary/60">
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                     </FormControl>
@@ -163,18 +163,18 @@ export function LocationForm({ location, initialParentId, onSubmit, isLoading }:
               name="parentId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sky-900 font-semibold">Parent Structure</FormLabel>
+                  <FormLabel className="text-primary font-semibold">Parent Structure</FormLabel>
                   <Select 
                     onValueChange={(val) => field.onChange(val === 'null' ? null : val)} 
                     value={field.value || 'null'}
                   >
                     <FormControl>
-                      <SelectTrigger className="border-sky-100 focus:ring-sky-500 bg-sky-50/30">
+                      <SelectTrigger className="border-primary/20 focus:ring-primary/60 bg-primary-muted/30">
                         <SelectValue placeholder="No parent (Root)" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent className="max-h-[300px]">
-                      <SelectItem value="null" className="font-medium text-sky-700 underline-offset-4">Top Level (Root)</SelectItem>
+                      <SelectItem value="null" className="font-medium text-primary underline-offset-4">Top Level (Root)</SelectItem>
                       {availableParents.map((parent) => (
                         <SelectItem key={parent.id} value={parent.id}>
                           <span className="text-muted-foreground/50 mr-1">
@@ -194,12 +194,12 @@ export function LocationForm({ location, initialParentId, onSubmit, isLoading }:
         </div>
 
         {/* Section: Contact & Physical Details */}
-        <div className="space-y-4 p-4 bg-sky-50/50 rounded-xl border border-sky-100">
+        <div className="space-y-4 p-4 bg-primary-muted/50 rounded-xl border border-primary/20">
           <div className="flex items-center gap-2 pb-2">
             <div className="p-1.5 bg-white rounded-md shadow-sm">
-              <MapPin className="h-4 w-4 text-sky-600" />
+              <MapPin className="h-4 w-4 text-primary" />
             </div>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-sky-800">Contact & Logistics</h3>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Contact & Logistics</h3>
           </div>
 
           <FormField
@@ -262,7 +262,7 @@ export function LocationForm({ location, initialParentId, onSubmit, isLoading }:
             control={form.control}
             name="isActive"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between rounded-lg border border-sky-100 bg-white p-3 shadow-sm">
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border border-primary/20 bg-white p-3 shadow-sm">
                 <div className="space-y-0.5">
                   <FormLabel className="text-sm font-semibold">Active Status</FormLabel>
                   <FormDescription className="text-[11px]">Visible in inventory lists</FormDescription>
@@ -271,7 +271,7 @@ export function LocationForm({ location, initialParentId, onSubmit, isLoading }:
                   <Switch
                     checked={field.value}
                     onCheckedChange={field.onChange}
-                    className="data-[state=checked]:bg-sky-600"
+                    className="data-[state=checked]:bg-primary"
                   />
                 </FormControl>
               </FormItem>
@@ -282,7 +282,7 @@ export function LocationForm({ location, initialParentId, onSubmit, isLoading }:
             control={form.control}
             name="isDefault"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between rounded-lg border border-sky-100 bg-white p-3 shadow-sm">
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border border-primary/20 bg-white p-3 shadow-sm">
                 <div className="space-y-0.5">
                   <FormLabel className="text-sm font-semibold">Primary Location</FormLabel>
                   <FormDescription className="text-[11px]">Default for this type</FormDescription>
@@ -291,7 +291,7 @@ export function LocationForm({ location, initialParentId, onSubmit, isLoading }:
                   <Switch
                     checked={field.value}
                     onCheckedChange={field.onChange}
-                    className="data-[state=checked]:bg-sky-600"
+                    className="data-[state=checked]:bg-primary"
                   />
                 </FormControl>
               </FormItem>
@@ -303,7 +303,7 @@ export function LocationForm({ location, initialParentId, onSubmit, isLoading }:
           <Button 
             type="submit" 
             disabled={isLoading}
-            className="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white shadow-lg shadow-sky-200"
+            className="w-full sm:w-auto bg-primary hover:bg-primary text-white shadow-lg shadow-sky-200"
           >
             {isLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

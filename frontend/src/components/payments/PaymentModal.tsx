@@ -27,11 +27,11 @@ import type { Account, PaymentContext, PaymentContextType } from '@/hooks/usePay
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 const PAYMENT_METHODS = [
-  { value: 'CASH',             label: 'Cash',              icon: Banknote,   color: 'text-green-600' },
-  { value: 'BANK_TRANSFER',    label: 'Bank Transfer',     icon: Building2,  color: 'text-blue-600' },
-  { value: 'MOBILE_MONEY',     label: 'Mobile Money',      icon: Smartphone, color: 'text-yellow-600' },
+  { value: 'CASH',             label: 'Cash',              icon: Banknote,   color: 'text-success' },
+  { value: 'BANK_TRANSFER',    label: 'Bank Transfer',     icon: Building2,  color: 'text-primary' },
+  { value: 'MOBILE_MONEY',     label: 'Mobile Money',      icon: Smartphone, color: 'text-warning' },
   { value: 'CHEQUE',           label: 'Cheque',            icon: Receipt,    color: 'text-purple-600' },
-  { value: 'CREDIT_NOTE',      label: 'Credit Note',       icon: CreditCard, color: 'text-orange-600' },
+  { value: 'CREDIT_NOTE',      label: 'Credit Note',       icon: CreditCard, color: 'text-warning' },
 ] as const;
 
 type PaymentMethodValue = typeof PAYMENT_METHODS[number]['value'];
@@ -165,7 +165,7 @@ export function PaymentModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-[540px] p-0 gap-0 overflow-hidden">
         {/* ── Header ────────────────────────────────────── */}
-        <DialogHeader className="px-6 pt-6 pb-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white">
+        <DialogHeader className="px-6 pt-6 pb-4 bg-gradient-to-br from-foreground to-foreground text-white">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center">
               <Banknote className="h-5 w-5 text-white" />
@@ -174,7 +174,7 @@ export function PaymentModal({
               <DialogTitle className="text-white text-lg font-semibold">
                 Record Payment
               </DialogTitle>
-              <p className="text-slate-300 text-sm mt-0.5">{contextLabel}</p>
+              <p className="text-muted-foreground/50 text-sm mt-0.5">{contextLabel}</p>
             </div>
           </div>
 
@@ -186,19 +186,19 @@ export function PaymentModal({
             </div>
           ) : contextData ? (
             <div className="mt-4 p-3 rounded-xl bg-white/10 backdrop-blur-sm">
-              <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">
+              <p className="text-xs text-muted-foreground/50 font-medium uppercase tracking-wider">
                 {contextLabel}
               </p>
               <p className="text-sm text-white font-medium mt-0.5 truncate">{contextData.label}</p>
               <div className="flex items-center justify-between mt-2">
-                <span className="text-xs text-slate-300">Outstanding Balance</span>
-                <span className="text-base font-bold text-emerald-400">
+                <span className="text-xs text-muted-foreground/50">Outstanding Balance</span>
+                <span className="text-base font-bold text-success/70">
                   {formatUGX(contextData.outstanding)}
                 </span>
               </div>
             </div>
           ) : contextError ? (
-            <Alert variant="destructive" className="mt-3 bg-red-900/50 border-red-700 text-white">
+            <Alert variant="destructive" className="mt-3 bg-danger/50 border-danger text-white">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>Failed to load payment context</AlertDescription>
             </Alert>
@@ -209,8 +209,8 @@ export function PaymentModal({
         <div className="px-6 py-5 space-y-5 max-h-[60vh] overflow-y-auto">
           {/* Account selection */}
           <div className="space-y-2">
-            <Label className="text-sm font-semibold text-slate-700">
-              Pay From Account <span className="text-red-500">*</span>
+            <Label className="text-sm font-semibold text-foreground">
+              Pay From Account <span className="text-danger">*</span>
             </Label>
             {isLoadingContext ? (
               <Skeleton className="h-10 w-full" />
@@ -228,29 +228,29 @@ export function PaymentModal({
                       className={cn(
                         'flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all',
                         isSelected
-                          ? 'border-slate-800 bg-slate-50'
-                          : 'border-slate-200 bg-white hover:border-slate-300',
-                        insufficient && parsedAmount > 0 && 'border-red-200 bg-red-50',
+                          ? 'border-foreground bg-muted/50'
+                          : 'border-border bg-white hover:border-input',
+                        insufficient && parsedAmount > 0 && 'border-danger/25 bg-danger-muted/60',
                       )}
                     >
                       <div className={cn(
                         'h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0',
-                        isSelected ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600',
+                        isSelected ? 'bg-foreground text-white' : 'bg-muted text-muted-foreground',
                       )}>
                         <Icon className="h-4 w-4" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-800 truncate">{acc.name}</p>
+                        <p className="text-sm font-medium text-foreground truncate">{acc.name}</p>
                         <p className={cn(
                           'text-xs font-semibold',
-                          insufficient && parsedAmount > 0 ? 'text-red-600' : 'text-emerald-600',
+                          insufficient && parsedAmount > 0 ? 'text-danger' : 'text-success',
                         )}>
                           {formatUGX(acc.currentBalance)}
                           {insufficient && parsedAmount > 0 && ' — Insufficient'}
                         </p>
                       </div>
                       {isSelected && (
-                        <CheckCircle2 className="h-5 w-5 text-slate-800 flex-shrink-0" />
+                        <CheckCircle2 className="h-5 w-5 text-foreground flex-shrink-0" />
                       )}
                     </button>
                   );
@@ -263,11 +263,11 @@ export function PaymentModal({
 
           {/* Amount */}
           <div className="space-y-2">
-            <Label htmlFor="amount" className="text-sm font-semibold text-slate-700">
-              Amount (UGX) <span className="text-red-500">*</span>
+            <Label htmlFor="amount" className="text-sm font-semibold text-foreground">
+              Amount (UGX) <span className="text-danger">*</span>
             </Label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70 text-sm font-medium">
                 UGX
               </span>
               <Input
@@ -285,19 +285,19 @@ export function PaymentModal({
               />
             </div>
             {exceedsOutstanding && (
-              <p className="text-xs text-red-600 flex items-center gap-1">
+              <p className="text-xs text-danger flex items-center gap-1">
                 <AlertCircle className="h-3.5 w-3.5" />
                 Exceeds outstanding balance of {formatUGX(contextData!.maxAmount)}
               </p>
             )}
             {exceedsBalance && !exceedsOutstanding && (
-              <p className="text-xs text-red-600 flex items-center gap-1">
+              <p className="text-xs text-danger flex items-center gap-1">
                 <AlertCircle className="h-3.5 w-3.5" />
                 Insufficient account balance ({formatUGX(selectedAccount!.currentBalance)})
               </p>
             )}
             {contextData && parsedAmount > 0 && !exceedsOutstanding && !exceedsBalance && (
-              <p className="text-xs text-emerald-600 flex items-center gap-1">
+              <p className="text-xs text-success flex items-center gap-1">
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 Remaining after payment: {formatUGX(contextData.maxAmount - parsedAmount)}
               </p>
@@ -306,8 +306,8 @@ export function PaymentModal({
 
           {/* Payment method */}
           <div className="space-y-2">
-            <Label className="text-sm font-semibold text-slate-700">
-              Payment Method <span className="text-red-500">*</span>
+            <Label className="text-sm font-semibold text-foreground">
+              Payment Method <span className="text-danger">*</span>
             </Label>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {PAYMENT_METHODS.map((m) => {
@@ -321,12 +321,12 @@ export function PaymentModal({
                     className={cn(
                       'flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-xl border-2 text-center transition-all',
                       isSelected
-                        ? 'border-slate-800 bg-slate-50'
-                        : 'border-slate-200 bg-white hover:border-slate-300',
+                        ? 'border-foreground bg-muted/50'
+                        : 'border-border bg-white hover:border-input',
                     )}
                   >
-                    <Icon className={cn('h-5 w-5', isSelected ? 'text-slate-800' : m.color)} />
-                    <span className="text-xs font-medium text-slate-700 leading-tight">{m.label}</span>
+                    <Icon className={cn('h-5 w-5', isSelected ? 'text-foreground' : m.color)} />
+                    <span className="text-xs font-medium text-foreground leading-tight">{m.label}</span>
                   </button>
                 );
               })}
@@ -335,14 +335,14 @@ export function PaymentModal({
 
           {/* Conditional fields */}
           {(needsBankName || needsTxId || needsCheque) && (
-            <div className="space-y-3 p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            <div className="space-y-3 p-4 rounded-xl bg-muted/50 border border-border">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                 Additional Details
               </p>
 
               {needsBankName && (
                 <div className="space-y-1.5">
-                  <Label htmlFor="bankName" className="text-sm text-slate-700">Bank Name</Label>
+                  <Label htmlFor="bankName" className="text-sm text-foreground">Bank Name</Label>
                   <Input
                     id="bankName"
                     value={form.bankName}
@@ -355,7 +355,7 @@ export function PaymentModal({
 
               {needsCheque && (
                 <div className="space-y-1.5">
-                  <Label htmlFor="chequeNumber" className="text-sm text-slate-700">Cheque Number</Label>
+                  <Label htmlFor="chequeNumber" className="text-sm text-foreground">Cheque Number</Label>
                   <Input
                     id="chequeNumber"
                     value={form.chequeNumber}
@@ -368,7 +368,7 @@ export function PaymentModal({
 
               {needsTxId && (
                 <div className="space-y-1.5">
-                  <Label htmlFor="transactionId" className="text-sm text-slate-700">Transaction ID</Label>
+                  <Label htmlFor="transactionId" className="text-sm text-foreground">Transaction ID</Label>
                   <Input
                     id="transactionId"
                     value={form.transactionId}
@@ -384,7 +384,7 @@ export function PaymentModal({
           {/* Reference & date */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="reference" className="text-sm font-medium text-slate-700">
+              <Label htmlFor="reference" className="text-sm font-medium text-foreground">
                 Reference No.
               </Label>
               <Input
@@ -396,7 +396,7 @@ export function PaymentModal({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="paidAt" className="text-sm font-medium text-slate-700">
+              <Label htmlFor="paidAt" className="text-sm font-medium text-foreground">
                 Payment Date
               </Label>
               <Input
@@ -411,7 +411,7 @@ export function PaymentModal({
 
           {/* Notes */}
           <div className="space-y-1.5">
-            <Label htmlFor="notes" className="text-sm font-medium text-slate-700">Notes</Label>
+            <Label htmlFor="notes" className="text-sm font-medium text-foreground">Notes</Label>
             <Textarea
               id="notes"
               value={form.notes}
@@ -424,14 +424,14 @@ export function PaymentModal({
         </div>
 
         {/* ── Footer ────────────────────────────────────── */}
-        <DialogFooter className="px-6 py-4 border-t border-slate-200 bg-slate-50 gap-2">
+        <DialogFooter className="px-6 py-4 border-t border-border bg-muted/50 gap-2">
           <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={!isValid || isSubmitting}
-            className="bg-slate-900 hover:bg-slate-800 min-w-[140px]"
+            className="bg-foreground hover:bg-foreground min-w-[140px]"
           >
             {isSubmitting ? (
               <>

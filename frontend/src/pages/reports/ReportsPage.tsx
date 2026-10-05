@@ -57,11 +57,11 @@ export function ReportsPage() {
       <PageHeader title="Reports & Analytics" subtitle="Business intelligence and clinic performance insights" />
 
       {/* Section tabs */}
-      <div className="flex gap-2 bg-white rounded-xl border border-slate-100 shadow-sm p-2">
+      <div className="flex gap-2 bg-white rounded-xl border border-border/60 shadow-sm p-2">
         {sections.map(s => (
           <button key={s.id} onClick={() => setActiveSection(s.id)}
             className={cn('flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-1 justify-center',
-              activeSection === s.id ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100')}>
+              activeSection === s.id ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:bg-muted')}>
             <s.icon className="w-4 h-4" /> {s.label}
           </button>
         ))}
@@ -74,10 +74,10 @@ export function ReportsPage() {
             <>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard title="Total Patients" value={d.patients?.total || 0}
-                  icon={<Users className="w-6 h-6 text-blue-600" />} iconBg="bg-blue-100"
+                  icon={<Users className="w-6 h-6 text-primary" />} iconBg="bg-primary-muted"
                   change={`+${d.patients?.newThisMonth || 0} this month`} changeType="up" />
                 <StatCard title="Month Revenue" value={formatCurrency(d.revenue?.thisMonth || 0)}
-                  icon={<DollarSign className="w-6 h-6 text-emerald-600" />} iconBg="bg-emerald-100"
+                  icon={<DollarSign className="w-6 h-6 text-success" />} iconBg="bg-success-muted"
                   change={`${d.revenue?.growth >= 0 ? '+' : ''}${d.revenue?.growth || 0}%`}
                   changeType={d.revenue?.growth >= 0 ? 'up' : 'down'} />
                 <StatCard title="Month Appointments" value={d.appointments?.thisMonth || 0}
@@ -90,7 +90,7 @@ export function ReportsPage() {
               {/* Revenue chart */}
               <Card title="Revenue — This Month">
                 <div className="p-4">
-                  {revLoading ? <div className="h-48 flex items-center justify-center"><div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" /></div> : (
+                  {revLoading ? <div className="h-48 flex items-center justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div> : (
                     <ResponsiveContainer width="100%" height={220}>
                       <AreaChart data={revenue?.chart || []}>
                         <defs>
@@ -123,9 +123,9 @@ export function ReportsPage() {
                       { label: 'Returning (3 months)', value: retention.returningLast3Months },
                       { label: 'Retention Rate', value: `${retention.retentionRate3m}%` },
                     ].map(s => (
-                      <div key={s.label} className="text-center p-4 rounded-xl bg-slate-50">
-                        <p className="text-2xl font-bold text-slate-800">{s.value}</p>
-                        <p className="text-xs text-slate-500 mt-1">{s.label}</p>
+                      <div key={s.label} className="text-center p-4 rounded-xl bg-muted/50">
+                        <p className="text-2xl font-bold text-foreground">{s.value}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
                       </div>
                     ))}
                   </div>
@@ -140,21 +140,21 @@ export function ReportsPage() {
       {activeSection === 'revenue' && (
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-slate-600">From:</label>
+            <label className="text-sm font-medium text-muted-foreground">From:</label>
             <input type="date" defaultValue={startOfMonth.split('T')[0]}
               onChange={e => setRevenueRange([e.target.value, revenueRange[1]])}
-              className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-            <label className="text-sm font-medium text-slate-600">To:</label>
+              className="px-3 py-2 text-sm border border-border rounded-lg focus:ring-2 focus:ring-primary/60 focus:outline-none" />
+            <label className="text-sm font-medium text-muted-foreground">To:</label>
             <input type="date" defaultValue={endOfMonth.split('T')[0]}
               onChange={e => setRevenueRange([revenueRange[0], e.target.value])}
-              className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              className="px-3 py-2 text-sm border border-border rounded-lg focus:ring-2 focus:ring-primary/60 focus:outline-none" />
           </div>
 
           <div className="grid grid-cols-3 gap-4">
             <StatCard title="Total Revenue" value={formatCurrency(revenue?.total || 0)}
-              icon={<DollarSign className="w-6 h-6 text-emerald-600" />} iconBg="bg-emerald-100" />
+              icon={<DollarSign className="w-6 h-6 text-success" />} iconBg="bg-success-muted" />
             <StatCard title="Transactions" value={revenue?.count || 0}
-              icon={<Activity className="w-6 h-6 text-blue-600" />} iconBg="bg-blue-100" />
+              icon={<Activity className="w-6 h-6 text-primary" />} iconBg="bg-primary-muted" />
             <StatCard title="Avg per Transaction" value={formatCurrency(revenue?.count ? (revenue.total / revenue.count) : 0)}
               icon={<TrendingUp className="w-6 h-6 text-purple-600" />} iconBg="bg-purple-100" />
           </div>
@@ -194,14 +194,14 @@ export function ReportsPage() {
                         <div key={i} className="flex items-center justify-between text-xs">
                           <div className="flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                            <span className="text-slate-600">{m.method.replace(/_/g, ' ')}</span>
+                            <span className="text-muted-foreground">{m.method.replace(/_/g, ' ')}</span>
                           </div>
-                          <span className="font-semibold text-slate-700">{formatCurrency(m.total)}</span>
+                          <span className="font-semibold text-foreground">{formatCurrency(m.total)}</span>
                         </div>
                       ))}
                     </div>
                   </>
-                ) : <p className="text-sm text-slate-400 text-center py-8">No payment data</p>}
+                ) : <p className="text-sm text-muted-foreground/70 text-center py-8">No payment data</p>}
               </div>
             </Card>
           </div>
@@ -255,31 +255,31 @@ export function ReportsPage() {
         <Card title="Dentist Performance — This Month">
           <div className="p-5">
             {!dentistPerf ? <LoadingSpinner /> : dentistPerf.length === 0 ? (
-              <p className="text-center text-slate-400 py-8">No performance data available</p>
+              <p className="text-center text-muted-foreground/70 py-8">No performance data available</p>
             ) : (
               <div className="space-y-2">
                 {dentistPerf.map((staff: any, i: number) => (
-                  <div key={staff.id} className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 hover:border-blue-200 transition-colors">
+                  <div key={staff.id} className="flex items-center gap-4 p-4 rounded-xl border border-border/60 hover:border-primary/25 transition-colors">
                     <div className={cn('w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm',
-                      i === 0 ? 'bg-yellow-500' : i === 1 ? 'bg-slate-400' : i === 2 ? 'bg-amber-700' : 'bg-blue-500')}>
+                      i === 0 ? 'bg-warning' : i === 1 ? 'bg-muted-foreground/70' : i === 2 ? 'bg-warning' : 'bg-primary')}>
                       {i + 1}
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-slate-800">Dr. {staff.firstName} {staff.lastName}</p>
-                      <p className="text-xs text-slate-400">{staff.specialization || 'General Dentistry'}</p>
+                      <p className="font-semibold text-foreground">Dr. {staff.firstName} {staff.lastName}</p>
+                      <p className="text-xs text-muted-foreground/70">{staff.specialization || 'General Dentistry'}</p>
                     </div>
                     <div className="grid grid-cols-3 gap-6 text-center">
                       <div>
-                        <p className="text-lg font-bold text-slate-800">{staff.appointments}</p>
-                        <p className="text-xs text-slate-400">Appointments</p>
+                        <p className="text-lg font-bold text-foreground">{staff.appointments}</p>
+                        <p className="text-xs text-muted-foreground/70">Appointments</p>
                       </div>
                       <div>
-                        <p className="text-lg font-bold text-emerald-600">{staff.completionRate}%</p>
-                        <p className="text-xs text-slate-400">Completion</p>
+                        <p className="text-lg font-bold text-success">{staff.completionRate}%</p>
+                        <p className="text-xs text-muted-foreground/70">Completion</p>
                       </div>
                       <div>
-                        <p className="text-lg font-bold text-blue-600 text-sm">{formatCurrency(staff.revenue)}</p>
-                        <p className="text-xs text-slate-400">Revenue</p>
+                        <p className="text-lg font-bold text-primary text-sm">{formatCurrency(staff.revenue)}</p>
+                        <p className="text-xs text-muted-foreground/70">Revenue</p>
                       </div>
                     </div>
                   </div>

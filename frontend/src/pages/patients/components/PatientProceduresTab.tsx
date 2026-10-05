@@ -33,39 +33,39 @@ export function PatientProceduresTab({ patientId }: { patientId: string }) {
   });
 
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin mx-auto mt-8" />;
-  if (error) return <div className="text-red-500 text-center mt-8">Failed to load procedures</div>;
-  if (!sessions?.length) return <div className="text-slate-400 text-center mt-8">No treatment procedures recorded</div>;
+  if (error) return <div className="text-danger text-center mt-8">Failed to load procedures</div>;
+  if (!sessions?.length) return <div className="text-muted-foreground/70 text-center mt-8">No treatment procedures recorded</div>;
 
   return (
     <div className="space-y-4">
       {sessions.map((session: ExecutedSession) => (
-        <div key={session.id} className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
+        <div key={session.id} className="bg-white border border-border rounded-lg p-4 shadow-sm">
           <div className="flex flex-wrap justify-between items-start gap-2">
             <div>
-              <h3 className="font-semibold text-slate-800">
+              <h3 className="font-semibold text-foreground">
                 {session.treatmentProcedure.procedure.name}
                 {session.sessionLabel && (
-                  <span className="text-slate-500 font-normal ml-2">({session.sessionLabel})</span>
+                  <span className="text-muted-foreground font-normal ml-2">({session.sessionLabel})</span>
                 )}
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground/70">
                 Plan: {session.treatmentProcedure.treatmentPlan.title} • Visit: {session.visit.visitCode}
               </p>
             </div>
             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-              session.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+              session.status === 'COMPLETED' ? 'bg-success-muted text-success' : 'bg-primary-muted text-primary'
             }`}>
               {session.status}
             </span>
           </div>
 
           <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-            <div className="flex items-center gap-2 text-slate-600">
-              <Calendar className="w-4 h-4 text-slate-400" />
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Calendar className="w-4 h-4 text-muted-foreground/70" />
               <span>{session.performedDate ? format(new Date(session.performedDate), 'PPP p') : 'Not performed'}</span>
             </div>
-            <div className="flex items-start gap-2 text-slate-600">
-              <Activity className="w-4 h-4 text-slate-400 mt-0.5" />
+            <div className="flex items-start gap-2 text-muted-foreground">
+              <Activity className="w-4 h-4 text-muted-foreground/70 mt-0.5" />
               <div>
                 {session.targets.length > 0 ? (
                   session.targets.map(t => (
@@ -80,8 +80,8 @@ export function PatientProceduresTab({ patientId }: { patientId: string }) {
           </div>
 
           {session.performedNotes && (
-            <div className="mt-3 flex items-start gap-2 text-sm text-slate-500 bg-slate-50 p-2 rounded">
-              <FileText className="w-4 h-4 text-slate-400 mt-0.5" />
+            <div className="mt-3 flex items-start gap-2 text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+              <FileText className="w-4 h-4 text-muted-foreground/70 mt-0.5" />
               <p className="flex-1">{session.performedNotes}</p>
             </div>
           )}

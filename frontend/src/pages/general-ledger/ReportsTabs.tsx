@@ -18,8 +18,8 @@ function BalancedBadge({ ok }: { ok: boolean }) {
       variant="outline"
       className={
         ok
-          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-          : 'bg-rose-50 text-rose-700 border-rose-200'
+          ? 'bg-success-muted/60 text-success border-success/25'
+          : 'bg-danger-muted/60 text-danger border-danger/25'
       }
     >
       {ok ? '✓ Balanced' : '✗ Out of balance'}
@@ -29,7 +29,7 @@ function BalancedBadge({ ok }: { ok: boolean }) {
 
 function FilterBar({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+    <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-white p-3 shadow-sm">
       {children}
     </div>
   );
@@ -46,7 +46,7 @@ function DateField({
 }) {
   return (
     <div>
-      <Label className="text-xs text-slate-500">{label}</Label>
+      <Label className="text-xs text-muted-foreground">{label}</Label>
       <Input
         type="date"
         value={value}
@@ -76,13 +76,13 @@ export function TrialBalanceTab() {
       header: 'Code',
       accessor: (r) => r.code,
       width: 'w-24',
-      cell: (r) => <span className="font-mono text-slate-500">{r.code}</span>,
+      cell: (r) => <span className="font-mono text-muted-foreground">{r.code}</span>,
     },
     {
       key: 'name',
       header: 'Account',
       accessor: (r) => r.name,
-      cell: (r) => <span className="font-medium text-slate-800">{r.name}</span>,
+      cell: (r) => <span className="font-medium text-foreground">{r.name}</span>,
     },
     {
       key: 'debit',
@@ -127,7 +127,7 @@ export function TrialBalanceTab() {
         emptyText="No postings."
         footer={
           data ? (
-            <TableRow className="bg-sky-50 font-semibold border-t-2 border-sky-200">
+            <TableRow className="bg-primary-muted/60 font-semibold border-t-2 border-primary/25">
               <TableCell colSpan={2} className="py-2.5 text-[#0369a1]">
                 Totals
               </TableCell>
@@ -154,7 +154,7 @@ function StatementTable({ rows, totalLabel, total }: { rows: StatementRow[]; tot
       header: 'Code',
       accessor: (r) => r.code,
       width: 'w-20',
-      cell: (r) => <span className="font-mono text-xs text-slate-500">{r.code}</span>,
+      cell: (r) => <span className="font-mono text-xs text-muted-foreground">{r.code}</span>,
     },
     { key: 'name', header: 'Account', accessor: (r) => r.name },
     {
@@ -175,7 +175,7 @@ function StatementTable({ rows, totalLabel, total }: { rows: StatementRow[]; tot
       dense
       emptyText="—"
       footer={
-        <TableRow className="bg-slate-50 font-semibold border-t">
+        <TableRow className="bg-muted/50 font-semibold border-t">
           <TableCell colSpan={2} className="py-2">
             {totalLabel}
           </TableCell>
@@ -205,21 +205,21 @@ export function IncomeStatementTab() {
       </FilterBar>
 
       {data && (
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="border-b bg-slate-50/60">
+        <Card className="border-border shadow-sm">
+          <CardHeader className="border-b bg-muted/60">
             <CardTitle className="text-base text-[#0369a1]">
               Income Statement (Profit &amp; Loss)
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6 pt-5">
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-emerald-700 mb-1.5">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-success mb-1.5">
                 Revenue
               </h4>
               <StatementTable rows={data.income} totalLabel="Total Revenue" total={data.totals.income} />
             </div>
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-rose-700 mb-1.5">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-danger mb-1.5">
                 Expenses
               </h4>
               <StatementTable rows={data.expense} totalLabel="Total Expenses" total={data.totals.expense} />
@@ -257,8 +257,8 @@ export function BalanceSheetTab() {
 
       {data && (
         <div className="grid lg:grid-cols-2 gap-4">
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="border-b bg-slate-50/60">
+          <Card className="border-border shadow-sm">
+            <CardHeader className="border-b bg-muted/60">
               <CardTitle className="text-base text-[#0369a1]">Assets</CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
@@ -266,15 +266,15 @@ export function BalanceSheetTab() {
             </CardContent>
           </Card>
 
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="border-b bg-slate-50/60">
+          <Card className="border-border shadow-sm">
+            <CardHeader className="border-b bg-muted/60">
               <CardTitle className="text-base text-[#0369a1]">
                 Liabilities &amp; Equity
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
               <div>
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-amber-700 mb-1.5">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-warning mb-1.5">
                   Liabilities
                 </h4>
                 <StatementTable
@@ -290,7 +290,7 @@ export function BalanceSheetTab() {
                 <StatementTable rows={data.equity} totalLabel="Total Equity" total={data.totals.equity} />
               </div>
               <div className="flex items-center justify-between text-sm px-1">
-                <span className="text-slate-500">Retained earnings (net income)</span>
+                <span className="text-muted-foreground">Retained earnings (net income)</span>
                 <span className="font-mono tabular-nums">
                   {fmtMoney(data.totals.retainedEarnings)}
                 </span>

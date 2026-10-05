@@ -114,12 +114,12 @@ export const PatientReportView: React.FC<PatientReportViewProps> = ({ data }) =>
 
     const getStatusBadge = (status: string) => {
         const statusColors: Record<string, string> = {
-            COMPLETED: 'bg-green-100 text-green-800',
-            IN_PROGRESS: 'bg-blue-100 text-blue-800',
-            ARRIVED: 'bg-yellow-100 text-yellow-800',
-            CANCELLED: 'bg-red-100 text-red-800',
+            COMPLETED: 'bg-success-muted text-success',
+            IN_PROGRESS: 'bg-primary-muted text-primary',
+            ARRIVED: 'bg-warning-muted text-warning',
+            CANCELLED: 'bg-danger-muted text-danger',
         };
-        return statusColors[status] || 'bg-gray-100 text-gray-800';
+        return statusColors[status] || 'bg-muted text-foreground';
     };
 
     const getInitials = (firstName: string, lastName: string) => {
@@ -272,7 +272,7 @@ export const PatientReportView: React.FC<PatientReportViewProps> = ({ data }) =>
                         <TableBody>
                             {data.patients.map((patientData) => {
                                 const balance = patientData.totalCost - patientData.totalPaid;
-                                const balanceColor = balance === 0 ? 'text-green-600' : balance > 0 ? 'text-red-600' : 'text-gray-600';
+                                const balanceColor = balance === 0 ? 'text-success' : balance > 0 ? 'text-danger' : 'text-muted-foreground';
 
                                 return (
                                     <TableRow key={patientData.patient.id}>
@@ -402,11 +402,11 @@ export const PatientReportView: React.FC<PatientReportViewProps> = ({ data }) =>
                                             </div>
                                             <div className="flex justify-between">
                                                 <span className="text-muted-foreground">Amount Paid:</span>
-                                                <span className="font-medium text-green-600">{formatCurrency(selectedPatient.totalPaid)}</span>
+                                                <span className="font-medium text-success">{formatCurrency(selectedPatient.totalPaid)}</span>
                                             </div>
                                             <div className="flex justify-between pt-2 border-t">
                                                 <span className="text-muted-foreground">Balance:</span>
-                                                <span className={`font-bold ${selectedPatient.totalCost - selectedPatient.totalPaid > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                                <span className={`font-bold ${selectedPatient.totalCost - selectedPatient.totalPaid > 0 ? 'text-danger' : 'text-success'}`}>
                                                     {formatCurrency(selectedPatient.totalCost - selectedPatient.totalPaid)}
                                                 </span>
                                             </div>

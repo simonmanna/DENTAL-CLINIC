@@ -17,11 +17,11 @@ export function fmtDate(v: string | Date | null | undefined): string {
 }
 
 export const TYPE_BADGE: Record<LedgerAccountType, string> = {
-  ASSET: 'bg-blue-100 text-blue-700 border-blue-200',
-  LIABILITY: 'bg-amber-100 text-amber-700 border-amber-200',
+  ASSET: 'bg-primary-muted text-primary border-primary/25',
+  LIABILITY: 'bg-warning-muted text-warning border-warning/25',
   EQUITY: 'bg-purple-100 text-purple-700 border-purple-200',
-  INCOME: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  EXPENSE: 'bg-rose-100 text-rose-700 border-rose-200',
+  INCOME: 'bg-success-muted text-success border-success/25',
+  EXPENSE: 'bg-danger-muted text-danger border-danger/25',
 };
 
 export const ACCOUNT_TYPES: LedgerAccountType[] = [

@@ -9,7 +9,7 @@ import { formatDate } from "@/lib/utils";
 
 const STATUS_CFG: Record<string, { cls: string; label: string }> = {
   SCHEDULED: {
-    cls: "bg-blue-50 text-blue-700 ring-blue-200",
+    cls: "bg-primary-muted/60 text-primary ring-primary/25",
     label: "Scheduled",
   },
   CONFIRMED: {
@@ -17,7 +17,7 @@ const STATUS_CFG: Record<string, { cls: string; label: string }> = {
     label: "Confirmed",
   },
   ARRIVED: {
-    cls: "bg-amber-50 text-amber-700 ring-amber-200",
+    cls: "bg-warning-muted/60 text-warning ring-warning/25",
     label: "Arrived",
   },
   IN_PROGRESS: {
@@ -25,30 +25,30 @@ const STATUS_CFG: Record<string, { cls: string; label: string }> = {
     label: "In Progress",
   },
   COMPLETED: {
-    cls: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    cls: "bg-success-muted/60 text-success ring-success/25",
     label: "Completed",
   },
   CANCELLED: {
-    cls: "bg-red-50 text-red-600 ring-red-200",
+    cls: "bg-danger-muted/60 text-danger ring-danger/25",
     label: "Cancelled",
   },
   NO_SHOW: {
-    cls: "bg-slate-100 text-slate-600 ring-slate-200",
+    cls: "bg-muted text-muted-foreground ring-border",
     label: "No Show",
   },
   RESCHEDULED: {
-    cls: "bg-orange-50 text-orange-700 ring-orange-200",
+    cls: "bg-warning-muted/60 text-warning ring-warning/25",
     label: "Rescheduled",
   },
   DRAFT: {
-    cls: "bg-slate-100 text-slate-500 ring-slate-200",
+    cls: "bg-muted text-muted-foreground ring-border",
     label: "Draft",
   },
 };
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_CFG[status] ?? {
-    cls: "bg-gray-100 text-gray-600 ring-gray-200",
+    cls: "bg-muted text-muted-foreground ring-border",
     label: status,
   };
   return (
@@ -84,7 +84,7 @@ function StatCard({
   icon: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 px-4 py-1 flex gap-3 items-start shadow-sm">
+    <div className="bg-white rounded-xl border border-border px-4 py-1 flex gap-3 items-start shadow-sm">
       <div
         className="mt-0.5 size-8 rounded-lg flex items-center justify-center flex-shrink-0"
         style={{ background: accent + "18" }}
@@ -94,10 +94,10 @@ function StatCard({
         </span>
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider truncate">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
           {label}
         </p>
-        <p className="text-xl font-bold text-slate-900 mt-0.5 tabular-nums">
+        <p className="text-xl font-bold text-foreground mt-0.5 tabular-nums">
           {value}
         </p>
       </div>
@@ -239,26 +239,26 @@ export default function AppointmentsReportTab(): JSX.Element {
   }, [exporting, filters]);
 
   const inputCls =
-    "h-9 rounded-lg border border-slate-200 px-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white";
+    "h-9 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-success/60 bg-white";
 
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-wrap gap-3 items-end shadow-sm">
+      <div className="bg-white border border-border rounded-xl p-4 flex flex-wrap gap-3 items-end shadow-sm">
         <div className="flex-1 min-w-48">
-          <label className="block text-xs font-medium text-slate-500 mb-1">
+          <label className="block text-xs font-medium text-muted-foreground mb-1">
             Search
           </label>
           <input
             value={filters.search}
             onChange={(e) => update({ search: e.target.value, page: 1 })}
             placeholder="Appointment code, patient name…"
-            className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder:text-slate-400"
+            className="w-full h-9 rounded-lg border border-border px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-success/60 focus:border-transparent placeholder:text-muted-foreground/70"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">
+          <label className="block text-xs font-medium text-muted-foreground mb-1">
             Status
           </label>
           <select
@@ -276,7 +276,7 @@ export default function AppointmentsReportTab(): JSX.Element {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">
+          <label className="block text-xs font-medium text-muted-foreground mb-1">
             From
           </label>
           <input
@@ -288,7 +288,7 @@ export default function AppointmentsReportTab(): JSX.Element {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">
+          <label className="block text-xs font-medium text-muted-foreground mb-1">
             To
           </label>
           <input
@@ -300,7 +300,7 @@ export default function AppointmentsReportTab(): JSX.Element {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">
+          <label className="block text-xs font-medium text-muted-foreground mb-1">
             Doctor
           </label>
           <select
@@ -321,7 +321,7 @@ export default function AppointmentsReportTab(): JSX.Element {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">
+          <label className="block text-xs font-medium text-muted-foreground mb-1">
             Rows
           </label>
           <select
@@ -341,7 +341,7 @@ export default function AppointmentsReportTab(): JSX.Element {
 
         <button
           onClick={() => setFilters(DEFAULT_FILTERS)}
-          className="h-9 px-3 rounded-lg text-sm border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+          className="h-9 px-3 rounded-lg text-sm border border-border text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
         >
           Reset
         </button>
@@ -349,7 +349,7 @@ export default function AppointmentsReportTab(): JSX.Element {
         <button
           onClick={handleExport}
           disabled={exporting || isLoading}
-          className="h-9 px-3 rounded-lg text-sm border border-emerald-600 text-emerald-700 hover:bg-emerald-50 font-medium transition-colors disabled:opacity-50"
+          className="h-9 px-3 rounded-lg text-sm border border-success text-success hover:bg-success-muted/60 font-medium transition-colors disabled:opacity-50"
         >
           {exporting ? "⏳ Preparing…" : "⬇ Export CSV"}
         </button>
@@ -384,26 +384,26 @@ export default function AppointmentsReportTab(): JSX.Element {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
         {isError ? (
-          <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3">
-            <p className="text-sm font-medium text-slate-600">
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground/70 gap-3">
+            <p className="text-sm font-medium text-muted-foreground">
               Failed to load appointments
             </p>
             <button
               onClick={() => refetch()}
-              className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700"
+              className="px-4 py-2 bg-success text-white text-sm font-medium rounded-lg hover:bg-success"
             >
               Retry
             </button>
           </div>
         ) : isLoading ? (
-          <div className="flex items-center justify-center h-48 text-slate-400 gap-3">
-            <div className="size-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+          <div className="flex items-center justify-center h-48 text-muted-foreground/70 gap-3">
+            <div className="size-5 border-2 border-success border-t-transparent rounded-full animate-spin" />
             <span className="text-sm">Loading appointments…</span>
           </div>
         ) : !appointments.length ? (
-          <div className="flex flex-col items-center justify-center h-48 text-slate-400">
+          <div className="flex flex-col items-center justify-center h-48 text-muted-foreground/70">
             <span className="text-3xl mb-2">📆</span>
             <p className="text-sm font-medium">No appointments found</p>
             <p className="text-xs mt-1">Try adjusting your filters</p>
@@ -413,7 +413,7 @@ export default function AppointmentsReportTab(): JSX.Element {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50">
+                  <tr className="border-b border-border bg-muted/50">
                     {[
                       "Code",
                       "Patient",
@@ -427,52 +427,52 @@ export default function AppointmentsReportTab(): JSX.Element {
                     ].map((h, i) => (
                       <th
                         key={i}
-                        className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap"
+                        className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap"
                       >
                         {h}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border/60">
                   {appointments.map((a: any) => (
-                    <tr key={a.id} className="hover:bg-slate-50/60">
-                      <td className="px-3 py-2.5 font-mono text-xs font-semibold text-emerald-700 whitespace-nowrap">
+                    <tr key={a.id} className="hover:bg-muted/60">
+                      <td className="px-3 py-2.5 font-mono text-xs font-semibold text-success whitespace-nowrap">
                         {a.appointmentCode}
                       </td>
                       <td className="px-3 py-2.5">
                         <div>
-                          <p className="font-medium text-slate-900">
+                          <p className="font-medium text-foreground">
                             {fullName(a.patient)}
                           </p>
-                          <p className="text-xs text-slate-400">
+                          <p className="text-xs text-muted-foreground/70">
                             {a.patient?.patientCode}
                           </p>
                         </div>
                       </td>
-                      <td className="px-3 py-2.5 text-xs text-slate-500 whitespace-nowrap">
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
                         {(a as any).patient?.previousCardNumber ?? "—"}
                       </td>
-                      <td className="px-3 py-2.5 text-slate-600 whitespace-nowrap">
+                      <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap">
                         {fullName(a.dentist)}
                       </td>
-                      <td className="px-3 py-2.5 text-xs text-slate-600 whitespace-nowrap">
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
                         {a.type?.replace(/_/g, " ")}
                       </td>
                       <td className="px-3 py-2.5">
                         <StatusBadge status={a.status} />
                       </td>
-                      <td className="px-3 py-2.5 text-xs text-slate-500 whitespace-nowrap">
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
                         {fmtDateTime(a.scheduledAt)}
                       </td>
-                      <td className="px-3 py-2.5 text-xs text-slate-500 tabular-nums">
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground tabular-nums">
                         {a.duration}m
                       </td>
                       <td className="px-3 py-2.5">
                         {a.visit ? (
                           <StatusBadge status={a.visit.status} />
                         ) : (
-                          <span className="text-xs text-slate-300">—</span>
+                          <span className="text-xs text-muted-foreground/50">—</span>
                         )}
                       </td>
                     </tr>
@@ -482,7 +482,7 @@ export default function AppointmentsReportTab(): JSX.Element {
             </div>
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 text-xs text-slate-500">
+              <div className="flex items-center justify-between px-4 py-3 border-t border-border/60 text-xs text-muted-foreground">
                 <span>
                   Page {meta?.page} of {totalPages} ·{" "}
                   {total.toLocaleString()} appointments
@@ -491,14 +491,14 @@ export default function AppointmentsReportTab(): JSX.Element {
                   <button
                     disabled={filters.page <= 1}
                     onClick={() => update({ page: filters.page - 1 })}
-                    className="px-3 py-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50"
+                    className="px-3 py-1.5 rounded-lg border border-border disabled:opacity-40 hover:bg-muted/50"
                   >
                     Prev
                   </button>
                   <button
                     disabled={filters.page >= totalPages}
                     onClick={() => update({ page: filters.page + 1 })}
-                    className="px-3 py-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50"
+                    className="px-3 py-1.5 rounded-lg border border-border disabled:opacity-40 hover:bg-muted/50"
                   >
                     Next
                   </button>
@@ -510,7 +510,7 @@ export default function AppointmentsReportTab(): JSX.Element {
       </div>
       {isFetching && (
         <div className="flex justify-center">
-          <div className="size-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+          <div className="size-4 border-2 border-success border-t-transparent rounded-full animate-spin" />
         </div>
       )}
     </div>

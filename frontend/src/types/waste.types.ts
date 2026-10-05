@@ -146,14 +146,14 @@ export const WASTE_CATEGORY_META: Record<
 > = {
   EXPIRED: {
     label: 'Expired',
-    color: 'text-orange-700',
-    bg: 'bg-orange-50 border-orange-200',
+    color: 'text-warning',
+    bg: 'bg-warning-muted/60 border-warning/25',
     icon: '⏰',
   },
   DAMAGED: {
     label: 'Damaged',
-    color: 'text-red-700',
-    bg: 'bg-red-50 border-red-200',
+    color: 'text-danger',
+    bg: 'bg-danger-muted/60 border-danger/25',
     icon: '💢',
   },
   CONTAMINATED: {
@@ -164,20 +164,20 @@ export const WASTE_CATEGORY_META: Record<
   },
   SPILLAGE: {
     label: 'Spillage',
-    color: 'text-blue-700',
-    bg: 'bg-blue-50 border-blue-200',
+    color: 'text-primary',
+    bg: 'bg-primary-muted/60 border-primary/25',
     icon: '💧',
   },
   BREAKAGE: {
     label: 'Breakage',
-    color: 'text-yellow-700',
-    bg: 'bg-yellow-50 border-yellow-200',
+    color: 'text-warning',
+    bg: 'bg-warning-muted/60 border-warning/25',
     icon: '🔨',
   },
   OTHER: {
     label: 'Other',
-    color: 'text-gray-700',
-    bg: 'bg-gray-50 border-gray-200',
+    color: 'text-foreground',
+    bg: 'bg-muted/50 border-border',
     icon: '📦',
   },
 };

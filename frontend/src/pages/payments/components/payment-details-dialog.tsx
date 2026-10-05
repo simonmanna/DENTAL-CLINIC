@@ -44,7 +44,7 @@ export function PaymentDetailsDialog({ payment, open, onOpenChange }: Props) {
         {/* Amount Header */}
         <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-full ${isIncoming ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+            <div className={`p-2 rounded-full ${isIncoming ? 'bg-success-muted text-success' : 'bg-danger-muted text-danger'}`}>
               {isIncoming ? <ArrowDownLeft className="h-5 w-5" /> : <ArrowUpRight className="h-5 w-5" />}
             </div>
             <div>

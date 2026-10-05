@@ -243,17 +243,17 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
       <DialogContent className="max-w-4xl max-h-[85vh] p-0 gap-0 overflow-hidden flex flex-col">
         
         {/* Header */}
-        <DialogHeader className="px-6 py-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 shrink-0">
+        <DialogHeader className="px-6 py-4 border-b bg-gradient-to-r from-primary-muted/60 to-indigo-50 dark:from-primary/30 dark:to-indigo-950/30 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500 rounded-lg">
+              <div className="p-2 bg-primary rounded-lg">
                 <Package className="h-5 w-5 text-white" />
               </div>
               <div>
-                <DialogTitle className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                <DialogTitle className="text-lg font-semibold text-foreground dark:text-muted-foreground/30">
                   New Purchase Order
                 </DialogTitle>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
+                <p className="text-sm text-muted-foreground dark:text-muted-foreground/70">
                   Create order for supplier • Delivery note will be created later
                 </p>
               </div>
@@ -272,9 +272,9 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
             <div className="grid grid-cols-2 gap-4">
               {/* Supplier Selection */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <Label className="text-xs font-semibold text-foreground dark:text-muted-foreground/50">
                   <Truck className="inline h-3 w-3 mr-1" />
-                  Supplier <span className="text-red-500">*</span>
+                  Supplier <span className="text-danger">*</span>
                 </Label>
                 <Controller
                   control={control}
@@ -286,9 +286,9 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
                           variant="outline"
                           role="combobox"
                           className={cn(
-                            "w-full justify-between h-9 text-sm bg-white dark:bg-slate-800",
-                            !field.value && "text-slate-400",
-                            errors.supplierId && "border-red-400 ring-red-100"
+                            "w-full justify-between h-9 text-sm bg-white dark:bg-foreground",
+                            !field.value && "text-muted-foreground/70",
+                            errors.supplierId && "border-danger/40 ring-danger/20"
                           )}
                         >
                           {field.value && selectedSupplier
@@ -307,9 +307,9 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
                           />
                           <CommandList className="max-h-[200px]">
                             {suppliersLoading ? (
-                              <div className="py-4 text-center text-sm text-slate-500">Loading suppliers...</div>
+                              <div className="py-4 text-center text-sm text-muted-foreground">Loading suppliers...</div>
                             ) : suppliersError ? (
-                              <div className="py-4 text-center text-sm text-red-500">Failed to load suppliers</div>
+                              <div className="py-4 text-center text-sm text-danger">Failed to load suppliers</div>
                             ) : filteredSuppliers.length === 0 ? (
                               <CommandEmpty>No supplier found.</CommandEmpty>
                             ) : (
@@ -329,7 +329,7 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
                                     <div className="flex flex-col">
                                       <span className="font-medium">{supplier.name}</span>
                                       {supplier.contactPerson && (
-                                        <span className="text-xs text-slate-500">
+                                        <span className="text-xs text-muted-foreground">
                                           {supplier.contactPerson} • {supplier.phone || supplier.email}
                                         </span>
                                       )}
@@ -344,18 +344,18 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
                     </Popover>
                   )}
                 />
-                {errors.supplierId && <p className="text-xs text-red-500">{errors.supplierId.message}</p>}
+                {errors.supplierId && <p className="text-xs text-danger">{errors.supplierId.message}</p>}
               </div>
 
               {/* Payment Terms */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <Label className="text-xs font-semibold text-foreground dark:text-muted-foreground/50">
                   <CreditCard className="inline h-3 w-3 mr-1" />
                   Payment Terms
                 </Label>
                 <Controller control={control} name="paymentTerms" render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className="h-9 text-sm bg-white dark:bg-slate-800">
+                    <SelectTrigger className="h-9 text-sm bg-white dark:bg-foreground">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -369,14 +369,14 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
 
               {/* Expected Date */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Expected Delivery</Label>
-                <Input type="date" className="h-9 text-sm bg-white dark:bg-slate-800" {...register("expectedDate")} />
+                <Label className="text-xs font-semibold text-foreground dark:text-muted-foreground/50">Expected Delivery</Label>
+                <Input type="date" className="h-9 text-sm bg-white dark:bg-foreground" {...register("expectedDate")} />
               </div>
 
               {/* Due Date */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Due Date</Label>
-                <Input type="date" className="h-9 text-sm bg-white dark:bg-slate-800" {...register("dueDate")} />
+                <Label className="text-xs font-semibold text-foreground dark:text-muted-foreground/50">Due Date</Label>
+                <Input type="date" className="h-9 text-sm bg-white dark:bg-foreground" {...register("dueDate")} />
               </div>
             </div>
 
@@ -385,8 +385,8 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
             {/* Items Section */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-                  <Package className="h-4 w-4 text-blue-500" />
+                <div className="flex items-center gap-2 text-sm font-medium text-foreground dark:text-muted-foreground/50">
+                  <Package className="h-4 w-4 text-primary" />
                   Order Items
                   <Badge variant="secondary" className="text-xs">{fields.length} item(s)</Badge>
                 </div>
@@ -394,34 +394,34 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
                   type="button"
                   size="sm"
                   onClick={() => append({ inventoryItemId: "", itemName: "", unit: "", quantityOrdered: 1, unitCost: 0 })}
-                  className="h-8 gap-1.5 bg-blue-500 hover:bg-blue-600"
+                  className="h-8 gap-1.5 bg-primary hover:bg-primary"
                 >
                   <Plus className="h-3.5 w-3.5" /> Add Item
                 </Button>
               </div>
 
               {/* Items Table */}
-              <div className="border rounded-lg overflow-hidden bg-white dark:bg-slate-800 shadow-sm">
+              <div className="border rounded-lg overflow-hidden bg-white dark:bg-foreground shadow-sm">
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-50 dark:bg-slate-700/50 border-b">
+                  <thead className="bg-muted/50 dark:bg-foreground/50 border-b">
                     <tr>
-                      <th className="text-left text-xs font-semibold text-slate-600 dark:text-slate-400 p-3 w-[40%]">Item</th>
-                      <th className="text-center text-xs font-semibold text-slate-600 dark:text-slate-400 p-3 w-[10%]">Unit</th>
-                      <th className="text-right text-xs font-semibold text-slate-600 dark:text-slate-400 p-3 w-[12%]">Qty</th>
-                      <th className="text-right text-xs font-semibold text-slate-600 dark:text-slate-400 p-3 w-[15%]">Unit Cost</th>
-                      <th className="text-right text-xs font-semibold text-slate-600 dark:text-slate-400 p-3 w-[15%]">Total</th>
-                      <th className="text-center text-xs font-semibold text-slate-600 dark:text-slate-400 p-3 w-[10%]">Batch</th>
+                      <th className="text-left text-xs font-semibold text-muted-foreground dark:text-muted-foreground/70 p-3 w-[40%]">Item</th>
+                      <th className="text-center text-xs font-semibold text-muted-foreground dark:text-muted-foreground/70 p-3 w-[10%]">Unit</th>
+                      <th className="text-right text-xs font-semibold text-muted-foreground dark:text-muted-foreground/70 p-3 w-[12%]">Qty</th>
+                      <th className="text-right text-xs font-semibold text-muted-foreground dark:text-muted-foreground/70 p-3 w-[15%]">Unit Cost</th>
+                      <th className="text-right text-xs font-semibold text-muted-foreground dark:text-muted-foreground/70 p-3 w-[15%]">Total</th>
+                      <th className="text-center text-xs font-semibold text-muted-foreground dark:text-muted-foreground/70 p-3 w-[10%]">Batch</th>
                       <th className="w-[8%]"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                  <tbody className="divide-y divide-border/60 dark:divide-foreground">
                     {fields.map((field, index) => {
                       const item = watchedItems[index];
                       const lineTotal = (item?.quantityOrdered || 0) * (item?.unitCost || 0);
                       const filteredItems = getFilteredItems(itemSearch[index] || "");
                       
                       return (
-                        <tr key={field.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30">
+                        <tr key={field.id} className="hover:bg-muted/50 dark:hover:bg-foreground/30">
                           {/* Item Selection */}
                           <td className="p-2">
                             <Controller
@@ -437,9 +437,9 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
                                       variant="outline"
                                       role="combobox"
                                       className={cn(
-                                        "w-full justify-between h-8 text-xs bg-white dark:bg-slate-800 border-slate-200",
-                                        !itemField.value && "text-slate-400",
-                                        errors.items?.[index]?.inventoryItemId && "border-red-400"
+                                        "w-full justify-between h-8 text-xs bg-white dark:bg-foreground border-border",
+                                        !itemField.value && "text-muted-foreground/70",
+                                        errors.items?.[index]?.inventoryItemId && "border-danger/40"
                                       )}
                                     >
                                       <span className="truncate">{getSelectedItemName(index) || "Select item..."}</span>
@@ -456,7 +456,7 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
                                       />
                                       <CommandList className="max-h-[180px]">
                                         {itemsLoading ? (
-                                          <div className="py-3 text-center text-xs text-slate-500">Loading...</div>
+                                          <div className="py-3 text-center text-xs text-muted-foreground">Loading...</div>
                                         ) : filteredItems.length === 0 ? (
                                           <CommandEmpty className="text-xs py-3">No items found.</CommandEmpty>
                                         ) : (
@@ -471,7 +471,7 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
                                                 <Check className={cn("mr-2 h-3 w-3", itemField.value === item.id ? "opacity-100" : "opacity-0")} />
                                                 <div className="flex flex-col min-w-0">
                                                   <span className="font-medium truncate">{item.name}</span>
-                                                  <span className="text-slate-500 text-[10px]">
+                                                  <span className="text-muted-foreground text-[10px]">
                                                     {item.itemCode && `${item.itemCode} • `}{item.unit} • Stock: {item.stockQuantity || 0}
                                                     {item.category && ` • ${item.category}`}
                                                   </span>
@@ -491,7 +491,7 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
                           {/* Unit */}
                           <td className="p-2">
                             <Input 
-                              className="h-8 text-xs text-center bg-slate-50 dark:bg-slate-700 border-0" 
+                              className="h-8 text-xs text-center bg-muted/50 dark:bg-foreground border-0" 
                               {...register(`items.${index}.unit`)} 
                               readOnly 
                               tabIndex={-1}
@@ -521,7 +521,7 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
                           </td>
 
                           {/* Line Total */}
-                          <td className="p-2 text-right font-mono text-xs font-semibold text-slate-700">
+                          <td className="p-2 text-right font-mono text-xs font-semibold text-foreground">
                             {formatUGX(lineTotal)}
                           </td>
 
@@ -540,7 +540,7 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-slate-400 hover:text-red-500 hover:bg-red-50"
+                              className="h-7 w-7 text-muted-foreground/70 hover:text-danger hover:bg-danger-muted/60"
                               onClick={() => fields.length > 1 && remove(index)}
                               disabled={fields.length === 1}
                             >
@@ -553,7 +553,7 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
                   </tbody>
                 </table>
               </div>
-              {errors.items && <p className="text-xs text-red-500">{(errors.items as any).message}</p>}
+              {errors.items && <p className="text-xs text-danger">{(errors.items as any).message}</p>}
             </div>
 
             {/* Notes & Totals */}
@@ -561,17 +561,17 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
               {/* Notes */}
               <div className="col-span-3 space-y-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Supplier Notes</Label>
+                  <Label className="text-xs font-semibold text-foreground dark:text-muted-foreground/50">Supplier Notes</Label>
                   <Textarea 
-                    className="text-sm h-20 resize-none bg-white dark:bg-slate-800" 
+                    className="text-sm h-20 resize-none bg-white dark:bg-foreground" 
                     {...register("notes")} 
                     placeholder="Delivery instructions, special requirements..."
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Internal Notes</Label>
+                  <Label className="text-xs font-semibold text-foreground dark:text-muted-foreground/50">Internal Notes</Label>
                   <Textarea 
-                    className="text-sm h-16 resize-none bg-white dark:bg-slate-800" 
+                    className="text-sm h-16 resize-none bg-white dark:bg-foreground" 
                     {...register("internalNotes")} 
                     placeholder="Internal use only..."
                   />
@@ -579,20 +579,20 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
               </div>
 
               {/* Totals */}
-              <Card className="col-span-2 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 border-slate-200">
+              <Card className="col-span-2 bg-gradient-to-br from-muted/50 to-muted dark:from-foreground dark:to-foreground border-border">
                 <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    <Calculator className="h-4 w-4 text-blue-500" />
+                  <div className="flex items-center gap-2 text-sm font-semibold text-foreground dark:text-muted-foreground/50">
+                    <Calculator className="h-4 w-4 text-primary" />
                     Order Summary
                   </div>
                   
                   <div className="space-y-2 text-sm">
-                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                    <div className="flex justify-between text-muted-foreground dark:text-muted-foreground/70">
                       <span>Subtotal</span>
                       <span className="font-mono font-medium">{formatUGX(subtotal)}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-600 dark:text-slate-400">Discount</span>
+                      <span className="text-muted-foreground dark:text-muted-foreground/70">Discount</span>
                       <Input
                         type="number"
                         step="100"
@@ -602,7 +602,7 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
                       />
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-600 dark:text-slate-400">Shipping</span>
+                      <span className="text-muted-foreground dark:text-muted-foreground/70">Shipping</span>
                       <Input
                         type="number"
                         step="100"
@@ -612,9 +612,9 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
                       />
                     </div>
                     <Separator className="my-2" />
-                    <div className="flex justify-between text-lg font-bold text-slate-900 dark:text-white">
+                    <div className="flex justify-between text-lg font-bold text-foreground dark:text-white">
                       <span>Total</span>
-                      <span className="font-mono text-blue-600 dark:text-blue-400">{formatUGX(total)}</span>
+                      <span className="font-mono text-primary dark:text-primary/70">{formatUGX(total)}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -627,7 +627,7 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
         </div>
 
         {/* Footer */}
-        <DialogFooter className="px-6 py-4 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0 gap-2">
+        <DialogFooter className="px-6 py-4 border-t bg-muted/50 dark:bg-foreground/50 shrink-0 gap-2">
           <Button type="button" variant="outline" onClick={onClose} className="h-9">
             Cancel
           </Button>
@@ -643,7 +643,7 @@ const inventoryItems = getInventoryItemsArray(inventoryItemsData);
           <Button 
             type="button" 
             disabled={isSubmitting} 
-            className="h-9 bg-blue-500 hover:bg-blue-600" 
+            className="h-9 bg-primary hover:bg-primary" 
             onClick={() => onSubmit(watch(), false)}
           >
             {isSubmitting ? "Creating..." : "Create Order"}

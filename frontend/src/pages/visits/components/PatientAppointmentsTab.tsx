@@ -97,10 +97,10 @@ const STATUS_CFG: Record<
 > = {
   SCHEDULED: {
     label: "Scheduled",
-    bg: "bg-blue-50",
-    text: "text-blue-700",
-    border: "border-blue-200",
-    dot: "bg-blue-400",
+    bg: "bg-primary-muted/60",
+    text: "text-primary",
+    border: "border-primary/25",
+    dot: "bg-primary/80",
     icon: CalendarDays,
   },
   CONFIRMED: {
@@ -113,10 +113,10 @@ const STATUS_CFG: Record<
   },
   CHECKED_IN: {
     label: "Checked In",
-    bg: "bg-amber-50",
-    text: "text-amber-700",
-    border: "border-amber-200",
-    dot: "bg-amber-400",
+    bg: "bg-warning-muted/60",
+    text: "text-warning",
+    border: "border-warning/25",
+    dot: "bg-warning/80",
     icon: User,
   },
   IN_PROGRESS: {
@@ -129,42 +129,42 @@ const STATUS_CFG: Record<
   },
   COMPLETED: {
     label: "Completed",
-    bg: "bg-emerald-50",
-    text: "text-emerald-700",
-    border: "border-emerald-200",
-    dot: "bg-emerald-500",
+    bg: "bg-success-muted/60",
+    text: "text-success",
+    border: "border-success/25",
+    dot: "bg-success",
     icon: CheckCircle2,
   },
   CANCELLED: {
     label: "Cancelled",
-    bg: "bg-red-50",
-    text: "text-red-500",
-    border: "border-red-200",
-    dot: "bg-red-400",
+    bg: "bg-danger-muted/60",
+    text: "text-danger",
+    border: "border-danger/25",
+    dot: "bg-danger/80",
     icon: XCircle,
   },
   NO_SHOW: {
     label: "No Show",
-    bg: "bg-slate-100",
-    text: "text-slate-500",
-    border: "border-slate-200",
-    dot: "bg-slate-400",
+    bg: "bg-muted",
+    text: "text-muted-foreground",
+    border: "border-border",
+    dot: "bg-muted-foreground/70",
     icon: AlertCircle,
   },
   RESCHEDULED: {
     label: "Rescheduled",
-    bg: "bg-orange-50",
-    text: "text-orange-700",
-    border: "border-orange-200",
-    dot: "bg-orange-400",
+    bg: "bg-warning-muted/60",
+    text: "text-warning",
+    border: "border-warning/25",
+    dot: "bg-warning/80",
     icon: RefreshCw,
   },
     DRAFT: {
     label: "Draft",
-    bg: "bg-orange-50",
-    text: "text-orange-700",
-    border: "border-orange-200",
-    dot: "bg-orange-400",
+    bg: "bg-warning-muted/60",
+    text: "text-warning",
+    border: "border-warning/25",
+    dot: "bg-warning/80",
     icon: RefreshCw,
   },
 };
@@ -264,12 +264,12 @@ function BookAppointmentForm({
   const set = (k: string, v: any) => setForm((p) => ({ ...p, [k]: v }));
 
   const inputCls =
-    "w-full rounded-xl border-2 border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:border-blue-400 transition-all text-slate-800 placeholder:text-slate-300 hover:border-slate-300 bg-white";
+    "w-full rounded-xl border-2 border-border px-3.5 py-2.5 text-sm focus:outline-none focus:border-primary/40 transition-all text-foreground placeholder:text-muted-foreground/50 hover:border-input bg-white";
   const labelCls =
-    "block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide";
+    "block text-xs font-bold text-muted-foreground mb-1.5 uppercase tracking-wide";
 
   return (
-    <div className="bg-white rounded-2xl border-2 border-blue-200 shadow-xl overflow-hidden">
+    <div className="bg-white rounded-2xl border-2 border-primary/25 shadow-xl overflow-hidden">
       {/* Header */}
       <div className="px-5 py-4 bg-gradient-to-r from-[#1e3a5f] to-[#2563eb] flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -278,7 +278,7 @@ function BookAppointmentForm({
           </div>
           <div>
             <h3 className="text-sm font-bold text-white">New Appointment</h3>
-            <p className="text-xs text-blue-200 mt-0.5">
+            <p className="text-xs text-primary/50 mt-0.5">
               Schedule a follow-up or next visit
             </p>
           </div>
@@ -373,7 +373,7 @@ function BookAppointmentForm({
         <div>
           <label className={labelCls}>
             Notes{" "}
-            <span className="normal-case font-normal text-slate-400">
+            <span className="normal-case font-normal text-muted-foreground/70">
               (optional)
             </span>
           </label>
@@ -393,26 +393,26 @@ function BookAppointmentForm({
             className={cn(
               "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all cursor-pointer",
               form.isWalkIn
-                ? "border-blue-600 bg-blue-600"
-                : "border-slate-300 group-hover:border-blue-400",
+                ? "border-primary bg-primary"
+                : "border-input group-hover:border-primary/40",
             )}
           >
             {form.isWalkIn && <Check className="w-3 h-3 text-white" />}
           </div>
-          <span className="text-sm text-slate-600 font-medium">
+          <span className="text-sm text-muted-foreground font-medium">
             Mark as walk-in
           </span>
         </label>
 
         {/* Actions */}
-        <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
+        <div className="flex items-center gap-3 pt-2 border-t border-border/60">
           <button
             onClick={() => {
               if (!form.dentistId || !form.scheduledAt) return;
               onBook({ ...form, patientId });
             }}
             disabled={loading || !form.dentistId || !form.scheduledAt}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
           >
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -423,7 +423,7 @@ function BookAppointmentForm({
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl border-2 border-slate-200 text-sm text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
+            className="px-4 py-2.5 rounded-xl border-2 border-border text-sm text-muted-foreground font-semibold hover:bg-muted/50 transition-colors"
           >
             Cancel
           </button>
@@ -456,8 +456,8 @@ function AppointmentCard({
       className={cn(
         "rounded-2xl border-2 overflow-hidden transition-all",
         isCurrent
-          ? "border-blue-400 shadow-lg shadow-blue-100"
-          : "border-slate-200 hover:border-slate-300 hover:shadow-sm",
+          ? "border-primary/40 shadow-lg shadow-blue-100"
+          : "border-border hover:border-input hover:shadow-sm",
       )}
     >
       {/* Left accent bar + main content */}
@@ -469,35 +469,35 @@ function AppointmentCard({
           {/* Top row */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
-              <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <CalendarDays className="w-3.5 h-3.5 text-muted-foreground/70" />
                 <span className="font-semibold">
                   {format(scheduled, "EEE, dd-MM-yyyy")}
                 </span>
-                <span className="text-slate-400">·</span>
-                <span className="text-slate-500">
+                <span className="text-muted-foreground/70">·</span>
+                <span className="text-muted-foreground">
                   {format(scheduled, "h:mm a")}
                 </span>
               </div>
               <StatusPill status={apt.status} small />
               {isCurrent && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-600 text-white">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-primary text-white">
                   <Sparkles className="w-2.5 h-2.5" />
                   Current Visit
                 </span>
               )}
               {isUpcoming && !isCurrent && daysAway === 0 && (
-                <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                <span className="text-[11px] font-bold text-success bg-success-muted/60 border border-success/25 px-2 py-0.5 rounded-full">
                   Today
                 </span>
               )}
               {isUpcoming && !isCurrent && daysAway === 1 && (
-                <span className="text-[11px] font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                <span className="text-[11px] font-bold text-primary bg-primary-muted/60 border border-primary/25 px-2 py-0.5 rounded-full">
                   Tomorrow
                 </span>
               )}
               {isUpcoming && !isCurrent && daysAway > 1 && (
-                <span className="text-[11px] text-slate-500">
+                <span className="text-[11px] text-muted-foreground">
                   in {daysAway} days
                 </span>
               )}
@@ -507,7 +507,7 @@ function AppointmentCard({
               {apt.visit && onGoToVisit && (
                 <button
                   onClick={() => onGoToVisit(apt.visit!.id)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold hover:bg-blue-100 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary-muted/60 border border-primary/25 text-primary text-xs font-semibold hover:bg-primary-muted transition-colors"
                 >
                   <ArrowRight className="w-3.5 h-3.5" />
                   Visit
@@ -516,7 +516,7 @@ function AppointmentCard({
               {(apt.chiefComplaint || apt.notes) && (
                 <button
                   onClick={() => setExpanded(!expanded)}
-                  className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground/70 transition-colors"
                 >
                   <ChevronDown className={cn("w-4 h-4 transition-transform", expanded && "rotate-180")} />
                 </button>
@@ -528,47 +528,47 @@ function AppointmentCard({
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2.5">
             <TypeChip type={apt.type} />
 
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
-              <Clock className="w-3 h-3 text-slate-400" />
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="w-3 h-3 text-muted-foreground/70" />
               <span>{apt.duration} min</span>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
-              <Stethoscope className="w-3 h-3 text-slate-400" />
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Stethoscope className="w-3 h-3 text-muted-foreground/70" />
               <span>
                 Dr. {apt.dentist.firstName} {apt.dentist.lastName}
               </span>
               {apt.dentist.specialization && (
-                <span className="text-slate-400">
+                <span className="text-muted-foreground/70">
                   · {apt.dentist.specialization}
                 </span>
               )}
             </div>
-            <span className="text-[11px] font-mono text-slate-300">
+            <span className="text-[11px] font-mono text-muted-foreground/50">
               {apt.appointmentCode}
             </span>
           </div>
 
           {/* Expanded detail */}
           {expanded && (
-            <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
+            <div className="mt-3 pt-3 border-t border-border/60 space-y-2">
               {apt.chiefComplaint && (
                 <div className="flex items-start gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-0.5 shrink-0 w-20">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 mt-0.5 shrink-0 w-20">
                     Complaint
                   </span>
-                  <p className="text-xs text-slate-600">{apt.chiefComplaint}</p>
+                  <p className="text-xs text-muted-foreground">{apt.chiefComplaint}</p>
                 </div>
               )}
               {apt.notes && (
                 <div className="flex items-start gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-0.5 shrink-0 w-20">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 mt-0.5 shrink-0 w-20">
                     Notes
                   </span>
-                  <p className="text-xs text-slate-600">{apt.notes}</p>
+                  <p className="text-xs text-muted-foreground">{apt.notes}</p>
                 </div>
               )}
               {apt.isWalkIn && (
-                <span className="inline-flex items-center gap-1 text-[11px] text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-lg font-semibold">
+                <span className="inline-flex items-center gap-1 text-[11px] text-warning bg-warning-muted/60 border border-warning/25 px-2 py-0.5 rounded-lg font-semibold">
                   Walk-in
                 </span>
               )}
@@ -602,8 +602,8 @@ function SectionLabel({
       >
         <Icon className="w-3.5 h-3.5 text-white" />
       </div>
-      <h3 className="text-sm font-bold text-slate-700">{label}</h3>
-      <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+      <h3 className="text-sm font-bold text-foreground">{label}</h3>
+      <span className="text-xs font-bold text-muted-foreground/70 bg-muted px-2 py-0.5 rounded-full">
         {count}
       </span>
     </div>
@@ -709,15 +709,15 @@ export function PatientAppointmentsTab({
       {/* ── Header row ─────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-bold text-slate-800">
+          <h2 className="text-base font-bold text-foreground">
             Patient Appointments
             {patientName && (
-              <span className="text-slate-400 font-normal ml-2">
+              <span className="text-muted-foreground/70 font-normal ml-2">
                 — {patientName}
               </span>
             )}
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             {totalCount} total · {todayApts.length + upcoming.length} upcoming ·{" "}
             {past.length} past
           </p>
@@ -725,7 +725,7 @@ export function PatientAppointmentsTab({
 
         <div className="flex items-center gap-2">
           {/* Filter chips */}
-          <div className="flex bg-slate-100 rounded-xl p-1 gap-0.5">
+          <div className="flex bg-muted rounded-xl p-1 gap-0.5">
             {(
               [
                 { value: "all", label: "All" },
@@ -739,8 +739,8 @@ export function PatientAppointmentsTab({
                 className={cn(
                   "px-3 py-1.5 text-xs font-semibold rounded-lg transition-all",
                   filter === f.value
-                    ? "bg-white text-slate-800 shadow-sm"
-                    : "text-slate-400 hover:text-slate-600",
+                    ? "bg-white text-foreground shadow-sm"
+                    : "text-muted-foreground/70 hover:text-muted-foreground",
                 )}
               >
                 {f.label}
@@ -750,7 +750,7 @@ export function PatientAppointmentsTab({
 
           <button
             onClick={() => refetch()}
-            className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 transition-colors"
+            className="p-2 rounded-xl hover:bg-muted text-muted-foreground/70 transition-colors"
             title="Refresh"
           >
             <RefreshCw className="w-4 h-4" />
@@ -759,7 +759,7 @@ export function PatientAppointmentsTab({
           <button
             // onClick={() => navigate('/appointments')}
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-0 px-4 py-1.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm"
+            className="flex items-center gap-0 px-4 py-1.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             New Appointment
@@ -781,7 +781,7 @@ export function PatientAppointmentsTab({
 
       {/* Success banner */}
       {bookMutation.isSuccess && !showForm && (
-        <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-sm text-emerald-700">
+        <div className="flex items-center gap-3 px-4 py-3 bg-success-muted/60 border border-success/25 rounded-2xl text-sm text-success">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <span className="font-semibold">
             Appointment booked successfully!
@@ -792,7 +792,7 @@ export function PatientAppointmentsTab({
       {/* ── Loading ───────────────────────────────────────────────────── */}
       {isLoading && (
         <div className="flex items-center justify-center py-20">
-          <div className="flex flex-col items-center gap-3 text-slate-400">
+          <div className="flex flex-col items-center gap-3 text-muted-foreground/70">
             <Loader2 className="w-8 h-8 animate-spin" />
             <span className="text-sm">Loading appointments…</span>
           </div>
@@ -801,12 +801,12 @@ export function PatientAppointmentsTab({
 
       {/* ── Error ─────────────────────────────────────────────────────── */}
       {error && (
-        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-2xl text-sm text-red-600">
+        <div className="flex items-center gap-3 px-4 py-3 bg-danger-muted/60 border border-danger/25 rounded-2xl text-sm text-danger">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>Failed to load appointments.</span>
           <button
             onClick={() => refetch()}
-            className="ml-auto text-red-700 font-semibold hover:underline"
+            className="ml-auto text-danger font-semibold hover:underline"
           >
             Retry
           </button>
@@ -815,11 +815,11 @@ export function PatientAppointmentsTab({
 
       {/* ── Empty ─────────────────────────────────────────────────────── */}
       {!isLoading && !error && allAppointments.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
+        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground/70">
+          <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mb-4">
             <CalendarX className="w-8 h-8 opacity-50" />
           </div>
-          <p className="text-base font-semibold text-slate-600">
+          <p className="text-base font-semibold text-muted-foreground">
             No appointments found
           </p>
           <p className="text-sm mt-1">
@@ -827,7 +827,7 @@ export function PatientAppointmentsTab({
           </p>
           <button
             onClick={() => setShowForm(true)}
-            className="mt-5 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm"
+            className="mt-5 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Book First Appointment
@@ -846,7 +846,7 @@ export function PatientAppointmentsTab({
                   icon={CalendarCheck}
                   label="Upcoming Appointments"
                   count={visibleUpcoming.length}
-                  color="bg-blue-600"
+                  color="bg-primary"
                 />
                 <div className="space-y-2.5">
                   {visibleUpcoming.map((apt) => (
@@ -865,9 +865,9 @@ export function PatientAppointmentsTab({
           {filter === "upcoming" &&
             visibleUpcoming.length === 0 &&
             !isLoading && (
-              <div className="flex flex-col items-center py-8 text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+              <div className="flex flex-col items-center py-8 text-muted-foreground/70 bg-muted/50 rounded-2xl border border-dashed border-border">
                 <CalendarCheck className="w-7 h-7 mb-2 opacity-40" />
-                <p className="text-sm font-medium text-slate-500">
+                <p className="text-sm font-medium text-muted-foreground">
                   No upcoming appointments
                 </p>
               </div>
@@ -877,11 +877,11 @@ export function PatientAppointmentsTab({
             visibleUpcoming.length > 0 &&
             visiblePast.length > 0 && (
               <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-slate-200" />
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                <div className="flex-1 h-px bg-muted" />
+                <span className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wide">
                   History
                 </span>
-                <div className="flex-1 h-px bg-slate-200" />
+                <div className="flex-1 h-px bg-muted" />
               </div>
             )}
 
@@ -893,7 +893,7 @@ export function PatientAppointmentsTab({
                   icon={History}
                   label="Past Appointments"
                   count={visiblePast.length}
-                  color="bg-slate-500"
+                  color="bg-muted-foreground"
                 />
                 <div className="space-y-2.5">
                   {visiblePast.map((apt) => (
@@ -910,9 +910,9 @@ export function PatientAppointmentsTab({
 
           {/* No past message */}
           {filter === "past" && visiblePast.length === 0 && !isLoading && (
-            <div className="flex flex-col items-center py-8 text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+            <div className="flex flex-col items-center py-8 text-muted-foreground/70 bg-muted/50 rounded-2xl border border-dashed border-border">
               <History className="w-7 h-7 mb-2 opacity-40" />
-              <p className="text-sm font-medium text-slate-500">
+              <p className="text-sm font-medium text-muted-foreground">
                 No past appointments
               </p>
             </div>

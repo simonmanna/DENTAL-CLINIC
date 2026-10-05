@@ -134,12 +134,12 @@ export const DetailedReportView: React.FC<DetailedReportViewProps> = ({ data }) 
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { color: string; label: string }> = {
-      COMPLETED: { color: 'bg-green-100 text-green-800', label: 'Completed' },
-      IN_PROGRESS: { color: 'bg-blue-100 text-blue-800', label: 'In Progress' },
-      ARRIVED: { color: 'bg-yellow-100 text-yellow-800', label: 'Arrived' },
-      CANCELLED: { color: 'bg-red-100 text-red-800', label: 'Cancelled' },
+      COMPLETED: { color: 'bg-success-muted text-success', label: 'Completed' },
+      IN_PROGRESS: { color: 'bg-primary-muted text-primary', label: 'In Progress' },
+      ARRIVED: { color: 'bg-warning-muted text-warning', label: 'Arrived' },
+      CANCELLED: { color: 'bg-danger-muted text-danger', label: 'Cancelled' },
     };
-    const config = statusConfig[status] || { color: 'bg-gray-100 text-gray-800', label: status };
+    const config = statusConfig[status] || { color: 'bg-muted text-foreground', label: status };
     return <Badge className={config.color}>{config.label}</Badge>;
   };
 
@@ -297,7 +297,7 @@ export const DetailedReportView: React.FC<DetailedReportViewProps> = ({ data }) 
                       <TableCell>{visit.procedures.length}</TableCell>
                       <TableCell className="font-medium">{formatCurrency(visit.totalCost)}</TableCell>
                       <TableCell>{formatCurrency(visit.amountPaid)}</TableCell>
-                      <TableCell className={balance > 0 ? 'text-red-600 font-medium' : 'text-green-600'}>
+                      <TableCell className={balance > 0 ? 'text-danger font-medium' : 'text-success'}>
                         {formatCurrency(balance)}
                       </TableCell>
                       <TableCell>
@@ -370,7 +370,7 @@ export const DetailedReportView: React.FC<DetailedReportViewProps> = ({ data }) 
                                           {formatDate(payment.paidAt)}
                                         </span>
                                       </div>
-                                      <span className="text-green-600">{formatCurrency(payment.amount)}</span>
+                                      <span className="text-success">{formatCurrency(payment.amount)}</span>
                                     </div>
                                   ))}
                                 </div>
@@ -477,11 +477,11 @@ export const DetailedReportView: React.FC<DetailedReportViewProps> = ({ data }) 
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Amount Paid</p>
-                      <p className="text-xl font-bold text-green-600">{formatCurrency(selectedVisit.amountPaid)}</p>
+                      <p className="text-xl font-bold text-success">{formatCurrency(selectedVisit.amountPaid)}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Balance</p>
-                      <p className={`text-xl font-bold ${selectedVisit.totalCost - selectedVisit.amountPaid > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      <p className={`text-xl font-bold ${selectedVisit.totalCost - selectedVisit.amountPaid > 0 ? 'text-danger' : 'text-success'}`}>
                         {formatCurrency(selectedVisit.totalCost - selectedVisit.amountPaid)}
                       </p>
                     </div>
@@ -583,7 +583,7 @@ export const DetailedReportView: React.FC<DetailedReportViewProps> = ({ data }) 
                             <TableCell>{formatDate(payment.paidAt)}</TableCell>
                             <TableCell>{payment.method}</TableCell>
                             <TableCell>{payment.reference || '-'}</TableCell>
-                            <TableCell className="text-right text-green-600">{formatCurrency(payment.amount)}</TableCell>
+                            <TableCell className="text-right text-success">{formatCurrency(payment.amount)}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

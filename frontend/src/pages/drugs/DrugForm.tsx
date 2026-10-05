@@ -187,7 +187,7 @@ export function DrugForm({
               <Pill className="h-5 w-5" />
               {isEditing ? `Edit: ${drug?.name}` : "Add New Drug"}
             </DialogTitle>
-            <DialogDescription className="text-sky-100 opacity-90">
+            <DialogDescription className="text-primary/40 opacity-90">
               {isEditing
                 ? "Modify product specifications and pricing details."
                 : "Enter the clinical and commercial details for the new medication."}
@@ -203,8 +203,8 @@ export function DrugForm({
             <div className="p-4 max-h-[70vh] overflow-y-auto space-y-6">
               {/* SECTION: Identity */}
               <div className="bg-white rounded border shadow-sm overflow-hidden">
-                <div className="bg-gray-50 px-4 py-2 border-b">
-                  <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+                <div className="bg-muted/50 px-4 py-2 border-b">
+                  <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1 h-4 bg-[#3c8dbc] rounded-full" />
                     Drug Identity
                   </h3>
@@ -215,12 +215,12 @@ export function DrugForm({
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-bold uppercase text-gray-500">
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
                           Brand Name *
                         </FormLabel>
                         <FormControl>
                           <Input
-                            className="rounded-none border-gray-300 focus:border-[#3c8dbc]"
+                            className="rounded-none border-input focus:border-[#3c8dbc]"
                             placeholder="e.g. Panadol"
                             {...field}
                           />
@@ -234,12 +234,12 @@ export function DrugForm({
                     name="genericName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-bold uppercase text-gray-500">
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
                           Generic Name
                         </FormLabel>
                         <FormControl>
                           <Input
-                            className="rounded-none border-gray-300 focus:border-[#3c8dbc]"
+                            className="rounded-none border-input focus:border-[#3c8dbc]"
                             placeholder="e.g. Paracetamol"
                             {...field}
                           />
@@ -253,7 +253,7 @@ export function DrugForm({
                     name="categoryId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-bold uppercase text-gray-500">
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
                           Category
                         </FormLabel>
                         <Select
@@ -261,7 +261,7 @@ export function DrugForm({
                           value={field.value}
                         >
                           <FormControl>
-                            <SelectTrigger className="rounded-none border-gray-300">
+                            <SelectTrigger className="rounded-none border-input">
                               <SelectValue placeholder="Select Category" />
                             </SelectTrigger>
                           </FormControl>
@@ -282,12 +282,12 @@ export function DrugForm({
                     name="manufacturer"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-bold uppercase text-gray-500">
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
                           Manufacturer
                         </FormLabel>
                         <FormControl>
                           <Input
-                            className="rounded-none border-gray-300 focus:border-[#3c8dbc]"
+                            className="rounded-none border-input focus:border-[#3c8dbc]"
                             placeholder="e.g. Bayer"
                             {...field}
                           />
@@ -302,7 +302,7 @@ export function DrugForm({
                     name="inventoryItemId"
                     render={({ field }) => (
                       <FormItem className="sm:col-span-2">
-                        <FormLabel className="text-xs font-bold uppercase text-gray-500 flex items-center gap-1">
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
                           <Package className="h-3 w-3" />
                           Linked Inventory Item
                         </FormLabel>
@@ -311,7 +311,7 @@ export function DrugForm({
                           value={field.value || "none"}
                         >
                           <FormControl>
-                            <SelectTrigger className="rounded-none border-gray-300">
+                            <SelectTrigger className="rounded-none border-input">
                               <SelectValue placeholder="Select inventory item…" />
                             </SelectTrigger>
                           </FormControl>
@@ -340,7 +340,7 @@ export function DrugForm({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Dosage Card */}
                 <div className="bg-white rounded border shadow-sm overflow-hidden">
-                  <div className="bg-gray-50 px-4 py-2 border-b text-sm font-bold text-gray-700 uppercase tracking-wider">
+                  <div className="bg-muted/50 px-4 py-2 border-b text-sm font-bold text-foreground uppercase tracking-wider">
                     Dosage Spec
                   </div>
                   <div className="p-4 space-y-4">
@@ -349,7 +349,7 @@ export function DrugForm({
                       name="form"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs font-bold text-gray-500 uppercase">
+                          <FormLabel className="text-xs font-bold text-muted-foreground uppercase">
                             Form
                           </FormLabel>
                           <Select
@@ -357,7 +357,7 @@ export function DrugForm({
                             value={field.value}
                           >
                             <FormControl>
-                              <SelectTrigger className="rounded-none border-gray-300">
+                              <SelectTrigger className="rounded-none border-input">
                                 <SelectValue placeholder="Select form" />
                               </SelectTrigger>
                             </FormControl>
@@ -378,7 +378,7 @@ export function DrugForm({
                       name="uom"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs font-bold text-gray-500 uppercase">
+                          <FormLabel className="text-xs font-bold text-muted-foreground uppercase">
                             Base Unit (UOM)
                           </FormLabel>
                           <Select
@@ -386,7 +386,7 @@ export function DrugForm({
                             value={field.value}
                           >
                             <FormControl>
-                              <SelectTrigger className="rounded-none border-gray-300">
+                              <SelectTrigger className="rounded-none border-input">
                                 <SelectValue />
                               </SelectTrigger>
                             </FormControl>
@@ -406,12 +406,12 @@ export function DrugForm({
                       name="strength"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs font-bold text-gray-500 uppercase">
+                          <FormLabel className="text-xs font-bold text-muted-foreground uppercase">
                             Strength
                           </FormLabel>
                           <FormControl>
                             <Input
-                              className="rounded-none border-gray-300"
+                              className="rounded-none border-input"
                               placeholder="500mg"
                               {...field}
                             />
@@ -424,7 +424,7 @@ export function DrugForm({
 
                 {/* Pricing Card */}
                 <div className="bg-white rounded border border-l-4 border-l-green-500 shadow-sm overflow-hidden">
-                  <div className="bg-green-50/50 px-4 py-2 border-b text-sm font-bold text-green-700 uppercase tracking-wider text-right">
+                  <div className="bg-success-muted/50 px-4 py-2 border-b text-sm font-bold text-success uppercase tracking-wider text-right">
                     Pricing (UGX)
                   </div>
                   <div className="p-4 space-y-4">
@@ -434,7 +434,7 @@ export function DrugForm({
                       render={({ field }) => (
                         <FormItem>
                           <div className="flex justify-between items-center">
-                            <FormLabel className="text-xs font-bold text-gray-500 uppercase">
+                            <FormLabel className="text-xs font-bold text-muted-foreground uppercase">
                               Cost Price
                             </FormLabel>
                             <FormControl>
@@ -454,13 +454,13 @@ export function DrugForm({
                       render={({ field }) => (
                         <FormItem>
                           <div className="flex justify-between items-center">
-                            <FormLabel className="text-xs font-bold text-gray-700 uppercase">
+                            <FormLabel className="text-xs font-bold text-foreground uppercase">
                               Retail Price
                             </FormLabel>
                             <FormControl>
                               <Input
                                 type="number"
-                                className="w-32 rounded-none h-8 text-right font-mono border-green-300"
+                                className="w-32 rounded-none h-8 text-right font-mono border-success/30"
                                 {...field}
                               />
                             </FormControl>
@@ -472,8 +472,8 @@ export function DrugForm({
 
                   {/* SECTION: Status & Restrictions */}
                   <div className="bg-white rounded border shadow-sm overflow-hidden">
-                    <div className="bg-gray-50 px-4 py-2 border-b">
-                      <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+                    <div className="bg-muted/50 px-4 py-2 border-b">
+                      <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
                         <span className="w-1 h-4 bg-[#3c8dbc] rounded-full" />
                         Status & Restrictions
                       </h3>
@@ -485,10 +485,10 @@ export function DrugForm({
                         control={form.control}
                         name="isActive"
                         render={({ field }) => (
-                          <FormItem className="flex items-center justify-between rounded border p-3 hover:bg-gray-50 transition-colors">
+                          <FormItem className="flex items-center justify-between rounded border p-3 hover:bg-muted/50 transition-colors">
                             <div className="space-y-0.5">
                               <FormLabel className="text-sm font-bold flex items-center gap-2">
-                                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-green-100 text-green-700 rounded">
+                                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-success-muted text-success rounded">
                                   ●
                                 </span>
                                 Active Status
@@ -513,10 +513,10 @@ export function DrugForm({
                         control={form.control}
                         name="requiresPrescription"
                         render={({ field }) => (
-                          <FormItem className="flex items-center justify-between rounded border p-3 hover:bg-gray-50 transition-colors">
+                          <FormItem className="flex items-center justify-between rounded border p-3 hover:bg-muted/50 transition-colors">
                             <div className="space-y-0.5">
                               <FormLabel className="text-sm font-bold flex items-center gap-2">
-                                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-red-100 text-red-700 rounded">
+                                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-danger-muted text-danger rounded">
                                   Rx
                                 </span>
                                 Prescription Required
@@ -594,7 +594,7 @@ export function DrugForm({
 
             {/* Footer Bar */}
             <div className="bg-white px-6 py-4 flex justify-between items-center border-t">
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+              <span className="text-[10px] text-muted-foreground/70 font-bold uppercase tracking-widest">
                 {isEditing ? `Editing: ${drug?.name}` : "New Drug Entry"}
               </span>
               <div className="flex gap-3">

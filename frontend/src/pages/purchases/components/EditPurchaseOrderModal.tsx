@@ -195,8 +195,8 @@ export function EditPurchaseOrderModal({ po, onClose }: EditPurchaseOrderModalPr
         <DialogHeader className="px-6 py-4 border-b bg-muted/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <Edit2 className="h-5 w-5 text-blue-600" />
+              <div className="p-2 rounded-lg bg-primary-muted">
+                <Edit2 className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <DialogTitle className="text-lg">Edit Purchase Order</DialogTitle>
@@ -226,7 +226,7 @@ export function EditPurchaseOrderModal({ po, onClose }: EditPurchaseOrderModalPr
                     ))}
                   </select>
                   {errors.supplierId && (
-                    <p className="text-xs text-red-500">{errors.supplierId.message}</p>
+                    <p className="text-xs text-danger">{errors.supplierId.message}</p>
                   )}
                 </div>
 
@@ -425,7 +425,7 @@ export function EditPurchaseOrderModal({ po, onClose }: EditPurchaseOrderModalPr
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-red-500"
+                                className="h-8 w-8 text-muted-foreground hover:text-danger"
                                 onClick={() => remove(index)}
                                 disabled={fields.length === 1}
                               >
@@ -474,7 +474,7 @@ export function EditPurchaseOrderModal({ po, onClose }: EditPurchaseOrderModalPr
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Discount</span>
-                      <span className="font-mono text-red-500">-{formatUGX(discountAmount)}</span>
+                      <span className="font-mono text-danger">-{formatUGX(discountAmount)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Shipping</span>
@@ -482,7 +482,7 @@ export function EditPurchaseOrderModal({ po, onClose }: EditPurchaseOrderModalPr
                     </div>
                     <div className="border-t pt-2 flex justify-between text-lg font-bold">
                       <span>Total</span>
-                      <span className="font-mono text-blue-600">{formatUGX(total)}</span>
+                      <span className="font-mono text-primary">{formatUGX(total)}</span>
                     </div>
                   </div>
                 </div>

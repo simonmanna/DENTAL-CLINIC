@@ -106,7 +106,7 @@ export function StaffEditPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -118,13 +118,13 @@ export function StaffEditPage() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate('/staff')}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-muted rounded-lg transition-colors"
           >
-            <ChevronLeft className="w-5 h-5 text-slate-600" />
+            <ChevronLeft className="w-5 h-5 text-muted-foreground" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Edit Staff Member</h1>
-            <p className="text-slate-500 text-sm mt-0.5">
+            <h1 className="text-2xl font-bold text-foreground">Edit Staff Member</h1>
+            <p className="text-muted-foreground text-sm mt-0.5">
               {staff?.staffCode} • Last updated: {new Date(staff?.updatedAt).toLocaleDateString()}
             </p>
           </div>
@@ -132,7 +132,7 @@ export function StaffEditPage() {
         <div className="flex gap-3">
           <button
             onClick={() => navigate('/staff')}
-            className="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted/50 transition-colors"
           >
             <X className="w-4 h-4" />
             Cancel
@@ -140,7 +140,7 @@ export function StaffEditPage() {
           <button
             onClick={handleSubmit}
             disabled={updateMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Save className="w-4 h-4" />
             {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
@@ -151,67 +151,67 @@ export function StaffEditPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Form */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                <span className="text-blue-600 text-sm">01</span>
+          <div className="bg-white rounded-xl border border-border/60 shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-primary-muted flex items-center justify-center">
+                <span className="text-primary text-sm">01</span>
               </div>
               Personal Information
             </h2>
             
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  First Name <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  First Name <span className="text-danger">*</span>
                 </label>
                 <input
                   required
                   type="text"
                   value={formData.firstName}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent transition-all"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Last Name <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Last Name <span className="text-danger">*</span>
                 </label>
                 <input
                   required
                   type="text"
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent transition-all"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Phone</label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Phone</label>
                 <input
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent transition-all"
                   placeholder="+256..."
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Email</label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent transition-all"
                   placeholder="email@example.com"
                 />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+          <div className="bg-white rounded-xl border border-border/60 shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
                 <span className="text-purple-600 text-sm">02</span>
               </div>
@@ -221,45 +221,45 @@ export function StaffEditPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Specialization</label>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Specialization</label>
                   <input
                     type="text"
                     value={formData.specialization}
                     onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent transition-all"
                     placeholder="e.g., Orthodontics"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Qualification</label>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Qualification</label>
                   <input
                     type="text"
                     value={formData.qualification}
                     onChange={(e) => setFormData({ ...formData, qualification: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent transition-all"
                     placeholder="e.g., BDS, MDS"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">License Number</label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">License Number</label>
                 <input
                   type="text"
                   value={formData.licenseNumber}
                   onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent transition-all"
                   placeholder="DENT-UG-XXXX-XXX"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Bio</label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Bio</label>
                 <textarea
                   value={formData.bio}
                   onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                   rows={3}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent transition-all resize-none"
                   placeholder="Brief professional biography..."
                 />
               </div>
@@ -269,29 +269,29 @@ export function StaffEditPage() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
-            <h3 className="text-sm font-semibold text-slate-800 mb-4 uppercase tracking-wider">Status</h3>
+          <div className="bg-white rounded-xl border border-border/60 shadow-sm p-6">
+            <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wider">Status</h3>
             
             <div className="space-y-4">
-              <label className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+              <label className="flex items-center gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
                 <input
                   type="checkbox"
                   checked={formData.isAvailable}
                   onChange={(e) => setFormData({ ...formData, isAvailable: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-primary rounded focus:ring-primary/60"
                 />
                 <div>
-                  <div className="text-sm font-medium text-slate-700">Available for Appointments</div>
-                  <div className="text-xs text-slate-500">Show in booking system</div>
+                  <div className="text-sm font-medium text-foreground">Available for Appointments</div>
+                  <div className="text-xs text-muted-foreground">Show in booking system</div>
                 </div>
               </label>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Role</label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Role</label>
                 <select
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent transition-all bg-white"
                 >
                   {Object.entries(ROLE_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
@@ -299,14 +299,14 @@ export function StaffEditPage() {
                 </select>
               </div>
 
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <div className="text-xs text-slate-500 mb-1">Staff Code</div>
-                <div className="font-mono text-sm font-medium text-slate-800">{staff?.staffCode}</div>
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="text-xs text-muted-foreground mb-1">Staff Code</div>
+                <div className="font-mono text-sm font-medium text-foreground">{staff?.staffCode}</div>
               </div>
 
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <div className="text-xs text-slate-500 mb-1">Joined Date</div>
-                <div className="text-sm font-medium text-slate-800">
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="text-xs text-muted-foreground mb-1">Joined Date</div>
+                <div className="text-sm font-medium text-foreground">
                   {new Date(staff?.joiningDate).toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'long',
@@ -316,9 +316,9 @@ export function StaffEditPage() {
               </div>
 
               {staff?.lastLoginAt && (
-                <div className="p-3 bg-slate-50 rounded-lg">
-                  <div className="text-xs text-slate-500 mb-1">Last Login</div>
-                  <div className="text-sm font-medium text-slate-800">
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <div className="text-xs text-muted-foreground mb-1">Last Login</div>
+                  <div className="text-sm font-medium text-foreground">
                     {new Date(staff.lastLoginAt).toLocaleString()}
                   </div>
                 </div>
@@ -327,34 +327,34 @@ export function StaffEditPage() {
           </div>
 
           {/* Reset Password Section */}
-          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
+          <div className="bg-white rounded-xl border border-border/60 shadow-sm p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
-                  <Key className="w-4 h-4 text-red-600" />
+                <div className="w-8 h-8 rounded-lg bg-danger-muted flex items-center justify-center">
+                  <Key className="w-4 h-4 text-danger" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-800">Reset Password</h3>
-                  <p className="text-xs text-slate-500">Leave blank to keep current password</p>
+                  <h3 className="text-sm font-semibold text-foreground">Reset Password</h3>
+                  <p className="text-xs text-muted-foreground">Leave blank to keep current password</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowPasswordSection(!showPasswordSection)}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="text-sm text-primary hover:text-primary font-medium"
               >
                 {showPasswordSection ? 'Cancel' : 'Change Password'}
               </button>
             </div>
             {showPasswordSection && (
               <div className="mt-4">
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">New Password</label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">New Password</label>
                 <input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Enter new password (min 6 characters)"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent transition-all"
                   minLength={6}
                 />
               </div>
@@ -364,10 +364,10 @@ export function StaffEditPage() {
       </div>
 
       {/* Schedule Section */}
-      <div className="mt-6 bg-white rounded-xl border border-slate-100 shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
-            <Calendar className="w-4 h-4 text-green-600" />
+      <div className="mt-6 bg-white rounded-xl border border-border/60 shadow-sm p-6">
+        <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-success-muted flex items-center justify-center">
+            <Calendar className="w-4 h-4 text-success" />
           </div>
           Work Schedule
         </h2>
@@ -376,10 +376,10 @@ export function StaffEditPage() {
           {schedules.map((schedule, index) => (
             <div 
               key={schedule.dayOfWeek}
-              className={`p-4 rounded-lg border ${schedule.isWorking ? 'border-slate-200 bg-white' : 'border-slate-100 bg-slate-50 opacity-60'}`}
+              className={`p-4 rounded-lg border ${schedule.isWorking ? 'border-border bg-white' : 'border-border/60 bg-muted/50 opacity-60'}`}
             >
               <div className="flex items-center justify-between mb-3">
-                <span className="font-medium text-slate-800">{DAYS_OF_WEEK[schedule.dayOfWeek]}</span>
+                <span className="font-medium text-foreground">{DAYS_OF_WEEK[schedule.dayOfWeek]}</span>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
@@ -387,26 +387,26 @@ export function StaffEditPage() {
                     onChange={(e) => handleScheduleChange(index, 'isWorking', e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                  <div className="w-9 h-5 bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-input after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
                 </label>
               </div>
 
               {schedule.isWorking && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Clock className="w-3 h-3 text-slate-400" />
+                    <Clock className="w-3 h-3 text-muted-foreground/70" />
                     <input
                       type="time"
                       value={schedule.startTime}
                       onChange={(e) => handleScheduleChange(index, 'startTime', e.target.value)}
-                      className="flex-1 text-sm px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="flex-1 text-sm px-2 py-1 border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary/60"
                     />
-                    <span className="text-slate-400">-</span>
+                    <span className="text-muted-foreground/70">-</span>
                     <input
                       type="time"
                       value={schedule.endTime}
                       onChange={(e) => handleScheduleChange(index, 'endTime', e.target.value)}
-                      className="flex-1 text-sm px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="flex-1 text-sm px-2 py-1 border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary/60"
                     />
                   </div>
                 </div>

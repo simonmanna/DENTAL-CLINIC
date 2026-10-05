@@ -310,42 +310,42 @@ function exportCSV(filename: string, columns: ColumnDef<any>[], rows: Row[]) {
 
 const STATUS_CFG: Record<string, { cls: string; label: string }> = {
   PLANNED: {
-    cls: "bg-sky-50 text-sky-700 ring-sky-200",
+    cls: "bg-primary-muted/60 text-primary ring-primary/25",
     label: "Planned",
   },
   IN_PROGRESS: {
-    cls: "bg-amber-50 text-amber-700 ring-amber-200",
+    cls: "bg-warning-muted/60 text-warning ring-warning/25",
     label: "In Progress",
   },
   COMPLETED: {
-    cls: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    cls: "bg-success-muted/60 text-success ring-success/25",
     label: "Completed",
   },
   ON_HOLD: {
-    cls: "bg-slate-100 text-slate-600 ring-slate-200",
+    cls: "bg-muted text-muted-foreground ring-border",
     label: "On Hold",
   },
   CANCELLED: {
-    cls: "bg-red-50 text-red-600 ring-red-200",
+    cls: "bg-danger-muted/60 text-danger ring-danger/25",
     label: "Cancelled",
   },
   PENDING: {
-    cls: "bg-orange-50 text-orange-700 ring-orange-200",
+    cls: "bg-warning-muted/60 text-warning ring-warning/25",
     label: "Pending",
   },
   VOIDED: {
-    cls: "bg-red-50 text-red-500 ring-red-100",
+    cls: "bg-danger-muted/60 text-danger ring-danger/20",
     label: "Voided",
   },
   SKIPPED: {
-    cls: "bg-slate-50 text-slate-500 ring-slate-100",
+    cls: "bg-muted/50 text-muted-foreground ring-border/60",
     label: "Skipped",
   },
 };
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_CFG[status] ?? {
-    cls: "bg-gray-100 text-gray-600 ring-gray-200",
+    cls: "bg-muted text-muted-foreground ring-border",
     label: status,
   };
   return (
@@ -373,7 +373,7 @@ function StatCard({
   icon?: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 px-4 py-1 flex gap-3 items-start shadow-sm">
+    <div className="bg-white rounded-xl border border-border px-4 py-1 flex gap-3 items-start shadow-sm">
       {icon && (
         <div
           className="mt-0.5 size-8 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -385,13 +385,13 @@ function StatCard({
         </div>
       )}
       <div className="min-w-0">
-        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider truncate">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
           {label}
         </p>
-        <p className="text-xl font-bold text-slate-900 mt-0.5 tabular-nums">
+        <p className="text-xl font-bold text-foreground mt-0.5 tabular-nums">
           {value}
         </p>
-        {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+        {sub && <p className="text-xs text-muted-foreground/70 mt-0.5">{sub}</p>}
       </div>
     </div>
   );
@@ -408,9 +408,9 @@ function SortIcon({
   sortBy: string;
   sortOrder: SortOrder;
 }) {
-  if (sortBy !== col) return <span className="ml-1 text-slate-300">↕</span>;
+  if (sortBy !== col) return <span className="ml-1 text-muted-foreground/50">↕</span>;
   return (
-    <span className="ml-1 text-emerald-600">
+    <span className="ml-1 text-success">
       {sortOrder === "asc" ? "↑" : "↓"}
     </span>
   );
@@ -439,7 +439,7 @@ function Pagination({
 
   return (
     <div className="flex items-center justify-between px-1 py-3">
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-muted-foreground">
         Showing{" "}
         <span className="font-medium">{(page - 1) * limit + 1}</span>–
         <span className="font-medium">{Math.min(page * limit, total)}</span>{" "}
@@ -449,14 +449,14 @@ function Pagination({
         <button
           onClick={() => onPage(1)}
           disabled={page === 1}
-          className="px-2 py-1 text-xs rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+          className="px-2 py-1 text-xs rounded border border-border text-muted-foreground hover:bg-muted/50 disabled:opacity-40"
         >
           «
         </button>
         <button
           onClick={() => onPage(page - 1)}
           disabled={page === 1}
-          className="px-2 py-1 text-xs rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+          className="px-2 py-1 text-xs rounded border border-border text-muted-foreground hover:bg-muted/50 disabled:opacity-40"
         >
           ‹
         </button>
@@ -465,8 +465,8 @@ function Pagination({
             key={p}
             onClick={() => onPage(p)}
             className={`px-2.5 py-1 text-xs rounded border ${p === page
-              ? "bg-emerald-600 border-emerald-600 text-white font-medium"
-              : "border-slate-200 text-slate-600 hover:bg-slate-50"
+              ? "bg-success border-success text-white font-medium"
+              : "border-border text-muted-foreground hover:bg-muted/50"
               }`}
           >
             {p}
@@ -475,14 +475,14 @@ function Pagination({
         <button
           onClick={() => onPage(page + 1)}
           disabled={page === totalPages}
-          className="px-2 py-1 text-xs rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+          className="px-2 py-1 text-xs rounded border border-border text-muted-foreground hover:bg-muted/50 disabled:opacity-40"
         >
           ›
         </button>
         <button
           onClick={() => onPage(totalPages)}
           disabled={page === totalPages}
-          className="px-2 py-1 text-xs rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+          className="px-2 py-1 text-xs rounded border border-border text-muted-foreground hover:bg-muted/50 disabled:opacity-40"
         >
           »
         </button>
@@ -507,9 +507,9 @@ function FilterBar({
   onReset: () => void;
 }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-2 flex flex-wrap gap-3 items-end shadow-sm">
+    <div className="bg-white border border-border rounded-xl p-2 flex flex-wrap gap-3 items-end shadow-sm">
       <div className="flex-1 min-w-48">
-        <label className="block text-xs font-medium text-slate-500 mb-1">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
           Search
         </label>
         <input
@@ -518,12 +518,12 @@ function FilterBar({
             setFilters((f) => ({ ...f, search: e.target.value }))
           }
           placeholder="Patient, plan code, procedure…"
-          className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder:text-slate-400"
+          className="w-full h-9 rounded-lg border border-border px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-success/60 focus:border-transparent placeholder:text-muted-foreground/70"
         />
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
           From
         </label>
         <input
@@ -532,12 +532,12 @@ function FilterBar({
           onChange={(e) =>
             setFilters((f) => ({ ...f, startDate: e.target.value }))
           }
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="h-9 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-success/60"
         />
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
           To
         </label>
         <input
@@ -546,12 +546,12 @@ function FilterBar({
           onChange={(e) =>
             setFilters((f) => ({ ...f, endDate: e.target.value }))
           }
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="h-9 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-success/60"
         />
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
           Status
         </label>
         <select
@@ -559,7 +559,7 @@ function FilterBar({
           onChange={(e) =>
             setFilters((f) => ({ ...f, status: e.target.value }))
           }
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+          className="h-9 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-success/60 bg-white"
         >
           <option value="">All statuses</option>
           {statusOptions.map((s) => (
@@ -571,7 +571,7 @@ function FilterBar({
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
           Doctor
         </label>
         <select
@@ -579,7 +579,7 @@ function FilterBar({
           onChange={(e) =>
             setFilters((f) => ({ ...f, dentistId: e.target.value }))
           }
-          className="h-9 w-48 rounded-lg border border-slate-200 px-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+          className="h-9 w-48 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-success/60 bg-white"
           disabled={dentists.length === 0}
         >
           <option value="">
@@ -595,7 +595,7 @@ function FilterBar({
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
           Rows
         </label>
         <select
@@ -603,7 +603,7 @@ function FilterBar({
           onChange={(e) =>
             setFilters((f) => ({ ...f, limit: parseInt(e.target.value) }))
           }
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+          className="h-9 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-success/60 bg-white"
         >
           {[10, 20, 50, 100].map((n) => (
             <option key={n} value={n}>
@@ -615,7 +615,7 @@ function FilterBar({
 
       <button
         onClick={onReset}
-        className="h-9 px-3 rounded-lg text-sm border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+        className="h-9 px-3 rounded-lg text-sm border border-border text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
       >
         Reset
       </button>
@@ -642,9 +642,9 @@ function DataTable<T extends { id?: string }>({
 }) {
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-48 text-slate-400">
+      <div className="flex items-center justify-center h-48 text-muted-foreground/70">
         <div className="flex items-center gap-3">
-          <div className="size-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+          <div className="size-5 border-2 border-success border-t-transparent rounded-full animate-spin" />
           <span className="text-sm">Loading report…</span>
         </div>
       </div>
@@ -652,7 +652,7 @@ function DataTable<T extends { id?: string }>({
   }
   if (!rows.length) {
     return (
-      <div className="flex flex-col items-center justify-center h-48 text-slate-400">
+      <div className="flex flex-col items-center justify-center h-48 text-muted-foreground/70">
         <span className="text-3xl mb-2">📋</span>
         <p className="text-sm font-medium">No records found</p>
         <p className="text-xs mt-1">Try adjusting your filters</p>
@@ -663,13 +663,13 @@ function DataTable<T extends { id?: string }>({
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-slate-200 bg-slate-50">
+          <tr className="border-b border-border bg-muted/50">
             {columns.map((col) => (
               <th
                 key={col.key}
                 onClick={() => col.sortable !== false && onSort(col.key)}
-                className={`px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap ${col.sortable !== false
-                  ? "cursor-pointer hover:text-slate-900 select-none"
+                className={`px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap ${col.sortable !== false
+                  ? "cursor-pointer hover:text-foreground select-none"
                   : ""
                   }`}
               >
@@ -681,16 +681,16 @@ function DataTable<T extends { id?: string }>({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-border/60">
           {rows.map((row, i) => (
             <tr
               key={row.id ?? i}
-              className="hover:bg-slate-50/60 transition-colors"
+              className="hover:bg-muted/60 transition-colors"
             >
               {columns.map((col) => (
                 <td
                   key={col.key}
-                  className="px-3 py-2.5 text-slate-700 whitespace-nowrap"
+                  className="px-3 py-2.5 text-foreground whitespace-nowrap"
                 >
                   {col.render(row as any)}
                 </td>
@@ -716,8 +716,8 @@ function SummaryChart({
 }) {
   if (!data?.length) return null;
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+    <div className="bg-white rounded-xl border border-border p-4 shadow-sm">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
         {title}
       </p>
       <ResponsiveContainer width="100%" height={160}>
@@ -762,8 +762,8 @@ const PLAN_COLUMNS: ColumnDef<PlanRow>[] = [
     sortable: false,
     render: (r) => (
       <div>
-        <p className="font-medium text-slate-900">{fullName(r.patient)}</p>
-        <p className="text-xs text-slate-400">{r.patient?.patientCode}</p>
+        <p className="font-medium text-foreground">{fullName(r.patient)}</p>
+        <p className="text-xs text-muted-foreground/70">{r.patient?.patientCode}</p>
       </div>
     ),
     csv: (r) => `${fullName(r.patient)} (${r.patient?.patientCode ?? ""})`,
@@ -773,7 +773,7 @@ const PLAN_COLUMNS: ColumnDef<PlanRow>[] = [
     label: "Prev Card",
     sortable: false,
     render: (r) => (
-      <span className="text-xs font-mono text-slate-500">
+      <span className="text-xs font-mono text-muted-foreground">
         {r.patient?.previousCardNumber ?? "—"}
       </span>
     ),
@@ -783,14 +783,14 @@ const PLAN_COLUMNS: ColumnDef<PlanRow>[] = [
     key: "planCode",
     label: "Plan Code",
     render: (r) => (
-      <span className="font-mono text-xs text-slate-500">{r.planCode}</span>
+      <span className="font-mono text-xs text-muted-foreground">{r.planCode}</span>
     ),
   },
   {
     key: "title",
     label: "Title",
     render: (r) => (
-      <span className="font-medium text-slate-900 max-w-[180px] block truncate">
+      <span className="font-medium text-foreground max-w-[180px] block truncate">
         {r.title}
       </span>
     ),
@@ -814,10 +814,10 @@ const PLAN_COLUMNS: ColumnDef<PlanRow>[] = [
     sortable: false, // computed (procedure counts) — backend has no orderBy for it
     render: (r) => (
       <span className="tabular-nums">
-        <span className="font-medium text-emerald-700">
+        <span className="font-medium text-success">
           {r.completedProcedures}
         </span>
-        <span className="text-slate-400">/{r.totalProcedures}</span>
+        <span className="text-muted-foreground/70">/{r.totalProcedures}</span>
       </span>
     ),
     csv: (r) => `${r.completedProcedures}/${r.totalProcedures}`,
@@ -828,9 +828,9 @@ const PLAN_COLUMNS: ColumnDef<PlanRow>[] = [
     sortable: false, // computed (completed/total) — not a sortable DB column
     render: (r) => (
       <div className="flex items-center gap-2">
-        <div className="w-16 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+        <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
           <div
-            className="h-full rounded-full bg-emerald-500 transition-all"
+            className="h-full rounded-full bg-success transition-all"
             style={{ width: `${r.completionPercent}%` }}
           />
         </div>
@@ -856,7 +856,7 @@ const PLAN_COLUMNS: ColumnDef<PlanRow>[] = [
     key: "createdAt",
     label: "Created",
     render: (r) => (
-      <span className="text-xs text-slate-500">{fmtDate(r.createdAt)}</span>
+      <span className="text-xs text-muted-foreground">{fmtDate(r.createdAt)}</span>
     ),
     csv: (r) => fmtDate(r.createdAt),
   },
@@ -869,10 +869,10 @@ const PROCEDURE_COLUMNS: ColumnDef<ProcedureRow>[] = [
     sortable: false,
     render: (r) => (
       <div>
-        <p className="font-medium text-slate-900">{r.procedure?.name}</p>
-        <p className="text-xs text-slate-400">
+        <p className="font-medium text-foreground">{r.procedure?.name}</p>
+        <p className="text-xs text-muted-foreground/70">
           {r.procedure?.code} ·{" "}
-          <span className="text-slate-500">
+          <span className="text-muted-foreground">
             {r.procedure?.category?.name}
           </span>
         </p>
@@ -886,8 +886,8 @@ const PROCEDURE_COLUMNS: ColumnDef<ProcedureRow>[] = [
     sortable: false,
     render: (r) => (
       <div>
-        <p className="font-medium text-slate-900">{fullName(r.patient)}</p>
-        <p className="text-xs text-slate-400">{r.patient?.patientCode}</p>
+        <p className="font-medium text-foreground">{fullName(r.patient)}</p>
+        <p className="text-xs text-muted-foreground/70">{r.patient?.patientCode}</p>
       </div>
     ),
     csv: (r) => `${fullName(r.patient)} (${r.patient?.patientCode ?? ""})`,
@@ -897,7 +897,7 @@ const PROCEDURE_COLUMNS: ColumnDef<ProcedureRow>[] = [
     label: "Prev Card",
     sortable: false,
     render: (r) => (
-      <span className="text-xs font-mono text-slate-500">
+      <span className="text-xs font-mono text-muted-foreground">
         {r.patient?.previousCardNumber ?? "—"}
       </span>
     ),
@@ -921,7 +921,7 @@ const PROCEDURE_COLUMNS: ColumnDef<ProcedureRow>[] = [
     label: "Plan",
     sortable: false,
     render: (r) => (
-      <span className="font-mono text-xs text-slate-500">
+      <span className="font-mono text-xs text-muted-foreground">
         {r.plan?.planCode}
       </span>
     ),
@@ -938,13 +938,13 @@ const PROCEDURE_COLUMNS: ColumnDef<ProcedureRow>[] = [
           .map((t) => (
             <span
               key={t}
-              className="inline-block px-1.5 py-0.5 text-xs rounded bg-slate-100 font-mono text-slate-600"
+              className="inline-block px-1.5 py-0.5 text-xs rounded bg-muted font-mono text-muted-foreground"
             >
               {t}
             </span>
           ))}
         {!r.toothNumbers?.length && (
-          <span className="text-slate-300">—</span>
+          <span className="text-muted-foreground/50">—</span>
         )}
       </div>
     ),
@@ -958,7 +958,7 @@ const PROCEDURE_COLUMNS: ColumnDef<ProcedureRow>[] = [
       <span
         className={`text-xs font-medium ${r.billingType === "PAY_PARTIALLY"
           ? "text-purple-600"
-          : "text-emerald-600"
+          : "text-success"
           }`}
       >
         {r.billingType === "PAY_PARTIALLY" ? "Partial" : "Pay Full"}
@@ -987,7 +987,7 @@ const PROCEDURE_COLUMNS: ColumnDef<ProcedureRow>[] = [
         {/* Show UGX-equivalent next to USD prices so the column scans
             consistently across mixed-currency rows. */}
         {r.currency && r.currency !== "UGX" && r.baseAmount != null && (
-          <span className="ml-1 text-[10px] text-slate-400">
+          <span className="ml-1 text-[10px] text-muted-foreground/70">
             ≈ {fmtCurrency(r.baseAmount, r.baseCurrency ?? "UGX")}
           </span>
         )}
@@ -999,7 +999,7 @@ const PROCEDURE_COLUMNS: ColumnDef<ProcedureRow>[] = [
     key: "performedDate",
     label: "Performed",
     render: (r) => (
-      <span className="text-xs text-slate-500">{fmtDate(r.performedDate)}</span>
+      <span className="text-xs text-muted-foreground">{fmtDate(r.performedDate)}</span>
     ),
     csv: (r) => fmtDate(r.performedDate),
   },
@@ -1007,7 +1007,7 @@ const PROCEDURE_COLUMNS: ColumnDef<ProcedureRow>[] = [
     key: "createdAt",
     label: "Added",
     render: (r) => (
-      <span className="text-xs text-slate-500">{fmtDate(r.createdAt)}</span>
+      <span className="text-xs text-muted-foreground">{fmtDate(r.createdAt)}</span>
     ),
     csv: (r) => fmtDate(r.createdAt),
   },
@@ -1020,17 +1020,17 @@ const SESSION_COLUMNS: ColumnDef<SessionRow>[] = [
     sortable: false,
     render: (r) => (
       <div>
-        <p className="font-medium text-slate-900">
+        <p className="font-medium text-foreground">
           {r.sessionLabel ?? `Session ${r.sessionNumber}`}
         </p>
         <div className="flex gap-1 mt-0.5">
           {r.isFinal && (
-            <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+            <span className="text-xs font-medium text-success bg-success-muted/60 px-1.5 py-0.5 rounded-full">
               Final
             </span>
           )}
           {r.phase && (
-            <span className="text-xs text-slate-400">{r.phase}</span>
+            <span className="text-xs text-muted-foreground/70">{r.phase}</span>
           )}
         </div>
       </div>
@@ -1043,8 +1043,8 @@ const SESSION_COLUMNS: ColumnDef<SessionRow>[] = [
     sortable: false,
     render: (r) => (
       <div>
-        <p className="font-medium text-slate-900">{fullName(r.patient)}</p>
-        <p className="text-xs text-slate-400">{r.patient?.patientCode}</p>
+        <p className="font-medium text-foreground">{fullName(r.patient)}</p>
+        <p className="text-xs text-muted-foreground/70">{r.patient?.patientCode}</p>
       </div>
     ),
     csv: (r) => `${fullName(r.patient)} (${r.patient?.patientCode ?? ""})`,
@@ -1054,7 +1054,7 @@ const SESSION_COLUMNS: ColumnDef<SessionRow>[] = [
     label: "Prev Card",
     sortable: false,
     render: (r) => (
-      <span className="text-xs font-mono text-slate-500">
+      <span className="text-xs font-mono text-muted-foreground">
         {r.patient?.previousCardNumber ?? "—"}
       </span>
     ),
@@ -1066,8 +1066,8 @@ const SESSION_COLUMNS: ColumnDef<SessionRow>[] = [
     sortable: false,
     render: (r) => (
       <div>
-        <p className="font-medium text-slate-800">{r.procedure?.name}</p>
-        <p className="text-xs text-slate-400">{r.procedure?.code}</p>
+        <p className="font-medium text-foreground">{r.procedure?.name}</p>
+        <p className="text-xs text-muted-foreground/70">{r.procedure?.code}</p>
       </div>
     ),
     csv: (r) => `${r.procedure?.name} (${r.procedure?.code})`,
@@ -1098,13 +1098,13 @@ const SESSION_COLUMNS: ColumnDef<SessionRow>[] = [
           .map((t) => (
             <span
               key={t}
-              className="inline-block px-1.5 py-0.5 text-xs rounded bg-slate-100 font-mono text-slate-600"
+              className="inline-block px-1.5 py-0.5 text-xs rounded bg-muted font-mono text-muted-foreground"
             >
               {t}
             </span>
           ))}
         {!r.toothNumbers?.length && (
-          <span className="text-slate-300">—</span>
+          <span className="text-muted-foreground/50">—</span>
         )}
       </div>
     ),
@@ -1117,13 +1117,13 @@ const SESSION_COLUMNS: ColumnDef<SessionRow>[] = [
     render: (r) =>
       r.outcome ? (
         <span
-          className={`text-xs font-medium ${r.outcome === "COMPLETED" ? "text-emerald-600" : "text-amber-600"
+          className={`text-xs font-medium ${r.outcome === "COMPLETED" ? "text-success" : "text-warning"
             }`}
         >
           {r.outcome}
         </span>
       ) : (
-        <span className="text-slate-300">—</span>
+        <span className="text-muted-foreground/50">—</span>
       ),
     csv: (r) => r.outcome ?? "—",
   },
@@ -1131,7 +1131,7 @@ const SESSION_COLUMNS: ColumnDef<SessionRow>[] = [
     key: "performedDate",
     label: "Performed",
     render: (r) => (
-      <span className="text-xs text-slate-500">{fmtDate(r.performedDate)}</span>
+      <span className="text-xs text-muted-foreground">{fmtDate(r.performedDate)}</span>
     ),
     csv: (r) => fmtDate(r.performedDate),
   },
@@ -1479,13 +1479,13 @@ export default function TreatmentReports(): JSX.Element {
   const chartData = tab.chartDataFn?.(summary) ?? [];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-muted/50">
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-slate-200 px-2 py-1">
+      <div className="bg-white border-b border-border px-2 py-1">
         <div className="max-w-screen-2xl mx-auto">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              <h1 className="text-xl font-bold text-foreground tracking-tight">
                 Medical Reports
               </h1>
             </div>
@@ -1496,21 +1496,21 @@ export default function TreatmentReports(): JSX.Element {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowChart((v) => !v)}
-                  className="px-3 py-2 text-sm rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center gap-1.5 transition-colors"
+                  className="px-3 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted/50 flex items-center gap-1.5 transition-colors"
                 >
                   {showChart ? "🙈 Hide Chart" : "📊 Show Chart"}
                 </button>
                 <button
                   onClick={handleExportCSV}
                   disabled={exporting || loading}
-                  className="px-3 py-2 text-sm rounded-lg border border-emerald-600 text-emerald-700 hover:bg-emerald-50 flex items-center gap-1.5 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-2 text-sm rounded-lg border border-success text-success hover:bg-success-muted/60 flex items-center gap-1.5 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {exporting ? "⏳ Preparing…" : "⬇ Export CSV"}
                 </button>
                 <button
                   onClick={handlePrint}
                   disabled={exporting || loading}
-                  className="px-3 py-2 text-sm rounded-lg bg-slate-800 text-white hover:bg-slate-700 flex items-center gap-1.5 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-2 text-sm rounded-lg bg-foreground text-white hover:bg-foreground flex items-center gap-1.5 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {exporting ? "⏳ Preparing…" : "🖨 Print"}
                 </button>
@@ -1525,8 +1525,8 @@ export default function TreatmentReports(): JSX.Element {
               key="visits"
               onClick={() => handleTabChange("visits")}
               className={`flex items-center gap-2 px-1 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === "visits"
-                ? "border-emerald-600 text-emerald-700"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                ? "border-success text-success"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-input"
                 }`}
             >
               <span>📅</span>
@@ -1537,8 +1537,8 @@ export default function TreatmentReports(): JSX.Element {
               key="prescriptions"
               onClick={() => handleTabChange("prescriptions")}
               className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === "prescriptions"
-                ? "border-emerald-600 text-emerald-700"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                ? "border-success text-success"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-input"
                 }`}
             >
               <span>💊</span>
@@ -1549,8 +1549,8 @@ export default function TreatmentReports(): JSX.Element {
               key="appointments"
               onClick={() => handleTabChange("appointments")}
               className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === "appointments"
-                ? "border-emerald-600 text-emerald-700"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                ? "border-success text-success"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-input"
                 }`}
             >
               <span>📆</span>
@@ -1561,8 +1561,8 @@ export default function TreatmentReports(): JSX.Element {
               key="conditions"
               onClick={() => handleTabChange("conditions")}
               className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === "conditions"
-                ? "border-emerald-600 text-emerald-700"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                ? "border-success text-success"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-input"
                 }`}
             >
               <span>🔍</span>
@@ -1574,13 +1574,13 @@ export default function TreatmentReports(): JSX.Element {
                 key={t.id}
                 onClick={() => handleTabChange(t.id)}
                 className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === t.id
-                  ? "border-emerald-600 text-emerald-700"
-                  : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                  ? "border-success text-success"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-input"
                   }`}
               >
                 {t.label}
                 {result.pagination.total > 0 && activeTab === t.id && (
-                  <span className="bg-emerald-100 text-emerald-700 text-xs rounded-full px-0.5 py-0.5 font-semibold tabular-nums">
+                  <span className="bg-success-muted text-success text-xs rounded-full px-0.5 py-0.5 font-semibold tabular-nums">
                     {result.pagination.total}
                   </span>
                 )}
@@ -1603,7 +1603,7 @@ export default function TreatmentReports(): JSX.Element {
         ) : (
         <>
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          <div className="bg-danger-muted/60 border border-danger/25 text-danger px-4 py-3 rounded-lg text-sm">
             {error}
           </div>
         )}
@@ -1653,20 +1653,20 @@ export default function TreatmentReports(): JSX.Element {
         </div>
 
         {/* Table card */}
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white border border-border rounded-xl shadow-sm overflow-hidden">
           {/* Table header bar */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-            <p className="text-sm font-semibold text-slate-700">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/60">
+            <p className="text-sm font-semibold text-foreground">
               {tab.label}
               {!loading && result.pagination.total > 0 && (
-                <span className="ml-2 text-slate-400 font-normal text-xs">
+                <span className="ml-2 text-muted-foreground/70 font-normal text-xs">
                   {result.pagination.total.toLocaleString()} total
                 </span>
               )}
             </p>
             <button
               onClick={fetchReport}
-              className={`text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1 transition-colors ${loading ? "animate-pulse" : ""
+              className={`text-xs text-muted-foreground/70 hover:text-muted-foreground flex items-center gap-1 transition-colors ${loading ? "animate-pulse" : ""
                 }`}
             >
               🔄 {loading ? "Loading…" : "Refresh"}
@@ -1682,7 +1682,7 @@ export default function TreatmentReports(): JSX.Element {
             loading={loading}
           />
 
-          <div className="border-t border-slate-100 px-4">
+          <div className="border-t border-border/60 px-4">
             <Pagination
               page={page}
               totalPages={result.pagination.totalPages ?? 1}

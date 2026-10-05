@@ -15,18 +15,18 @@ interface StatCardProps {
   subtitle?: string;
 }
 
-export function StatCard({ title, value, icon, iconBg = 'bg-blue-100', change, changeType, subtitle }: StatCardProps) {
+export function StatCard({ title, value, icon, iconBg = 'bg-primary-muted', change, changeType, subtitle }: StatCardProps) {
   return (
-    <div className="bg-white rounded-xl border border-slate-100 py-1 px-12 shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl border border-border/60 py-1 px-12 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm text-slate-500 font-medium">{title}</p>
-          <p className="text-sm font-bold text-slate-800 mt-1">{value}</p>
-          {subtitle && <p className="text-xs text-slate-400 mt-1">{subtitle}</p>}
+          <p className="text-sm text-muted-foreground font-medium">{title}</p>
+          <p className="text-sm font-bold text-foreground mt-1">{value}</p>
+          {subtitle && <p className="text-xs text-muted-foreground/70 mt-1">{subtitle}</p>}
           {change && (
             <div className={cn(
               'flex items-center gap-1 mt-2 text-xs font-medium',
-              changeType === 'up' ? 'text-green-600' : changeType === 'down' ? 'text-red-500' : 'text-slate-500'
+              changeType === 'up' ? 'text-success' : changeType === 'down' ? 'text-danger' : 'text-muted-foreground'
             )}>
               <span>{changeType === 'up' ? '↑' : changeType === 'down' ? '↓' : '•'} {change}</span>
             </div>
@@ -53,13 +53,13 @@ export function PageHeader({ title, subtitle, backTo, actions }: PageHeaderProps
     <div className="flex items-start justify-between mb-1 ml-4 mt-2">
       <div className="flex items-center gap-3">
         {backTo && (
-          <Link to={backTo} className="p-2 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-all">
+          <Link to={backTo} className="p-2 rounded-lg bg-white border border-border text-muted-foreground hover:text-foreground hover:border-input transition-all">
             <ChevronLeft className="w-4 h-4" />
           </Link>
         )}
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">{title}</h1>
-          {/* {subtitle && <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>} */}
+          <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+          {/* {subtitle && <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>} */}
         </div>
       </div>
       {actions && <div className="flex items-center gap-1 pt-3">{actions}</div>}
@@ -69,7 +69,7 @@ export function PageHeader({ title, subtitle, backTo, actions }: PageHeaderProps
 
 // ─── StatusBadge ─────────────────────────────────────────────
 export function StatusBadge({ status }: { status: string }) {
-  const color = statusColors[status] || 'bg-slate-100 text-slate-700';
+  const color = statusColors[status] || 'bg-muted text-foreground';
   return (
     <span className={cn('px-2.5 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1', color)}>
       <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60" />
@@ -82,7 +82,7 @@ export function StatusBadge({ status }: { status: string }) {
 export function LoadingSpinner({ className }: { className?: string }) {
   return (
     <div className={cn('flex items-center justify-center p-8', className)}>
-      <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
     </div>
   );
 }
@@ -98,9 +98,9 @@ interface EmptyStateProps {
 export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      {icon && <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">{icon}</div>}
-      <h3 className="text-lg font-semibold text-slate-700">{title}</h3>
-      {description && <p className="text-sm text-slate-500 mt-1 max-w-sm">{description}</p>}
+      {icon && <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">{icon}</div>}
+      <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+      {description && <p className="text-sm text-muted-foreground mt-1 max-w-sm">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   );
@@ -112,13 +112,13 @@ export function SearchBar({
 }: { value: string; onChange: (v: string) => void; placeholder?: string; className?: string }) {
   return (
     <div className={cn('relative', className)}>
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70" />
       <input
         type="text"
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white placeholder:text-slate-400"
+        className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent bg-white placeholder:text-muted-foreground/70"
       />
     </div>
   );
@@ -134,11 +134,11 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 export function Button({ variant = 'primary', size = 'md', loading, icon, children, className, disabled, ...props }: ButtonProps) {
   const variants = {
-    primary: 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-200',
-    secondary: 'bg-slate-100 hover:bg-slate-200 text-slate-700',
-    danger: 'bg-red-600 hover:bg-red-700 text-white',
-    ghost: 'hover:bg-slate-100 text-slate-600',
-    outline: 'border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 bg-white',
+    primary: 'bg-primary hover:bg-primary text-white shadow-sm shadow-blue-200',
+    secondary: 'bg-muted hover:bg-muted text-foreground',
+    danger: 'bg-danger hover:bg-danger text-white',
+    ghost: 'hover:bg-muted text-muted-foreground',
+    outline: 'border border-border hover:border-input hover:bg-muted/50 text-foreground bg-white',
   };
   const sizes = {
     sm: 'px-3 py-1.5 text-xs rounded-lg',
@@ -150,7 +150,7 @@ export function Button({ variant = 'primary', size = 'md', loading, icon, childr
       {...props}
       disabled={disabled || loading}
       className={cn(
-        'inline-flex items-center gap-2 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed',
+        'inline-flex items-center gap-2 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-primary/60 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed',
         variants[variant], sizes[size], className
       )}
     >
@@ -163,10 +163,10 @@ export function Button({ variant = 'primary', size = 'md', loading, icon, childr
 // ─── Card ────────────────────────────────────────────────────
 export function Card({ children, className, title, action }: { children: ReactNode; className?: string; title?: string; action?: ReactNode }) {
   return (
-    <div className={cn('bg-white rounded-xl border border-slate-100 shadow-sm', className)}>
+    <div className={cn('bg-white rounded-xl border border-border/60 shadow-sm', className)}>
       {title && (
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <h3 className="font-semibold text-slate-800 text-sm">{title}</h3>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border/60">
+          <h3 className="font-semibold text-foreground text-sm">{title}</h3>
           {action}
         </div>
       )}
@@ -184,11 +184,11 @@ export function Pagination({ page, totalPages, onPageChange, total, limit }: Pag
   const start = (page - 1) * limit + 1;
   const end = Math.min(page * limit, total);
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
-      <p className="text-sm text-slate-500">Showing {start}–{end} of {total}</p>
+    <div className="flex items-center justify-between px-4 py-3 border-t border-border/60">
+      <p className="text-sm text-muted-foreground">Showing {start}–{end} of {total}</p>
       <div className="flex items-center gap-1">
         <button onClick={() => onPageChange(page - 1)} disabled={page <= 1}
-          className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-600">
+          className="p-1.5 rounded-lg hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed text-muted-foreground">
           <ChevronLeft className="w-4 h-4" />
         </button>
         {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
@@ -196,13 +196,13 @@ export function Pagination({ page, totalPages, onPageChange, total, limit }: Pag
           if (p > totalPages) return null;
           return (
             <button key={p} onClick={() => onPageChange(p)}
-              className={cn('w-8 h-8 rounded-lg text-sm font-medium transition-colors', p === page ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 text-slate-600')}>
+              className={cn('w-8 h-8 rounded-lg text-sm font-medium transition-colors', p === page ? 'bg-primary text-white' : 'hover:bg-muted text-muted-foreground')}>
               {p}
             </button>
           );
         })}
         <button onClick={() => onPageChange(page + 1)} disabled={page >= totalPages}
-          className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-600">
+          className="p-1.5 rounded-lg hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed text-muted-foreground">
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>
@@ -216,12 +216,12 @@ export function FormField({ label, error, required, children, hint }: {
 }) {
   return (
     <div className="space-y-1">
-      <label className="text-sm font-medium text-slate-700">
-        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+      <label className="text-sm font-medium text-foreground">
+        {label}{required && <span className="text-danger ml-0.5">*</span>}
       </label>
       {children}
-      {hint && !error && <p className="text-xs text-slate-400">{hint}</p>}
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {hint && !error && <p className="text-xs text-muted-foreground/70">{hint}</p>}
+      {error && <p className="text-xs text-danger">{error}</p>}
     </div>
   );
 }
@@ -232,9 +232,9 @@ export function Input({ className, error, ...props }: React.InputHTMLAttributes<
     <input
       {...props}
       className={cn(
-        'w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white placeholder:text-slate-400 text-slate-800',
-        error ? 'border-red-300' : 'border-slate-200',
-        props.disabled && 'bg-slate-50 cursor-not-allowed',
+        'w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent bg-white placeholder:text-muted-foreground/70 text-foreground',
+        error ? 'border-danger/30' : 'border-border',
+        props.disabled && 'bg-muted/50 cursor-not-allowed',
         className
       )}
     />
@@ -247,8 +247,8 @@ export function Select({ className, children, error, ...props }: React.SelectHTM
     <select
       {...props}
       className={cn(
-        'w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-slate-800 appearance-none cursor-pointer',
-        error ? 'border-red-300' : 'border-slate-200',
+        'w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent bg-white text-foreground appearance-none cursor-pointer',
+        error ? 'border-danger/30' : 'border-border',
         className
       )}
     >
@@ -263,8 +263,8 @@ export function Textarea({ className, error, ...props }: React.TextareaHTMLAttri
     <textarea
       {...props}
       className={cn(
-        'w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white placeholder:text-slate-400 text-slate-800 resize-none',
-        error ? 'border-red-300' : 'border-slate-200',
+        'w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent bg-white placeholder:text-muted-foreground/70 text-foreground resize-none',
+        error ? 'border-danger/30' : 'border-border',
         className
       )}
     />
@@ -278,7 +278,7 @@ export function Modal({ open, onClose, title, children, width = 'max-w-lg' }: {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={onClose} />
       <div className={cn('relative bg-white rounded-2xl shadow-2xl w-full flex flex-col max-h-[90vh]', width)}>
         {/* Updated header with gradient background and white text */}
         <div
@@ -307,11 +307,11 @@ export function Modal({ open, onClose, title, children, width = 'max-w-lg' }: {
 //   if (!open) return null;
 //   return (
 //     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-//       <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
+//       <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={onClose} />
 //       <div className={cn('relative bg-white rounded-2xl shadow-2xl w-full flex flex-col max-h-[90vh]', width)}>
-//         <div className="flex items-center justify-between p-5 border-b border-slate-100">
-//           <h2 className="text-lg font-semibold text-slate-800">{title}</h2>
-//           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+//         <div className="flex items-center justify-between p-5 border-b border-border/60">
+//           <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+//           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground/70 hover:text-muted-foreground transition-colors">
 //             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
 //           </button>
 //         </div>
@@ -327,15 +327,15 @@ export function Table({ headers, children, className }: { headers: string[]; chi
     <div className={cn('overflow-x-auto', className)}>
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-slate-50 border-b border-slate-100">
+          <tr className="bg-muted/50 border-b border-border/60">
             {headers.map(h => (
-              <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                 {h}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-50">{children}</tbody>
+        <tbody className="divide-y divide-border/40">{children}</tbody>
       </table>
     </div>
   );
@@ -343,14 +343,14 @@ export function Table({ headers, children, className }: { headers: string[]; chi
 
 export function Tr({ children, onClick, className }: { children: ReactNode; onClick?: () => void; className?: string }) {
   return (
-    <tr onClick={onClick} className={cn('hover:bg-slate-50/70 transition-colors', onClick && 'cursor-pointer', className)}>
+    <tr onClick={onClick} className={cn('hover:bg-muted/70 transition-colors', onClick && 'cursor-pointer', className)}>
       {children}
     </tr>
   );
 }
 
 export function Td({ children, className }: { children: ReactNode; className?: string }) {
-  return <td className={cn('px-4 py-3 text-slate-700', className)}>{children}</td>;
+  return <td className={cn('px-4 py-3 text-foreground', className)}>{children}</td>;
 }
 
 // ─── Tabs ────────────────────────────────────────────────────
@@ -360,7 +360,7 @@ export function Tabs({ value, onChange, children }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex gap-2 border-b border-slate-200 pb-2 mb-6">
+    <div className="flex gap-2 border-b border-border pb-2 mb-6">
       {/* ✅ FIX: Use destructured imports instead of React.* */}
       {Children.map(children, (child) => {
         if (!isValidElement(child)) return null;
@@ -387,8 +387,8 @@ export function Tab({ value, icon, children, active, onClick }: {
       className={cn(
         "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
         active 
-          ? "bg-blue-600 text-white" 
-          : "text-slate-600 hover:bg-slate-100"
+          ? "bg-primary text-white" 
+          : "text-muted-foreground hover:bg-muted"
       )}
     >
       {icon}

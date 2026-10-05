@@ -40,10 +40,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
             "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
           cancelButton:
             "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
-          success: "border-green-500 text-green-600",
-          error: "border-red-500 text-red-600",
-          warning: "border-amber-500 text-amber-600",
-          info: "border-blue-500 text-blue-600",
+          success: "border-success/60 text-success",
+          error: "border-danger/60 text-danger",
+          warning: "border-warning/60 text-warning",
+          info: "border-primary/60 text-primary",
         },
         // 2. REMOVE icons from here
       }}

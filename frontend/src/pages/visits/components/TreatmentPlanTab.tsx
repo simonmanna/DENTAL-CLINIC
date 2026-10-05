@@ -216,35 +216,35 @@ const STATUS_META: Record<
 > = {
   PLANNED: {
     label: "Planned",
-    color: "text-slate-600",
-    bg: "bg-slate-50",
-    border: "border-slate-200",
-    dot: "bg-slate-400",
-    btnClass: "bg-slate-600 hover:bg-slate-700",
+    color: "text-muted-foreground",
+    bg: "bg-muted/50",
+    border: "border-border",
+    dot: "bg-muted-foreground/70",
+    btnClass: "bg-muted-foreground hover:bg-foreground",
   },
   IN_PROGRESS: {
     label: "In Progress",
-    color: "text-blue-700",
-    bg: "bg-blue-50",
-    border: "border-blue-200",
-    dot: "bg-blue-500",
-    btnClass: "bg-blue-600 hover:bg-blue-700",
+    color: "text-primary",
+    bg: "bg-primary-muted/60",
+    border: "border-primary/25",
+    dot: "bg-primary",
+    btnClass: "bg-primary hover:bg-primary",
   },
   COMPLETED: {
     label: "Completed",
-    color: "text-green-700",
-    bg: "bg-green-50",
-    border: "border-green-200",
-    dot: "bg-green-500",
-    btnClass: "bg-green-600 hover:bg-green-700",
+    color: "text-success",
+    bg: "bg-success-muted/60",
+    border: "border-success/25",
+    dot: "bg-success",
+    btnClass: "bg-success hover:bg-success",
   },
   CANCELLED: {
     label: "Cancelled",
-    color: "text-red-600",
-    bg: "bg-red-50",
-    border: "border-red-200",
-    dot: "bg-red-400",
-    btnClass: "bg-red-500 hover:bg-red-600",
+    color: "text-danger",
+    bg: "bg-danger-muted/60",
+    border: "border-danger/25",
+    dot: "bg-danger/80",
+    btnClass: "bg-danger hover:bg-danger",
   },
   ON_HOLD: {
     label: "On Hold",
@@ -306,17 +306,17 @@ const Button = ({
     "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
   const variants: Record<string, string> = {
     primary:
-      "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-blue-800 focus:ring-blue-500 border border-transparent",
+      "bg-gradient-to-r from-primary to-primary text-white shadow-md hover:shadow-lg hover:from-primary hover:to-primary focus:ring-primary/60 border border-transparent",
     secondary:
-      "bg-white text-slate-700 border border-slate-300 shadow-sm hover:bg-slate-50 hover:border-slate-400 focus:ring-slate-400",
+      "bg-white text-foreground border border-input shadow-sm hover:bg-muted/50 hover:border-input focus:ring-input",
     success:
-      "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md hover:shadow-lg hover:from-emerald-600 hover:to-emerald-700 focus:ring-emerald-500",
+      "bg-gradient-to-r from-success to-success text-white shadow-md hover:shadow-lg hover:from-success hover:to-success focus:ring-success/60",
     danger:
-      "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md hover:shadow-lg hover:from-red-600 hover:to-red-700 focus:ring-red-500",
+      "bg-gradient-to-r from-danger to-danger text-white shadow-md hover:shadow-lg hover:from-danger hover:to-danger focus:ring-danger/60",
     outline:
-      "bg-transparent border-2 border-blue-500 text-blue-600 hover:bg-blue-50 focus:ring-blue-500",
+      "bg-transparent border-2 border-primary/60 text-primary hover:bg-primary-muted/60 focus:ring-primary/60",
     ghost:
-      "bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-800",
+      "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
   };
   const sizes: Record<string, string> = {
     xs: "px-2 py-1 text-xs",
@@ -339,7 +339,7 @@ const Card = ({ children, className = "", elevation = 1 }: any) => {
   const shadows = ["", "shadow-sm", "shadow-md", "shadow-lg", "shadow-xl"];
   return (
     <div
-      className={`bg-white rounded-xl border border-slate-200 ${shadows[elevation]} ${className}`}
+      className={`bg-white rounded-xl border border-border ${shadows[elevation]} ${className}`}
     >
       {children}
     </div>
@@ -352,19 +352,19 @@ const Card = ({ children, className = "", elevation = 1 }: any) => {
 
 function StatusBadge({ status }: { status: TxStatus }) {
   const styles: Record<TxStatus, string> = {
-    PLANNED: "bg-slate-100 text-slate-700 border-slate-200",
-    IN_PROGRESS: "bg-blue-50 text-blue-700 border-blue-200",
-    COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    CANCELLED: "bg-red-50 text-red-700 border-red-200",
+    PLANNED: "bg-muted text-foreground border-border",
+    IN_PROGRESS: "bg-primary-muted/60 text-primary border-primary/25",
+    COMPLETED: "bg-success-muted/60 text-success border-success/25",
+    CANCELLED: "bg-danger-muted/60 text-danger border-danger/25",
     ON_HOLD: "bg-purple-50 text-purple-700 border-purple-200",
     REFERRED: "bg-purple-50 text-purple-700 border-purple-200",
   };
 
   const dots: Record<TxStatus, string> = {
-    PLANNED: "bg-slate-400",
-    IN_PROGRESS: "bg-blue-500",
-    COMPLETED: "bg-emerald-500",
-    CANCELLED: "bg-red-500",
+    PLANNED: "bg-muted-foreground/70",
+    IN_PROGRESS: "bg-primary",
+    COMPLETED: "bg-success",
+    CANCELLED: "bg-danger",
     ON_HOLD: "bg-purple-500",
     REFERRED: "bg-purple-500",
   };
@@ -421,7 +421,7 @@ function PlanStatusControl({
       <span
         className={cn(
           "text-[10px] font-semibold uppercase tracking-wide",
-          isAuto ? "text-slate-400" : "text-amber-600",
+          isAuto ? "text-muted-foreground/70" : "text-warning",
         )}
         title={
           isAuto
@@ -438,7 +438,7 @@ function PlanStatusControl({
             type="button"
             onClick={() => setMenuOpen((o) => !o)}
             disabled={saving}
-            className="p-1 rounded hover:bg-slate-100 text-slate-500 disabled:opacity-40"
+            className="p-1 rounded hover:bg-muted text-muted-foreground disabled:opacity-40"
             title="Change status"
           >
             <ChevronDown className="w-3.5 h-3.5" />
@@ -449,8 +449,8 @@ function PlanStatusControl({
                 className="fixed inset-0 z-30"
                 onClick={() => setMenuOpen(false)}
               />
-              <div className="absolute right-0 top-full mt-1 z-40 w-52 bg-white border border-slate-200 rounded-lg shadow-lg py-1">
-                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+              <div className="absolute right-0 top-full mt-1 z-40 w-52 bg-white border border-border rounded-lg shadow-lg py-1">
+                <div className="px-3 py-1.5 text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wide">
                   Manual Override
                 </div>
                 {OVERRIDE_STATUSES.map((s) => (
@@ -462,7 +462,7 @@ function PlanStatusControl({
                       setMenuOpen(false);
                     }}
                     disabled={s === status}
-                    className="w-full text-left px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-muted/50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
                   >
                     <span
                       className={cn(
@@ -475,7 +475,7 @@ function PlanStatusControl({
                 ))}
                 {!isAuto && (
                   <>
-                    <div className="border-t border-slate-100 my-1" />
+                    <div className="border-t border-border/60 my-1" />
                     <button
                       type="button"
                       onClick={() => {
@@ -484,15 +484,15 @@ function PlanStatusControl({
                         onChange("PLANNED");
                         setMenuOpen(false);
                       }}
-                      className="w-full text-left px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 font-medium flex items-center gap-2"
+                      className="w-full text-left px-3 py-1.5 text-sm text-primary hover:bg-primary-muted/60 font-medium flex items-center gap-2"
                     >
                       <CheckCircle className="w-3.5 h-3.5" />
                       Resume Auto
                     </button>
                   </>
                 )}
-                <div className="border-t border-slate-100 my-1" />
-                <div className="px-3 py-1.5 text-[10px] text-slate-400 leading-tight">
+                <div className="border-t border-border/60 my-1" />
+                <div className="px-3 py-1.5 text-[10px] text-muted-foreground/70 leading-tight">
                   Planned / In Progress / Completed are derived from procedures
                   and update automatically.
                 </div>
@@ -518,7 +518,7 @@ function MoveVisitDialog({ open, onClose, count, maxVisitGroup, onMove }: any) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5">
-        <h3 className="font-semibold text-slate-800">
+        <h3 className="font-semibold text-foreground">
           Move {count} Procedure{count !== 1 ? "s" : ""}
         </h3>
         <div className="flex flex-wrap gap-2 my-4">
@@ -527,7 +527,7 @@ function MoveVisitDialog({ open, onClose, count, maxVisitGroup, onMove }: any) {
               <button
                 key={v}
                 onClick={() => setTarget(v)}
-                className={`px-4 py-2 rounded-lg border text-sm font-medium ${target === v ? "bg-blue-600 text-white border-blue-600" : "border-slate-200 text-slate-600"}`}
+                className={`px-4 py-2 rounded-lg border text-sm font-medium ${target === v ? "bg-primary text-white border-primary" : "border-border text-muted-foreground"}`}
               >
                 {v <= maxVisitGroup ? `Visit ${v}` : `New Visit ${v}`}
               </button>
@@ -658,28 +658,28 @@ function ProcedureRow({
           onDrop(e, proc.id, index, visitGroup);
         }}
         className={cn(
-          "group border-b border-slate-50 transition-all text-sm relative",
-          isDragging && "opacity-50 bg-blue-50 ring-blue-400",
-          !isDragging && "hover:bg-slate-50/80",
-          isDragOver && !isDragging && "bg-blue-50/30",
+          "group border-b border-border/40 transition-all text-sm relative",
+          isDragging && "opacity-50 bg-primary-muted/60 ring-primary/40",
+          !isDragging && "hover:bg-muted/80",
+          isDragOver && !isDragging && "bg-primary-muted/30",
           // Status-based styling — cancelled procedures are visually muted
           // (gray + strike-through) per spec ("shown with strike-through or
           // gray color"). They remain in history for audit.
           proc.status === "COMPLETED" && "opacity-100",
-          proc.status === "CANCELLED" && "opacity-40 line-through decoration-slate-400",
+          proc.status === "CANCELLED" && "opacity-40 line-through decoration-muted-foreground/70",
           proc.status === "REFERRED" && "opacity-50",
         )}
       >
         {isDragOver && dropPosition === "before" && (
           <td
             colSpan={8}
-            className="absolute -top-[2px] left-0 right-0 h-[3px] bg-blue-500 z-20 pointer-events-none"
+            className="absolute -top-[2px] left-0 right-0 h-[3px] bg-primary z-20 pointer-events-none"
           />
         )}
         {isDragOver && dropPosition === "after" && (
           <td
             colSpan={8}
-            className="absolute -bottom-[2px] left-0 right-0 h-[3px] bg-blue-500 z-20 pointer-events-none"
+            className="absolute -bottom-[2px] left-0 right-0 h-[3px] bg-primary z-20 pointer-events-none"
           />
         )}
 
@@ -690,8 +690,8 @@ function ProcedureRow({
                 className={cn(
                   "cursor-grab active:cursor-grabbing p-1 rounded transition-colors",
                   isDragging
-                    ? "text-blue-600 bg-blue-100"
-                    : "text-slate-300 hover:text-slate-500 hover:bg-slate-100",
+                    ? "text-primary bg-primary-muted"
+                    : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted",
                 )}
               >
                 <GripVertical className="w-4 h-4" />
@@ -701,21 +701,21 @@ function ProcedureRow({
               type="checkbox"
               checked={checked}
               onChange={onCheck}
-              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              className="rounded border-input text-primary focus:ring-primary/60"
             />
           </div>
         </td>
         <td className="px-1 py-1.5">
-          <span className="font-medium text-slate-800">
+          <span className="font-medium text-foreground">
             {proc.procedure.name}
           </span>
           {proc.performedNotes && (
-            <p className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[200px]">
+            <p className="text-[11px] text-muted-foreground/70 mt-0.5 truncate max-w-[200px]">
               {proc.performedNotes}
             </p>
           )}
           {proc.performedDate && (
-            <p className="text-[11px] mt-0.5 flex items-center gap-1 text-green-600">
+            <p className="text-[11px] mt-0.5 flex items-center gap-1 text-success">
               <CheckCircle className="w-3 h-3" />
               {new Date(proc.performedDate).toLocaleDateString()}
             </p>
@@ -723,33 +723,33 @@ function ProcedureRow({
         </td>
         <td className="px-1 py-1.5 text-xs">
           {proc.procedure.code ? (
-            <span className="font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+            <span className="font-mono text-primary bg-primary-muted/60 px-1.5 py-0.5 rounded">
               {proc.procedure.code}
             </span>
           ) : (
-            <span className="text-slate-300">—</span>
+            <span className="text-muted-foreground/50">—</span>
           )}
         </td>
-        <td className="px-1 py-1.5 text-xs text-slate-600 font-mono">
+        <td className="px-1 py-1.5 text-xs text-muted-foreground font-mono">
           {toothNumbers.length > 0 ? (
             toothNumbers.join(", ")
           ) : (
-            <span className="text-slate-300">—</span>
+            <span className="text-muted-foreground/50">—</span>
           )}
         </td>
         <td className="px-1 py-1.5 text-xs">
           {abbrev ? (
             <span
-              className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded tracking-wider"
+              className="font-mono text-foreground bg-muted px-1.5 py-0.5 rounded tracking-wider"
               title={formatSurfacesLong(surfaces)}
             >
               {abbrev}
             </span>
           ) : (
-            <span className="text-slate-300">—</span>
+            <span className="text-muted-foreground/50">—</span>
           )}
         </td>
-        <td className="px-1 py-1.5 text-xs font-semibold text-slate-700 whitespace-nowrap">
+        <td className="px-1 py-1.5 text-xs font-semibold text-foreground whitespace-nowrap">
           {proc.currency ?? "UGX"} {fmt(proc.totalPrice ?? 0)}
         </td>
         <td className="px-0 py-1.5">
@@ -760,7 +760,7 @@ function ProcedureRow({
             <button
               type="button"
               onClick={() => setExpanded(!expanded)}
-              className="p-1 rounded bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors"
+              className="p-1 rounded bg-muted/50 text-muted-foreground hover:bg-muted transition-colors"
               title={expanded ? "Collapse sessions" : "Show sessions"}
             >
               {expanded ? <ChevronUp className="w-4 h-4" strokeWidth={3.5} /> : <ChevronDown className="w-4 h-4" strokeWidth={3.5} />}
@@ -769,7 +769,7 @@ function ProcedureRow({
               type="button"
               onClick={onExecuteClick}
               className={cn(
-                "p-1 rounded bg-sky-50 text-sky-600 hover:bg-sky-100 transition-colors",
+                "p-1 rounded bg-primary-muted/60 text-primary hover:bg-primary-muted transition-colors",
                 proc.status === "COMPLETED" && "opacity-50"
               )}
               title="Execute Procedure"
@@ -784,7 +784,7 @@ function ProcedureRow({
             <button
               type="button"
               onClick={onStatusClick}
-              className="p-1 rounded bg-green-50 text-green-600 hover:bg-green-100 transition-colors"
+              className="p-1 rounded bg-success-muted/60 text-success hover:bg-success-muted transition-colors"
               title="View Details"
             >
               <Eye className="w-4 h-4" strokeWidth={3.5}  />
@@ -804,10 +804,10 @@ function ProcedureRow({
         </td>
       </tr>
       {expanded && (
-        <tr className="bg-slate-50/80">
+        <tr className="bg-muted/80">
           <td colSpan={8} className="px-4 py-3">
             {proc.sessionType && proc.sessions && (
-              <div className="mt-1 border-t pt-3 border-slate-100">
+              <div className="mt-1 border-t pt-3 border-border/60">
                 <ProcedureSessionManager
                   planId={activePlanId!}
                   procedureId={proc.id}
@@ -1021,7 +1021,7 @@ function VisitGroupSection({
         "transition-all duration-200 rounded-lg",
         isHoveringGroup &&
           isDraggingFromElsewhere &&
-          "bg-blue-50 ring-2 ring-blue-400 mx-2",
+          "bg-primary-muted/60 ring-2 ring-primary/40 mx-2",
       )}
       onDragOver={(e) => {
         e.preventDefault();
@@ -1042,28 +1042,28 @@ function VisitGroupSection({
         className={cn(
           "w-full flex items-center justify-between px-4 py-2.5 transition-colors rounded-t-lg",
           isHoveringGroup && isDraggingFromElsewhere
-            ? "bg-blue-100"
-            : "bg-slate-50 hover:bg-slate-100",
-          "border-y border-slate-200",
+            ? "bg-primary-muted"
+            : "bg-muted/50 hover:bg-muted",
+          "border-y border-border",
         )}
       >
         <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-slate-700">
+          <span className="text-sm font-semibold text-foreground">
             Visit {visitGroup} — {fmt(total)}
           </span>
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-muted-foreground/70">
             {done}/{procedures.length} done
           </span>
           {procedures.length > 0 && (
-            <div className="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+            <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full bg-green-500 rounded-full transition-all"
+                className="h-full bg-success rounded-full transition-all"
                 style={{ width: `${pct}%` }}
               />
             </div>
           )}
         </div>
-        <div className="flex items-center gap-3 text-xs text-slate-400">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
           {expanded ? (
             <ChevronUp className="w-4 h-4" />
           ) : (
@@ -1075,7 +1075,7 @@ function VisitGroupSection({
         <div className="bg-white rounded-b-lg">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/50">
+              <tr className="border-b border-border/60 text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wider bg-muted/50">
                 <th className="pl-4 pr-2 py-3 w-10">
                   <input
                     type="checkbox"
@@ -1093,7 +1093,7 @@ function VisitGroupSection({
                           if (!selectedIds.has(p.id)) onCheck(p.id);
                         });
                     }}
-                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-input text-primary focus:ring-primary/60"
                   />
                 </th>
                 <th className="px-3 py-3 text-left">Description</th>
@@ -1139,8 +1139,8 @@ function VisitGroupSection({
               ))}
               <tr
                 className={cn(
-                  "h-10 transition-colors border-t border-dashed border-slate-200",
-                  isHoveringGroup && isDraggingFromElsewhere && "bg-blue-100",
+                  "h-10 transition-colors border-t border-dashed border-border",
+                  isHoveringGroup && isDraggingFromElsewhere && "bg-primary-muted",
                 )}
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -1154,7 +1154,7 @@ function VisitGroupSection({
               >
                 <td
                   colSpan={8}
-                  className="text-center text-xs text-slate-400 py-2"
+                  className="text-center text-xs text-muted-foreground/70 py-2"
                 >
                   {isHoveringGroup && isDraggingFromElsewhere
                     ? "Drop to add to this visit"
@@ -1166,7 +1166,7 @@ function VisitGroupSection({
         </div>
       )}
       {!expanded && isHoveringGroup && isDraggingFromElsewhere && (
-        <div className="px-5 py-3 text-center text-sm text-blue-600 font-medium bg-blue-50 rounded-b-lg">
+        <div className="px-5 py-3 text-center text-sm text-primary font-medium bg-primary-muted/60 rounded-b-lg">
           Drop to expand and add to Visit {visitGroup}
         </div>
       )}
@@ -1191,15 +1191,15 @@ function PlanSidebarItem({
       className={cn(
         "w-full flex items-center justify-between px-3 py-2.5 text-left rounded-lg mx-1 transition-all",
         active
-          ? "bg-blue-600 text-white shadow-sm"
-          : "hover:bg-slate-100 text-slate-700",
+          ? "bg-primary text-white shadow-sm"
+          : "hover:bg-muted text-foreground",
       )}
     >
       <div className="flex items-center gap-2 min-w-0">
         <span
           className={cn(
             "w-2 h-2 rounded-full shrink-0",
-            m?.dot ?? "bg-slate-400",
+            m?.dot ?? "bg-muted-foreground/70",
           )}
         />
         <span className="truncate text-sm font-medium">{plan.title}</span>
@@ -1207,7 +1207,7 @@ function PlanSidebarItem({
       <span
         className={cn(
           "text-[11px] tabular-nums shrink-0 ml-2",
-          active ? "text-blue-100" : "text-slate-400",
+          active ? "text-primary/40" : "text-muted-foreground/70",
         )}
       >
         {plan.summary?.completionPercent ?? 0}%
@@ -1644,13 +1644,13 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
   };
 
   return (
-    <div className="w-full flex h-[calc(100vh-295px)] min-h-[580px] rounded-2xl border border-slate-200 overflow-hidden bg-slate-50/50 shadow-lg">
-      <aside className="w-64 shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-hidden">
-        <div className="p-3 border-b border-slate-200">
+    <div className="w-full flex h-[calc(100vh-295px)] min-h-[580px] rounded-2xl border border-border overflow-hidden bg-muted/50 shadow-lg">
+      <aside className="w-64 shrink-0 bg-white border-r border-border flex flex-col overflow-hidden">
+        <div className="p-3 border-b border-border">
           {!showCreatePlan ? (
             <Button
               variant="outline"
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 border-white/30 text-white hover:bg-white/20"
+              className="w-full bg-gradient-to-r from-primary to-primary border-white/30 text-white hover:bg-white/20"
               onClick={() => !readOnly && setShowCreatePlan(true)}
               disabled={readOnly}
               startIcon={<Plus className="w-4 h-4" />}
@@ -1707,16 +1707,16 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
         <div className="flex-1 overflow-y-auto py-2 space-y-2">
           {plansLoading ? (
             <div className="flex justify-center py-6">
-              <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
             </div>
           ) : (
             Object.entries(planGroups).map(([gName, gPlans]) => (
               <div key={gName}>
                 <div className="flex items-center justify-between px-3 py-1.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                  <span className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wide">
                     {gName}
                   </span>
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-[10px] text-muted-foreground/70">
                     {gPlans.length}
                   </span>
                 </div>
@@ -1734,10 +1734,10 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/30">
+      <div className="flex-1 flex flex-col overflow-hidden bg-muted/30">
         {activePlan ? (
           <>
-            <div className="px-4 py-3 bg-white border-b border-slate-200 shadow-sm">
+            <div className="px-4 py-3 bg-white border-b border-border shadow-sm">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3 flex-wrap">
                   {editingTitle && !readOnly ? (
@@ -1765,7 +1765,7 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
                           }
                           setEditingTitle(false);
                         }}
-                        className="text-xl font-semibold text-slate-800 bg-white border border-blue-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[280px]"
+                        className="text-xl font-semibold text-foreground bg-white border border-primary/30 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary/60 min-w-[280px]"
                       />
                       <button
                         type="button"
@@ -1777,7 +1777,7 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
                           }
                           setEditingTitle(false);
                         }}
-                        className="p-1.5 rounded text-green-600 hover:bg-green-50"
+                        className="p-1.5 rounded text-success hover:bg-success-muted/60"
                         title="Save"
                       >
                         <Check className="w-4 h-4" />
@@ -1786,7 +1786,7 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => setEditingTitle(false)}
-                        className="p-1.5 rounded text-slate-500 hover:bg-slate-100"
+                        className="p-1.5 rounded text-muted-foreground hover:bg-muted"
                         title="Cancel"
                       >
                         <X className="w-4 h-4" />
@@ -1794,7 +1794,7 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
                     </div>
                   ) : (
                     <div className="flex items-center gap-1 group">
-                      <h2 className="text-xl font-semibold text-slate-800">
+                      <h2 className="text-xl font-semibold text-foreground">
                         {activePlan.title}
                       </h2>
                       {!readOnly && (
@@ -1804,7 +1804,7 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
                             setTitleDraft(activePlan.title);
                             setEditingTitle(true);
                           }}
-                          className="p-1.5 rounded text-slate-400 opacity-0 group-hover:opacity-100 hover:text-blue-600 hover:bg-blue-50 transition-opacity"
+                          className="p-1.5 rounded text-muted-foreground/70 opacity-0 group-hover:opacity-100 hover:text-primary hover:bg-primary-muted/60 transition-opacity"
                           title="Rename treatment plan"
                         >
                           <Pencil className="w-3.5 h-3.5" />
@@ -1821,7 +1821,7 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
                         updatePlanMut.mutate({ status: next })
                       }
                     />
-                    <span className="text-xs font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded">
+                    <span className="text-xs font-mono text-muted-foreground/70 bg-muted px-2 py-1 rounded">
                       {activePlan.planCode}
                     </span>
                     {!readOnly &&
@@ -1836,8 +1836,8 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
                             className={cn(
                               "p-1.5 rounded transition-colors",
                               canDelete
-                                ? "text-red-500 hover:bg-red-50"
-                                : "text-slate-300 cursor-not-allowed",
+                                ? "text-danger hover:bg-danger-muted/60"
+                                : "text-muted-foreground/50 cursor-not-allowed",
                             )}
                             title={
                               canDelete
@@ -1855,16 +1855,16 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
               <div className="flex flex-wrap items-center gap-4 mt-2 text-sm">
                 {(summary?.completedCost ?? 0) > 0 && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">Completed</span>
-                    <span className="font-semibold text-green-600">
+                    <span className="text-xs text-muted-foreground/70">Completed</span>
+                    <span className="font-semibold text-success">
                       {fmt(summary!.completedCost)}
                     </span>
                   </div>
                 )}
                 {(summary?.remainingCost ?? 0) > 0 && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">Remaining</span>
-                    <span className="font-semibold text-blue-600">
+                    <span className="text-xs text-muted-foreground/70">Remaining</span>
+                    <span className="font-semibold text-primary">
                       {fmt(summary!.remainingCost)}
                     </span>
                   </div>
@@ -1872,7 +1872,7 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
                 <div className="flex items-center gap-2 ml-auto">
                   {selectedIds.size > 0 && (
                     <>
-                      <span className="text-xs text-slate-500">
+                      <span className="text-xs text-muted-foreground">
                         {selectedIds.size} selected
                       </span>
                       <Button
@@ -1898,10 +1898,10 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {planLoading ? (
                 <div className="flex justify-center py-10">
-                  <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 </div>
               ) : procedureGroups.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-64 text-slate-400" />
+                <div className="flex flex-col items-center justify-center h-64 text-muted-foreground/70" />
               ) : (
                 procedureGroups.map(({ visitGroup, procedures }) => (
                   <VisitGroupSection
@@ -1931,13 +1931,13 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground/70">
             {plansLoading ? (
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             ) : (
               <>
                 <ClipboardList className="w-16 h-16 mb-4 opacity-20" />
-                <p className="text-base text-slate-500 font-medium">
+                <p className="text-base text-muted-foreground font-medium">
                   No treatment plan selected
                 </p>
                 {!readOnly && (
@@ -2098,13 +2098,13 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
       {confirmDeletePlan && activePlan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-            <h3 className="text-lg font-semibold text-slate-800 mb-2">
+            <h3 className="text-lg font-semibold text-foreground mb-2">
               Delete treatment plan?
             </h3>
-            <p className="text-sm text-slate-600 mb-4">
+            <p className="text-sm text-muted-foreground mb-4">
               This will permanently delete{" "}
               <span className="font-semibold">{activePlan.title}</span>{" "}
-              <span className="font-mono text-xs text-slate-400">
+              <span className="font-mono text-xs text-muted-foreground/70">
                 ({activePlan.planCode})
               </span>
               . This action cannot be undone.

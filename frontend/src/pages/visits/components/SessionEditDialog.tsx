@@ -91,10 +91,10 @@ function SurfaceChip({
   disabled?: boolean;
 }) {
   const styles = {
-    keeping:   'bg-blue-600 text-white border-blue-600 shadow-sm',
-    adding:    'bg-emerald-500 text-white border-emerald-500 shadow-sm ring-2 ring-emerald-300',
-    removing:  'bg-red-100 text-red-700 border-red-400 line-through ring-2 ring-red-300',
-    available: 'bg-white text-slate-400 border-slate-200 hover:border-blue-300 hover:text-blue-500',
+    keeping:   'bg-primary text-white border-primary shadow-sm',
+    adding:    'bg-success text-white border-success/60 shadow-sm ring-2 ring-success/30',
+    removing:  'bg-danger-muted text-danger border-danger/40 line-through ring-2 ring-danger/30',
+    available: 'bg-white text-muted-foreground/70 border-border hover:border-primary/30 hover:text-primary',
   };
 
   return (
@@ -290,19 +290,19 @@ export function SessionEditDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={onClose} />
 
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden max-h-[90vh]">
 
         {/* ── Header ─────────────────────────────────────────────────────── */}
-        <div className="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
+        <div className="px-5 py-4 border-b border-border bg-muted/50 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-              <FileEdit className="w-4 h-4 text-blue-600" />
+            <div className="w-8 h-8 rounded-lg bg-primary-muted flex items-center justify-center">
+              <FileEdit className="w-4 h-4 text-primary" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-slate-800">Edit Session</h2>
-              <p className="text-xs text-slate-500">
+              <h2 className="text-base font-semibold text-foreground">Edit Session</h2>
+              <p className="text-xs text-muted-foreground">
                 {procedureName} · Session #{session.sessionNumber}
                 {session.performedDate && (
                   <> · {new Date(session.performedDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</>
@@ -310,8 +310,8 @@ export function SessionEditDialog({
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-200 transition-colors">
-            <X className="w-4 h-4 text-slate-500" />
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+            <X className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
 
@@ -320,9 +320,9 @@ export function SessionEditDialog({
 
           {/* ── Billed warning ─── */}
           {isBilled && (
-            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 border border-amber-200">
-              <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-              <div className="text-xs text-amber-800">
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-warning-muted/60 border border-warning/25">
+              <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+              <div className="text-xs text-warning">
                 <span className="font-semibold">This session has been invoiced.</span>
                 {' '}Surface removal is disabled. You may update clinical notes only.
               </div>
@@ -332,10 +332,10 @@ export function SessionEditDialog({
           {/* ── Tooth(s) + surfaces ─── */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-slate-700">
+              <h3 className="text-sm font-semibold text-foreground">
                 Surfaces treated
                 {toothNumbers.length > 0 && (
-                  <span className="ml-1.5 text-xs font-normal text-slate-400">
+                  <span className="ml-1.5 text-xs font-normal text-muted-foreground/70">
                     Tooth {toothNumbers.join(', ')}
                   </span>
                 )}
@@ -344,7 +344,7 @@ export function SessionEditDialog({
                 <button
                   onClick={() => !isBilled && setEditSurfaces([])}
                   disabled={isBilled}
-                  className="text-xs text-slate-400 hover:text-red-500 transition-colors disabled:opacity-40"
+                  className="text-xs text-muted-foreground/70 hover:text-danger transition-colors disabled:opacity-40"
                 >
                   clear all
                 </button>
@@ -368,50 +368,50 @@ export function SessionEditDialog({
             </div>
 
             {/* Legend */}
-            <div className="flex items-center gap-4 text-[10px] text-slate-400">
+            <div className="flex items-center gap-4 text-[10px] text-muted-foreground/70">
               <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded bg-blue-600 inline-block" /> Keeping
+                <span className="w-3 h-3 rounded bg-primary inline-block" /> Keeping
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded bg-emerald-500 inline-block" /> Adding
+                <span className="w-3 h-3 rounded bg-success inline-block" /> Adding
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded bg-red-300 inline-block" /> Removing
+                <span className="w-3 h-3 rounded bg-danger-muted inline-block" /> Removing
               </span>
             </div>
           </div>
 
           {/* ── Diff summary ─── */}
           {(surfacesAdded.length > 0 || surfacesRemoved.length > 0) && (
-            <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+            <div className="rounded-xl border border-border divide-y divide-border/60 overflow-hidden">
               {surfacesAdded.length > 0 && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50">
-                  <Plus className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span className="text-xs text-emerald-800 font-medium">Adding:</span>
+                <div className="flex items-center gap-2 px-3 py-2 bg-success-muted/60">
+                  <Plus className="w-3.5 h-3.5 text-success shrink-0" />
+                  <span className="text-xs text-success font-medium">Adding:</span>
                   <div className="flex gap-1">
                     {surfacesAdded.map((s) => (
-                      <span key={s} className="text-[10px] font-mono bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">
+                      <span key={s} className="text-[10px] font-mono bg-success-muted text-success px-1.5 py-0.5 rounded">
                         {s}
                       </span>
                     ))}
                   </div>
-                  <span className="text-[10px] text-emerald-600 ml-auto">
+                  <span className="text-[10px] text-success ml-auto">
                     → chart entry will be updated
                   </span>
                 </div>
               )}
               {surfacesRemoved.length > 0 && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-red-50">
-                  <Minus className="w-3.5 h-3.5 text-red-600 shrink-0" />
-                  <span className="text-xs text-red-800 font-medium">Removing:</span>
+                <div className="flex items-center gap-2 px-3 py-2 bg-danger-muted/60">
+                  <Minus className="w-3.5 h-3.5 text-danger shrink-0" />
+                  <span className="text-xs text-danger font-medium">Removing:</span>
                   <div className="flex gap-1">
                     {surfacesRemoved.map((s) => (
-                      <span key={s} className="text-[10px] font-mono bg-red-100 text-red-800 px-1.5 py-0.5 rounded">
+                      <span key={s} className="text-[10px] font-mono bg-danger-muted text-danger px-1.5 py-0.5 rounded">
                         {s}
                       </span>
                     ))}
                   </div>
-                  <span className="text-[10px] text-red-600 ml-auto">
+                  <span className="text-[10px] text-danger ml-auto">
                     → chart entry will be voided
                   </span>
                 </div>
@@ -421,14 +421,14 @@ export function SessionEditDialog({
 
           {/* ── Removal confirmation ─── */}
           {hasSurfaceRemovals && !isBilled && (
-            <label className="flex items-start gap-2.5 p-3 rounded-xl border-2 border-red-200 bg-red-50 cursor-pointer">
+            <label className="flex items-start gap-2.5 p-3 rounded-xl border-2 border-danger/25 bg-danger-muted/60 cursor-pointer">
               <input
                 type="checkbox"
                 checked={confirmRemovals}
                 onChange={(e) => setConfirmRemovals(e.target.checked)}
-                className="mt-0.5 w-4 h-4 rounded border-red-300 text-red-600 focus:ring-red-500"
+                className="mt-0.5 w-4 h-4 rounded border-danger/30 text-danger focus:ring-danger/60"
               />
-              <div className="text-xs text-red-800">
+              <div className="text-xs text-danger">
                 <span className="font-semibold">I confirm this removal.</span>
                 {' '}Removing surfaces will void the corresponding chart entry for{' '}
                 {surfacesRemoved.map((s) => surfaceLabel(uiToCanonical(s, refTooth))).join(', ')}.
@@ -439,7 +439,7 @@ export function SessionEditDialog({
 
           {/* ── Clinical notes ─── */}
           <div>
-            <label className="text-sm font-semibold text-slate-700 block mb-2">
+            <label className="text-sm font-semibold text-foreground block mb-2">
               Clinical notes
             </label>
             <textarea
@@ -447,26 +447,26 @@ export function SessionEditDialog({
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Update clinical observations, corrections or additional context…"
-              className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-xl border border-input px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/60"
             />
           </div>
 
           {/* ── Reason for edit ─── */}
           <div>
-            <label className="text-sm font-semibold text-slate-700 block mb-2">
-              Reason for correction <span className="text-red-500">*</span>
+            <label className="text-sm font-semibold text-foreground block mb-2">
+              Reason for correction <span className="text-danger">*</span>
             </label>
             <div className="relative">
               <select
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-3 pr-10 py-2.5 text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-xl border border-input px-3 pr-10 py-2.5 text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-primary/60"
               >
                 {EDIT_REASONS.map((r) => (
                   <option key={r.value} value={r.value}>{r.label}</option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70 pointer-events-none" />
             </div>
             {reason === 'OTHER' && (
               <input
@@ -474,38 +474,38 @@ export function SessionEditDialog({
                 value={customReason}
                 onChange={(e) => setCustomReason(e.target.value)}
                 placeholder="Describe the reason…"
-                className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="mt-2 w-full rounded-xl border border-input px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/60"
               />
             )}
           </div>
 
           {/* ── Advanced fields (collapsible) ─── */}
-          <div className="rounded-xl border border-slate-200 overflow-hidden">
+          <div className="rounded-xl border border-border overflow-hidden">
             <button
               type="button"
               onClick={() => setShowAdvanced((p) => !p)}
-              className="w-full flex items-center justify-between px-3 py-2.5 bg-slate-50 hover:bg-slate-100 transition-colors"
+              className="w-full flex items-center justify-between px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors"
             >
-              <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                <Flag className="w-3.5 h-3.5 text-blue-500" />
+              <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Flag className="w-3.5 h-3.5 text-primary" />
                 More fields
-                <span className="text-[10px] font-normal text-slate-400">
+                <span className="text-[10px] font-normal text-muted-foreground/70">
                   date · provider · outcome · per-tooth
                 </span>
               </span>
               {showAdvanced ? (
-                <ChevronUp className="w-4 h-4 text-slate-400" />
+                <ChevronUp className="w-4 h-4 text-muted-foreground/70" />
               ) : (
-                <ChevronDown className="w-4 h-4 text-slate-400" />
+                <ChevronDown className="w-4 h-4 text-muted-foreground/70" />
               )}
             </button>
 
             {showAdvanced && (
-              <div className="p-3 space-y-3 border-t border-slate-100">
+              <div className="p-3 space-y-3 border-t border-border/60">
                 {/* Date + Provider */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1 flex items-center gap-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1 flex items-center gap-1">
                       <Calendar className="w-3 h-3" /> Performed date
                     </label>
                     <input
@@ -513,17 +513,17 @@ export function SessionEditDialog({
                       value={performedDate}
                       onChange={(e) => setPerformedDate(e.target.value)}
                       max={new Date().toISOString().split('T')[0]}
-                      className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full rounded-lg border border-input px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/60"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1 flex items-center gap-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1 flex items-center gap-1">
                       <Stethoscope className="w-3 h-3" /> Provider
                     </label>
                     <select
                       value={providerId}
                       onChange={(e) => setProviderId(e.target.value)}
-                      className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="w-full rounded-lg border border-input px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/60 bg-white"
                     >
                       <option value="">— Unassigned —</option>
                       {(dentists as any[]).map((d) => (
@@ -538,7 +538,7 @@ export function SessionEditDialog({
                 {/* Outcome + isFinal */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                       Outcome
                     </label>
                     <div className="flex gap-1.5">
@@ -552,9 +552,9 @@ export function SessionEditDialog({
                             className={`flex-1 px-2.5 py-1.5 rounded-lg border-2 text-xs font-semibold transition-all ${
                               active
                                 ? opt === 'COMPLETED'
-                                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                                  : 'border-amber-500 bg-amber-50 text-amber-700'
-                                : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                                  ? 'border-success/60 bg-success-muted/60 text-success'
+                                  : 'border-warning/60 bg-warning-muted/60 text-warning'
+                                : 'border-border text-muted-foreground hover:border-input'
                             }`}
                           >
                             {opt === 'COMPLETED' ? 'Completed' : 'Partial'}
@@ -564,17 +564,17 @@ export function SessionEditDialog({
                     </div>
                   </div>
                   <div>
-                    <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                       Final session?
                     </label>
-                    <label className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border-2 border-slate-200 cursor-pointer hover:border-blue-300 transition-colors">
+                    <label className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border-2 border-border cursor-pointer hover:border-primary/30 transition-colors">
                       <input
                         type="checkbox"
                         checked={isFinal}
                         onChange={(e) => setIsFinal(e.target.checked)}
-                        className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        className="w-3.5 h-3.5 rounded border-input text-primary focus:ring-primary/60"
                       />
-                      <span className="text-xs text-slate-700">
+                      <span className="text-xs text-foreground">
                         Closes the procedure (status → COMPLETED)
                       </span>
                     </label>
@@ -584,7 +584,7 @@ export function SessionEditDialog({
                 {/* Per-tooth status overrides */}
                 {toothStatuses.length > 0 && (
                   <div>
-                    <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block">
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">
                       Per-tooth status
                     </label>
                     <div className="space-y-1.5">
@@ -595,31 +595,31 @@ export function SessionEditDialog({
                         > = {
                           COMPLETED: {
                             label: 'Completed',
-                            cls: 'border-emerald-400 bg-emerald-50 text-emerald-700',
+                            cls: 'border-success/40 bg-success-muted/60 text-success',
                             Icon: CheckCircle,
                           },
                           IN_PROGRESS: {
                             label: 'In progress',
-                            cls: 'border-blue-400 bg-blue-50 text-blue-700',
+                            cls: 'border-primary/40 bg-primary-muted/60 text-primary',
                             Icon: Clock,
                           },
                           SKIPPED: {
                             label: 'Skipped',
-                            cls: 'border-amber-400 bg-amber-50 text-amber-700',
+                            cls: 'border-warning/40 bg-warning-muted/60 text-warning',
                             Icon: AlertCircle,
                           },
                           PENDING: {
                             label: 'Pending',
-                            cls: 'border-slate-300 bg-slate-100 text-slate-600',
+                            cls: 'border-input bg-muted text-muted-foreground',
                             Icon: Circle,
                           },
                         };
                         return (
                           <div
                             key={t.toothNumber}
-                            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-border bg-white"
                           >
-                            <span className="w-7 h-7 rounded-full bg-slate-100 text-xs font-bold text-slate-700 flex items-center justify-center shrink-0">
+                            <span className="w-7 h-7 rounded-full bg-muted text-xs font-bold text-foreground flex items-center justify-center shrink-0">
                               {t.toothNumber}
                             </span>
                             <div className="flex-1 grid grid-cols-4 gap-1">
@@ -647,7 +647,7 @@ export function SessionEditDialog({
                                     className={`flex items-center justify-center gap-1 px-1 py-1 rounded-md border text-[10px] font-semibold transition-all ${
                                       active
                                         ? cfg.cls
-                                        : 'border-slate-200 text-slate-400 hover:border-slate-300'
+                                        : 'border-border text-muted-foreground/70 hover:border-input'
                                     }`}
                                   >
                                     <cfg.Icon className="w-2.5 h-2.5" />
@@ -661,7 +661,7 @@ export function SessionEditDialog({
                       })}
                     </div>
                     {toothStatusChanges.length > 0 && (
-                      <p className="text-[10px] text-amber-600 mt-1.5 flex items-center gap-1">
+                      <p className="text-[10px] text-warning mt-1.5 flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" />
                         {toothStatusChanges.length} tooth status change(s) will
                         re-sync the corresponding chart entries.
@@ -674,31 +674,31 @@ export function SessionEditDialog({
           </div>
 
           {/* ── Audit notice ─── */}
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200">
-            <Info className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <p className="text-[11px] text-slate-500">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border border-border">
+            <Info className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
+            <p className="text-[11px] text-muted-foreground">
               All changes are recorded in the session audit log with timestamp and reason.
             </p>
           </div>
         </div>
 
         {/* ── Footer ─────────────────────────────────────────────────────── */}
-        <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
+        <div className="px-5 py-3.5 bg-muted/50 border-t border-border flex items-center justify-between shrink-0">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors"
+            className="px-4 py-2 text-sm rounded-lg border border-input bg-white text-foreground hover:bg-muted/50 transition-colors"
           >
             Cancel
           </button>
 
           <div className="flex items-center gap-3">
             {!hasChanges && (
-              <span className="text-xs text-slate-400">No changes made</span>
+              <span className="text-xs text-muted-foreground/70">No changes made</span>
             )}
             <button
               onClick={handleSave}
               disabled={saving || !canSave}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
               {saving ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>

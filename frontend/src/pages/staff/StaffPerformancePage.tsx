@@ -69,10 +69,10 @@ export function StaffPerformancePage() {
   };
 
   const getRatingColor = (rating: number) => {
-    if (rating >= 4.5) return 'text-green-600 bg-green-100';
-    if (rating >= 3.5) return 'text-blue-600 bg-blue-100';
-    if (rating >= 2.5) return 'text-yellow-600 bg-yellow-100';
-    return 'text-red-600 bg-red-100';
+    if (rating >= 4.5) return 'text-success bg-success-muted';
+    if (rating >= 3.5) return 'text-primary bg-primary-muted';
+    if (rating >= 2.5) return 'text-warning bg-warning-muted';
+    return 'text-danger bg-danger-muted';
   };
 
   const getRatingLabel = (rating: number) => {
@@ -92,7 +92,7 @@ export function StaffPerformancePage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -101,7 +101,7 @@ export function StaffPerformancePage() {
     <div className="max-w-4xl mx-auto">
       {/* Message Banner */}
       {message && (
-        <div className={`mb-4 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+        <div className={`mb-4 p-4 rounded-lg ${message.type === 'success' ? 'bg-success-muted text-success' : 'bg-danger-muted text-danger'}`}>
           {message.text}
         </div>
       )}
@@ -111,13 +111,13 @@ export function StaffPerformancePage() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate(`/staff/${id}`)}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-muted rounded-lg transition-colors"
           >
-            <ChevronLeft className="w-5 h-5 text-slate-600" />
+            <ChevronLeft className="w-5 h-5 text-muted-foreground" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Performance Reviews</h1>
-            <p className="text-slate-500 text-sm">
+            <h1 className="text-2xl font-bold text-foreground">Performance Reviews</h1>
+            <p className="text-muted-foreground text-sm">
               {staff?.firstName} {staff?.lastName} • {staff?.staffCode}
             </p>
           </div>
@@ -127,8 +127,8 @@ export function StaffPerformancePage() {
           onClick={() => setIsEditing(!isEditing)}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
             isEditing 
-              ? 'border border-slate-200 text-slate-600 hover:bg-slate-50' 
-              : 'bg-blue-600 text-white hover:bg-blue-700'
+              ? 'border border-border text-muted-foreground hover:bg-muted/50' 
+              : 'bg-primary text-white hover:bg-primary'
           }`}
         >
           {isEditing ? (
@@ -147,23 +147,23 @@ export function StaffPerformancePage() {
 
       {isEditing ? (
         /* Add Review Form */
-        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-slate-800 mb-6 flex items-center gap-2">
-            <Award className="w-5 h-5 text-blue-600" />
+        <div className="bg-white rounded-xl border border-border/60 shadow-sm p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-2">
+            <Award className="w-5 h-5 text-primary" />
             New Performance Review
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Review Period <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Review Period <span className="text-danger">*</span>
                 </label>
                 <select
                   required
                   value={formData.period}
                   onChange={(e) => setFormData({ ...formData, period: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 bg-white"
                 >
                   <option value="">Select Period</option>
                   <option value="2024-Q1">2024 - Q1</option>
@@ -176,8 +176,8 @@ export function StaffPerformancePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Rating <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Rating <span className="text-danger">*</span>
                 </label>
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
@@ -188,9 +188,9 @@ export function StaffPerformancePage() {
                       step="0.5"
                       value={formData.rating}
                       onChange={(e) => setFormData({ ...formData, rating: parseFloat(e.target.value) })}
-                      className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                      className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                     />
-                    <div className="flex justify-between text-xs text-slate-400 mt-1">
+                    <div className="flex justify-between text-xs text-muted-foreground/70 mt-1">
                       <span>Poor</span>
                       <span>Average</span>
                       <span>Excellent</span>
@@ -205,40 +205,40 @@ export function StaffPerformancePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Review Notes <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Review Notes <span className="text-danger">*</span>
               </label>
               <textarea
                 required
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={6}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 resize-none"
                 placeholder="Enter detailed performance review, achievements, areas for improvement..."
               />
             </div>
 
-            <div className="bg-slate-50 rounded-lg p-4">
-              <h4 className="text-sm font-medium text-slate-700 mb-2">Rating Guide:</h4>
-              <div className="grid grid-cols-5 gap-2 text-xs text-slate-600">
+            <div className="bg-muted/50 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-foreground mb-2">Rating Guide:</h4>
+              <div className="grid grid-cols-5 gap-2 text-xs text-muted-foreground">
                 <div className="text-center">
-                  <div className="font-medium text-red-600">1.0 - 1.5</div>
+                  <div className="font-medium text-danger">1.0 - 1.5</div>
                   <div>Poor</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-medium text-orange-600">2.0 - 2.5</div>
+                  <div className="font-medium text-warning">2.0 - 2.5</div>
                   <div>Below Average</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-medium text-yellow-600">3.0 - 3.5</div>
+                  <div className="font-medium text-warning">3.0 - 3.5</div>
                   <div>Average</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-medium text-blue-600">4.0 - 4.5</div>
+                  <div className="font-medium text-primary">4.0 - 4.5</div>
                   <div>Good</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-medium text-green-600">5.0</div>
+                  <div className="font-medium text-success">5.0</div>
                   <div>Excellent</div>
                 </div>
               </div>
@@ -248,7 +248,7 @@ export function StaffPerformancePage() {
               <button
                 type="submit"
                 disabled={createMutation.isPending}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <Save className="w-4 h-4" />
                 {createMutation.isPending ? 'Saving...' : 'Save Review'}
@@ -256,7 +256,7 @@ export function StaffPerformancePage() {
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
-                className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50"
+                className="px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted/50"
               >
                 Cancel
               </button>
@@ -268,22 +268,22 @@ export function StaffPerformancePage() {
         <div className="space-y-6">
           {/* Stats Cards */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+            <div className="bg-primary-muted/60 border border-primary/20 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Star className="w-4 h-4 text-blue-600" />
-                <span className="text-blue-600 text-sm font-medium">Average Rating</span>
+                <Star className="w-4 h-4 text-primary" />
+                <span className="text-primary text-sm font-medium">Average Rating</span>
               </div>
-              <div className="text-3xl font-bold text-blue-700">{averageRating}</div>
-              <div className="text-xs text-blue-600 mt-1">out of 5.0</div>
+              <div className="text-3xl font-bold text-primary">{averageRating}</div>
+              <div className="text-xs text-primary mt-1">out of 5.0</div>
             </div>
 
-            <div className="bg-green-50 border border-green-100 rounded-xl p-4">
+            <div className="bg-success-muted/60 border border-success/20 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
-                <FileText className="w-4 h-4 text-green-600" />
-                <span className="text-green-600 text-sm font-medium">Total Reviews</span>
+                <FileText className="w-4 h-4 text-success" />
+                <span className="text-success text-sm font-medium">Total Reviews</span>
               </div>
-              <div className="text-3xl font-bold text-green-700">{performanceNotes.length}</div>
-              <div className="text-xs text-green-600 mt-1">all time</div>
+              <div className="text-3xl font-bold text-success">{performanceNotes.length}</div>
+              <div className="text-xs text-success mt-1">all time</div>
             </div>
 
             <div className="bg-purple-50 border border-purple-100 rounded-xl p-4">
@@ -299,18 +299,18 @@ export function StaffPerformancePage() {
           </div>
 
           {/* Reviews Timeline */}
-          <div className="bg-white rounded-xl border border-slate-100 shadow-sm">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-slate-400" />
+          <div className="bg-white rounded-xl border border-border/60 shadow-sm">
+            <div className="p-6 border-b border-border/60 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-muted-foreground/70" />
                 Review History
               </h2>
             </div>
 
             {performanceNotes.length > 0 ? (
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-border/60">
                 {performanceNotes.map((note: any) => (
-                  <div key={note.id} className="p-6 hover:bg-slate-50/50 transition-colors">
+                  <div key={note.id} className="p-6 hover:bg-muted/50 transition-colors">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center ${getRatingColor(note.rating || 0)}`}>
@@ -318,8 +318,8 @@ export function StaffPerformancePage() {
                           <span className="text-[10px] uppercase">/ 5</span>
                         </div>
                         <div>
-                          <h3 className="font-semibold text-slate-800 text-lg">{note.period}</h3>
-                          <div className="flex items-center gap-2 text-sm text-slate-500">
+                          <h3 className="font-semibold text-foreground text-lg">{note.period}</h3>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="w-3.5 h-3.5" />
                             {format(new Date(note.createdAt), 'MMMM dd, yyyy')}
                           </div>
@@ -332,7 +332,7 @@ export function StaffPerformancePage() {
                         </span>
                         <button
                           onClick={() => handleDelete(note.id)}
-                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-2 text-muted-foreground/70 hover:text-danger hover:bg-danger-muted/60 rounded-lg transition-colors"
                           title="Delete review"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -341,7 +341,7 @@ export function StaffPerformancePage() {
                     </div>
                     
                     <div className="pl-15 ml-15">
-                      <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">
+                      <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
                         {note.notes}
                       </p>
                     </div>
@@ -350,16 +350,16 @@ export function StaffPerformancePage() {
               </div>
             ) : (
               <div className="text-center py-16">
-                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Star className="w-10 h-10 text-slate-300" />
+                <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Star className="w-10 h-10 text-muted-foreground/50" />
                 </div>
-                <h3 className="text-lg font-medium text-slate-800 mb-2">No reviews yet</h3>
-                <p className="text-slate-500 max-w-sm mx-auto mb-6">
+                <h3 className="text-lg font-medium text-foreground mb-2">No reviews yet</h3>
+                <p className="text-muted-foreground max-w-sm mx-auto mb-6">
                   Start tracking performance by adding your first review for this staff member.
                 </p>
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary transition-colors"
                 >
                   Add First Review
                 </button>

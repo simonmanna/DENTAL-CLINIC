@@ -48,7 +48,7 @@ export function PaymentButton({
       <Button
         size={compact ? 'sm' : 'default'}
         variant="outline"
-className="w-full bg-green-600 text-white font-bold hover:bg-green-700 py-6 shadow-lg shadow-green-200 border-none transition-all active:scale-[0.98] disabled:bg-gray-400 disabled:cursor-not-allowed"
+className="w-full bg-success text-white font-bold hover:bg-success py-6 shadow-lg shadow-green-200 border-none transition-all active:scale-[0.98] disabled:bg-muted-foreground/70 disabled:cursor-not-allowed"
         disabled={disabled}
         onClick={() => openModal(contextType, contextId)}
       >

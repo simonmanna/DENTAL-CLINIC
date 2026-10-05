@@ -123,10 +123,10 @@ const UGX = (n: number) => new Intl.NumberFormat('en-UG', { style: 'currency', c
 
 function StatusBadge({ status }: { status: Prescription['status'] }) {
   const configs = {
-    pending: { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-200', icon: Clock, label: 'Pending' },
-    dispensing: { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-200', icon: Package, label: 'Dispensing' },
-    completed: { bg: 'bg-emerald-100', text: 'text-emerald-800', border: 'border-emerald-200', icon: CheckCircle2, label: 'Completed' },
-    cancelled: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200', icon: XCircle, label: 'Cancelled' },
+    pending: { bg: 'bg-warning-muted', text: 'text-warning', border: 'border-warning/25', icon: Clock, label: 'Pending' },
+    dispensing: { bg: 'bg-primary-muted', text: 'text-primary', border: 'border-primary/25', icon: Package, label: 'Dispensing' },
+    completed: { bg: 'bg-success-muted', text: 'text-success', border: 'border-success/25', icon: CheckCircle2, label: 'Completed' },
+    cancelled: { bg: 'bg-danger-muted', text: 'text-danger', border: 'border-danger/25', icon: XCircle, label: 'Cancelled' },
   };
   const config = configs[status];
   const Icon = config.icon;
@@ -149,52 +149,52 @@ function PrescriptionCard({ prescription, onClick, onDispense }: { prescription:
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-start gap-3">
               <Avatar className="w-12 h-12 border-2 border-white shadow-sm">
-                <AvatarFallback className="bg-gradient-to-br from-sky-500 to-blue-600 text-white text-sm font-bold">
+                <AvatarFallback className="bg-gradient-to-br from-primary to-primary text-white text-sm font-bold">
                   {prescription.patientName.split(' ').map(n => n[0]).join('')}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h3 className="font-semibold text-slate-900">{prescription.patientName}</h3>
-                <p className="text-sm text-slate-500">
+                <h3 className="font-semibold text-foreground">{prescription.patientName}</h3>
+                <p className="text-sm text-muted-foreground">
                   {prescription.patientAge} yrs · {prescription.patientGender} · ID: {prescription.patientId}
                 </p>
                 <div className="flex items-center gap-2 mt-1.5">
                   <StatusBadge status={prescription.status} />
-                  <span className="text-xs text-slate-400">•</span>
-                  <span className="text-xs text-slate-500">{prescription.prescriptionNumber}</span>
+                  <span className="text-xs text-muted-foreground/70">•</span>
+                  <span className="text-xs text-muted-foreground">{prescription.prescriptionNumber}</span>
                 </div>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xs text-slate-400 mb-1">{new Date(prescription.date).toLocaleDateString()}</p>
-              <p className="text-xs text-slate-500">{new Date(prescription.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+              <p className="text-xs text-muted-foreground/70 mb-1">{new Date(prescription.date).toLocaleDateString()}</p>
+              <p className="text-xs text-muted-foreground">{new Date(prescription.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
             </div>
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <Stethoscope className="w-4 h-4 text-slate-400" />
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Stethoscope className="w-4 h-4 text-muted-foreground/70" />
               <span className="font-medium">{prescription.doctorName}</span>
               {prescription.diagnosis && (
                 <>
-                  <span className="text-slate-300">|</span>
-                  <span className="text-slate-500">{prescription.diagnosis}</span>
+                  <span className="text-muted-foreground/50">|</span>
+                  <span className="text-muted-foreground">{prescription.diagnosis}</span>
                 </>
               )}
             </div>
 
-            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
               <div className="flex items-center gap-2">
-                <Pill className="w-4 h-4 text-slate-400" />
-                <span className="text-sm font-medium text-slate-700">{prescription.totalItems} items</span>
+                <Pill className="w-4 h-4 text-muted-foreground/70" />
+                <span className="text-sm font-medium text-foreground">{prescription.totalItems} items</span>
                 {pendingItems > 0 && prescription.status !== 'completed' && (
-                  <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-0">
+                  <Badge variant="secondary" className="bg-warning-muted text-warning border-0">
                     {pendingItems} pending
                   </Badge>
                 )}
               </div>
               {/* {prescription.status === 'pending' && (
-                <Button size="sm" className="h-8 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700" onClick={onDispense}>
+                <Button size="sm" className="h-8 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary hover:to-indigo-700" onClick={onDispense}>
                   <Package className="w-3.5 h-3.5 mr-1.5" /> Dispense
                 </Button>
               )} */}
@@ -245,20 +245,20 @@ function DispenseDialog({ prescription, open, onClose, onComplete }: {
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b bg-slate-50/50">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b bg-muted/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-12 h-12 bg-gradient-to-br from-primary to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
                 <Package className="w-6 h-6 text-white" />
               </div>
               <div>
                 <DialogTitle className="text-xl">Dispense Prescription</DialogTitle>
-                <p className="text-sm text-slate-500 mt-0.5">{prescription.prescriptionNumber} · {prescription.patientName}</p>
+                <p className="text-sm text-muted-foreground mt-0.5">{prescription.prescriptionNumber} · {prescription.patientName}</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-sm font-medium text-slate-900">{prescription.doctorName}</p>
-              <p className="text-xs text-slate-500">{new Date(prescription.date).toLocaleDateString()}</p>
+              <p className="text-sm font-medium text-foreground">{prescription.doctorName}</p>
+              <p className="text-xs text-muted-foreground">{new Date(prescription.date).toLocaleDateString()}</p>
             </div>
           </div>
         </DialogHeader>
@@ -266,18 +266,18 @@ function DispenseDialog({ prescription, open, onClose, onComplete }: {
         <ScrollArea className="flex-1 max-h-[60vh]">
           <div className="p-6 space-y-6">
             {/* Patient Info Card */}
-            <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+            <div className="p-4 bg-primary-muted/50 rounded-xl border border-primary/20">
               <div className="flex items-center gap-4">
                 <Avatar className="w-14 h-14 border-2 border-white shadow-sm">
-                  <AvatarFallback className="bg-blue-600 text-white text-lg">
+                  <AvatarFallback className="bg-primary text-white text-lg">
                     {prescription.patientName.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-slate-900">{prescription.patientName}</h4>
-                  <p className="text-sm text-slate-500">{prescription.patientAge} years · {prescription.patientGender}</p>
+                  <h4 className="font-semibold text-foreground">{prescription.patientName}</h4>
+                  <p className="text-sm text-muted-foreground">{prescription.patientAge} years · {prescription.patientGender}</p>
                   {prescription.diagnosis && (
-                    <p className="text-sm text-blue-700 mt-1 font-medium">Diagnosis: {prescription.diagnosis}</p>
+                    <p className="text-sm text-primary mt-1 font-medium">Diagnosis: {prescription.diagnosis}</p>
                   )}
                 </div>
               </div>
@@ -286,44 +286,44 @@ function DispenseDialog({ prescription, open, onClose, onComplete }: {
             {/* Progress */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="font-medium text-slate-700">Dispensing Progress</span>
-                <span className="text-slate-500">{Math.round(progress)}%</span>
+                <span className="font-medium text-foreground">Dispensing Progress</span>
+                <span className="text-muted-foreground">{Math.round(progress)}%</span>
               </div>
               <Progress value={progress} className="h-2" />
             </div>
 
             {/* Items */}
             <div className="space-y-4">
-              <h4 className="font-semibold text-slate-900 flex items-center gap-2">
-                <Pill className="w-4 h-4 text-slate-400" />
+              <h4 className="font-semibold text-foreground flex items-center gap-2">
+                <Pill className="w-4 h-4 text-muted-foreground/70" />
                 Prescription Items ({items.length})
               </h4>
               
               <div className="space-y-3">
                 {items.map((item, idx) => (
                   <div key={item.id} className={cn('p-4 rounded-xl border transition-all',
-                    item.dispensedQty === item.quantity ? 'bg-emerald-50/50 border-emerald-200' : 'bg-white border-slate-200'
+                    item.dispensedQty === item.quantity ? 'bg-success-muted/50 border-success/25' : 'bg-white border-border'
                   )}>
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-bold">
+                          <span className="w-6 h-6 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-xs font-bold">
                             {idx + 1}
                           </span>
-                          <h5 className="font-semibold text-slate-900">{item.drugName}</h5>
+                          <h5 className="font-semibold text-foreground">{item.drugName}</h5>
                           <Badge variant="outline" className="text-xs">{item.dosage}</Badge>
                         </div>
-                        <p className="text-sm text-slate-500 mt-1 ml-8">
+                        <p className="text-sm text-muted-foreground mt-1 ml-8">
                           {item.frequency} · {item.duration} · Qty: {item.quantity}
                         </p>
                         {item.instructions && (
-                          <p className="text-sm text-amber-700 mt-1 ml-8 flex items-center gap-1">
+                          <p className="text-sm text-warning mt-1 ml-8 flex items-center gap-1">
                             <AlertCircle className="w-3.5 h-3.5" /> {item.instructions}
                           </p>
                         )}
                       </div>
                       <div className={cn('w-8 h-8 rounded-full flex items-center justify-center',
-                        item.dispensedQty === item.quantity ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'
+                        item.dispensedQty === item.quantity ? 'bg-success-muted text-success' : 'bg-muted text-muted-foreground/70'
                       )}>
                         {item.dispensedQty === item.quantity ? <CheckCircle2 className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
                       </div>
@@ -331,10 +331,10 @@ function DispenseDialog({ prescription, open, onClose, onComplete }: {
                     
                     <div className="flex items-center gap-4 ml-8">
                       <div className="flex items-center gap-2">
-                        <Label className="text-xs font-medium text-slate-500">Dispense Qty:</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">Dispense Qty:</Label>
                         <div className="flex items-center border rounded-lg overflow-hidden">
                           <button 
-                            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border-r text-slate-600"
+                            className="px-3 py-1.5 bg-muted/50 hover:bg-muted border-r text-muted-foreground"
                             onClick={() => updateDispensedQty(item.id, Math.max(0, (item.dispensedQty || 0) - 1))}
                           >-</button>
                           <input 
@@ -344,20 +344,20 @@ function DispenseDialog({ prescription, open, onClose, onComplete }: {
                             className="w-16 text-center text-sm font-semibold py-1.5 focus:outline-none"
                           />
                           <button 
-                            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border-l text-slate-600"
+                            className="px-3 py-1.5 bg-muted/50 hover:bg-muted border-l text-muted-foreground"
                             onClick={() => updateDispensedQty(item.id, Math.min(item.quantity, (item.dispensedQty || 0) + 1))}
                           >+</button>
                         </div>
-                        <span className="text-xs text-slate-400">/ {item.quantity}</span>
+                        <span className="text-xs text-muted-foreground/70">/ {item.quantity}</span>
                       </div>
                       
                       {item.dispensedQty === item.quantity ? (
-                        <span className="text-xs font-medium text-emerald-600 flex items-center gap-1">
+                        <span className="text-xs font-medium text-success flex items-center gap-1">
                           <CheckCircle2 className="w-3.5 h-3.5" /> Fully Dispensed
                         </span>
                       ) : (
                         <button 
-                          className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                          className="text-xs font-medium text-primary hover:text-primary"
                           onClick={() => updateDispensedQty(item.id, item.quantity)}
                         >
                           Dispense All
@@ -377,12 +377,12 @@ function DispenseDialog({ prescription, open, onClose, onComplete }: {
           </div>
         </ScrollArea>
 
-        <DialogFooter className="px-6 py-4 border-t bg-slate-50/50 gap-2">
+        <DialogFooter className="px-6 py-4 border-t bg-muted/50 gap-2">
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
           <Button 
             onClick={handleComplete} 
             disabled={saving || !allDispensed}
-            className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 gap-2"
+            className="bg-gradient-to-r from-success to-success hover:from-success hover:to-success gap-2"
           >
             <CheckCircle2 className="w-4 h-4" />
             {saving ? 'Processing...' : 'Complete Dispensing'}
@@ -431,15 +431,15 @@ export function PrescriptionsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 p-6 space-y-6">
+    <div className="min-h-screen bg-muted/50 p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Prescriptions</h1>
-            <p className="text-slate-500 mt-1">Manage and dispense patient prescriptions</p>
+            <h1 className="text-3xl font-bold text-foreground tracking-tight">Prescriptions</h1>
+            <p className="text-muted-foreground mt-1">Manage and dispense patient prescriptions</p>
           </div>
-          {/* <Button className="gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-lg shadow-blue-500/25">
+          {/* <Button className="gap-2 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary hover:to-indigo-700 shadow-lg shadow-blue-500/25">
             <Plus className="w-4 h-4" /> New Prescription
           </Button> */}
         </div>
@@ -447,16 +447,16 @@ export function PrescriptionsPage() {
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Total Today', value: stats.total, icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
-            { label: 'Pending', value: stats.pending, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
+            { label: 'Total Today', value: stats.total, icon: FileText, color: 'text-primary', bg: 'bg-primary-muted/60' },
+            { label: 'Pending', value: stats.pending, icon: Clock, color: 'text-warning', bg: 'bg-warning-muted/60' },
             { label: 'Dispensing', value: stats.dispensing, icon: Package, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-            { label: 'Completed', value: stats.completed, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+            { label: 'Completed', value: stats.completed, icon: CheckCircle2, color: 'text-success', bg: 'bg-success-muted/60' },
           ].map(({ label, value, icon: Icon, color, bg }) => (
             <Card key={label} className="border-0 shadow-sm">
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
-                  <p className="text-2xl font-bold text-slate-900">{value}</p>
-                  <p className="text-sm text-slate-500">{label}</p>
+                  <p className="text-2xl font-bold text-foreground">{value}</p>
+                  <p className="text-sm text-muted-foreground">{label}</p>
                 </div>
                 <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center', bg, color)}>
                   <Icon className="w-6 h-6" />
@@ -472,22 +472,22 @@ export function PrescriptionsPage() {
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="relative w-full max-w-md">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-muted-foreground/70 absolute left-3 top-1/2 -translate-y-1/2" />
               <Input
-                className="pl-10 h-10 bg-slate-50 border-slate-200"
+                className="pl-10 h-10 bg-muted/50 border-border"
                 placeholder="Search patient, doctor, or Rx number..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
               {search && (
-                <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-muted-foreground">
                   <X className="w-4 h-4" />
                 </button>
               )}
             </div>
 
             <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)} className="w-full sm:w-auto">
-              <TabsList className="bg-slate-100 p-1 h-10">
+              <TabsList className="bg-muted p-1 h-10">
                 <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
                 <TabsTrigger value="pending" className="text-xs">Pending</TabsTrigger>
                 <TabsTrigger value="dispensing" className="text-xs">Dispensing</TabsTrigger>
@@ -503,7 +503,7 @@ export function PrescriptionsPage() {
         {/* List */}
         <div className={cn('space-y-4', selectedRx ? 'lg:col-span-1' : 'lg:col-span-3')}>
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Prescription Queue</h2>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Prescription Queue</h2>
             <Button variant="ghost" size="sm" className="gap-2">
               <RefreshCw className="w-4 h-4" /> Refresh
             </Button>
@@ -512,9 +512,9 @@ export function PrescriptionsPage() {
           {filteredPrescriptions.length === 0 ? (
             <Card className="border-0 shadow-sm">
               <CardContent className="py-16 text-center">
-                <FileText className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-slate-900 mb-1">No prescriptions found</h3>
-                <p className="text-slate-500">Try adjusting your filters</p>
+                <FileText className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-1">No prescriptions found</h3>
+                <p className="text-muted-foreground">Try adjusting your filters</p>
               </CardContent>
             </Card>
           ) : (
@@ -535,10 +535,10 @@ export function PrescriptionsPage() {
         {selectedRx && (
           <div className="hidden lg:block lg:col-span-2">
             <Card className="border-0 shadow-sm sticky top-6">
-              <CardHeader className="border-b bg-slate-50/50">
+              <CardHeader className="border-b bg-muted/50">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-slate-400" />
+                    <FileText className="w-5 h-5 text-muted-foreground/70" />
                     Prescription Details
                   </CardTitle>
                   <div className="flex gap-2">
@@ -546,7 +546,7 @@ export function PrescriptionsPage() {
                       <Printer className="w-4 h-4" /> Print
                     </Button>
                     {selectedRx.status === 'pending' && (
-                      <Button size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700" onClick={() => setDispenseDialogOpen(true)}>
+                      <Button size="sm" className="gap-2 bg-primary hover:bg-primary" onClick={() => setDispenseDialogOpen(true)}>
                         <Package className="w-4 h-4" /> Dispense
                       </Button>
                     )}
@@ -556,16 +556,16 @@ export function PrescriptionsPage() {
               <CardContent className="p-6">
                 <div className="space-y-6">
                   {/* Patient Info */}
-                  <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl">
+                  <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-xl">
                     <Avatar className="w-16 h-16">
-                      <AvatarFallback className="bg-gradient-to-br from-sky-500 to-blue-600 text-white text-xl">
+                      <AvatarFallback className="bg-gradient-to-br from-primary to-primary text-white text-xl">
                         {selectedRx.patientName.split(' ').map(n => n[0]).join('')}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold text-slate-900">{selectedRx.patientName}</h3>
-                      <p className="text-slate-500">{selectedRx.patientAge} years · {selectedRx.patientGender}</p>
-                      <p className="text-sm text-slate-400 mt-1">ID: {selectedRx.patientId}</p>
+                      <h3 className="text-xl font-bold text-foreground">{selectedRx.patientName}</h3>
+                      <p className="text-muted-foreground">{selectedRx.patientAge} years · {selectedRx.patientGender}</p>
+                      <p className="text-sm text-muted-foreground/70 mt-1">ID: {selectedRx.patientId}</p>
                     </div>
                     <StatusBadge status={selectedRx.status} />
                   </div>
@@ -573,20 +573,20 @@ export function PrescriptionsPage() {
                   {/* Rx Info */}
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-slate-500 mb-1">Prescription #</p>
-                      <p className="font-semibold text-slate-900">{selectedRx.prescriptionNumber}</p>
+                      <p className="text-muted-foreground mb-1">Prescription #</p>
+                      <p className="font-semibold text-foreground">{selectedRx.prescriptionNumber}</p>
                     </div>
                     <div>
-                      <p className="text-slate-500 mb-1">Date</p>
-                      <p className="font-semibold text-slate-900">{new Date(selectedRx.date).toLocaleString()}</p>
+                      <p className="text-muted-foreground mb-1">Date</p>
+                      <p className="font-semibold text-foreground">{new Date(selectedRx.date).toLocaleString()}</p>
                     </div>
                     <div>
-                      <p className="text-slate-500 mb-1">Prescribed By</p>
-                      <p className="font-semibold text-slate-900">{selectedRx.doctorName}</p>
+                      <p className="text-muted-foreground mb-1">Prescribed By</p>
+                      <p className="font-semibold text-foreground">{selectedRx.doctorName}</p>
                     </div>
                     <div>
-                      <p className="text-slate-500 mb-1">Diagnosis</p>
-                      <p className="font-semibold text-slate-900">{selectedRx.diagnosis || '—'}</p>
+                      <p className="text-muted-foreground mb-1">Diagnosis</p>
+                      <p className="font-semibold text-foreground">{selectedRx.diagnosis || '—'}</p>
                     </div>
                   </div>
 
@@ -594,25 +594,25 @@ export function PrescriptionsPage() {
 
                   {/* Items */}
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-4">Prescribed Items</h4>
+                    <h4 className="font-semibold text-foreground mb-4">Prescribed Items</h4>
                     <div className="space-y-3">
                       {selectedRx.items.map((item, idx) => (
-                        <div key={item.id} className="flex items-start gap-4 p-4 rounded-xl border border-slate-200 bg-white">
-                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-600 flex-shrink-0">
+                        <div key={item.id} className="flex items-start gap-4 p-4 rounded-xl border border-border bg-white">
+                          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground flex-shrink-0">
                             {idx + 1}
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <h5 className="font-semibold text-slate-900">{item.drugName}</h5>
+                              <h5 className="font-semibold text-foreground">{item.drugName}</h5>
                               <Badge variant="outline" className="text-xs">{item.dosage}</Badge>
                             </div>
-                            <p className="text-sm text-slate-600">{item.frequency} · {item.duration}</p>
-                            <p className="text-sm text-slate-500 mt-1">Qty: {item.quantity} · Instructions: {item.instructions || '—'}</p>
+                            <p className="text-sm text-muted-foreground">{item.frequency} · {item.duration}</p>
+                            <p className="text-sm text-muted-foreground mt-1">Qty: {item.quantity} · Instructions: {item.instructions || '—'}</p>
                             
                             {item.dispensedQty !== undefined && (
                               <div className="mt-3 flex items-center gap-2">
                                 <span className={cn('text-xs font-medium px-2 py-1 rounded-full',
-                                  item.dispensedQty === item.quantity ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                                  item.dispensedQty === item.quantity ? 'bg-success-muted text-success' : 'bg-warning-muted text-warning'
                                 )}>
                                   {item.dispensedQty === item.quantity ? 'Fully Dispensed' : `Dispensed: ${item.dispensedQty}/${item.quantity}`}
                                 </span>

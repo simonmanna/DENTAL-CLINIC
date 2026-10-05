@@ -334,7 +334,7 @@ export const DentistReportView: React.FC<DentistReportViewProps> = ({ data }) =>
                 </Avatar>
                 <div className="ml-4">
                   <div className="flex items-center gap-2">
-                    <Award className="h-5 w-5 text-yellow-500" />
+                    <Award className="h-5 w-5 text-warning" />
                     <span className="font-semibold">Top Performer</span>
                   </div>
                   <p className="text-sm text-muted-foreground">{topDentist.specialization || 'General Dentist'}</p>
@@ -420,9 +420,9 @@ export const DentistReportView: React.FC<DentistReportViewProps> = ({ data }) =>
                     <TableCell>{formatCurrency(dentist.avg_revenue_per_visit)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <div className="w-16 bg-gray-200 rounded-full h-2">
+                        <div className="w-16 bg-muted rounded-full h-2">
                           <div 
-                            className="bg-green-600 h-2 rounded-full" 
+                            className="bg-success h-2 rounded-full" 
                             style={{ width: `${collectionRate}%` }}
                           />
                         </div>

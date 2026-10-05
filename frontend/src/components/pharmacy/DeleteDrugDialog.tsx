@@ -41,20 +41,20 @@ export function DeleteDrugDialog({ open, drug, onClose, onDeleted }: Props) {
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <div className="p-1.5 bg-red-100 rounded-lg">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
+            <div className="p-1.5 bg-danger-muted rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-danger" />
             </div>
             Deactivate Drug?
           </DialogTitle>
         </DialogHeader>
 
         <div className="py-2 space-y-3">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             Are you sure you want to deactivate{' '}
-            <span className="font-semibold text-slate-900">{drug.name}</span>?
+            <span className="font-semibold text-foreground">{drug.name}</span>?
           </p>
-          <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
-            <p className="text-xs text-amber-800">
+          <div className="rounded-lg bg-warning-muted/60 border border-warning/25 p-3">
+            <p className="text-xs text-warning">
               This is a{' '}
               <span className="font-semibold">soft delete</span> — the drug
               will be hidden from listings but all historical records (

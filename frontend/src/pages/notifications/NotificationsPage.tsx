@@ -130,8 +130,8 @@ function NotificationRow({
     <div
       className={cn(
         'group flex items-start gap-3 px-5 py-4 transition-all duration-150 cursor-pointer',
-        notification.isRead ? 'bg-white' : 'bg-blue-50/30',
-        selected && 'bg-blue-50/60',
+        notification.isRead ? 'bg-white' : 'bg-primary-muted/30',
+        selected && 'bg-primary-muted/60',
       )}
       style={{
         borderBottom: '1px solid #f1f5f9',
@@ -148,7 +148,7 @@ function NotificationRow({
           type="checkbox"
           checked={selected}
           onChange={() => onSelect(notification.id)}
-          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+          className="w-4 h-4 rounded border-input text-primary focus:ring-primary/60 cursor-pointer"
         />
       </div>
 
@@ -202,7 +202,7 @@ function NotificationRow({
                     e.stopPropagation();
                     onRead(notification.id);
                   }}
-                  className="p-1 rounded-md hover:bg-blue-50 transition-colors"
+                  className="p-1 rounded-md hover:bg-primary-muted/60 transition-colors"
                   title="Mark as read"
                 >
                   <Check style={{ width: 13, height: 13, color: '#3b82f6' }} />
@@ -213,7 +213,7 @@ function NotificationRow({
                   e.stopPropagation();
                   onDelete(notification.id);
                 }}
-                className="p-1 rounded-md hover:bg-red-50 transition-colors"
+                className="p-1 rounded-md hover:bg-danger-muted/60 transition-colors"
                 title="Delete"
               >
                 <Trash2 style={{ width: 13, height: 13, color: '#ef4444' }} />
@@ -406,7 +406,7 @@ export default function NotificationsPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => loadNotifications(meta.page)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-semibold transition-colors hover:bg-gray-100"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-semibold transition-colors hover:bg-muted"
             style={{ color: '#64748b', border: '1px solid #e2e8f0' }}
           >
             <RefreshCw style={{ width: 13, height: 13 }} />
@@ -437,8 +437,8 @@ export default function NotificationsPage() {
             className={cn(
               'flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-semibold transition-all whitespace-nowrap',
               activeCategory === cat.key
-                ? 'text-blue-700 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50',
+                ? 'text-primary shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
             )}
             style={{
               background: activeCategory === cat.key ? '#eff6ff' : 'transparent',
@@ -481,7 +481,7 @@ export default function NotificationsPage() {
           onClick={() => setShowFilters((o) => !o)}
           className={cn(
             'flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-semibold transition-all',
-            showFilters ? 'bg-blue-50 text-blue-700 border-blue-200' : 'text-gray-500 hover:bg-gray-50',
+            showFilters ? 'bg-primary-muted/60 text-primary border-primary/25' : 'text-muted-foreground hover:bg-muted/50',
           )}
           style={{ border: `1px solid ${showFilters ? '#bfdbfe' : '#e2e8f0'}` }}
         >
@@ -516,7 +516,7 @@ export default function NotificationsPage() {
                     'px-2.5 py-1 rounded-md text-[11.5px] font-semibold transition-all',
                     activePriority === p.key
                       ? 'text-white shadow-sm'
-                      : 'text-gray-500 hover:bg-white',
+                      : 'text-muted-foreground hover:bg-white',
                   )}
                   style={{
                     background: activePriority === p.key ? (p.color || '#3b82f6') : 'transparent',
@@ -543,8 +543,8 @@ export default function NotificationsPage() {
                   className={cn(
                     'px-2.5 py-1 rounded-md text-[11.5px] font-semibold transition-all',
                     activeReadFilter === f.key
-                      ? 'bg-slate-700 text-white shadow-sm'
-                      : 'text-gray-500 hover:bg-white',
+                      ? 'bg-foreground text-white shadow-sm'
+                      : 'text-muted-foreground hover:bg-white',
                   )}
                   style={{
                     border: `1px solid ${activeReadFilter === f.key ? 'transparent' : '#e2e8f0'}`,
@@ -563,7 +563,7 @@ export default function NotificationsPage() {
                 setActivePriority('ALL');
                 setActiveReadFilter('ALL');
               }}
-              className="text-[11.5px] font-semibold text-red-500 hover:text-red-700 transition-colors ml-auto"
+              className="text-[11.5px] font-semibold text-danger hover:text-danger transition-colors ml-auto"
             >
               Clear filters
             </button>
@@ -583,7 +583,7 @@ export default function NotificationsPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={bulkMarkRead}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md text-[12px] font-semibold transition-colors hover:bg-blue-100"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-md text-[12px] font-semibold transition-colors hover:bg-primary-muted"
               style={{ color: '#2563eb' }}
             >
               <Check style={{ width: 12, height: 12 }} />
@@ -591,7 +591,7 @@ export default function NotificationsPage() {
             </button>
             <button
               onClick={bulkDelete}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md text-[12px] font-semibold transition-colors hover:bg-red-100"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-md text-[12px] font-semibold transition-colors hover:bg-danger-muted"
               style={{ color: '#ef4444' }}
             >
               <Trash2 style={{ width: 12, height: 12 }} />
@@ -599,7 +599,7 @@ export default function NotificationsPage() {
             </button>
             <button
               onClick={() => setSelectedIds(new Set())}
-              className="px-2 py-1 rounded-md text-[12px] font-semibold text-gray-500 hover:bg-blue-100 transition-colors"
+              className="px-2 py-1 rounded-md text-[12px] font-semibold text-muted-foreground hover:bg-primary-muted transition-colors"
             >
               Cancel
             </button>
@@ -626,7 +626,7 @@ export default function NotificationsPage() {
               type="checkbox"
               checked={notifications.length > 0 && selectedIds.size === notifications.length}
               onChange={selectAll}
-              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+              className="w-4 h-4 rounded border-input text-primary focus:ring-primary/60 cursor-pointer"
             />
             <span style={{ fontSize: 11.5, color: '#64748b', fontWeight: 600 }}>
               {meta.total} notification{meta.total !== 1 ? 's' : ''}

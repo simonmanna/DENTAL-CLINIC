@@ -40,15 +40,15 @@ function derivePaymentStatus(
 }
 
 const LIFECYCLE_CONFIG: Record<"DRAFT" | "POSTED" | "VOID", { label: string; cls: string }> = {
-  DRAFT:  { label: "Draft",  cls: "bg-slate-100 text-slate-500 border-slate-200" },
-  POSTED: { label: "Posted", cls: "bg-blue-50 text-blue-700 border-blue-200" },
-  VOID:   { label: "Void",   cls: "bg-slate-100 text-slate-400 border-slate-200" },
+  DRAFT:  { label: "Draft",  cls: "bg-muted text-muted-foreground border-border" },
+  POSTED: { label: "Posted", cls: "bg-primary-muted/60 text-primary border-primary/25" },
+  VOID:   { label: "Void",   cls: "bg-muted text-muted-foreground/70 border-border" },
 };
 
 const PAYMENT_CONFIG: Record<"UNPAID" | "PARTIALLY_PAID" | "PAID", { label: string; cls: string; dotCls: string }> = {
-  UNPAID:         { label: "Unpaid",       cls: "bg-rose-50 text-rose-700 border-rose-200",   dotCls: "bg-rose-500" },
-  PARTIALLY_PAID: { label: "Partial",      cls: "bg-amber-50 text-amber-700 border-amber-200", dotCls: "bg-amber-500" },
-  PAID:           { label: "Paid",         cls: "bg-emerald-50 text-emerald-700 border-emerald-200", dotCls: "bg-emerald-500" },
+  UNPAID:         { label: "Unpaid",       cls: "bg-danger-muted/60 text-danger border-danger/25",   dotCls: "bg-danger" },
+  PARTIALLY_PAID: { label: "Partial",      cls: "bg-warning-muted/60 text-warning border-warning/25", dotCls: "bg-warning" },
+  PAID:           { label: "Paid",         cls: "bg-success-muted/60 text-success border-success/25", dotCls: "bg-success" },
 };
 
 // ─── Component ─────────────────────────────────────────────────────────────────
@@ -104,8 +104,8 @@ export function BillingTab({ patientId, patientName, navigate }: BillingTabProps
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
-        <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+      <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground/70">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
         <p className="text-sm">Loading billing history…</p>
       </div>
     );
@@ -113,12 +113,12 @@ export function BillingTab({ patientId, patientName, navigate }: BillingTabProps
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
-        <AlertTriangle className="w-7 h-7 text-rose-400" />
-        <p className="text-sm font-medium text-slate-600">Failed to load invoices</p>
+      <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground/70">
+        <AlertTriangle className="w-7 h-7 text-danger/70" />
+        <p className="text-sm font-medium text-muted-foreground">Failed to load invoices</p>
         <button
           onClick={() => refetch()}
-          className="flex items-center gap-1.5 text-xs text-blue-600 hover:underline"
+          className="flex items-center gap-1.5 text-xs text-primary hover:underline"
         >
           <RefreshCw className="w-3.5 h-3.5" /> Retry
         </button>
@@ -133,32 +133,32 @@ export function BillingTab({ patientId, patientName, navigate }: BillingTabProps
         {currencySummaries.map(({ currency, billed, paid, outstanding, count }) => (
           <div
             key={currency}
-            className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-4"
+            className="bg-white border border-border/80 rounded-2xl p-5 shadow-sm space-y-4"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-center justify-between pb-3 border-b border-border/60">
               <div className="flex items-center gap-2">
-                <span className="bg-slate-100 px-2.5 py-1 rounded-md text-xs font-bold text-slate-700 tracking-wide">
+                <span className="bg-muted px-2.5 py-1 rounded-md text-xs font-bold text-foreground tracking-wide">
                   {currency}
                 </span>
-                <span className="text-sm font-medium text-slate-500">Financial Summary</span>
+                <span className="text-sm font-medium text-muted-foreground">Financial Summary</span>
               </div>
-              <span className="text-xs font-medium text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100">
+              <span className="text-xs font-medium text-muted-foreground/70 bg-muted/50 px-2 py-0.5 rounded-full border border-border/60">
                 {count} {count === 1 ? "invoice" : "invoices"}
               </span>
             </div>
 
             <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1">
-                <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Billed</p>
-                <p className="text-sm font-semibold text-slate-800">{formatCurrency(billed, currency)}</p>
+                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">Billed</p>
+                <p className="text-sm font-semibold text-foreground">{formatCurrency(billed, currency)}</p>
               </div>
-              <div className="space-y-1 pl-2 border-l border-slate-100">
-                <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Paid</p>
-                <p className="text-sm font-semibold text-emerald-600">{formatCurrency(paid, currency)}</p>
+              <div className="space-y-1 pl-2 border-l border-border/60">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">Paid</p>
+                <p className="text-sm font-semibold text-success">{formatCurrency(paid, currency)}</p>
               </div>
-              <div className="space-y-1 pl-2 border-l border-slate-100">
-                <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Balance</p>
-                <p className={cn("text-sm font-bold", outstanding > 0 ? "text-rose-600" : "text-emerald-600")}>
+              <div className="space-y-1 pl-2 border-l border-border/60">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">Balance</p>
+                <p className={cn("text-sm font-bold", outstanding > 0 ? "text-danger" : "text-success")}>
                   {formatCurrency(outstanding, currency)}
                 </p>
               </div>
@@ -168,11 +168,11 @@ export function BillingTab({ patientId, patientName, navigate }: BillingTabProps
       </div>
 
       {/* ── Invoice History Header ─────────────────────────────────────────── */}
-      <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-        <h3 className="text-sm font-semibold text-slate-800 tracking-tight">
+      <div className="flex items-center justify-between pt-1 border-t border-border/60">
+        <h3 className="text-sm font-semibold text-foreground tracking-tight">
           Invoice History
           {invoices.length > 0 && (
-            <span className="ml-2 text-xs font-normal text-slate-400">
+            <span className="ml-2 text-xs font-normal text-muted-foreground/70">
               ({invoices.length} total)
             </span>
           )}
@@ -181,12 +181,12 @@ export function BillingTab({ patientId, patientName, navigate }: BillingTabProps
 
       {/* ── Invoice List ──────────────────────────────────────────────────── */}
       {invoices.length === 0 ? (
-        <div className="flex flex-col items-center justify-center text-center p-10 border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
-          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
+        <div className="flex flex-col items-center justify-center text-center p-10 border border-dashed border-border rounded-2xl bg-muted/50">
+          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground/70 mb-3">
             <Receipt className="w-6 h-6" />
           </div>
-          <h3 className="text-sm font-semibold text-slate-700">No invoices yet</h3>
-          <p className="text-xs text-slate-400 max-w-xs mt-1">
+          <h3 className="text-sm font-semibold text-foreground">No invoices yet</h3>
+          <p className="text-xs text-muted-foreground/70 max-w-xs mt-1">
             Invoices created during visits will appear here.
           </p>
         </div>
@@ -211,8 +211,8 @@ export function BillingTab({ patientId, patientName, navigate }: BillingTabProps
                 className={cn(
                   "group relative rounded-xl border bg-white transition-all duration-200",
                   isVoid
-                    ? "border-slate-200/60 opacity-55 cursor-default"
-                    : "border-slate-200/70 hover:border-blue-300 hover:shadow-md hover:shadow-blue-50/50 cursor-pointer",
+                    ? "border-border/60 opacity-55 cursor-default"
+                    : "border-border/70 hover:border-primary/30 hover:shadow-md hover:shadow-blue-50/50 cursor-pointer",
                 )}
               >
                 {/* ── Main row ── */}
@@ -223,8 +223,8 @@ export function BillingTab({ patientId, patientName, navigate }: BillingTabProps
                       className={cn(
                         "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors",
                         isVoid
-                          ? "bg-slate-100 text-slate-400"
-                          : "bg-blue-50 group-hover:bg-blue-100 text-blue-600",
+                          ? "bg-muted text-muted-foreground/70"
+                          : "bg-primary-muted/60 group-hover:bg-primary-muted text-primary",
                       )}
                     >
                       <FileText className="w-5 h-5" />
@@ -233,7 +233,7 @@ export function BillingTab({ patientId, patientName, navigate }: BillingTabProps
                     <div className="min-w-0 space-y-1.5">
                       {/* Invoice number + badges */}
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="font-semibold text-slate-800 text-sm group-hover:text-blue-700 transition-colors">
+                        <span className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">
                           {inv.invoiceNumber || "Draft Invoice"}
                         </span>
                         {/* Lifecycle badge */}
@@ -250,13 +250,13 @@ export function BillingTab({ patientId, patientName, navigate }: BillingTabProps
                       </div>
 
                       {/* Date + visit info */}
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-400">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground/70">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           {formatDate(inv.createdAt)}
                         </span>
                         {inv.visit?.visitCode && (
-                          <span className="flex items-center gap-1 text-slate-500">
+                          <span className="flex items-center gap-1 text-muted-foreground">
                             Visit: <span className="font-medium">{inv.visit.visitCode}</span>
                           </span>
                         )}
@@ -268,7 +268,7 @@ export function BillingTab({ patientId, patientName, navigate }: BillingTabProps
                         {inv.dueDate && balance > 0 && (
                           <span className={cn(
                             "flex items-center gap-1",
-                            new Date(inv.dueDate) < new Date() ? "text-rose-500 font-medium" : "",
+                            new Date(inv.dueDate) < new Date() ? "text-danger font-medium" : "",
                           )}>
                             <Clock className="w-3 h-3" />
                             Due {formatDate(inv.dueDate)}
@@ -282,22 +282,22 @@ export function BillingTab({ patientId, patientName, navigate }: BillingTabProps
                   <div className="flex items-center gap-4 shrink-0 sm:pl-4">
                     <div className="text-right space-y-0.5">
                       <div className="flex items-baseline gap-1.5 justify-end">
-                        <span className="text-xs text-slate-400">Total</span>
-                        <span className="font-bold text-slate-800 text-sm">
+                        <span className="text-xs text-muted-foreground/70">Total</span>
+                        <span className="font-bold text-foreground text-sm">
                           {formatCurrency(total, currency)}
                         </span>
                       </div>
                       {paid > 0 && (
                         <div className="flex items-baseline gap-1.5 justify-end text-xs">
-                          <span className="text-slate-400">Paid</span>
-                          <span className="text-emerald-600 font-semibold">
+                          <span className="text-muted-foreground/70">Paid</span>
+                          <span className="text-success font-semibold">
                             {formatCurrency(paid, currency)}
                           </span>
                         </div>
                       )}
                       {balance > 0 && lifecycle !== "VOID" && (
                         <div className="flex items-center gap-1 justify-end">
-                          <span className="bg-amber-50 border border-amber-100 text-amber-700 text-[11px] font-medium px-1.5 py-0.5 rounded flex items-center gap-1">
+                          <span className="bg-warning-muted/60 border border-warning/20 text-warning text-[11px] font-medium px-1.5 py-0.5 rounded flex items-center gap-1">
                             <AlertTriangle className="w-2.5 h-2.5" />
                             Bal: {formatCurrency(balance, currency)}
                           </span>
@@ -305,35 +305,35 @@ export function BillingTab({ patientId, patientName, navigate }: BillingTabProps
                       )}
                     </div>
                     {!isVoid && (
-                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-400 transition-colors shrink-0" />
+                      <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-primary/70 transition-colors shrink-0" />
                     )}
                   </div>
                 </div>
 
                 {/* ── Receipts row (if any payments recorded) ── */}
                 {activeReceipts.length > 0 && !isVoid && (
-                  <div className="px-4 pb-3 border-t border-slate-50 mt-0 pt-2.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1">
+                  <div className="px-4 pb-3 border-t border-border/40 mt-0 pt-2.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 mb-1.5 flex items-center gap-1">
                       <Banknote className="w-3 h-3" /> Receipts
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {activeReceipts.map((r: any) => (
                         <div
                           key={r.id}
-                          className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5 text-xs"
+                          className="flex items-center gap-2 bg-success-muted/60 border border-success/20 rounded-lg px-2.5 py-1.5 text-xs"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
+                          <CheckCircle2 className="w-3 h-3 text-success shrink-0" />
                           <div>
-                            <span className="font-semibold text-emerald-800">{r.receiptNumber}</span>
-                            <span className="text-emerald-600 ml-1.5">
+                            <span className="font-semibold text-success">{r.receiptNumber}</span>
+                            <span className="text-success ml-1.5">
                               {formatCurrency(
                                 r.amountReceived ?? r.invoiceAmountApplied,
                                 r.currencyCode ?? currency,
                               )}
                             </span>
                             {r.generatedAt && (
-                              <span className="text-emerald-500 ml-1.5">{formatDate(r.generatedAt)}</span>
+                              <span className="text-success ml-1.5">{formatDate(r.generatedAt)}</span>
                             )}
                           </div>
                         </div>

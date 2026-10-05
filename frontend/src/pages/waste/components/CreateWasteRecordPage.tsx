@@ -137,30 +137,30 @@ function ItemRow({
   const totalCost = item.quantity * item.unitCost;
 
   return (
-    <div className="relative bg-white rounded-2xl border border-gray-200 p-4 shadow-sm hover:border-gray-300 transition-colors">
+    <div className="relative bg-white rounded-2xl border border-border p-4 shadow-sm hover:border-input transition-colors">
       {/* Row header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
+          <span className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
             {index + 1}
           </span>
           {item.itemType === "DRUG" ? (
             <Badge
               variant="outline"
-              className="text-xs gap-1 text-blue-700 border-blue-200 bg-blue-50"
+              className="text-xs gap-1 text-primary border-primary/25 bg-primary-muted/60"
             >
               <Pill className="w-3 h-3" /> Drug
             </Badge>
           ) : item.itemName ? (
             <Badge
               variant="outline"
-              className="text-xs gap-1 text-emerald-700 border-emerald-200 bg-emerald-50"
+              className="text-xs gap-1 text-success border-success/25 bg-success-muted/60"
             >
               <Package className="w-3 h-3" /> Inventory
             </Badge>
           ) : null}
           {item.itemName && (
-            <span className="text-sm font-semibold text-gray-800">
+            <span className="text-sm font-semibold text-foreground">
               {item.itemName}
             </span>
           )}
@@ -169,7 +169,7 @@ function ItemRow({
           variant="ghost"
           size="sm"
           onClick={() => onRemove(item.id)}
-          className="h-7 w-7 p-0 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
+          className="h-7 w-7 p-0 rounded-lg text-muted-foreground/70 hover:text-danger hover:bg-danger-muted/60"
         >
           <Trash2 className="w-3.5 h-3.5" />
         </Button>
@@ -178,22 +178,22 @@ function ItemRow({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {/* Item picker */}
         <div className="sm:col-span-2 lg:col-span-1">
-          <Label className="text-xs font-medium text-gray-600 mb-1.5 block">
-            Select Item <span className="text-red-500">*</span>
+          <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+            Select Item <span className="text-danger">*</span>
           </Label>
           <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 role="combobox"
-                className="w-full justify-between rounded-xl border-gray-200 font-normal text-left"
+                className="w-full justify-between rounded-xl border-border font-normal text-left"
               >
                 <span
-                  className={item.itemName ? "text-gray-900" : "text-gray-400"}
+                  className={item.itemName ? "text-foreground" : "text-muted-foreground/70"}
                 >
                   {item.itemName || "Search and select item..."}
                 </span>
-                <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />
+                <ChevronDown className="w-4 h-4 text-muted-foreground/70 shrink-0" />
               </Button>
             </PopoverTrigger>
             <PopoverContent
@@ -207,7 +207,7 @@ function ItemRow({
                   onValueChange={setSearchVal}
                 />
                 <CommandList className="max-h-60">
-                  <CommandEmpty className="py-6 text-center text-sm text-gray-500">
+                  <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
                     No items found at this location.
                   </CommandEmpty>
                   {filteredItems.length > 0 && (
@@ -223,16 +223,16 @@ function ItemRow({
                                 onSelect={() => handleSelectItem(s)}
                                 className="cursor-pointer"
                               >
-                                <Package className="w-3.5 h-3.5 mr-2 text-emerald-600 shrink-0" />
+                                <Package className="w-3.5 h-3.5 mr-2 text-success shrink-0" />
                                 <div className="flex-1 min-w-0">
                                   <div className="text-sm font-medium truncate">
                                     {s.name}
                                   </div>
-                                  <div className="text-xs text-gray-400">
+                                  <div className="text-xs text-muted-foreground/70">
                                     {s.itemCode} · Qty: {s.availableQty}{" "}
                                     {s.unit}
                                     {s.expiryDate && (
-                                      <span className="text-orange-500 ml-1">
+                                      <span className="text-warning ml-1">
                                         · Exp:{" "}
                                         {new Date(
                                           s.expiryDate,
@@ -259,16 +259,16 @@ function ItemRow({
                                 onSelect={() => handleSelectItem(s)}
                                 className="cursor-pointer"
                               >
-                                <Pill className="w-3.5 h-3.5 mr-2 text-blue-600 shrink-0" />
+                                <Pill className="w-3.5 h-3.5 mr-2 text-primary shrink-0" />
                                 <div className="flex-1 min-w-0">
                                   <div className="text-sm font-medium truncate">
                                     {s.name}
                                   </div>
-                                  <div className="text-xs text-gray-400">
+                                  <div className="text-xs text-muted-foreground/70">
                                     {s.genericName} · Qty: {s.availableQty}{" "}
                                     {s.unit}
                                     {s.expiryDate && (
-                                      <span className="text-orange-500 ml-1">
+                                      <span className="text-warning ml-1">
                                         · Exp:{" "}
                                         {new Date(
                                           s.expiryDate,
@@ -291,13 +291,13 @@ function ItemRow({
             </PopoverContent>
           </Popover>
           {item.availableQty > 0 && (
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-muted-foreground/70 mt-1">
               Available:{" "}
               <strong>
                 {item.availableQty} {item.unit}
               </strong>
               {item.expiryDate && (
-                <span className="ml-2 text-orange-500">
+                <span className="ml-2 text-warning">
                   · Expires: {new Date(item.expiryDate).toLocaleDateString()}
                 </span>
               )}
@@ -307,8 +307,8 @@ function ItemRow({
 
         {/* Quantity */}
         <div>
-          <Label className="text-xs font-medium text-gray-600 mb-1.5 block">
-            Quantity <span className="text-red-500">*</span>
+          <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+            Quantity <span className="text-danger">*</span>
           </Label>
           <div className="relative">
             <Input
@@ -320,14 +320,14 @@ function ItemRow({
                 onUpdate(item.id, "quantity", parseFloat(e.target.value) || 0)
               }
               placeholder="0"
-              className={`rounded-xl border-gray-200 pr-14 ${isOverQty ? "border-red-400 focus-visible:ring-red-400" : ""}`}
+              className={`rounded-xl border-border pr-14 ${isOverQty ? "border-danger/40 focus-visible:ring-danger/40" : ""}`}
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground/70 font-medium">
               {item.unit || "unit"}
             </span>
           </div>
           {isOverQty && (
-            <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+            <p className="text-xs text-danger mt-1 flex items-center gap-1">
               <AlertTriangle className="w-3 h-3" />
               Exceeds available stock ({item.availableQty})
             </p>
@@ -336,7 +336,7 @@ function ItemRow({
 
         {/* Unit Cost */}
         <div>
-          <Label className="text-xs font-medium text-gray-600 mb-1.5 block">
+          <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">
             Unit Cost (UGX)
           </Label>
           <Input
@@ -348,35 +348,35 @@ function ItemRow({
               onUpdate(item.id, "unitCost", parseFloat(e.target.value) || 0)
             }
             placeholder="0"
-            className="rounded-xl border-gray-200"
+            className="rounded-xl border-border"
           />
         </div>
 
         {/* Batch Number */}
         <div>
-          <Label className="text-xs font-medium text-gray-600 mb-1.5 flex items-center gap-1">
+          <Label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
             <Hash className="w-3 h-3" /> Batch Number
           </Label>
           <Input
             value={item.batchNumber || ""}
             onChange={(e) => onUpdate(item.id, "batchNumber", e.target.value)}
             placeholder="e.g. BT-2024-001"
-            className="rounded-xl border-gray-200"
+            className="rounded-xl border-border"
           />
         </div>
 
         {/* Batch Strategy Panel - for batch-tracked items */}
         {item.batchTracking && (
-          <div className="col-span-full bg-amber-50 border border-amber-200 rounded-xl p-3 mt-2">
+          <div className="col-span-full bg-warning-muted/60 border border-warning/25 rounded-xl p-3 mt-2">
             <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <span className="text-xs font-semibold text-amber-800">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              <span className="text-xs font-semibold text-warning">
                 Batch Tracking — Select how to deduct stock
               </span>
             </div>
 
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs text-amber-700">Strategy:</span>
+              <span className="text-xs text-warning">Strategy:</span>
               <Select
                 value={item.distributionStrategy || "FEFO"}
                 onValueChange={(v: "FEFO" | "FIFO" | "MANUAL") =>
@@ -415,7 +415,7 @@ function ItemRow({
                         >
                           <div className="flex items-center justify-between w-full">
                             <span>{b.batchNumber || "DEFAULT"}</span>
-                            <span className="text-xs text-gray-400 ml-4">
+                            <span className="text-xs text-muted-foreground/70 ml-4">
                               Qty: {b.quantity}
                               {b.expiryDate &&
                                 ` · Exp: ${fmtDate(b.expiryDate)}`}
@@ -426,7 +426,7 @@ function ItemRow({
                     </SelectContent>
                   </Select>
                 ) : (
-                  <p className="text-xs text-amber-600">
+                  <p className="text-xs text-warning">
                     No active batches with stock found at this location.
                   </p>
                 )}
@@ -437,7 +437,7 @@ function ItemRow({
             {item.distributionStrategy !== "MANUAL" &&
               item.availableBatches?.length > 0 && (
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-amber-800">
+                  <p className="text-xs font-medium text-warning">
                     Batches will be consumed in this order:
                   </p>
                   <div className="space-y-1">
@@ -462,10 +462,10 @@ function ItemRow({
                           key={b.id}
                           className="flex items-center justify-between text-xs bg-white/60 rounded px-2 py-1"
                         >
-                          <span className="font-medium text-amber-900">
+                          <span className="font-medium text-warning">
                             {i + 1}. {b.batchNumber || "DEFAULT"}
                           </span>
-                          <span className="text-amber-700">
+                          <span className="text-warning">
                             Qty: {b.quantity}
                             {b.expiryDate && ` · Exp: ${fmtDate(b.expiryDate)}`}
                           </span>
@@ -479,27 +479,27 @@ function ItemRow({
 
         {/* Expiry Date */}
         <div>
-          <Label className="text-xs font-medium text-gray-600 mb-1.5 flex items-center gap-1">
+          <Label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
             <Calendar className="w-3 h-3" /> Expiry Date
           </Label>
           <Input
             type="date"
             value={item.expiryDate || ""}
             onChange={(e) => onUpdate(item.id, "expiryDate", e.target.value)}
-            className="rounded-xl border-gray-200"
+            className="rounded-xl border-border"
           />
         </div>
 
         {/* Reason */}
         <div>
-          <Label className="text-xs font-medium text-gray-600 mb-1.5 block">
+          <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">
             Item Reason
           </Label>
           <Input
             value={item.reason || ""}
             onChange={(e) => onUpdate(item.id, "reason", e.target.value)}
             placeholder="e.g. Found damaged on shelf"
-            className="rounded-xl border-gray-200"
+            className="rounded-xl border-border"
           />
         </div>
       </div>
@@ -507,9 +507,9 @@ function ItemRow({
       {/* Cost summary */}
       {item.itemName && item.quantity > 0 && (
         <div className="mt-3 flex justify-end">
-          <div className="bg-gray-50 rounded-xl px-3 py-1.5 text-sm">
-            <span className="text-gray-500">Estimated Loss:</span>{" "}
-            <span className="font-bold text-gray-900">
+          <div className="bg-muted/50 rounded-xl px-3 py-1.5 text-sm">
+            <span className="text-muted-foreground">Estimated Loss:</span>{" "}
+            <span className="font-bold text-foreground">
               {formatCurrency(totalCost)}
             </span>
           </div>
@@ -671,30 +671,30 @@ export default function CreateWasteRecordPage() {
 
   // ─── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50/50">
+    <div className="min-h-screen bg-muted/50">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-10">
+      <div className="bg-white border-b border-border px-6 py-4 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate(-1)}
-              className="gap-1.5 text-gray-600 rounded-xl"
+              className="gap-1.5 text-muted-foreground rounded-xl"
             >
               <ArrowLeft className="w-4 h-4" />
               Back
             </Button>
-            <div className="w-px h-5 bg-gray-200" />
+            <div className="w-px h-5 bg-muted" />
             <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-red-50 rounded-lg">
-                <FileWarning className="w-4 h-4 text-red-600" />
+              <div className="p-1.5 bg-danger-muted/60 rounded-lg">
+                <FileWarning className="w-4 h-4 text-danger" />
               </div>
               <div>
-                <h1 className="text-base font-bold text-gray-900">
+                <h1 className="text-base font-bold text-foreground">
                   Record Waste / Damage / Expiry
                 </h1>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   Creates a record pending approval
                 </p>
               </div>
@@ -704,11 +704,11 @@ export default function CreateWasteRecordPage() {
           {/* Summary pill */}
           {totalItems > 0 && (
             <div className="hidden sm:flex items-center gap-3">
-              <div className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-sm">
-                <span className="text-gray-500">
+              <div className="bg-muted/50 border border-border rounded-xl px-3 py-1.5 text-sm">
+                <span className="text-muted-foreground">
                   {totalItems} item{totalItems !== 1 ? "s" : ""} ·
                 </span>{" "}
-                <span className="font-bold text-gray-900">
+                <span className="font-bold text-foreground">
                   {formatCurrency(totalValue)}
                 </span>
               </div>
@@ -719,9 +719,9 @@ export default function CreateWasteRecordPage() {
 
       <div className="max-w-4xl mx-auto px-6 py-6 space-y-5">
         {/* ── Info banner ──────────────────────────────────────────────────── */}
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex gap-3">
-          <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-          <div className="text-sm text-amber-700">
+        <div className="bg-warning-muted/60 border border-warning/25 rounded-2xl p-4 flex gap-3">
+          <Info className="w-4 h-4 text-warning shrink-0 mt-0.5" />
+          <div className="text-sm text-warning">
             <strong>Approval Required:</strong> This waste record will be
             submitted for review. Stock will only be deducted after an Admin or
             Super Admin approves the record. You will be notified once reviewed.
@@ -729,20 +729,20 @@ export default function CreateWasteRecordPage() {
         </div>
 
         {/* ── Step 1: Location & Category ──────────────────────────────────── */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="bg-white rounded-2xl border border-border/60 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-6 h-6 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+            <div className="w-6 h-6 rounded-full bg-danger text-white flex items-center justify-center text-xs font-bold shrink-0">
               1
             </div>
-            <h2 className="font-semibold text-gray-900">Location & Category</h2>
+            <h2 className="font-semibold text-foreground">Location & Category</h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Location */}
             <div>
-              <Label className="text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                Location <span className="text-red-500">*</span>
+              <Label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-muted-foreground/70" />
+                Location <span className="text-danger">*</span>
               </Label>
               <Select
                 value={locationId}
@@ -752,7 +752,7 @@ export default function CreateWasteRecordPage() {
                 }}
               >
                 <SelectTrigger
-                  className={`rounded-xl border-gray-200 ${errors.locationId ? "border-red-400" : ""}`}
+                  className={`rounded-xl border-border ${errors.locationId ? "border-danger/40" : ""}`}
                 >
                   <SelectValue placeholder="Select location..." />
                 </SelectTrigger>
@@ -760,7 +760,7 @@ export default function CreateWasteRecordPage() {
                   {locations.map((l) => (
                     <SelectItem key={l.id} value={l.id}>
                       {l.name}{" "}
-                      <span className="text-gray-400 text-xs ml-1">
+                      <span className="text-muted-foreground/70 text-xs ml-1">
                         ({l.type})
                       </span>
                     </SelectItem>
@@ -768,10 +768,10 @@ export default function CreateWasteRecordPage() {
                 </SelectContent>
               </Select>
               {errors.locationId && (
-                <p className="text-xs text-red-500 mt-1">{errors.locationId}</p>
+                <p className="text-xs text-danger mt-1">{errors.locationId}</p>
               )}
               {locationId && (
-                <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1">
+                <p className="text-xs text-muted-foreground/70 mt-1.5 flex items-center gap-1">
                   {stockLoading ? (
                     <>
                       <Loader2 className="w-3 h-3 animate-spin" /> Loading
@@ -779,7 +779,7 @@ export default function CreateWasteRecordPage() {
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                      <CheckCircle2 className="w-3 h-3 text-success" />
                       {stockItems.length} items available at this location
                     </>
                   )}
@@ -789,8 +789,8 @@ export default function CreateWasteRecordPage() {
 
             {/* Category */}
             <div>
-              <Label className="text-sm font-medium text-gray-700 mb-1.5 block">
-                Waste Category <span className="text-red-500">*</span>
+              <Label className="text-sm font-medium text-foreground mb-1.5 block">
+                Waste Category <span className="text-danger">*</span>
               </Label>
               <div className="grid grid-cols-2 gap-2">
                 {Object.entries(WASTE_CATEGORY_META).map(([key, meta]) => (
@@ -804,7 +804,7 @@ export default function CreateWasteRecordPage() {
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${
                       category === key
                         ? `${meta.bg} ${meta.color} border-current shadow-sm`
-                        : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                        : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
                     }`}
                   >
                     <span className="text-base">{meta.icon}</span>
@@ -813,20 +813,20 @@ export default function CreateWasteRecordPage() {
                 ))}
               </div>
               {errors.category && (
-                <p className="text-xs text-red-500 mt-1">{errors.category}</p>
+                <p className="text-xs text-danger mt-1">{errors.category}</p>
               )}
             </div>
           </div>
         </div>
 
         {/* ── Step 2: Items ─────────────────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="bg-white rounded-2xl border border-border/60 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+              <div className="w-6 h-6 rounded-full bg-danger text-white flex items-center justify-center text-xs font-bold shrink-0">
                 2
               </div>
-              <h2 className="font-semibold text-gray-900">
+              <h2 className="font-semibold text-foreground">
                 Items to Write Off
               </h2>
             </div>
@@ -835,7 +835,7 @@ export default function CreateWasteRecordPage() {
               size="sm"
               onClick={addItem}
               disabled={!locationId || stockLoading}
-              className="gap-1.5 rounded-xl border-gray-200 text-sm"
+              className="gap-1.5 rounded-xl border-border text-sm"
             >
               <Plus className="w-3.5 h-3.5" />
               Add Item
@@ -843,20 +843,20 @@ export default function CreateWasteRecordPage() {
           </div>
 
           {!locationId ? (
-            <div className="py-10 flex flex-col items-center gap-2 text-gray-400 border-2 border-dashed border-gray-200 rounded-xl">
-              <MapPin className="w-8 h-8 text-gray-200" />
+            <div className="py-10 flex flex-col items-center gap-2 text-muted-foreground/70 border-2 border-dashed border-border rounded-xl">
+              <MapPin className="w-8 h-8 text-muted-foreground/40" />
               <p className="text-sm font-medium">Select a location first</p>
               <p className="text-xs">Items are filtered by location stock</p>
             </div>
           ) : stockLoading ? (
-            <div className="py-10 flex flex-col items-center gap-2 text-gray-400">
-              <Loader2 className="w-8 h-8 animate-spin text-gray-300" />
+            <div className="py-10 flex flex-col items-center gap-2 text-muted-foreground/70">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground/50" />
               <p className="text-sm">Loading stock for this location…</p>
             </div>
           ) : items.length === 0 ? (
-            <div className="py-10 flex flex-col items-center gap-2 text-gray-400 border-2 border-dashed border-gray-200 rounded-xl">
-              <Package className="w-8 h-8 text-gray-200" />
-              <p className="text-sm font-medium text-gray-500">
+            <div className="py-10 flex flex-col items-center gap-2 text-muted-foreground/70 border-2 border-dashed border-border rounded-xl">
+              <Package className="w-8 h-8 text-muted-foreground/40" />
+              <p className="text-sm font-medium text-muted-foreground">
                 No items added yet
               </p>
               <Button
@@ -885,7 +885,7 @@ export default function CreateWasteRecordPage() {
               <Button
                 variant="outline"
                 onClick={addItem}
-                className="w-full gap-2 rounded-xl border-dashed border-gray-300 text-gray-500 hover:border-gray-400 hover:text-gray-700"
+                className="w-full gap-2 rounded-xl border-dashed border-input text-muted-foreground hover:border-input hover:text-foreground"
               >
                 <Plus className="w-4 h-4" />
                 Add Another Item
@@ -894,7 +894,7 @@ export default function CreateWasteRecordPage() {
           )}
 
           {errors.items && (
-            <p className="text-xs text-red-500 mt-2 flex items-center gap-1">
+            <p className="text-xs text-danger mt-2 flex items-center gap-1">
               <AlertTriangle className="w-3 h-3" />
               {errors.items}
             </p>
@@ -902,47 +902,47 @@ export default function CreateWasteRecordPage() {
         </div>
 
         {/* ── Step 3: Additional Details ────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="bg-white rounded-2xl border border-border/60 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-6 h-6 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+            <div className="w-6 h-6 rounded-full bg-danger text-white flex items-center justify-center text-xs font-bold shrink-0">
               3
             </div>
-            <h2 className="font-semibold text-gray-900">Additional Details</h2>
-            <span className="text-xs text-gray-400">(optional)</span>
+            <h2 className="font-semibold text-foreground">Additional Details</h2>
+            <span className="text-xs text-muted-foreground/70">(optional)</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <Label className="text-sm font-medium text-gray-700 mb-1.5 block">
+              <Label className="text-sm font-medium text-foreground mb-1.5 block">
                 General Notes
               </Label>
               <Textarea
                 placeholder="Describe the situation, storage conditions, or any other context..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="rounded-xl border-gray-200 resize-none"
+                className="rounded-xl border-border resize-none"
                 rows={3}
               />
             </div>
 
             <div>
-              <Label className="text-sm font-medium text-gray-700 mb-1.5 block">
+              <Label className="text-sm font-medium text-foreground mb-1.5 block">
                 Witness Name
               </Label>
               <Input
                 value={witnessName}
                 onChange={(e) => setWitnessName(e.target.value)}
                 placeholder="Name of witness present"
-                className="rounded-xl border-gray-200"
+                className="rounded-xl border-border"
               />
             </div>
 
             <div>
-              <Label className="text-sm font-medium text-gray-700 mb-1.5 block">
+              <Label className="text-sm font-medium text-foreground mb-1.5 block">
                 Disposal Method
               </Label>
               <Select value={disposalMethod} onValueChange={setDisposalMethod}>
-                <SelectTrigger className="rounded-xl border-gray-200">
+                <SelectTrigger className="rounded-xl border-border">
                   <SelectValue placeholder="How will items be disposed?" />
                 </SelectTrigger>
                 <SelectContent>
@@ -963,14 +963,14 @@ export default function CreateWasteRecordPage() {
             </div>
 
             <div>
-              <Label className="text-sm font-medium text-gray-700 mb-1.5 block">
+              <Label className="text-sm font-medium text-foreground mb-1.5 block">
                 Planned Disposal Date
               </Label>
               <Input
                 type="date"
                 value={disposalDate}
                 onChange={(e) => setDisposalDate(e.target.value)}
-                className="rounded-xl border-gray-200"
+                className="rounded-xl border-border"
               />
             </div>
           </div>
@@ -978,9 +978,9 @@ export default function CreateWasteRecordPage() {
 
         {/* ── Summary & Submit ──────────────────────────────────────────────── */}
         {items.length > 0 && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-5">
+          <div className="bg-danger-muted/60 border border-danger/25 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-red-900 flex items-center gap-2">
+              <h3 className="font-semibold text-danger flex items-center gap-2">
                 <ClipboardList className="w-4 h-4" />
                 Summary
               </h3>
@@ -990,23 +990,23 @@ export default function CreateWasteRecordPage() {
                 .filter((i) => i.itemName)
                 .map((item) => (
                   <div key={item.id} className="flex justify-between text-sm">
-                    <span className="text-red-700">
+                    <span className="text-danger">
                       {item.itemName}
-                      <span className="text-red-400 ml-2">
+                      <span className="text-danger/70 ml-2">
                         × {item.quantity} {item.unit}
                       </span>
                     </span>
-                    <span className="font-medium text-red-900">
+                    <span className="font-medium text-danger">
                       {formatCurrency(item.quantity * item.unitCost)}
                     </span>
                   </div>
                 ))}
             </div>
-            <div className="border-t border-red-200 mt-3 pt-3 flex justify-between items-center">
-              <span className="font-semibold text-red-900">
+            <div className="border-t border-danger/25 mt-3 pt-3 flex justify-between items-center">
+              <span className="font-semibold text-danger">
                 Total Estimated Loss
               </span>
-              <span className="text-xl font-bold text-red-900">
+              <span className="text-xl font-bold text-danger">
                 {formatCurrency(totalValue)}
               </span>
             </div>
@@ -1019,7 +1019,7 @@ export default function CreateWasteRecordPage() {
             variant="outline"
             onClick={() => navigate(-1)}
             disabled={submitting}
-            className="rounded-xl border-gray-200"
+            className="rounded-xl border-border"
           >
             Cancel
           </Button>
@@ -1028,7 +1028,7 @@ export default function CreateWasteRecordPage() {
             disabled={
               submitting || !locationId || !category || items.length === 0
             }
-            className="bg-red-600 hover:bg-red-700 text-white rounded-xl gap-2 min-w-36"
+            className="bg-danger hover:bg-danger text-white rounded-xl gap-2 min-w-36"
           >
             {submitting ? (
               <>

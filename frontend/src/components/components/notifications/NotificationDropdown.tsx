@@ -67,7 +67,7 @@ function NotificationItem({
         'group relative flex items-start gap-3 px-4 py-3 cursor-pointer transition-all duration-150',
         notification.isRead
           ? 'opacity-60 hover:opacity-80'
-          : 'hover:bg-slate-50',
+          : 'hover:bg-muted/50',
       )}
       style={{
         borderBottom: '1px solid #f1f5f9',
@@ -153,7 +153,7 @@ function NotificationItem({
               e.stopPropagation();
               onRead(notification.id);
             }}
-            className="p-1 rounded-md hover:bg-blue-50 transition-colors"
+            className="p-1 rounded-md hover:bg-primary-muted/60 transition-colors"
             title="Mark as read"
           >
             <Check style={{ width: 12, height: 12, color: '#3b82f6' }} />
@@ -164,7 +164,7 @@ function NotificationItem({
             e.stopPropagation();
             onDelete(notification.id);
           }}
-          className="p-1 rounded-md hover:bg-red-50 transition-colors"
+          className="p-1 rounded-md hover:bg-danger-muted/60 transition-colors"
           title="Delete"
         >
           <Trash2 style={{ width: 12, height: 12, color: '#ef4444' }} />
@@ -296,7 +296,7 @@ export function NotificationDropdown({ accentColor = '#0ea5e9' }: NotificationDr
               {unreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}
-                  className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold transition-colors hover:bg-blue-50"
+                  className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold transition-colors hover:bg-primary-muted/60"
                   style={{ color: accentColor }}
                 >
                   <CheckCheck style={{ width: 12, height: 12 }} />
@@ -305,7 +305,7 @@ export function NotificationDropdown({ accentColor = '#0ea5e9' }: NotificationDr
               )}
               <button
                 onClick={() => setIsOpen(false)}
-                className="rounded-md p-1 hover:bg-gray-100 transition-colors"
+                className="rounded-md p-1 hover:bg-muted transition-colors"
                 style={{ color: '#94a3b8' }}
               >
                 <X style={{ width: 14, height: 14 }} />

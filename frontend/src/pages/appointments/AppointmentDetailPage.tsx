@@ -40,10 +40,10 @@ export function AppointmentDetailPage() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">
+          <h1 className="text-2xl font-bold text-foreground">
             Appointment {apt.appointmentCode}
           </h1>
-          <p className="text-slate-500 mt-1">
+          <p className="text-muted-foreground mt-1">
             Scheduled for {formatDateTime(apt.scheduledAt)}
           </p>
         </div>
@@ -72,25 +72,25 @@ export function AppointmentDetailPage() {
         {/* Main Info */}
         <div className="lg:col-span-2 space-y-6">
           <Card>
-            <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-              <User className="w-5 h-5 text-slate-400" />
+            <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+              <User className="w-5 h-5 text-muted-foreground/70" />
               Patient Information
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-slate-500">Name</p>
+                <p className="text-sm text-muted-foreground">Name</p>
                 <p className="font-medium">{apt.patient.firstName} {apt.patient.lastName}</p>
               </div>
               <div>
-                <p className="text-sm text-slate-500">Patient Code</p>
+                <p className="text-sm text-muted-foreground">Patient Code</p>
                 <p className="font-medium">{apt.patient.patientCode}</p>
               </div>
               <div>
-                <p className="text-sm text-slate-500">Phone</p>
+                <p className="text-sm text-muted-foreground">Phone</p>
                 <p className="font-medium">{apt.patient.phone || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm text-slate-500">Date of Birth</p>
+                <p className="text-sm text-muted-foreground">Date of Birth</p>
                 <p className="font-medium">
                   {apt.patient.dateOfBirth ? formatDate(apt.patient.dateOfBirth) : 'N/A'}
                 </p>
@@ -99,31 +99,31 @@ export function AppointmentDetailPage() {
           </Card>
 
           <Card>
-            <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-slate-400" />
+            <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-muted-foreground/70" />
               Appointment Details
             </h3>
             <div className="space-y-3">
-              <div className="flex justify-between py-2 border-b border-slate-100">
-                <span className="text-slate-600">Type</span>
+              <div className="flex justify-between py-2 border-b border-border/60">
+                <span className="text-muted-foreground">Type</span>
                 <span className="font-medium">{apt.type}</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-slate-100">
-                <span className="text-slate-600">Dentist</span>
+              <div className="flex justify-between py-2 border-b border-border/60">
+                <span className="text-muted-foreground">Dentist</span>
                 <span className="font-medium">Dr. {apt.dentist.firstName} {apt.dentist.lastName}</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-slate-100">
-                <span className="text-slate-600">Duration</span>
+              <div className="flex justify-between py-2 border-b border-border/60">
+                <span className="text-muted-foreground">Duration</span>
                 <span className="font-medium">{apt.duration} minutes</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-slate-100">
-                <span className="text-slate-600">Status</span>
+              <div className="flex justify-between py-2 border-b border-border/60">
+                <span className="text-muted-foreground">Status</span>
                 <StatusBadge status={apt.status} />
               </div>
               {apt.chiefComplaint && (
                 <div className="pt-2">
-                  <p className="text-slate-600 mb-1">Chief Complaint</p>
-                  <p className="text-slate-900 bg-slate-50 p-3 rounded-lg">{apt.chiefComplaint}</p>
+                  <p className="text-muted-foreground mb-1">Chief Complaint</p>
+                  <p className="text-foreground bg-muted/50 p-3 rounded-lg">{apt.chiefComplaint}</p>
                 </div>
               )}
             </div>
@@ -132,25 +132,25 @@ export function AppointmentDetailPage() {
           {/* Visit Summary if exists */}
           {apt.visit && (
             <Card>
-              <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                <Stethoscope className="w-5 h-5 text-slate-400" />
+              <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Stethoscope className="w-5 h-5 text-muted-foreground/70" />
                 Visit Summary
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-slate-500">Visit Status</p>
+                  <p className="text-sm text-muted-foreground">Visit Status</p>
                   <StatusBadge status={apt.visit.status} />
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Procedures</p>
+                  <p className="text-sm text-muted-foreground">Procedures</p>
                   <p className="font-medium">{apt.visit.procedures?.length || 0}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Prescriptions</p>
+                  <p className="text-sm text-muted-foreground">Prescriptions</p>
                   <p className="font-medium">{apt.visit.prescriptions?.length || 0}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Payment Status</p>
+                  <p className="text-sm text-muted-foreground">Payment Status</p>
                   <p className="font-medium">{apt.visit.paymentStatus}</p>
                 </div>
               </div>
@@ -161,7 +161,7 @@ export function AppointmentDetailPage() {
         {/* Sidebar Actions */}
         <div className="space-y-4">
           <Card>
-            <h3 className="font-semibold text-slate-900 mb-4">Actions</h3>
+            <h3 className="font-semibold text-foreground mb-4">Actions</h3>
             <div className="space-y-2">
               {['SCHEDULED', 'CONFIRMED'].includes(apt.status) && (
                 <Button 
@@ -189,7 +189,7 @@ export function AppointmentDetailPage() {
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="w-full justify-center text-red-600 hover:bg-red-50"
+                    className="w-full justify-center text-danger hover:bg-danger-muted/60"
                     onClick={() => {
                       const reason = prompt('Cancellation reason:');
                       if (reason) cancelMutation.mutate(reason);
@@ -204,22 +204,22 @@ export function AppointmentDetailPage() {
 
           {apt.visit?.invoice && (
             <Card>
-              <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+              <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
                 <CreditCard className="w-4 h-4" />
                 Billing
               </h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-slate-600">Total</span>
+                  <span className="text-muted-foreground">Total</span>
                   <span className="font-medium">${apt.visit.invoice.total}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-600">Paid</span>
-                  <span className="font-medium text-green-600">${apt.visit.invoice.amountPaid}</span>
+                  <span className="text-muted-foreground">Paid</span>
+                  <span className="font-medium text-success">${apt.visit.invoice.amountPaid}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-600">Balance</span>
-                  <span className="font-medium text-red-600">${apt.visit.invoice.balance}</span>
+                  <span className="text-muted-foreground">Balance</span>
+                  <span className="font-medium text-danger">${apt.visit.invoice.balance}</span>
                 </div>
               </div>
               <Button 

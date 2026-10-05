@@ -82,7 +82,7 @@ export function LocationTreeView({
                 <span className={cn("font-medium text-sm truncate", isSelected && "text-primary")}>
                   {location.name}
                 </span>
-                {location.isDefault && <Badge variant="outline" className="h-5 text-[10px] px-1 bg-blue-50">Default</Badge>}
+                {location.isDefault && <Badge variant="outline" className="h-5 text-[10px] px-1 bg-primary-muted/60">Default</Badge>}
               </div>
 
               <div className="flex items-center gap-1 opacity-100 group-hover:opacity-100 transition-opacity">
@@ -97,7 +97,7 @@ export function LocationTreeView({
 
                  <Button
                     title="Edit Details"
-                    className="mx-1 h-6 w-8 rounded-md bg-amber-500 p-0 text-white hover:bg-amber-600 shadow-sm"
+                    className="mx-1 h-6 w-8 rounded-md bg-warning p-0 text-white hover:bg-warning shadow-sm"
                     onClick={() => onEdit(location)}
                   >
                     <Pencil size={16} strokeWidth={3} />
@@ -105,7 +105,7 @@ export function LocationTreeView({
 
                   <Button
                     title="Delete Location"
-                    className="h-6 w-8 rounded-md bg-red-600 p-0 text-white hover:bg-red-700 shadow-sm"
+                    className="h-6 w-8 rounded-md bg-danger p-0 text-white hover:bg-danger shadow-sm"
                     onClick={() => onDelete(location)}
                     disabled={location._count?.children > 0}
                   >

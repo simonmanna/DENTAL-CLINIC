@@ -46,10 +46,10 @@ function SaveStatus({
     <span
       className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-all ${
         status === "saving"
-          ? "bg-blue-50 text-blue-600 border border-blue-200"
+          ? "bg-primary-muted/60 text-primary border border-primary/25"
           : status === "saved"
-            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-            : "bg-red-50 text-red-600 border border-red-200"
+            ? "bg-success-muted/60 text-success border border-success/25"
+            : "bg-danger-muted/60 text-danger border border-danger/25"
       }`}
     >
       {status === "saving" && <Loader2 className="w-3 h-3 animate-spin" />}
@@ -86,8 +86,8 @@ function VitalCard({
     <div
       className={`relative rounded-xl border-2 px-3 py-1 transition-all group focus-within:shadow-md ${
         disabled
-          ? "border-slate-100 bg-slate-50"
-          : `border-slate-200 bg-white hover:border-${color}-200 focus-within:border-${color}-400`
+          ? "border-border/60 bg-muted/50"
+          : `border-border bg-white hover:border-${color}-200 focus-within:border-${color}-400`
       }`}
     >
       <div className={`flex items-center gap-0.5 mb-1`}>
@@ -96,7 +96,7 @@ function VitalCard({
         >
           <Icon className={`w-3.0 h-3.0 text-${color}-600`} />
         </div>
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           {label}
         </span>
       </div>
@@ -107,9 +107,9 @@ function VitalCard({
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(field, e.target.value)}
-          className="w-full text-lg font-bold text-slate-800 bg-transparent border-none outline-none placeholder:text-slate-300 disabled:cursor-not-allowed"
+          className="w-full text-lg font-bold text-foreground bg-transparent border-none outline-none placeholder:text-muted-foreground/50 disabled:cursor-not-allowed"
         />
-        <span className="text-xs text-slate-400 shrink-0 font-medium">
+        <span className="text-xs text-muted-foreground/70 shrink-0 font-medium">
           {unit}
         </span>
       </div>
@@ -145,7 +145,7 @@ function SOAPField({
         >
           {label}
         </span>
-        <span className="text-xs text-slate-400 font-medium">{sublabel}</span>
+        <span className="text-xs text-muted-foreground/70 font-medium">{sublabel}</span>
       </div>
       <textarea
         rows={3}
@@ -156,10 +156,10 @@ function SOAPField({
         className={`w-full rounded-xl border-2 px-4 py-3 text-sm resize-none focus:outline-none transition-all leading-relaxed
           ${
             disabled
-              ? "border-slate-100 bg-slate-50 text-slate-500 cursor-not-allowed"
-              : `border-slate-200 bg-white text-slate-800 focus:border-${accentColor}-400 focus:shadow-sm hover:border-slate-300`
+              ? "border-border/60 bg-muted/50 text-muted-foreground cursor-not-allowed"
+              : `border-border bg-white text-foreground focus:border-${accentColor}-400 focus:shadow-sm hover:border-input`
           }
-          placeholder:text-slate-300`}
+          placeholder:text-muted-foreground/50`}
       />
     </div>
   );
@@ -180,13 +180,13 @@ function SectionHeader({
   return (
     <div className="flex items-center justify-between mt-1 mb-1">
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-sm">
+        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-sm">
           <Icon className="w-4 h-4 text-white" />
         </div>
         <div>
-          <h3 className="text-sm font-bold text-slate-800">{title}</h3>
+          <h3 className="text-sm font-bold text-foreground">{title}</h3>
           {subtitle && (
-            <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>
+            <p className="text-xs text-muted-foreground/70 mt-0.5">{subtitle}</p>
           )}
         </div>
       </div>
@@ -234,7 +234,7 @@ function EditableChipList({
   return (
     <div className="flex flex-wrap gap-1.5 items-center">
       {values.length === 0 && !adding && (
-        <span className="text-xs text-slate-400 italic">{emptyText}</span>
+        <span className="text-xs text-muted-foreground/70 italic">{emptyText}</span>
       )}
 
       {values.map((v) => (
@@ -274,7 +274,7 @@ function EditableChipList({
           }}
           onBlur={commit}
           placeholder={placeholder}
-          className="text-xs px-2 py-1 border-2 border-slate-300 rounded-full bg-white focus:outline-none focus:border-blue-500 min-w-[120px]"
+          className="text-xs px-2 py-1 border-2 border-input rounded-full bg-white focus:outline-none focus:border-primary/60 min-w-[120px]"
         />
       )}
 
@@ -282,7 +282,7 @@ function EditableChipList({
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-dashed border-slate-300 text-xs font-medium text-slate-500 hover:border-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors"
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-dashed border-input text-xs font-medium text-muted-foreground hover:border-input hover:text-foreground hover:bg-muted/50 transition-colors"
         >
           <Plus className="w-3 h-3" />
           Add
@@ -582,23 +582,23 @@ export function ExaminationTab({
       <div
         className={`rounded-2xl border shadow-sm overflow-hidden ${
           allergies.length > 0
-            ? "bg-rose-50/40 border-rose-200"
+            ? "bg-danger-muted/40 border-danger/25"
             : medicalConditions.length > 0
-              ? "bg-amber-50/40 border-amber-200"
-              : "bg-white border-slate-200"
+              ? "bg-warning-muted/40 border-warning/25"
+              : "bg-white border-border"
         }`}
       >
-        <div className="px-5 py-2.5 border-b border-slate-100/80 bg-white/60 flex items-center gap-2">
+        <div className="px-5 py-2.5 border-b border-border/80 bg-white/60 flex items-center gap-2">
           <ShieldAlert
             className={`w-4 h-4 ${
-              allergies.length > 0 ? "text-rose-600" : "text-amber-600"
+              allergies.length > 0 ? "text-danger" : "text-warning"
             }`}
           />
-          <h3 className="text-sm font-bold text-slate-800">
+          <h3 className="text-sm font-bold text-foreground">
             Patient Medical History
           </h3>
           {!hasAnyHistory && (
-            <span className="ml-2 text-xs text-slate-400 italic">
+            <span className="ml-2 text-xs text-muted-foreground/70 italic">
               No history on record
             </span>
           )}
@@ -611,12 +611,12 @@ export function ExaminationTab({
           {/* Allergies */}
           <div>
             <div className="flex items-center gap-1.5 mb-2">
-              <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-rose-700">
+              <AlertTriangle className="w-3.5 h-3.5 text-danger" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-danger">
                 Allergies
               </span>
               {allergies.length > 0 && (
-                <span className="text-[10px] font-semibold bg-rose-600 text-white px-1.5 py-0.5 rounded-full">
+                <span className="text-[10px] font-semibold bg-danger text-white px-1.5 py-0.5 rounded-full">
                   {allergies.length}
                 </span>
               )}
@@ -627,7 +627,7 @@ export function ExaminationTab({
               onRemove={(v) => removeHistoryItem("allergies", v)}
               disabled={readOnly || !patientId}
               placeholder="e.g. Penicillin"
-              chipClass="bg-rose-100 border border-rose-300 text-rose-700"
+              chipClass="bg-danger-muted border border-danger/30 text-danger"
               emptyText="None reported"
               icon={AlertTriangle}
             />
@@ -636,12 +636,12 @@ export function ExaminationTab({
           {/* Medical Conditions */}
           <div>
             <div className="flex items-center gap-1.5 mb-2">
-              <HeartPulse className="w-3.5 h-3.5 text-amber-600" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">
+              <HeartPulse className="w-3.5 h-3.5 text-warning" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-warning">
                 Medical Conditions
               </span>
               {medicalConditions.length > 0 && (
-                <span className="text-[10px] font-semibold bg-amber-600 text-white px-1.5 py-0.5 rounded-full">
+                <span className="text-[10px] font-semibold bg-warning text-white px-1.5 py-0.5 rounded-full">
                   {medicalConditions.length}
                 </span>
               )}
@@ -652,7 +652,7 @@ export function ExaminationTab({
               onRemove={(v) => removeHistoryItem("medicalConditions", v)}
               disabled={readOnly || !patientId}
               placeholder="e.g. Hypertension"
-              chipClass="bg-amber-100 border border-amber-300 text-amber-700"
+              chipClass="bg-warning-muted border border-warning/30 text-warning"
             />
           </div>
 
@@ -682,8 +682,8 @@ export function ExaminationTab({
       </div>
 
       {/* ── Chief Complaint & HPI ─────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+      <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="px-5 py-3 border-b border-border/60 bg-gradient-to-r from-muted/50 to-white">
           <SectionHeader
             icon={Stethoscope}
             title="Chief Complaint & History"
@@ -696,10 +696,10 @@ export function ExaminationTab({
           {/* Chief Complaint */}
           <div className="flex flex-col">
             <div className="flex items-baseline gap-2 mb-2">
-              <span className="text-xs font-black uppercase tracking-widest text-rose-600">
+              <span className="text-xs font-black uppercase tracking-widest text-danger">
                 CC
               </span>
-              <span className="text-xs text-slate-400 font-medium">
+              <span className="text-xs text-muted-foreground/70 font-medium">
                 Chief Complaint
               </span>
             </div>
@@ -712,9 +712,9 @@ export function ExaminationTab({
               className={`w-full rounded-xl border-2 px-4 py-3 text-sm resize-none focus:outline-none transition-all leading-relaxed
           ${
             readOnly
-              ? "border-slate-100 bg-slate-50 text-slate-500 cursor-not-allowed"
-              : "border-slate-200 bg-white text-slate-800 focus:border-rose-400 focus:shadow-sm hover:border-slate-300"
-          } placeholder:text-slate-300`}
+              ? "border-border/60 bg-muted/50 text-muted-foreground cursor-not-allowed"
+              : "border-border bg-white text-foreground focus:border-danger/40 focus:shadow-sm hover:border-input"
+          } placeholder:text-muted-foreground/50`}
             />
           </div>
 
@@ -724,7 +724,7 @@ export function ExaminationTab({
               <span className="text-xs font-black uppercase tracking-widest text-indigo-600">
                 HPI
               </span>
-              <span className="text-xs text-slate-400 font-medium">
+              <span className="text-xs text-muted-foreground/70 font-medium">
                 History of Present Illness
               </span>
             </div>
@@ -739,17 +739,17 @@ export function ExaminationTab({
               className={`w-full rounded-xl border-2 px-4 py-3 text-sm resize-none focus:outline-none transition-all leading-relaxed
           ${
             readOnly
-              ? "border-slate-100 bg-slate-50 text-slate-500 cursor-not-allowed"
-              : "border-slate-200 bg-white text-slate-800 focus:border-indigo-400 focus:shadow-sm hover:border-slate-300"
-          } placeholder:text-slate-300`}
+              ? "border-border/60 bg-muted/50 text-muted-foreground cursor-not-allowed"
+              : "border-border bg-white text-foreground focus:border-indigo-400 focus:shadow-sm hover:border-input"
+          } placeholder:text-muted-foreground/50`}
             />
           </div>
         </div>
       </div>
 
       {/* ── Vitals ────────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-1 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+      <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="px-5 py-1 border-b border-border/60 bg-gradient-to-r from-muted/50 to-white">
           <SectionHeader
             icon={Activity}
             title="Vital Signs"
@@ -773,9 +773,9 @@ export function ExaminationTab({
 
           {/* Vitals status row */}
           {!readOnly && (
-            <div className="mt-3 flex items-center gap-1 text-xs text-slate-400">
+            <div className="mt-3 flex items-center gap-1 text-xs text-muted-foreground/70">
               <span className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-green-400" />
+                <div className="w-2 h-2 rounded-full bg-success/80" />
                 Normal range: BP 90-120/60-80, Pulse 60-100, Temp 36-37.5, SpO₂
                 95-100%
               </span>
@@ -785,8 +785,8 @@ export function ExaminationTab({
       </div>
 
       {/* ── SOAP Notes ────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-1 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+      <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="px-5 py-1 border-b border-border/60 bg-gradient-to-r from-muted/50 to-white">
           <SectionHeader
             icon={FileText}
             title="SOAP Notes"
@@ -795,7 +795,7 @@ export function ExaminationTab({
             {!readOnly && (
               <div className="flex items-center gap-2">
                 <SaveStatus status={saveStatus} />
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-muted-foreground/70">
                   Auto-saves as you type
                 </span>
               </div>
@@ -808,9 +808,9 @@ export function ExaminationTab({
           <div className="grid grid-cols-4 mb-3">
             {[
               { letter: "S", label: "Subjective", color: "bg-violet-500" },
-              { letter: "O", label: "Objective", color: "bg-blue-500" },
-              { letter: "A", label: "Assessment", color: "bg-emerald-500" },
-              { letter: "P", label: "Plan", color: "bg-amber-500" },
+              { letter: "O", label: "Objective", color: "bg-primary" },
+              { letter: "A", label: "Assessment", color: "bg-success" },
+              { letter: "P", label: "Plan", color: "bg-warning" },
             ].map(({ letter, label, color }) => (
               <div
                 key={letter}
@@ -838,12 +838,12 @@ export function ExaminationTab({
 
           {/* Completeness indicator */}
           {!readOnly && (
-            <div className="mt-4 pt-4 border-t border-slate-100">
+            <div className="mt-4 pt-4 border-t border-border/60">
               <div className="flex items-center gap-1 mb-1.5">
-                <span className="text-xs font-medium text-slate-500">
+                <span className="text-xs font-medium text-muted-foreground">
                   SOAP Completeness
                 </span>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-muted-foreground/70">
                   {
                     [
                       soap.subjective,
@@ -855,9 +855,9 @@ export function ExaminationTab({
                   /4 fields filled
                 </span>
               </div>
-              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-violet-500 via-blue-500 to-emerald-500 rounded-full transition-all duration-700"
+                  className="h-full bg-gradient-to-r from-violet-500 via-primary to-success rounded-full transition-all duration-700"
                   style={{
                     width: `${([soap.subjective, soap.objective, soap.assessment, soap.plan].filter(Boolean).length / 4) * 100}%`,
                   }}
@@ -869,28 +869,28 @@ export function ExaminationTab({
       </div>
 
       {/* ── Clinical Findings & Recommendations ──────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
         <button
           onClick={() => setDiagnosisExpanded(!diagnosisExpanded)}
-          className="w-full px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white flex items-center justify-between hover:bg-slate-50 transition-colors"
+          className="w-full px-5 py-4 border-b border-border/60 bg-gradient-to-r from-muted/50 to-white flex items-center justify-between hover:bg-muted/50 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-sm">
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-sm">
               <ClipboardList className="w-4 h-4 text-white" />
             </div>
             <div className="text-left">
-              <h3 className="text-sm font-bold text-slate-800">
+              <h3 className="text-sm font-bold text-foreground">
                 Findings & Recommendations
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-muted-foreground/70 mt-0.5">
                 Detailed clinical findings and patient instructions
               </p>
             </div>
           </div>
           {diagnosisExpanded ? (
-            <ChevronUp className="w-4 h-4 text-slate-400" />
+            <ChevronUp className="w-4 h-4 text-muted-foreground/70" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-slate-400" />
+            <ChevronDown className="w-4 h-4 text-muted-foreground/70" />
           )}
         </button>
 
@@ -898,7 +898,7 @@ export function ExaminationTab({
           <div className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">
+                <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wide">
                   Clinical Findings
                 </label>
                 <textarea
@@ -908,12 +908,12 @@ export function ExaminationTab({
                   onChange={(e) => handleClinical("findings", e.target.value)}
                   placeholder="Detailed intra-oral and extra-oral findings, radiographic observations…"
                   className={`w-full rounded-xl border-2 px-4 py-3 text-sm resize-none focus:outline-none transition-all leading-relaxed
-                    ${readOnly ? "border-slate-100 bg-slate-50 text-slate-500" : "border-slate-200 bg-white text-slate-800 focus:border-blue-400 hover:border-slate-300"}
-                    placeholder:text-slate-300`}
+                    ${readOnly ? "border-border/60 bg-muted/50 text-muted-foreground" : "border-border bg-white text-foreground focus:border-primary/40 hover:border-input"}
+                    placeholder:text-muted-foreground/50`}
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">
+                <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wide">
                   Patient Recommendations
                 </label>
                 <textarea
@@ -925,8 +925,8 @@ export function ExaminationTab({
                   }
                   placeholder="Post-treatment instructions, dietary advice, oral hygiene recommendations, follow-up schedule…"
                   className={`w-full rounded-xl border-2 px-4 py-3 text-sm resize-none focus:outline-none transition-all leading-relaxed
-                    ${readOnly ? "border-slate-100 bg-slate-50 text-slate-500" : "border-slate-200 bg-white text-slate-800 focus:border-blue-400 hover:border-slate-300"}
-                    placeholder:text-slate-300`}
+                    ${readOnly ? "border-border/60 bg-muted/50 text-muted-foreground" : "border-border bg-white text-foreground focus:border-primary/40 hover:border-input"}
+                    placeholder:text-muted-foreground/50`}
                 />
               </div>
             </div>
@@ -936,7 +936,7 @@ export function ExaminationTab({
 
       {/* ReadOnly notice */}
       {readOnly && (
-        <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
+        <div className="flex items-center gap-2 px-4 py-3 bg-warning-muted/60 border border-warning/25 rounded-xl text-sm text-warning">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>This visit is completed. Clinical notes are read-only.</span>
         </div>

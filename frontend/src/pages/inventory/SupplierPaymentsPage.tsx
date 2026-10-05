@@ -71,8 +71,8 @@ function PaymentDialog({ suppliers, purchaseOrders, prefillSupplier, onClose, on
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-        <div className="p-6 border-b border-slate-100">
-          <h2 className="text-lg font-semibold text-slate-800">Record Supplier Payment</h2>
+        <div className="p-6 border-b border-border/60">
+          <h2 className="text-lg font-semibold text-foreground">Record Supplier Payment</h2>
         </div>
         <div className="p-6 space-y-3">
           <div>
@@ -119,7 +119,7 @@ function PaymentDialog({ suppliers, purchaseOrders, prefillSupplier, onClose, on
             <textarea className="input w-full" rows={2} value={form.notes} onChange={f('notes')} />
           </div>
         </div>
-        <div className="p-6 border-t border-slate-100 flex gap-3 justify-end">
+        <div className="p-6 border-t border-border/60 flex gap-3 justify-end">
           <button onClick={onClose} className="btn-secondary">Cancel</button>
           <button onClick={save} disabled={saving || !form.supplierId || !form.amount} className="btn-primary">
             {saving ? 'Saving…' : 'Record Payment'}
@@ -140,35 +140,35 @@ function SupplierBalanceCard({ supplier, onPay }: { supplier: Supplier; onPay: (
   }, [supplier.id]);
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-5">
+    <div className="bg-white border border-border rounded-xl p-5">
       <div className="flex items-start gap-3 mb-4">
-        <div className="w-9 h-9 rounded-lg bg-sky-50 flex items-center justify-center flex-shrink-0">
-          <Building2 className="w-4.5 h-4.5 text-sky-600" />
+        <div className="w-9 h-9 rounded-lg bg-primary-muted/60 flex items-center justify-center flex-shrink-0">
+          <Building2 className="w-4.5 h-4.5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-slate-800 truncate">{supplier.name}</p>
-          {supplier.contactPerson && <p className="text-xs text-slate-400">{supplier.contactPerson}</p>}
+          <p className="font-semibold text-foreground truncate">{supplier.name}</p>
+          {supplier.contactPerson && <p className="text-xs text-muted-foreground/70">{supplier.contactPerson}</p>}
         </div>
       </div>
 
       {loading ? (
         <div className="space-y-2">
-          {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-slate-100 rounded-lg animate-pulse" />)}
+          {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-muted rounded-lg animate-pulse" />)}
         </div>
       ) : balance ? (
         <>
           <div className="grid grid-cols-3 gap-2 text-center mb-4">
-            <div className="bg-slate-50 rounded-lg p-2">
-              <p className="text-[10px] text-slate-400 uppercase tracking-wider">Purchased</p>
-              <p className="text-xs font-bold text-slate-700 mt-0.5">{formatCurrency(balance.totalPurchased, 'UGX', true)}</p>
+            <div className="bg-muted/50 rounded-lg p-2">
+              <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">Purchased</p>
+              <p className="text-xs font-bold text-foreground mt-0.5">{formatCurrency(balance.totalPurchased, 'UGX', true)}</p>
             </div>
-            <div className="bg-emerald-50 rounded-lg p-2">
-              <p className="text-[10px] text-slate-400 uppercase tracking-wider">Paid</p>
-              <p className="text-xs font-bold text-emerald-700 mt-0.5">{formatCurrency(balance.totalPaid, 'UGX', true)}</p>
+            <div className="bg-success-muted/60 rounded-lg p-2">
+              <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">Paid</p>
+              <p className="text-xs font-bold text-success mt-0.5">{formatCurrency(balance.totalPaid, 'UGX', true)}</p>
             </div>
-            <div className={`rounded-lg p-2 ${balance.outstanding > 0 ? 'bg-amber-50' : 'bg-emerald-50'}`}>
-              <p className="text-[10px] text-slate-400 uppercase tracking-wider">Owed</p>
-              <p className={`text-xs font-bold mt-0.5 ${balance.outstanding > 0 ? 'text-amber-700' : 'text-emerald-600'}`}>
+            <div className={`rounded-lg p-2 ${balance.outstanding > 0 ? 'bg-warning-muted/60' : 'bg-success-muted/60'}`}>
+              <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">Owed</p>
+              <p className={`text-xs font-bold mt-0.5 ${balance.outstanding > 0 ? 'text-warning' : 'text-success'}`}>
                 {formatCurrency(balance.outstanding, 'UGX', true)}
               </p>
             </div>
@@ -176,11 +176,11 @@ function SupplierBalanceCard({ supplier, onPay }: { supplier: Supplier; onPay: (
 
           {/* PO summary */}
           {balance.purchaseOrders?.slice(0, 3).map(po => (
-            <div key={po.id} className="flex items-center justify-between text-xs py-1.5 border-t border-slate-50">
-              <span className="text-slate-500 font-mono">{po.orderNumber}</span>
+            <div key={po.id} className="flex items-center justify-between text-xs py-1.5 border-t border-border/40">
+              <span className="text-muted-foreground font-mono">{po.orderNumber}</span>
               <div className="flex items-center gap-2">
                 <span className={statusBadgeClass(po.status)}>{po.status}</span>
-                <span className={po.totalCost - po.amountPaid > 0 ? 'text-amber-600 font-medium' : 'text-emerald-600'}>
+                <span className={po.totalCost - po.amountPaid > 0 ? 'text-warning font-medium' : 'text-success'}>
                   {formatCurrency(po.totalCost - po.amountPaid, 'UGX', true)}
                 </span>
               </div>
@@ -190,14 +190,14 @@ function SupplierBalanceCard({ supplier, onPay }: { supplier: Supplier; onPay: (
           {balance.outstanding > 0 && (
             <button
               onClick={() => onPay(supplier)}
-              className="mt-4 w-full flex items-center justify-center gap-2 py-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium rounded-lg transition-colors"
+              className="mt-4 w-full flex items-center justify-center gap-2 py-2 bg-primary hover:bg-primary text-white text-sm font-medium rounded-lg transition-colors"
             >
               <CreditCard className="w-4 h-4" /> Pay Balance
             </button>
           )}
         </>
       ) : (
-        <p className="text-xs text-slate-400 text-center py-4">No purchase history</p>
+        <p className="text-xs text-muted-foreground/70 text-center py-4">No purchase history</p>
       )}
     </div>
   );
@@ -239,8 +239,8 @@ export function SupplierPaymentsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Supplier Payments</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Manage credit accounts and supplier payments</p>
+          <h1 className="text-2xl font-bold text-foreground">Supplier Payments</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Manage credit accounts and supplier payments</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => load()} className="btn-secondary flex items-center gap-2">
@@ -254,28 +254,28 @@ export function SupplierPaymentsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white border border-slate-200 rounded-xl p-5 flex items-center justify-between">
+        <div className="bg-white border border-border rounded-xl p-5 flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Total Paid Out</p>
-            <p className="text-2xl font-bold text-slate-800 mt-1">{formatCurrency(totalPaid, 'UGX', true)}</p>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total Paid Out</p>
+            <p className="text-2xl font-bold text-foreground mt-1">{formatCurrency(totalPaid, 'UGX', true)}</p>
           </div>
-          <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center">
-            <DollarSign className="w-5 h-5 text-emerald-600" />
+          <div className="w-10 h-10 bg-success-muted/60 rounded-lg flex items-center justify-center">
+            <DollarSign className="w-5 h-5 text-success" />
           </div>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-5 flex items-center justify-between">
+        <div className="bg-white border border-border rounded-xl p-5 flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Suppliers</p>
-            <p className="text-2xl font-bold text-slate-800 mt-1">{suppliers.length}</p>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Suppliers</p>
+            <p className="text-2xl font-bold text-foreground mt-1">{suppliers.length}</p>
           </div>
-          <div className="w-10 h-10 bg-sky-50 rounded-lg flex items-center justify-center">
-            <Building2 className="w-5 h-5 text-sky-600" />
+          <div className="w-10 h-10 bg-primary-muted/60 rounded-lg flex items-center justify-center">
+            <Building2 className="w-5 h-5 text-primary" />
           </div>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-5 flex items-center justify-between">
+        <div className="bg-white border border-border rounded-xl p-5 flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Total Transactions</p>
-            <p className="text-2xl font-bold text-slate-800 mt-1">{payments.length}</p>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total Transactions</p>
+            <p className="text-2xl font-bold text-foreground mt-1">{payments.length}</p>
           </div>
           <div className="w-10 h-10 bg-violet-50 rounded-lg flex items-center justify-center">
             <TrendingUp className="w-5 h-5 text-violet-600" />
@@ -284,11 +284,11 @@ export function SupplierPaymentsPage() {
       </div>
 
       {/* Tab switcher */}
-      <div className="flex gap-1 p-1 bg-slate-100 rounded-lg w-fit">
+      <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit">
         {(['payments', 'balances'] as const).map(t => (
           <button key={t} onClick={() => setActiveTab(t)}
             className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors capitalize
-              ${activeTab === t ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}>
+              ${activeTab === t ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
             {t}
           </button>
         ))}
@@ -300,7 +300,7 @@ export function SupplierPaymentsPage() {
             <SupplierBalanceCard key={s.id} supplier={s} onPay={s => setDialog({ open: true, supplier: s })} />
           ))}
           {suppliers.length === 0 && !loading && (
-            <div className="col-span-3 text-center py-12 text-slate-400">No suppliers yet.</div>
+            <div className="col-span-3 text-center py-12 text-muted-foreground/70">No suppliers yet.</div>
           )}
         </div>
       ) : (
@@ -312,41 +312,41 @@ export function SupplierPaymentsPage() {
             </select>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <div className="bg-white border border-border rounded-xl overflow-hidden">
             {loading ? (
-              <div className="p-4 space-y-2">{[...Array(5)].map((_, i) => <div key={i} className="h-12 bg-slate-100 rounded-lg animate-pulse" />)}</div>
+              <div className="p-4 space-y-2">{[...Array(5)].map((_, i) => <div key={i} className="h-12 bg-muted rounded-lg animate-pulse" />)}</div>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/50">
+                  <tr className="border-b border-border/60 bg-muted/50">
                     {['Supplier', 'Purchase Order', 'Amount', 'Method', 'Reference', 'Date', 'Notes'].map(h => (
                       <th key={h} className="th">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-border/40">
                   {payments.length === 0 ? (
-                    <tr><td colSpan={7} className="text-center py-12 text-slate-400">No payments recorded yet.</td></tr>
+                    <tr><td colSpan={7} className="text-center py-12 text-muted-foreground/70">No payments recorded yet.</td></tr>
                   ) : payments.map(p => (
-                    <tr key={p.id} className="hover:bg-slate-50">
-                      <td className="td font-medium text-slate-800">{p.supplier.name}</td>
+                    <tr key={p.id} className="hover:bg-muted/50">
+                      <td className="td font-medium text-foreground">{p.supplier.name}</td>
                       <td className="td">
                         {p.purchaseOrder ? (
                           <div>
-                            <p className="font-mono text-xs text-sky-700">{p.purchaseOrder.orderNumber}</p>
-                            <p className="text-xs text-slate-400">{formatCurrency(p.purchaseOrder.totalCost, 'UGX', true)}</p>
+                            <p className="font-mono text-xs text-primary">{p.purchaseOrder.orderNumber}</p>
+                            <p className="text-xs text-muted-foreground/70">{formatCurrency(p.purchaseOrder.totalCost, 'UGX', true)}</p>
                           </div>
-                        ) : <span className="text-slate-400">—</span>}
+                        ) : <span className="text-muted-foreground/70">—</span>}
                       </td>
-                      <td className="td font-semibold text-slate-800">{formatCurrency(p.amount)}</td>
+                      <td className="td font-semibold text-foreground">{formatCurrency(p.amount)}</td>
                       <td className="td">
-                        <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                        <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
                           {p.method.replace(/_/g, ' ')}
                         </span>
                       </td>
-                      <td className="td text-slate-500 text-xs font-mono">{p.reference ?? '—'}</td>
-                      <td className="td text-slate-500 text-xs">{formatDate(p.paidAt)}</td>
-                      <td className="td text-slate-400 text-xs truncate max-w-32">{(p as any).notes ?? '—'}</td>
+                      <td className="td text-muted-foreground text-xs font-mono">{p.reference ?? '—'}</td>
+                      <td className="td text-muted-foreground text-xs">{formatDate(p.paidAt)}</td>
+                      <td className="td text-muted-foreground/70 text-xs truncate max-w-32">{(p as any).notes ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>

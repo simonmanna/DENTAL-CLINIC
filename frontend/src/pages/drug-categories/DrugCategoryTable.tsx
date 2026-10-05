@@ -48,7 +48,7 @@ export function DrugCategoryTable({
       {onSearchChange && (
         <div className="p-4 bg-white flex items-center justify-between border-b">
           <div className="relative w-full max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
             <Input
               placeholder="Search categories..."
               value={searchQuery}
@@ -56,7 +56,7 @@ export function DrugCategoryTable({
               className="pl-9 h-10"
             />
           </div>
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-muted-foreground">
             {filtered.length} of {categories.length}
           </span>
         </div>
@@ -77,7 +77,7 @@ export function DrugCategoryTable({
           <TableBody>
             {filtered.length > 0 ? (
               filtered.map((cat) => (
-                <TableRow key={cat.id} className="hover:bg-gray-50">
+                <TableRow key={cat.id} className="hover:bg-muted/50">
                   {/* Name */}
                   <TableCell className="font-medium">
                     {cat.name}
@@ -86,16 +86,16 @@ export function DrugCategoryTable({
                   {/* Code */}
                   <TableCell>
                     {cat.code ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-mono text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
+                      <span className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded">
                         <Hash className="h-3 w-3" />
                         {cat.code}
                       </span>
-                    ) : <span className="text-gray-300">—</span>}
+                    ) : <span className="text-muted-foreground/50">—</span>}
                   </TableCell>
 
                   {/* Description */}
                   <TableCell className="max-w-md">
-                    <span className="text-sm text-gray-500 truncate block">
+                    <span className="text-sm text-muted-foreground truncate block">
                       {cat.description || 'No description'}
                     </span>
                   </TableCell>
@@ -107,8 +107,8 @@ export function DrugCategoryTable({
                       className={cn(
                         "text-xs font-semibold",
                         cat.isActive 
-                          ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" 
-                          : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                          ? "bg-success-muted text-success hover:bg-success-muted" 
+                          : "bg-muted text-muted-foreground hover:bg-muted"
                       )}
                     >
                       {cat.isActive ? 'Active' : 'Inactive'}
@@ -129,7 +129,7 @@ export function DrugCategoryTable({
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
-                          className="text-red-600 focus:text-red-600"
+                          className="text-danger focus:text-danger"
                           onClick={() => onDelete(cat.id)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" /> Delete
@@ -141,7 +141,7 @@ export function DrugCategoryTable({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="h-32 text-center text-gray-400">
+                <TableCell colSpan={5} className="h-32 text-center text-muted-foreground/70">
                   {searchQuery ? 'No categories match your search' : 'No categories found'}
                 </TableCell>
               </TableRow>

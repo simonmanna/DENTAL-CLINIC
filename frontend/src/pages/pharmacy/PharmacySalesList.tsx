@@ -81,7 +81,7 @@ export default function PharmacySalesList() {
   const handlePageChange = (page: number) => setFilters(prev => ({ ...prev, page }));
 
   return (
-    <div className="flex flex-col gap-4 p-4 md:p-6 bg-slate-50/50 min-h-screen">
+    <div className="flex flex-col gap-4 p-4 md:p-6 bg-muted/50 min-h-screen">
       
       {/* Header Section: Condensed & Professional */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -118,7 +118,7 @@ export default function PharmacySalesList() {
       <Card className="shadow-sm border-none bg-white">
         <CardContent className="p-0">
           {/* Integrated Filter Bar */}
-          <div className="p-3 border-b bg-slate-50/30">
+          <div className="p-3 border-b bg-muted/30">
             <PharmacySalesFilters 
               onFilterChange={handleFilterChange}
               onReset={handleResetFilters}

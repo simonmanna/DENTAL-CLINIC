@@ -73,9 +73,9 @@ export const FinancialReportView: React.FC<FinancialReportViewProps> = ({ data }
   };
 
   const getBalanceColor = (balance: number) => {
-    if (balance === 0) return 'bg-green-100 text-green-800';
-    if (balance < 50000) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
+    if (balance === 0) return 'bg-success-muted text-success';
+    if (balance < 50000) return 'bg-warning-muted text-warning';
+    return 'bg-danger-muted text-danger';
   };
 
   return (

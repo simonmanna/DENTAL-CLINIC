@@ -118,7 +118,7 @@ export function StockAdjustDialog({ open, drug, onClose, onSaved }: Props) {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Stock Adjustment</DialogTitle>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted-foreground">
             {drug.name}
             {drug.strength && ` · ${drug.strength}`}
           </p>
@@ -126,44 +126,44 @@ export function StockAdjustDialog({ open, drug, onClose, onSaved }: Props) {
 
         <div className="space-y-4 py-2">
           {/* Stock preview */}
-          <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border">
+          <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-xl border">
             <div className="flex-1 text-center">
-              <p className="text-xs text-slate-400 mb-0.5">Current Stock</p>
-              <p className="text-3xl font-bold text-slate-900">
+              <p className="text-xs text-muted-foreground/70 mb-0.5">Current Stock</p>
+              <p className="text-3xl font-bold text-foreground">
                 {drug.stockQuantity}
               </p>
-              <p className="text-xs text-slate-400">{drug.unit}</p>
+              <p className="text-xs text-muted-foreground/70">{drug.unit}</p>
             </div>
 
             <div className="flex flex-col items-center gap-1">
-              <ChevronRight className="w-5 h-5 text-slate-300" />
+              <ChevronRight className="w-5 h-5 text-muted-foreground/50" />
               {isInflow ? (
-                <ArrowUp className="w-4 h-4 text-emerald-500" />
+                <ArrowUp className="w-4 h-4 text-success" />
               ) : (
-                <ArrowDown className="w-4 h-4 text-red-500" />
+                <ArrowDown className="w-4 h-4 text-danger" />
               )}
             </div>
 
             <div className="flex-1 text-center">
-              <p className="text-xs text-slate-400 mb-0.5">New Stock</p>
+              <p className="text-xs text-muted-foreground/70 mb-0.5">New Stock</p>
               <p
                 className={cn(
                   'text-3xl font-bold',
                   projected === 0
-                    ? 'text-red-600'
+                    ? 'text-danger'
                     : projected <= drug.minStock
-                    ? 'text-amber-600'
-                    : 'text-emerald-600',
+                    ? 'text-warning'
+                    : 'text-success',
                 )}
               >
                 {projected}
               </p>
-              <p className="text-xs text-slate-400">{drug.unit}</p>
+              <p className="text-xs text-muted-foreground/70">{drug.unit}</p>
             </div>
           </div>
 
           {isInsufficient && (
-            <p className="text-xs text-red-600 text-center font-medium">
+            <p className="text-xs text-danger text-center font-medium">
               ⚠ Insufficient stock — only {drug.stockQuantity} available
             </p>
           )}
@@ -183,9 +183,9 @@ export function StockAdjustDialog({ open, drug, onClose, onSaved }: Props) {
                   <SelectItem key={t.value} value={t.value}>
                     <span className="flex items-center gap-2">
                       {t.isInflow ? (
-                        <ArrowUp className="w-3 h-3 text-emerald-500" />
+                        <ArrowUp className="w-3 h-3 text-success" />
                       ) : (
-                        <ArrowDown className="w-3 h-3 text-red-500" />
+                        <ArrowDown className="w-3 h-3 text-danger" />
                       )}
                       {t.label}
                     </span>
@@ -223,9 +223,9 @@ export function StockAdjustDialog({ open, drug, onClose, onSaved }: Props) {
 
           {/* Total cost indicator */}
           {isInflow && form.unitCost > 0 && form.quantity > 0 && (
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               Total cost:{' '}
-              <span className="font-semibold text-slate-700">
+              <span className="font-semibold text-foreground">
                 {UGX(form.unitCost * form.quantity)}
               </span>
             </p>

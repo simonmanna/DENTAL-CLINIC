@@ -88,8 +88,8 @@ const Thumb: React.FC<{
       className={`
         relative group rounded-lg overflow-hidden border-2 transition-all cursor-pointer
         ${selected
-          ? 'border-sky-500 ring-2 ring-sky-200'
-          : 'border-transparent hover:border-sky-300'
+          ? 'border-primary/60 ring-2 ring-primary/25'
+          : 'border-transparent hover:border-primary/30'
         }
       `}
       style={{ aspectRatio: '1' }}
@@ -105,22 +105,22 @@ const Thumb: React.FC<{
           onError={() => setError(true)}
         />
       ) : (
-        <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-          <ImageIcon className="h-6 w-6 text-gray-400" />
+        <div className="w-full h-full bg-muted flex items-center justify-center">
+          <ImageIcon className="h-6 w-6 text-muted-foreground/70" />
         </div>
       )}
 
       {!loaded && !error && (
-        <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+        <div className="absolute inset-0 bg-muted animate-pulse" />
       )}
 
       {/* Stage badge */}
       <div className="absolute top-1 left-1">
         <span className={`
           text-[10px] font-semibold px-1.5 py-0.5 rounded
-          ${record.stage === 'BEFORE' ? 'bg-amber-100 text-amber-700'
-          : record.stage === 'AFTER'  ? 'bg-emerald-100 text-emerald-700'
-          : 'bg-blue-100 text-blue-700'}
+          ${record.stage === 'BEFORE' ? 'bg-warning-muted text-warning'
+          : record.stage === 'AFTER'  ? 'bg-success-muted text-success'
+          : 'bg-primary-muted text-primary'}
         `}>
           {record.stage ?? '–'}
         </span>
@@ -129,7 +129,7 @@ const Thumb: React.FC<{
       {/* Selected checkmark */}
       {selected && (
         <div className="absolute top-1 right-1">
-          <CheckCircle2 className="h-4 w-4 text-sky-500 fill-white" />
+          <CheckCircle2 className="h-4 w-4 text-primary fill-white" />
         </div>
       )}
 
@@ -137,14 +137,14 @@ const Thumb: React.FC<{
       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-1">
         <button
           onClick={(e) => { e.stopPropagation(); onPreview?.(); }}
-          className="text-white hover:text-sky-300 transition-colors"
+          className="text-white hover:text-primary/60 transition-colors"
         >
           <ZoomIn className="h-4 w-4" />
         </button>
         {onRemove && (
           <button
             onClick={(e) => { e.stopPropagation(); onRemove(); }}
-            className="text-white hover:text-red-400 transition-colors"
+            className="text-white hover:text-danger/70 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -185,7 +185,7 @@ const Lightbox: React.FC<{
     >
       <button
         onClick={(e) => { e.stopPropagation(); setCur(c => Math.max(0, c - 1)); }}
-        className="absolute left-4 top-1/2 -translate-y-1/2 text-white p-2 hover:text-sky-400"
+        className="absolute left-4 top-1/2 -translate-y-1/2 text-white p-2 hover:text-primary/70"
         disabled={cur === 0}
       >
         <ChevronLeft className="h-8 w-8" />
@@ -198,12 +198,12 @@ const Lightbox: React.FC<{
       />
       <button
         onClick={(e) => { e.stopPropagation(); setCur(c => Math.min(images.length - 1, c + 1)); }}
-        className="absolute right-4 top-1/2 -translate-y-1/2 text-white p-2 hover:text-sky-400"
+        className="absolute right-4 top-1/2 -translate-y-1/2 text-white p-2 hover:text-primary/70"
         disabled={cur === images.length - 1}
       >
         <ChevronRight className="h-8 w-8" />
       </button>
-      <button onClick={onClose} className="absolute top-4 right-4 text-white hover:text-red-400">
+      <button onClick={onClose} className="absolute top-4 right-4 text-white hover:text-danger/70">
         <X className="h-6 w-6" />
       </button>
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/70 text-sm">
@@ -271,7 +271,7 @@ const UploadDialog: React.FC<{
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <ImagePlus className="h-5 w-5 text-sky-600" />
+            <ImagePlus className="h-5 w-5 text-primary" />
             Upload Image
           </DialogTitle>
         </DialogHeader>
@@ -288,7 +288,7 @@ const UploadDialog: React.FC<{
             }}
             className="
               border-2 border-dashed rounded-lg p-6 text-center cursor-pointer
-              hover:border-sky-400 hover:bg-sky-50 transition-colors
+              hover:border-primary/40 hover:bg-primary-muted/60 transition-colors
             "
           >
             <input
@@ -299,13 +299,13 @@ const UploadDialog: React.FC<{
               onChange={e => { const f = e.target.files?.[0]; if (f) setFile(f); }}
             />
             {file ? (
-              <div className="flex items-center justify-center gap-2 text-sky-700">
+              <div className="flex items-center justify-center gap-2 text-primary">
                 <CheckCircle2 className="h-5 w-5" />
                 <span className="text-sm font-medium truncate max-w-[220px]">{file.name}</span>
               </div>
             ) : (
               <div className="space-y-1 text-muted-foreground">
-                <Upload className="h-8 w-8 mx-auto text-sky-400" />
+                <Upload className="h-8 w-8 mx-auto text-primary/70" />
                 <p className="text-sm">Drop image here or click to browse</p>
                 <p className="text-xs">JPEG, PNG, DICOM — max 50 MB</p>
               </div>
@@ -365,7 +365,7 @@ const UploadDialog: React.FC<{
               size="sm"
               onClick={handleUpload}
               disabled={!file || uploading}
-              className="bg-sky-600 hover:bg-sky-700"
+              className="bg-primary hover:bg-primary"
             >
               {uploading
                 ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Uploading…</>
@@ -488,14 +488,14 @@ export const SessionImagingSection: React.FC<Props> = ({
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-4 rounded-xl border border-sky-100 bg-sky-50/40 p-4">
+    <div className="space-y-4 rounded-xl border border-primary/20 bg-primary-muted/40 p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <ScanLine className="h-5 w-5 text-sky-600" />
-          <span className="font-semibold text-sm text-sky-900">X-rays &amp; Photos</span>
+          <ScanLine className="h-5 w-5 text-primary" />
+          <span className="font-semibold text-sm text-primary">X-rays &amp; Photos</span>
           {linked.length > 0 && (
-            <Badge variant="secondary" className="text-xs bg-sky-100 text-sky-700">
+            <Badge variant="secondary" className="text-xs bg-primary-muted text-primary">
               {linked.length} linked
             </Badge>
           )}
@@ -508,7 +508,7 @@ export const SessionImagingSection: React.FC<Props> = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 text-xs border-sky-200 text-sky-700 hover:bg-sky-100"
+                    className="h-8 text-xs border-primary/25 text-primary hover:bg-primary-muted"
                     onClick={() => { setUploadStage('BEFORE'); setUploadOpen(true); }}
                   >
                     <Camera className="h-3.5 w-3.5 mr-1" />
@@ -524,7 +524,7 @@ export const SessionImagingSection: React.FC<Props> = ({
                 <TooltipTrigger asChild>
                   <Button
                     size="sm"
-                    className="h-8 text-xs bg-sky-600 hover:bg-sky-700 text-white"
+                    className="h-8 text-xs bg-primary hover:bg-primary text-white"
                     onClick={() => { setUploadStage('AFTER'); setUploadOpen(true); }}
                   >
                     <Camera className="h-3.5 w-3.5 mr-1" />
@@ -546,14 +546,14 @@ export const SessionImagingSection: React.FC<Props> = ({
         </div>
       ) : linked.length === 0 ? (
         <div className="text-center py-6 text-muted-foreground text-sm">
-          <ImageIcon className="h-8 w-8 mx-auto mb-2 text-sky-300" />
+          <ImageIcon className="h-8 w-8 mx-auto mb-2 text-primary/60" />
           No images linked yet. Upload or select from below.
         </div>
       ) : (
         <div className="space-y-3">
           {beforeImages.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-amber-700 mb-1.5 uppercase tracking-wide">
+              <p className="text-xs font-medium text-warning mb-1.5 uppercase tracking-wide">
                 Before ({beforeImages.length})
               </p>
               <div className="grid grid-cols-4 gap-2">
@@ -572,7 +572,7 @@ export const SessionImagingSection: React.FC<Props> = ({
 
           {afterImages.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-emerald-700 mb-1.5 uppercase tracking-wide">
+              <p className="text-xs font-medium text-success mb-1.5 uppercase tracking-wide">
                 After ({afterImages.length})
               </p>
               <div className="grid grid-cols-4 gap-2">
