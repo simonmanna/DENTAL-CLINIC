@@ -104,6 +104,29 @@ async function capture(page, shot) {
   console.log("captured", shot.name);
 }
 
+/**
+ * Record-level screens (a real visit, a real patient) only exist if you point the
+ * script at real ids. Set MANUAL_VISIT_ID / MANUAL_PATIENT_ID / MANUAL_INVOICE_ID
+ * to capture them; without them those shots are skipped.
+ */
+const VISIT = process.env.MANUAL_VISIT_ID;
+const PATIENT = process.env.MANUAL_PATIENT_ID;
+
+if (VISIT) {
+  SHOTS.clinical.push(
+    { name: "c14-visit-dashboard", path: `/visits/${VISIT}` },
+    { name: "c15-visit-dental-chart", path: `/visits/${VISIT}`, click: ["text=Dental Chart"] },
+    { name: "c16-visit-soap-notes", path: `/visits/${VISIT}`, click: ["text=Exam"] },
+    { name: "c17-visit-treatment-plans", path: `/visits/${VISIT}`, click: ["text=Treatment Plan"] },
+    { name: "c18-visit-prescriptions", path: `/visits/${VISIT}`, click: ["text=Prescription"] },
+  );
+  SHOTS.reception.push({ name: "r14-visit-detail", path: `/visits/${VISIT}` });
+}
+if (PATIENT) {
+  SHOTS.clinical.push({ name: "c19-patient-record", path: `/patients/${PATIENT}` });
+  SHOTS.reception.push({ name: "r15-patient-record", path: `/patients/${PATIENT}` });
+}
+
 const only = process.argv.includes("--only")
   ? process.argv[process.argv.indexOf("--only") + 1]
   : null;

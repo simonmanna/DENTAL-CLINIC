@@ -94,6 +94,8 @@ At the top you see a header strip with everything you need to confirm you have t
 - a **status badge** (ARRIVED / IN_PROGRESS / COMPLETED),
 - action buttons: **Start Examination** and, later, **Complete Visit**.
 
+![Figure 3a — The visit screen, header strip and tabs](images/c14-visit-dashboard.png)
+
 Underneath are the tabs where all the work happens:
 
 | Tab | What it is for |
@@ -116,9 +118,13 @@ Underneath are the tabs where all the work happens:
 
 **Tab: Exam/Notes**
 
-![Figure 3 — Clinical notes and examination](images/c05-emr.png)
+![Figure 3 — The Exam/Notes tab: medical history, chief complaint, vitals and SOAP](images/c16-visit-soap-notes.png)
 
-The note is split into the four standard SOAP sections. **Everything auto-saves as you type** — there is no Save button to forget.
+The tab opens with a **Patient Medical History** banner across the top: **Allergies**, **Medical Conditions** and **Current Medications**, each with a count and an **+ Add** button. Read it before you touch the patient, and add anything the patient tells you that is missing.
+
+Under it, **Chief Complaint & History** holds **CC** (the patient's primary concern in their own words) and **HPI** (onset, location, duration, character, aggravating and relieving factors, radiation, associated symptoms — the OLDCART prompts are in the field).
+
+Then come **Vital Signs** (section 5) and the **SOAP Notes** block. **Everything auto-saves as you type** — there is no Save button to forget.
 
 | Section | What goes in it |
 |---|---|
@@ -161,7 +167,7 @@ This is usually the nurse's first task once the patient sits down.
 
 **Tab: Dental Chart**
 
-![Figure 4 — The dental chart](images/c04-dental-chart.png)
+![Figure 4 — The dental chart inside a visit](images/c15-visit-dental-chart.png)
 
 The chart shows every tooth in FDI notation (11–18, 21–28, 31–38, 41–48). Click a tooth to select it; click several to select a group.
 
@@ -182,8 +188,20 @@ Click a tooth to open a drawer on the right listing, for that tooth:
 
 From the drawer you can edit or delete any of those entries.
 
-### The toolbar
-With teeth selected, the toolbar offers **+ Condition** and **+ Treatment**. Those are the two routes into everything below.
+### Chart controls
+
+| Control | What it does |
+|---|---|
+| **Permanent / Primary** | Switch between the adult and the deciduous dentition |
+| **Numbering** | FDI by default |
+| **UR / UL / LR / LL / Upper / Lower** | Select a whole quadrant or arch at once |
+| **Layers** | Show or hide each layer, with a live count: Existing, Planned, In Progress, Completed, On-hold/Ref, Conditions, Resolved |
+| **Zoom** | Enlarge the chart |
+| **Refresh** | Reload after someone else has charted |
+
+Selecting teeth: click a tooth or a surface; **Ctrl** (or **Cmd**) to add more; **Shift** for a range. The **Selection** panel on the right shows what you have picked.
+
+With teeth selected, the two buttons at the top right become available: **Add condition** and **Add procedure**. Those are the routes into everything below.
 
 ---
 
@@ -193,7 +211,7 @@ A condition is a diagnosis attached to a tooth and its surfaces.
 
 ### 7.1 Adding a condition
 
-**Dental Chart → select the tooth or teeth → + Condition**
+**Dental Chart → select the tooth or teeth → Add condition**
 
 The dialog has two panels.
 
@@ -262,7 +280,7 @@ Three levels, from biggest to smallest:
 
 **Tab: Treatment Plans** (also on the patient record)
 
-![Figure 5 — Treatment plans](images/c06-treatment-plans.png)
+![Figure 5 — The Treatment Plans tab](images/c17-visit-treatment-plans.png)
 
 ### 8.1 Creating a treatment plan
 
@@ -295,7 +313,7 @@ PLANNED, IN_PROGRESS and COMPLETED work themselves out from the procedures. Manu
 
 ### 8.2 Adding a procedure
 
-**Treatment Plans → + Add Treatment**
+**Treatment Plans → + Add Treatment** (or **Add procedure** from the dental chart)
 
 **Tab 1 — New Treatment** (planned and billable):
 
@@ -409,7 +427,7 @@ Drag a procedure row up or down to change its order. To move several at once, ti
 
 **Tab: Prescriptions**
 
-![Figure 6 — Prescriptions](images/c10-prescriptions.png)
+![Figure 6 — The Prescriptions tab](images/c18-visit-prescriptions.png)
 
 1. Click **New Prescription**.
 2. Search the **drug catalogue** by name.
@@ -479,7 +497,7 @@ Then click **Complete Visit**. The system:
 
 **Patients → select the patient.** The record has its own tabs:
 
-![Figure 9 — The patient list](images/c03-patients.png)
+![Figure 9 — A patient record and its tabs](images/c19-patient-record.png)
 
 | Tab | Contents |
 |---|---|

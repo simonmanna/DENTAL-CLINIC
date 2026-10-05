@@ -44,15 +44,16 @@ You do **not** need to touch clinical notes, dental charts or prescriptions. The
 ![Figure 1 — The login screen](images/r01-login.png)
 
 1. Open the clinic address in your browser (ask your manager for the exact address).
-2. Type your **email** and **password**.
-3. Click **Sign in**.
+2. Type your email in **Username / Email**, then your **Password**. The eye icon shows what you typed if you need to check it.
+3. Tick **Keep me signed in** only on a computer nobody else uses. Never on a shared front-desk machine.
+4. Click **Log In**.
 
 > **First time logging in?** Change your password straight away: click your name in the top-right corner, then **Change Password**.
 
 **If your password does not work:**
-- Check that Caps Lock is off.
+- Check that Caps Lock is off; use the eye icon to see what you typed.
 - After 5 wrong attempts the system pauses logins for one minute. Wait, then try again.
-- Still stuck? Ask your manager to reset it. Do not share your login with anyone.
+- Use **Forgot password?** on the login screen, or ask your manager to reset it. Do not share your login with anyone.
 
 **Always log out** when you leave the desk, even for a short break. Everything you do is recorded against your name.
 
@@ -65,20 +66,28 @@ You do **not** need to touch clinical notes, dental charts or prescriptions. The
 | Part of the screen | What it does |
 |---|---|
 | **Left menu (sidebar)** | All the sections of the system. Click a heading to expand it. |
-| **Top bar** | Clinic name, the notification bell, and your name. |
+| **Top bar** | Where you are (breadcrumb), the notification bell, the theme picker, and your name with your role under it. |
 | **Main area** | Whatever you are working on. |
 
 The menu items you will use every day:
 
 | Menu item | Used for |
 |---|---|
-| **Dashboard** | Today at a glance: appointments, money taken, patient numbers. |
+| **Dashboard** | Today at a glance: patients, appointments, money taken, alerts. |
 | **Patients** | Register new patients, search for existing ones. |
-| **Appointments** | The calendar. Book, confirm, check in. |
+| **Appointments → Appointments Calendar** | The calendar. Book, confirm, check in. |
+| **Appointments → Draft Appointments** | Bookings not yet finalised. |
 | **Visits** | Visits that are open right now. |
-| **Invoices & Receipts** | Bills and payments. |
+| **Invoices & Receipts → Invoices** | Bills. |
+| **Invoices & Receipts → Receipts** | Proof of payment. |
 
 Everything else in the menu belongs to the clinical or management teams. You can leave it alone.
+
+**Sign Out** and **Settings** sit at the very bottom of the left menu.
+
+### The dashboard tiles
+
+Across the top are four coloured tiles: total **patients**, today's **appointments**, today's **revenue** in UGX with the change against last month, and an **alerts** count. Underneath, **Quick Actions** tiles jump straight to Patients, Appointments, Visits, Treatment Plans, Billing, Receipts and more — one click instead of hunting the menu. **Today's Schedule** lists the day's appointments.
 
 ---
 

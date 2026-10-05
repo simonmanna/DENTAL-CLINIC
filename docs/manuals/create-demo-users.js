@@ -7,8 +7,14 @@
  * Requires DATABASE_URL in the environment (backend/.env is not loaded automatically).
  * Idempotent: re-running just resets the passwords.
  */
-const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcryptjs');
+// Node resolves modules relative to this file, not the working directory, so load
+// Prisma and bcrypt out of the backend's own node_modules.
+const path = require('path');
+const { createRequire } = require('module');
+const backendRequire = createRequire(path.join(__dirname, '..', '..', 'backend', 'package.json'));
+
+const { PrismaClient } = backendRequire('@prisma/client');
+const bcrypt = backendRequire('bcryptjs');
 
 const prisma = new PrismaClient();
 const PASSWORD = process.env.MANUAL_DEMO_PASSWORD || 'Demo@1234';

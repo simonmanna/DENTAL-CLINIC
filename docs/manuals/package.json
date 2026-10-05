@@ -1,0 +1,13 @@
+{
+  "name": "fshikta-manuals",
+  "private": true,
+  "type": "module",
+  "description": "Tooling for the Fshikta Dental user manuals: screenshot capture.",
+  "scripts": {
+    "capture": "node capture-screenshots.mjs",
+    "postinstall": "playwright install chromium"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0"
+  }
+}

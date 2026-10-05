@@ -23,9 +23,9 @@ Four questions you should be able to answer at any time, and where the answer li
 | Question | Where |
 |---|---|
 | What did we earn today / this month? | **Dashboard**, then **Reports → Sales & Receipts** |
-| Who owes us money? | **Invoices**, filtered by Unpaid / Partially Paid |
-| What is the stock worth and what is running out? | **Reports → Inventory Report**, **Stock Ledger** |
-| Who changed this record, and when? | **Audit Log** |
+| Who owes us money? | **Invoices & Receipts → Invoices**, filtered by Unpaid / Partially Paid |
+| What is the stock worth and what is running out? | **Reports → Inventory Report**, **Inventory → Stock Ledger** |
+| Who changed this record, and when? | **Reports → Audit Log** |
 
 ---
 
@@ -62,10 +62,12 @@ The dashboard is your morning check-in:
 
 | Tile | What it tells you |
 |---|---|
-| **Today's Appointments** | How busy the clinic is today |
-| **Revenue (Today)** | Money collected so far today |
-| **Active Patients** | Size of the patient base |
-| **Appointment Breakdown** | Scheduled / Confirmed / Arrived / In Progress / Completed |
+| **Patients** | Size of the patient base |
+| **Appointments** | How busy the clinic is today |
+| **Revenue** | Collected, in UGX, with the change against last month |
+| **Alerts** | Items needing attention |
+
+Also on the dashboard: a **backup status chip** in the top right (check it daily — see section 16), **Quick Actions** tiles straight into Patients, Appointments, Visits, Treatment Plans, Billing, Receipts, Pharmacy Sales, Inventory, Staff, Reports and the **Low Stock Alert**, plus **Today's Schedule** and an **Appt. Status** breakdown.
 
 A large number of appointments stuck on **Arrived** in the afternoon means patients are waiting too long, or visits are not being completed in the system. Both are worth chasing the same day.
 
@@ -79,7 +81,7 @@ A large number of appointments stuck on **Arrived** in the afternoon means patie
 
 | Report | What it answers |
 |---|---|
-| **Medical Report** | Clinical activity and outcomes: procedure completion rates, planned versus completed, diagnosis activity by dentist, ICD-10 breakdown, re-treatment candidates |
+| **Medical Report** (treatment reports) | Clinical activity and outcomes: procedure completion rates, planned versus completed, diagnosis activity by dentist, ICD-10 breakdown, re-treatment candidates |
 | **Patients Report** | Registration trend, age and gender spread, insurance split, city distribution, growth rate, patient retention |
 | **Sales & Receipts** | Revenue by day, by dentist, by payment method; revenue versus collected; average per transaction |
 | **Expenses & Payments** | Operating costs, supplier payments, spend by category |
@@ -170,7 +172,7 @@ Understand this one diagram and the accounting makes sense:
 
 **Invoices & Receipts → Receipts**, and **Cash Flow → Payments**
 
-![Figure 9 — Payments](images/m04-sales-reports.png)
+![Figure 9 — Payments received](images/r11-payments.png)
 
 Every receipt records the amount, currency, method, reference, who received it and when.
 
@@ -189,7 +191,7 @@ Every receipt records the amount, currency, method, reference, who received it a
 
 ## 5. The general ledger
 
-**Sidebar → General Ledger**
+**Reports → General Ledger**
 
 ![Figure 10 — The general ledger](images/m09-general-ledger.png)
 
@@ -234,7 +236,7 @@ Reconcile, then close the period so transactions are locked and a summary is pro
 
 ## 6. Cash and bank accounts
 
-**Sidebar → Accounts** (and **Cash Flow**)
+**Expenses → Accounts**
 
 ![Figure 11 — Accounts](images/m10-accounts.png)
 
@@ -244,7 +246,7 @@ Each physical place money sits — the till, each mobile-money wallet, each bank
 
 ## 7. Expenses
 
-**Sidebar → Expenses**
+**Expenses → Expenses**
 
 ![Figure 12 — Expenses](images/m11-expenses.png)
 
@@ -258,7 +260,7 @@ Record every cost: rent, utilities, salaries, consumables, repairs, transport.
 Approval is tracked, so an expense carries both the person who entered it and the person who approved it. Keep those two different people wherever you can.
 
 ### Expense categories
-**Expenses → Categories** — keep the list short and stable. Renaming categories every quarter destroys your ability to compare periods.
+**Expenses → Expenses**, then the categories page — keep the list short and stable. Renaming categories every quarter destroys your ability to compare periods.
 
 ![Figure 13 — Expense categories](images/m12-expense-categories.png)
 
@@ -266,7 +268,7 @@ Approval is tracked, so an expense carries both the person who entered it and th
 
 ## 8. Fixed assets
 
-**Sidebar → Fixed Assets**
+**Expenses → Fixed Assets**
 
 ![Figure 14 — Fixed assets](images/m13-fixed-assets.png)
 
@@ -278,7 +280,7 @@ Review the register twice a year: confirm each item physically exists, is where 
 
 ## 9. Suppliers and purchases
 
-**Sidebar → Purchases → Suppliers** and **Purchases**
+**Purchases → Suppliers** and **Purchases → Purchases**
 
 ![Figure 15 — Suppliers](images/m15-suppliers.png)
 
@@ -308,11 +310,11 @@ Check that what was ordered, what was received and what was invoiced all agree b
 | **Stock Out** | Issue stock to a department or a treatment |
 | **Direct Stock** | Add stock that did not come through a purchase order |
 | **Categories** | Grouping for reporting |
-| **Stock Moves** | Every movement in and out |
 | **Locations** | Stores, surgery cupboards, pharmacy — a tree of locations |
-| **Damages/Expiry** | Write off damaged or expired goods, with a reason |
 | **Adjustments** | Correct counts after a physical stock take |
 | **Stock Ledger** | The full audit trail of quantity and value |
+
+All of these sit under **Inventory** in the left menu. Stock-movement history and waste write-off screens exist in the system but are not currently on the menu; reach them from the stock ledger or ask your administrator to enable them.
 
 ![Figure 17 — Inventory](images/m17-inventory.png)
 
@@ -335,7 +337,7 @@ Check that what was ordered, what was received and what was invoiced all agree b
 
 ## 11. Pharmacy
 
-**Medicines → Pharmacy Sales**, **Drugs**, **Drug Categories**, **Prescriptions**
+**Medicines → Drugs / Drug Categories / Prescriptions**. Pharmacy sales open from the **Pharmacy Sales** quick-action tile on the dashboard.
 
 ![Figure 19 — Pharmacy sales](images/m19-pharmacy-sales.png)
 
@@ -349,7 +351,7 @@ Pharmacy sales are revenue in their own right. Watch three things:
 
 ## 12. Price list (billing services)
 
-**Sidebar → Services** (billing services)
+**Clinical → Services**
 
 ![Figure 20 — Billing services](images/m20-billing-services.png)
 
@@ -370,7 +372,7 @@ This is the clinic price list. Each service has a code, a category, a price and 
 
 ## 13. Staff and access
 
-**Sidebar → Staff**
+**Staff** (top level of the menu)
 
 ![Figure 21 — Staff](images/m14-staff.png)
 
@@ -401,7 +403,7 @@ Each staff member has personal details, a linked login account and a role. Each 
 
 ## 14. Clinic settings
 
-**Sidebar → Settings**
+**Settings** (bottom of the left menu)
 
 ![Figure 22 — Clinic settings](images/m21-settings.png)
 
@@ -413,7 +415,7 @@ Settings are stored as a searchable list of **key / value / description** entrie
 
 ## 15. Audit log
 
-**Sidebar → Audit Log**
+**Reports → Audit Log**
 
 ![Figure 23 — Audit log](images/m22-audit-log.png)
 
@@ -435,7 +437,7 @@ Use it for:
 
 ## 16. Backups
 
-**Sidebar → Backups** (admin only)
+**Reports → Backups** (admin only)
 
 ![Figure 24 — Backup status](images/m23-backups.png)
 

@@ -134,7 +134,10 @@ def find_chrome() -> str | None:
 
 
 def html_to_pdf(html_path: Path, pdf_path: Path, chrome: str) -> bool:
-    with tempfile.TemporaryDirectory() as profile:
+    # Chrome leaves a Crashpad directory behind that Windows will not let us remove
+    # immediately, so clean the profile up best-effort instead of via a context manager.
+    profile = tempfile.mkdtemp(prefix="manual-chrome-")
+    try:
         cmd = [
             chrome,
             "--headless=new",
@@ -147,9 +150,17 @@ def html_to_pdf(html_path: Path, pdf_path: Path, chrome: str) -> bool:
             html_path.as_uri(),
         ]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
-    for _ in range(10):
-        if pdf_path.exists() and pdf_path.stat().st_size > 0:
-            return True
+    finally:
+        shutil.rmtree(profile, ignore_errors=True)
+    # Chrome returns before the file is flushed, and a manual full of screenshots
+    # takes a while, so wait for the size to stop growing rather than for mere existence.
+    last = -1
+    for _ in range(120):
+        if pdf_path.exists():
+            size = pdf_path.stat().st_size
+            if size > 0 and size == last:
+                return True
+            last = size
         time.sleep(0.5)
     sys.stderr.write(f"  PDF failed: {result.stderr.strip()[:300]}\n")
     return False
