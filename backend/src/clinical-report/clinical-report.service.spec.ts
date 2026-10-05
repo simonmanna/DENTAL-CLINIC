@@ -28,8 +28,12 @@ describe('ClinicalReportsService', () => {
   it('routes TREATMENT_HISTORY and returns a structured report', async () => {
     prisma.treatmentPlan.findMany.mockResolvedValue([]);
     prisma.treatmentPlan.count.mockResolvedValue(0);
-    const out = await service.getClinicalReport({ type: ClinicalReportType.TREATMENT_HISTORY } as any);
+    const out = await service.getClinicalReport({
+      type: ClinicalReportType.TREATMENT_HISTORY,
+    } as any);
     expect(out.type).toBe(ClinicalReportType.TREATMENT_HISTORY);
-    expect(out.pagination).toBeDefined();
+    // getClinicalReport returns a union of per-report-type shapes; only
+    // some carry `pagination`, so narrow for the assertion.
+    expect((out as { pagination?: unknown }).pagination).toBeDefined();
   });
 });

@@ -10,6 +10,7 @@ describe('PaymentsService', () => {
       createPrismaMock() as any,
       createAutoMock(),
       createAutoMock(),
+      createAutoMock(),
     );
     expect(service).toBeDefined();
   });
