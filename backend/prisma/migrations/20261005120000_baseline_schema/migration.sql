@@ -1,3 +1,35 @@
+-- ─────────────────────────────────────────────────────────────────────────────
+-- CONSOLIDATED BASELINE — the whole schema in one migration.
+--
+-- Why this replaces the previous history:
+--
+-- The folders in this directory and the rows in the database's
+-- `_prisma_migrations` table had no migration in common. The database had been
+-- built from an older lineage (20260517114212_init, the billing-lifecycle
+-- refactor, the expense-status refactor and others) whose folders were no
+-- longer in the repository, while the repository carried folders that had
+-- never been applied to it. `prisma migrate deploy` could not run, and
+-- `prisma migrate status` reported a divergence with "the last common
+-- migration is: null". Replaying history was already fiction, so it was
+-- replaced with a baseline that is generated from schema.prisma and is
+-- therefore guaranteed to match it.
+--
+-- This file is MACHINE-GENERATED from schema.prisma:
+--
+--     npx prisma migrate diff --from-empty \
+--       --to-schema-datamodel prisma/schema.prisma --script
+--
+-- Do not hand-edit it. Everything Prisma cannot express in schema.prisma —
+-- the document-number function, partial unique indexes, CHECK constraints —
+-- lives in the migration that follows this one and IS maintained by hand.
+--
+-- Applying to an EXISTING database: do not run this. Bring the database level
+-- with schema.prisma, then record the baseline without executing it:
+--
+--     npx prisma migrate resolve --applied 20261005120000_baseline_schema
+--     npx prisma migrate resolve --applied 20261005120100_sql_objects_and_constraints
+-- ─────────────────────────────────────────────────────────────────────────────
+
 -- CreateEnum
 CREATE TYPE "CurrencyCode" AS ENUM ('UGX', 'USD');
 
@@ -20,7 +52,7 @@ CREATE TYPE "AppointmentType" AS ENUM ('CONSULTATION', 'CLEANING', 'FILLING', 'E
 CREATE TYPE "ToothSurface" AS ENUM ('FACIAL', 'LINGUAL', 'PALATAL', 'MESIAL', 'DISTAL', 'OCCLUSAL', 'INCISAL', 'BUCCAL', 'LABIAL');
 
 -- CreateEnum
-CREATE TYPE "TreatmentStatus" AS ENUM ('PENDING', 'PLANNED', 'IN_PROGRESS', 'COMPLETED', 'ON_HOLD', 'CANCELLED', 'REFERRED');
+CREATE TYPE "TreatmentStatus" AS ENUM ('PENDING', 'PLANNED', 'IN_PROGRESS', 'COMPLETED', 'ON_HOLD', 'CANCELLED', 'REFERRED', 'DELETED');
 
 -- CreateEnum
 CREATE TYPE "InvoiceStatus" AS ENUM ('DRAFT', 'POSTED', 'VOID');
@@ -77,19 +109,22 @@ CREATE TYPE "PharmacySaleStatus" AS ENUM ('PENDING', 'COMPLETED', 'CANCELLED', '
 CREATE TYPE "LedgerEntryType" AS ENUM ('CHARGE', 'PAYMENT', 'ADJUSTMENT', 'REFUND', 'PROCEDURE', 'DRUG', 'CONSULTATION', 'SERVICE', 'LAB', 'IMAGING', 'OTHER', 'TREATMENT_PROCEDURE', 'TREATMENT_PROCEDURE_SESSION', 'PHARMACY_SALE');
 
 -- CreateEnum
-CREATE TYPE "InvoiceItemType" AS ENUM ('TREATMENT_PROCEDURE', 'CONSULTATION', 'PRESCRIPTION', 'XRAY', 'MATERIAL', 'LAB', 'MANUAL');
+CREATE TYPE "InvoiceItemType" AS ENUM ('TREATMENT_PROCEDURE', 'CONSULTATION', 'PRESCRIPTION', 'XRAY', 'MATERIAL', 'LAB', 'MANUAL', 'OTHER');
+
+-- CreateEnum
+CREATE TYPE "InvoiceItemStatus" AS ENUM ('ACTIVE', 'VOID');
 
 -- CreateEnum
 CREATE TYPE "LedgerEntryStatus" AS ENUM ('PENDING', 'INVOICED', 'VOID');
 
 -- CreateEnum
-CREATE TYPE "PurchaseOrderStatus" AS ENUM ('DRAFT', 'SUBMITTED', 'APPROVED', 'PARTIALLY_RECEIVED', 'FULLY_RECEIVED', 'CANCELLED', 'RECEIVED');
+CREATE TYPE "PurchaseOrderStatus" AS ENUM ('DRAFT', 'SUBMITTED', 'APPROVED', 'PARTIALLY_RECEIVED', 'FULLY_RECEIVED', 'CANCELLED');
 
 -- CreateEnum
 CREATE TYPE "PaymentTerms" AS ENUM ('CASH_ON_DELIVERY', 'NET_7', 'NET_14', 'NET_30', 'NET_60', 'CREDIT');
 
 -- CreateEnum
-CREATE TYPE "DeliveryStatus" AS ENUM ('PENDING', 'PARTIAL', 'COMPLETE', 'RETURNED');
+CREATE TYPE "DeliveryStatus" AS ENUM ('PENDING', 'PARTIAL', 'COMPLETE', 'RETURNED', 'VOID');
 
 -- CreateEnum
 CREATE TYPE "StockAdjustmentReason" AS ENUM ('CYCLE_COUNT', 'DAMAGED', 'EXPIRED', 'THEFT', 'RETURNED_TO_SUPPLIER', 'FOUND', 'INITIAL_COUNT', 'OTHER');
@@ -98,7 +133,7 @@ CREATE TYPE "StockAdjustmentReason" AS ENUM ('CYCLE_COUNT', 'DAMAGED', 'EXPIRED'
 CREATE TYPE "WasteCategory" AS ENUM ('EXPIRED', 'DAMAGED', 'CONTAMINATED', 'SPILLAGE', 'BREAKAGE', 'OTHER');
 
 -- CreateEnum
-CREATE TYPE "StockLedgerType" AS ENUM ('PURCHASE_RECEIPT', 'ADJUSTMENT_IN', 'ADJUSTMENT_OUT', 'WASTE', 'TRANSFER_IN', 'TRANSFER_OUT', 'USAGE', 'SALE', 'RETURN_IN', 'RETURN_TO_SUPPLIER', 'OPENING_BALANCE', 'EXPIRY_WRITE_OFF', 'STOCK_OUT');
+CREATE TYPE "StockLedgerType" AS ENUM ('PURCHASE_RECEIPT', 'ADJUSTMENT_IN', 'ADJUSTMENT_OUT', 'WASTE', 'TRANSFER_IN', 'TRANSFER_OUT', 'USAGE', 'SALE', 'RETURN_IN', 'RETURN_TO_SUPPLIER', 'OPENING_BALANCE', 'EXPIRY_WRITE_OFF', 'STOCK_OUT', 'STOCK_IN', 'REVERSAL_IN', 'REVERSAL_OUT');
 
 -- CreateEnum
 CREATE TYPE "SessionType" AS ENUM ('SINGLE', 'MULTI');
@@ -227,7 +262,10 @@ CREATE TYPE "VendorCreditNoteStatus" AS ENUM ('DRAFT', 'APPROVED', 'APPLIED', 'V
 CREATE TYPE "InventoryType" AS ENUM ('MEDICINE', 'CONSUMABLE', 'EQUIPMENT');
 
 -- CreateEnum
-CREATE TYPE "StockTransferStatus" AS ENUM ('DRAFT', 'PENDING', 'IN_TRANSIT', 'COMPLETED', 'CANCELLED');
+CREATE TYPE "StockTransferStatus" AS ENUM ('DRAFT', 'COMPLETED', 'CANCELLED', 'REVERSED');
+
+-- CreateEnum
+CREATE TYPE "StockDocumentStatus" AS ENUM ('ACTIVE', 'VOID');
 
 -- CreateEnum
 CREATE TYPE "ComplaintStatus" AS ENUM ('IMPROVED', 'SAME', 'WORSE');
@@ -661,6 +699,9 @@ CREATE TABLE "treatment_procedures" (
     "providerId" TEXT,
     "cancellationReason" TEXT,
     "lastEditReason" TEXT,
+    "deletedAt" TIMESTAMP(3),
+    "deletedById" TEXT,
+    "deletedReason" TEXT,
     "version" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -757,6 +798,7 @@ CREATE TABLE "invoices" (
     "deletedAt" TIMESTAMP(3),
     "deletedById" TEXT,
     "deletedReason" TEXT,
+    "version" INTEGER NOT NULL DEFAULT 0,
     "createdById" TEXT,
     "updatedById" TEXT,
     "treatmentPlanId" TEXT,
@@ -783,6 +825,8 @@ CREATE TABLE "invoice_items" (
     "exchangeRate" DECIMAL(10,4) NOT NULL DEFAULT 1,
     "itemType" "InvoiceItemType" NOT NULL DEFAULT 'MANUAL',
     "treatmentProcedureId" TEXT,
+    "status" "InvoiceItemStatus" NOT NULL DEFAULT 'ACTIVE',
+    "prescriptionItemId" TEXT,
 
     CONSTRAINT "invoice_items_pkey" PRIMARY KEY ("id")
 );
@@ -1142,6 +1186,9 @@ CREATE TABLE "deliveries" (
     "invoiceNumber" TEXT,
     "notes" TEXT,
     "attachments" TEXT[],
+    "voidedAt" TIMESTAMP(3),
+    "voidedById" TEXT,
+    "voidReason" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -1197,6 +1244,8 @@ CREATE TABLE "inventory_ledger" (
     "wasteRecordId" TEXT,
     "stockTransferId" TEXT,
     "stockOutId" TEXT,
+    "stockInId" TEXT,
+    "reversalOfId" TEXT,
 
     CONSTRAINT "inventory_ledger_pkey" PRIMARY KEY ("id")
 );
@@ -1211,7 +1260,11 @@ CREATE TABLE "stock_adjustments" (
     "status" TEXT NOT NULL DEFAULT 'PENDING',
     "approvedById" TEXT,
     "approvedAt" TIMESTAMP(3),
+    "approvalNotes" TEXT,
     "performedById" TEXT,
+    "voidedAt" TIMESTAMP(3),
+    "voidedById" TEXT,
+    "voidReason" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -1270,6 +1323,9 @@ CREATE TABLE "waste_records" (
     "disposalMethod" TEXT,
     "disposalDate" TIMESTAMP(3),
     "attachments" TEXT[],
+    "voidedAt" TIMESTAMP(3),
+    "voidedById" TEXT,
+    "voidReason" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -1293,6 +1349,22 @@ CREATE TABLE "waste_items" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "waste_items_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "inventory_quantity_anomalies" (
+    "id" BIGSERIAL NOT NULL,
+    "sourceTable" TEXT NOT NULL,
+    "sourceId" TEXT NOT NULL,
+    "itemId" TEXT,
+    "locationId" TEXT,
+    "batchNumber" TEXT,
+    "oldQuantity" DOUBLE PRECISION NOT NULL,
+    "newQuantity" DOUBLE PRECISION NOT NULL,
+    "note" TEXT,
+    "detectedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "inventory_quantity_anomalies_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -1932,6 +2004,9 @@ CREATE TABLE "stock_transfers" (
     "notes" TEXT,
     "internalNotes" TEXT,
     "performedById" TEXT,
+    "voidedAt" TIMESTAMP(3),
+    "voidedById" TEXT,
+    "voidReason" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -2076,6 +2151,43 @@ CREATE TABLE "procedure_session_edits" (
 );
 
 -- CreateTable
+CREATE TABLE "stock_ins" (
+    "id" TEXT NOT NULL,
+    "inCode" TEXT NOT NULL,
+    "locationId" TEXT NOT NULL,
+    "reason" TEXT,
+    "notes" TEXT,
+    "performedById" TEXT,
+    "totalValue" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "status" "StockDocumentStatus" NOT NULL DEFAULT 'ACTIVE',
+    "voidedAt" TIMESTAMP(3),
+    "voidedById" TEXT,
+    "voidReason" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "stock_ins_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "stock_in_items" (
+    "id" TEXT NOT NULL,
+    "stockInId" TEXT NOT NULL,
+    "inventoryItemId" TEXT NOT NULL,
+    "itemName" TEXT NOT NULL,
+    "unit" TEXT NOT NULL,
+    "quantity" DOUBLE PRECISION NOT NULL,
+    "unitCost" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "totalCost" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "batchNumber" TEXT,
+    "expiryDate" TIMESTAMP(3),
+    "notes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "stock_in_items_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "stock_outs" (
     "id" TEXT NOT NULL,
     "outCode" TEXT NOT NULL,
@@ -2085,6 +2197,10 @@ CREATE TABLE "stock_outs" (
     "notes" TEXT,
     "performedById" TEXT,
     "totalValue" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "status" "StockDocumentStatus" NOT NULL DEFAULT 'ACTIVE',
+    "voidedAt" TIMESTAMP(3),
+    "voidedById" TEXT,
+    "voidReason" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -2236,13 +2352,40 @@ CREATE UNIQUE INDEX "patients_patientCode_key" ON "patients"("patientCode");
 CREATE UNIQUE INDEX "appointments_appointmentCode_key" ON "appointments"("appointmentCode");
 
 -- CreateIndex
+CREATE INDEX "appointments_dentistId_scheduledAt_idx" ON "appointments"("dentistId", "scheduledAt");
+
+-- CreateIndex
+CREATE INDEX "appointments_scheduledAt_idx" ON "appointments"("scheduledAt");
+
+-- CreateIndex
+CREATE INDEX "appointments_status_scheduledAt_idx" ON "appointments"("status", "scheduledAt");
+
+-- CreateIndex
+CREATE INDEX "appointments_patientId_scheduledAt_idx" ON "appointments"("patientId", "scheduledAt");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "visits_visitCode_key" ON "visits"("visitCode");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "visits_appointmentId_key" ON "visits"("appointmentId");
 
 -- CreateIndex
+CREATE INDEX "visits_checkedInAt_idx" ON "visits"("checkedInAt");
+
+-- CreateIndex
+CREATE INDEX "visits_status_checkedInAt_idx" ON "visits"("status", "checkedInAt");
+
+-- CreateIndex
+CREATE INDEX "visits_patientId_checkedInAt_idx" ON "visits"("patientId", "checkedInAt");
+
+-- CreateIndex
+CREATE INDEX "visits_dentistId_checkedInAt_idx" ON "visits"("dentistId", "checkedInAt");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "waitlist_entries_appointmentId_key" ON "waitlist_entries"("appointmentId");
+
+-- CreateIndex
+CREATE INDEX "visit_procedures_visitId_idx" ON "visit_procedures"("visitId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "procedures_code_key" ON "procedures"("code");
@@ -2453,6 +2596,9 @@ CREATE INDEX "deliveries_status_idx" ON "deliveries"("status");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "inventory_ledger_ledgerCode_key" ON "inventory_ledger"("ledgerCode");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "inventory_ledger_reversalOfId_key" ON "inventory_ledger"("reversalOfId");
 
 -- CreateIndex
 CREATE INDEX "inventory_ledger_itemId_idx" ON "inventory_ledger"("itemId");
@@ -2863,6 +3009,21 @@ CREATE UNIQUE INDEX "procedure_session_edits_editCode_key" ON "procedure_session
 CREATE INDEX "procedure_session_edits_sessionId_idx" ON "procedure_session_edits"("sessionId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "stock_ins_inCode_key" ON "stock_ins"("inCode");
+
+-- CreateIndex
+CREATE INDEX "stock_ins_locationId_idx" ON "stock_ins"("locationId");
+
+-- CreateIndex
+CREATE INDEX "stock_ins_createdAt_idx" ON "stock_ins"("createdAt");
+
+-- CreateIndex
+CREATE INDEX "stock_in_items_stockInId_idx" ON "stock_in_items"("stockInId");
+
+-- CreateIndex
+CREATE INDEX "stock_in_items_inventoryItemId_idx" ON "stock_in_items"("inventoryItemId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "stock_outs_outCode_key" ON "stock_outs"("outCode");
 
 -- CreateIndex
@@ -3031,7 +3192,7 @@ ALTER TABLE "treatment_procedures" ADD CONSTRAINT "treatment_procedures_ledgerEn
 ALTER TABLE "treatment_procedures" ADD CONSTRAINT "treatment_procedures_providerId_fkey" FOREIGN KEY ("providerId") REFERENCES "staff"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "procedure_sessions" ADD CONSTRAINT "procedure_sessions_treatmentProcedureId_fkey" FOREIGN KEY ("treatmentProcedureId") REFERENCES "treatment_procedures"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "procedure_sessions" ADD CONSTRAINT "procedure_sessions_treatmentProcedureId_fkey" FOREIGN KEY ("treatmentProcedureId") REFERENCES "treatment_procedures"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "procedure_sessions" ADD CONSTRAINT "procedure_sessions_visitId_fkey" FOREIGN KEY ("visitId") REFERENCES "visits"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -3068,6 +3229,9 @@ ALTER TABLE "invoice_items" ADD CONSTRAINT "invoice_items_ledgerEntryId_fkey" FO
 
 -- AddForeignKey
 ALTER TABLE "invoice_items" ADD CONSTRAINT "invoice_items_treatmentProcedureId_fkey" FOREIGN KEY ("treatmentProcedureId") REFERENCES "treatment_procedures"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "invoice_items" ADD CONSTRAINT "invoice_items_prescriptionItemId_fkey" FOREIGN KEY ("prescriptionItemId") REFERENCES "prescription_items"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "payments" ADD CONSTRAINT "payments_invoiceId_fkey" FOREIGN KEY ("invoiceId") REFERENCES "invoices"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -3224,6 +3388,12 @@ ALTER TABLE "inventory_ledger" ADD CONSTRAINT "inventory_ledger_stockTransferId_
 
 -- AddForeignKey
 ALTER TABLE "inventory_ledger" ADD CONSTRAINT "inventory_ledger_stockOutId_fkey" FOREIGN KEY ("stockOutId") REFERENCES "stock_outs"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "inventory_ledger" ADD CONSTRAINT "inventory_ledger_stockInId_fkey" FOREIGN KEY ("stockInId") REFERENCES "stock_ins"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "inventory_ledger" ADD CONSTRAINT "inventory_ledger_reversalOfId_fkey" FOREIGN KEY ("reversalOfId") REFERENCES "inventory_ledger"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "stock_adjustments" ADD CONSTRAINT "stock_adjustments_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "locations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -3473,6 +3643,15 @@ ALTER TABLE "progress_report_conditions" ADD CONSTRAINT "progress_report_conditi
 
 -- AddForeignKey
 ALTER TABLE "procedure_session_edits" ADD CONSTRAINT "procedure_session_edits_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "procedure_sessions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "stock_ins" ADD CONSTRAINT "stock_ins_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "locations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "stock_in_items" ADD CONSTRAINT "stock_in_items_stockInId_fkey" FOREIGN KEY ("stockInId") REFERENCES "stock_ins"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "stock_in_items" ADD CONSTRAINT "stock_in_items_inventoryItemId_fkey" FOREIGN KEY ("inventoryItemId") REFERENCES "inventory_items"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "stock_outs" ADD CONSTRAINT "stock_outs_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "locations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

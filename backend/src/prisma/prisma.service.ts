@@ -1,16 +1,27 @@
 // src/prisma/prisma.service.ts
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
     super({
-      log: process.env.NODE_ENV === 'development' ? ['query', 'warn', 'error'] : ['error'],
+      log:
+        process.env.NODE_ENV === 'development'
+          ? ['query', 'warn', 'error']
+          : ['error'],
     });
   }
 
@@ -20,10 +31,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
     // Apply SQL-only constraints that Prisma cannot express in schema.prisma.
     // CANONICAL SOURCE is the migration history (`prisma migrate deploy` in
-    // production — see 20260710000001_partial_unique_indexes_and_checks).
-    // This hook is a dev-only safety net for databases created with
-    // `prisma db push`, which skips migrations. All statements are
-    // idempotent, so re-applying over a migrated database is a no-op.
+    // production — see 20261005120100_sql_objects_and_constraints, which also
+    // carries the generate_document_number function and the inventory
+    // quantity CHECKs). This hook is a dev-only safety net for databases
+    // created with `prisma db push`, which skips migrations. All statements
+    // are idempotent, so re-applying over a migrated database is a no-op.
     await this.applyBootSqlConstraints();
   }
 
@@ -67,8 +79,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async cleanDatabase() {
     if (process.env.NODE_ENV === 'production') return;
-    const models = Reflect.ownKeys(this).filter(k => k[0] !== '_');
-    return Promise.all(models.map(m => (this as any)[m]?.deleteMany?.()));
+    const models = Reflect.ownKeys(this).filter((k) => k[0] !== '_');
+    return Promise.all(models.map((m) => (this as any)[m]?.deleteMany?.()));
   }
 }
 
