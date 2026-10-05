@@ -32,10 +32,14 @@ export function ProceduresSection({ visitId, procedures: initialProcedures, read
     enabled: !!visitId,
   });
 
-  const procedures = visitData?.procedures || initialProcedures || [];
+  // GET /visits/:id returns { visit, previousVisits, financials, progress } —
+  // the procedure lines hang off `visit`, not off the envelope.
+  const procedures = visitData?.visit?.procedures || initialProcedures || [];
 
   const addMutation = useMutation({
-    mutationFn: (data: { procedureId: string; toothNumber?: string; notes?: string }) =>
+    // No `cost`: the backend prices the procedure from the catalogue. Sending
+    // one that disagrees is rejected rather than billed.
+    mutationFn: (data: { procedureId: string; toothNumbers?: number[]; notes?: string }) =>
       visitsApi.addProcedure(visitId, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['visit', visitId] });
@@ -54,14 +58,21 @@ export function ProceduresSection({ visitId, procedures: initialProcedures, read
 
   const handleAdd = () => {
     if (!selectedProcedure) return;
+    // The field accepts "16" or "16, 17" — the API takes FDI numbers as an array.
+    const toothNumbers = toothNumber
+      .split(',')
+      .map((t) => parseInt(t.trim(), 10))
+      .filter((n) => Number.isFinite(n));
+
     addMutation.mutate({
       procedureId: selectedProcedure.id,
-      toothNumber: toothNumber || undefined,
+      toothNumbers: toothNumbers.length ? toothNumbers : undefined,
       notes: notes || undefined,
     });
   };
 
-  const total = procedures.reduce((sum: number, p: any) => sum + (p.cost || 0), 0);
+  // `cost` is a Decimal column and arrives as a string — Number() it before summing.
+  const total = procedures.reduce((sum: number, p: any) => sum + Number(p.cost ?? 0), 0);
 
   return (
     <div className="space-y-4">

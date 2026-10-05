@@ -44,6 +44,19 @@ export function validateEnv(env: NodeJS.ProcessEnv = process.env): void {
     }
   }
 
+  // CLINIC_TIMEZONE decides where the clinic's day starts for every date
+  // filter (see common/time/clinic-day.ts). A typo would silently fall back to
+  // the default and shift the whole calendar, so reject an unknown zone here
+  // rather than at 08:00 on a Monday.
+  const tz = env.CLINIC_TIMEZONE?.trim();
+  if (tz) {
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone: tz });
+    } catch {
+      problems.push(`CLINIC_TIMEZONE="${tz}" is not a known IANA timezone`);
+    }
+  }
+
   if (problems.length) {
     throw new Error(
       `Invalid environment (NODE_ENV=${env.NODE_ENV ?? 'unset'}):\n` +

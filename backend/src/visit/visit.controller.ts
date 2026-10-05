@@ -1,4 +1,15 @@
-// src/visits/visits.controller.ts
+// src/visit/visit.controller.ts
+//
+// Authorisation note: this controller carried no `@Roles(...)` metadata, so
+// any authenticated principal — a pharmacist, a lab technician — could write
+// SOAP notes, record procedures and issue prescriptions. Clinical writes are
+// now restricted to the clinical roles, prescribing to prescribers, and the
+// acting user is passed down so the service can audit the write and decide
+// whether an amendment to a closed record is permitted.
+//
+// Reads stay authenticated-only: pharmacy, lab and reception screens all show
+// visit context legitimately.
+
 import {
   Controller,
   Get,
@@ -7,21 +18,47 @@ import {
   Body,
   Param,
   Query,
-  UsePipes,
-  ValidationPipe,
+  HttpCode,
+  HttpStatus,
   ParseIntPipe,
 } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 import { VisitsService } from './visit.service';
+// `import type`: ActingUser appears in decorated signatures, which
+// emitDecoratorMetadata would otherwise try to emit a runtime reference for.
+import type { ActingUser } from './visit.service';
 import {
   CreateVisitDto,
   UpdateClinicalNotesDto,
   UpdateVitalsDto,
   AddProcedureDto,
   WritePrescriptionDto,
-  ProcessPaymentDto,
   CompleteVisitDto,
+  CancelVisitDto,
 } from './visit.service';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+
+/** Opening and closing an encounter — front desk included. */
+const CAN_MANAGE_VISIT = [
+  UserRole.SUPER_ADMIN,
+  UserRole.ADMIN,
+  UserRole.DENTIST,
+  UserRole.NURSE,
+  UserRole.RECEPTIONIST,
+];
+
+/** Writing into the clinical record. */
+const CAN_CHART = [
+  UserRole.SUPER_ADMIN,
+  UserRole.ADMIN,
+  UserRole.DENTIST,
+  UserRole.NURSE,
+];
+
+/** Prescribing. Nurses chart vitals but do not prescribe. */
+const CAN_PRESCRIBE = [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.DENTIST];
 
 @ApiTags('Visits')
 @ApiBearerAuth()
@@ -29,9 +66,9 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 export class VisitsController {
   constructor(private readonly svc: VisitsService) {}
 
-  // ═════════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   //  LIST & SEARCH (static routes first to avoid :id shadowing)
-  // ═════════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
 
   @Get()
   @ApiOperation({ summary: 'List visits with filters and pagination' })
@@ -60,7 +97,7 @@ export class VisitsController {
   }
 
   @Get('active')
-  @ApiOperation({ summary: "Get today's active visits" })
+  @ApiOperation({ summary: "Get a day's active visits (default: today)" })
   getActive(@Query('date') date?: string) {
     return this.svc.getActiveVisits(date);
   }
@@ -83,9 +120,9 @@ export class VisitsController {
     return this.svc.getProgressReportsByPatient(patientId);
   }
 
-  // ═════════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   //  SINGLE VISIT
-  // ═════════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
 
   @Get(':id')
   @ApiOperation({ summary: 'Get visit dashboard' })
@@ -99,78 +136,108 @@ export class VisitsController {
     return this.svc.getVisitDashboard(id);
   }
 
-  // ═════════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   //  VISIT LIFECYCLE
-  // ═════════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
 
   @Post()
-  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  @Roles(...CAN_MANAGE_VISIT)
   @ApiOperation({ summary: 'Create a visit from checked-in appointment' })
-  create(@Body() dto: CreateVisitDto) {
-    return this.svc.createVisit(dto);
+  create(@Body() dto: CreateVisitDto, @CurrentUser() user: ActingUser) {
+    return this.svc.createVisit(dto, user);
   }
 
   /** @deprecated Use POST /visits instead */
   @Post('check-in')
-  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
-  @ApiOperation({ summary: 'Create a visit from checked-in appointment (legacy)' })
-  checkIn(@Body() dto: CreateVisitDto) {
-    return this.svc.createVisit(dto);
+  @Roles(...CAN_MANAGE_VISIT)
+  @ApiOperation({
+    summary: 'Create a visit from checked-in appointment (legacy)',
+  })
+  checkIn(@Body() dto: CreateVisitDto, @CurrentUser() user: ActingUser) {
+    return this.svc.createVisit(dto, user);
   }
 
   @Post(':id/start')
+  @Roles(...CAN_CHART)
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Start examination' })
-  startExamination(@Param('id') id: string) {
-    return this.svc.startExamination(id);
+  startExamination(@Param('id') id: string, @CurrentUser() user: ActingUser) {
+    return this.svc.startExamination(id, user);
   }
 
   @Post(':id/complete')
-  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  @Roles(...CAN_CHART)
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Complete visit' })
-  complete(@Param('id') id: string, @Body() dto: CompleteVisitDto) {
-    return this.svc.completeVisit(id, dto);
+  complete(
+    @Param('id') id: string,
+    @Body() dto: CompleteVisitDto,
+    @CurrentUser() user: ActingUser,
+  ) {
+    return this.svc.completeVisit(id, dto, user);
   }
 
-  // ═════════════════════════════════════════════════════════════════════════════
+  @Post(':id/cancel')
+  @Roles(...CAN_MANAGE_VISIT)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Cancel an open visit (patient left, wrong patient, etc.)',
+  })
+  cancel(
+    @Param('id') id: string,
+    @Body() dto: CancelVisitDto,
+    @CurrentUser() user: ActingUser,
+  ) {
+    return this.svc.cancelVisit(id, dto.reason, user);
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
   //  CLINICAL DATA
-  // ═════════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
 
   @Patch(':id/soap')
-  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  @Roles(...CAN_CHART)
   @ApiOperation({ summary: 'Update SOAP notes' })
-  updateSOAP(@Param('id') id: string, @Body() dto: UpdateClinicalNotesDto) {
-    return this.svc.updateSOAP(id, dto);
+  updateSOAP(
+    @Param('id') id: string,
+    @Body() dto: UpdateClinicalNotesDto,
+    @CurrentUser() user: ActingUser,
+  ) {
+    return this.svc.updateSOAP(id, dto, user);
   }
 
   @Patch(':id/vitals')
-  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  @Roles(...CAN_CHART)
   @ApiOperation({ summary: 'Update vitals' })
-  updateVitals(@Param('id') id: string, @Body() dto: UpdateVitalsDto) {
-    return this.svc.updateVitals(id, dto);
+  updateVitals(
+    @Param('id') id: string,
+    @Body() dto: UpdateVitalsDto,
+    @CurrentUser() user: ActingUser,
+  ) {
+    return this.svc.updateVitals(id, dto, user);
   }
 
   @Post(':id/procedures')
-  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
-  @ApiOperation({ summary: 'Add procedure to visit' })
-  addProcedure(@Param('id') id: string, @Body() dto: AddProcedureDto) {
-    return this.svc.addProcedure(id, dto);
+  @Roles(...CAN_CHART)
+  @ApiOperation({
+    summary: 'Add procedure to visit (priced from the procedure catalogue)',
+  })
+  addProcedure(
+    @Param('id') id: string,
+    @Body() dto: AddProcedureDto,
+    @CurrentUser() user: ActingUser,
+  ) {
+    return this.svc.addProcedure(id, dto, user);
   }
 
   @Post(':id/prescriptions')
-  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  @Roles(...CAN_PRESCRIBE)
   @ApiOperation({ summary: 'Write prescription' })
   writePrescription(
     @Param('id') id: string,
     @Body() dto: WritePrescriptionDto,
+    @CurrentUser() user: ActingUser,
   ) {
-    return this.svc.writePrescription(id, dto);
+    return this.svc.writePrescription(id, dto, user);
   }
-
-  // @Post(':id/payments')
-  // @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
-  // @ApiOperation({ summary: 'Process payment' })
-  // processPayment(@Param('id') id: string, @Body() dto: ProcessPaymentDto) {
-  //   return this.svc.processPayment(id, dto);
-  // }
-
 }

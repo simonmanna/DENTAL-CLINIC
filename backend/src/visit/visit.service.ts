@@ -1,74 +1,151 @@
-// src/visits/visits.service.ts
+// src/visit/visit.service.ts
+//
+// The clinical encounter: check-in → examination → completion.
+//
+// What changed when this was hardened for production:
+//
+//  • A visit is created ARRIVED, not IN_PROGRESS. The old code wrote
+//    IN_PROGRESS, which made ARRIVED unreachable and `startExamination` —
+//    which requires ARRIVED — fail with 400 for every caller, including the
+//    "Start examination" button in VisitPage.
+//  • Clinical writes (SOAP, vitals, procedures, prescriptions) now load the
+//    visit first, so a missing id is a 404 and not a Prisma P2025, and they
+//    refuse to write to a COMPLETED or CANCELLED visit. Editing a completed
+//    record is still possible, but only as an explicit amendment: the treating
+//    dentist or an admin, with a stated reason, recorded in `audit_logs`.
+//  • `addProcedure` prices from the procedure catalogue through PricingEngine.
+//    The client used to supply `cost`, so any authenticated user could bill a
+//    crown at zero. An override is still allowed for the roles that may
+//    discount, and it is recorded with the engine price beside it.
+//  • Procedure insert + visit-total increment happen in one transaction. They
+//    were two separate writes, so a failure between them left the visit total
+//    permanently wrong.
+//  • Dashboard financials read the real `amountPaid`/`totalCost` columns. They
+//    were hardcoded to 0, which reported every zero-cost visit as PAID and
+//    every other visit as OPEN regardless of what had been collected.
+//  • Day windows come from `common/time/clinic-day`, so the visit list and the
+//    active board agree with the appointments calendar about where a day ends.
+
 import {
   Injectable,
+  Logger,
+  ForbiddenException,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AppointmentStatus, VisitStatus, Prisma } from '@prisma/client';
+import {
+  AppointmentStatus,
+  BalanceStatus,
+  Prisma,
+  UserRole,
+  VisitStatus,
+} from '@prisma/client';
 import { Type } from 'class-transformer';
 import { DocumentNumberService } from '../common/document-number/document-number.service';
+import { M } from '../common/money/money';
+import { PricingEngine } from '../common/pricing/pricing.engine';
+import { dayRange } from '../common/time/clinic-day';
+import { assertVisitTransition, isVisitOpen } from './visit-status';
 
 import {
   IsString,
   IsOptional,
   IsInt,
+  IsArray,
+  IsBoolean,
+  IsNumber,
+  IsISO8601,
   Min,
   Max,
-  IsEnum,
   IsNotEmpty,
-  IsArray,
-  IsNumber,
+  MaxLength,
   ValidateNested,
 } from 'class-validator';
 
-// DTOs
+// ─── Acting principal ─────────────────────────────────────────────────────────
+
+/** The authenticated caller, as assembled by JwtStrategy.validate. */
+export interface ActingUser {
+  id?: string;
+  role?: UserRole;
+  /** Staff row of the caller, when they are clinical staff. */
+  staffId?: string | null;
+}
+
+/** Roles permitted to override a catalogue price or amend a closed record. */
+const CAN_OVERRIDE_PRICE: UserRole[] = [
+  UserRole.SUPER_ADMIN,
+  UserRole.ADMIN,
+  UserRole.DENTIST,
+];
+
+// ─── DTOs ─────────────────────────────────────────────────────────────────────
+
 export class CreateVisitDto {
-  @IsString()
-  @IsNotEmpty()
-  appointmentId: string;
-
-  @IsString()
-  @IsNotEmpty()
-  dentistId: string;
+  @IsString() @IsNotEmpty() appointmentId: string;
+  /**
+   * Provider the encounter is attributed to. Optional: the appointment's
+   * dentist is used when omitted. Supplied when cover changes at the chair.
+   */
+  @IsOptional() @IsString() dentistId?: string;
 }
 
-export class UpdateClinicalNotesDto {
-  @IsOptional() @IsString() chiefComplaint?: string;
-  @IsOptional() @IsString() historyOfPresentIllness?: string;
-  @IsOptional() @IsString() subjective?: string;
-  @IsOptional() @IsString() objective?: string;
-  @IsOptional() @IsString() assessment?: string;
-  @IsOptional() @IsString() plan?: string;
-  @IsOptional() @IsString() findings?: string;
-  @IsOptional() @IsString() recommendations?: string;
+/** Fields carried by every clinical write, for the amendment path. */
+class AmendableDto {
+  /**
+   * Required when writing to a COMPLETED visit. Recorded in `audit_logs`
+   * alongside the before/after values.
+   */
+  @IsOptional() @IsString() @MaxLength(1000) amendmentReason?: string;
 }
 
-export class UpdateVitalsDto {
-  @IsOptional() @IsString() bloodPressure?: string;
-  @IsOptional() @IsNumber() pulseRate?: number;
-  @IsOptional() @IsNumber() temperature?: number;
-  @IsOptional() @IsNumber() weight?: number;
-  @IsOptional() @IsNumber() height?: number;
-  @IsOptional() @IsNumber() oxygenSat?: number;
+export class UpdateClinicalNotesDto extends AmendableDto {
+  @IsOptional() @IsString() @MaxLength(5000) chiefComplaint?: string;
+  @IsOptional() @IsString() @MaxLength(10000) historyOfPresentIllness?: string;
+  @IsOptional() @IsString() @MaxLength(10000) subjective?: string;
+  @IsOptional() @IsString() @MaxLength(10000) objective?: string;
+  @IsOptional() @IsString() @MaxLength(10000) assessment?: string;
+  @IsOptional() @IsString() @MaxLength(10000) plan?: string;
+  @IsOptional() @IsString() @MaxLength(10000) findings?: string;
+  @IsOptional() @IsString() @MaxLength(10000) recommendations?: string;
+}
+
+export class UpdateVitalsDto extends AmendableDto {
+  @IsOptional() @IsString() @MaxLength(20) bloodPressure?: string;
+  @IsOptional() @IsNumber() @Min(0) @Max(400) pulseRate?: number;
+  @IsOptional() @IsNumber() @Min(20) @Max(45) temperature?: number;
+  @IsOptional() @IsNumber() @Min(0) @Max(500) weight?: number;
+  @IsOptional() @IsNumber() @Min(0) @Max(300) height?: number;
+  @IsOptional() @IsNumber() @Min(0) @Max(100) oxygenSat?: number;
 }
 
 export class AddProcedureDto {
   @IsString() @IsNotEmpty() procedureId: string;
-  @IsOptional() toothNumbers?: number[];
-  @IsOptional() surfaces?: string[];
-  @IsOptional() @IsString() notes?: string;
-  @IsNumber() @Min(0) cost: number;
+  @IsOptional() @IsArray() @IsInt({ each: true }) toothNumbers?: number[];
+  @IsOptional() @IsArray() @IsString({ each: true }) surfaces?: string[];
+  @IsOptional() @IsString() @MaxLength(5000) notes?: string;
+  @IsOptional() @IsInt() @Min(1) @Max(64) sessionCount?: number;
+  @IsOptional() @IsInt() @Min(1) @Max(64) quantityOverride?: number;
+
+  /**
+   * Agreed price, when it differs from the catalogue. Honoured only for
+   * CAN_OVERRIDE_PRICE roles and only with `overrideReason`; the engine price
+   * is stored next to it either way.
+   */
+  @IsOptional() @IsNumber() @Min(0) cost?: number;
+  @IsOptional() @IsBoolean() isPriceOverridden?: boolean;
+  @IsOptional() @IsString() @MaxLength(1000) overrideReason?: string;
 }
 
 export class PrescriptionItemDto {
   @IsString() @IsNotEmpty() drugId: string;
-  @IsString() @IsNotEmpty() dosage: string;
-  @IsString() @IsNotEmpty() frequency: string;
-  @IsString() @IsNotEmpty() duration: string;
-  @IsInt() @Min(1) quantity: number;
-  @IsOptional() @IsString() route?: string;
-  @IsOptional() @IsString() instructions?: string;
+  @IsString() @IsNotEmpty() @MaxLength(200) dosage: string;
+  @IsString() @IsNotEmpty() @MaxLength(200) frequency: string;
+  @IsString() @IsNotEmpty() @MaxLength(200) duration: string;
+  @IsInt() @Min(1) @Max(10000) quantity: number;
+  @IsOptional() @IsString() @MaxLength(100) route?: string;
+  @IsOptional() @IsString() @MaxLength(1000) instructions?: string;
 }
 
 export class WritePrescriptionDto {
@@ -77,72 +154,160 @@ export class WritePrescriptionDto {
   @Type(() => PrescriptionItemDto)
   items: PrescriptionItemDto[];
 
-  @IsOptional() @IsString() notes?: string;
-  @IsOptional() @IsString() validUntil?: string;
-}
-
-export class ProcessPaymentDto {
-  @IsNumber() @Min(0) amount: number;
-  @IsString() @IsNotEmpty() method: string;
-  @IsOptional() @IsString() reference?: string;
-  @IsOptional() @IsString() notes?: string;
+  @IsOptional() @IsString() @MaxLength(5000) notes?: string;
+  @IsOptional() @IsISO8601() validUntil?: string;
 }
 
 export class CompleteVisitDto {
-  @IsOptional() @IsString() followUpDate?: string;
-  @IsOptional() @IsString() followUpNotes?: string;
-  @IsOptional() @IsString() recommendations?: string;
+  @IsOptional() @IsISO8601() followUpDate?: string;
+  @IsOptional() @IsString() @MaxLength(5000) followUpNotes?: string;
+  @IsOptional() @IsString() @MaxLength(5000) recommendations?: string;
 }
+
+export class CancelVisitDto {
+  @IsString() @IsNotEmpty() @MaxLength(1000) reason: string;
+}
+
+// ─── SERVICE ──────────────────────────────────────────────────────────────────
 
 @Injectable()
 export class VisitsService {
+  private readonly logger = new Logger(VisitsService.name);
+
   constructor(
     private prisma: PrismaService,
     private docNum: DocumentNumberService,
   ) {}
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // GUARDS & AUDIT
+  // ═══════════════════════════════════════════════════════════════════════
+
+  private async loadVisit(visitId: string) {
+    const visit = await this.prisma.visit.findUnique({
+      where: { id: visitId },
+    });
+    if (!visit) throw new NotFoundException('Visit not found');
+    return visit;
+  }
+
   /**
-   * STEP 1: Create Visit from Checked-In Appointment
-   * Called when patient arrives and is checked in
+   * Decide whether this caller may write clinical data to this visit.
+   *
+   * Open visit        → anyone the route's @Roles already admitted.
+   * COMPLETED visit   → treating dentist or admin, with a stated reason. The
+   *                     write is an amendment and is audited as one.
+   * CANCELLED visit   → never. A cancelled encounter has no clinical content
+   *                     to correct; record a new visit instead.
    */
-  async createVisit(dto: CreateVisitDto) {
-    // ✅ GUARD: Validate required IDs before hitting Prisma
+  private assertClinicalWriteAllowed(
+    visit: { id: string; status: VisitStatus; dentistId: string },
+    actor: ActingUser | undefined,
+    amendmentReason: string | undefined,
+    what: string,
+  ): { isAmendment: boolean } {
+    if (isVisitOpen(visit.status)) return { isAmendment: false };
+
+    if (visit.status === VisitStatus.CANCELLED) {
+      throw new BadRequestException(
+        `Cannot change ${what} on a cancelled visit. Record a new visit instead.`,
+      );
+    }
+
+    // COMPLETED from here on.
+    const isAdmin =
+      actor?.role === UserRole.SUPER_ADMIN || actor?.role === UserRole.ADMIN;
+    const isTreatingDentist =
+      !!actor?.staffId && actor.staffId === visit.dentistId;
+
+    if (!isAdmin && !isTreatingDentist) {
+      throw new ForbiddenException(
+        `This visit is completed. Only the treating dentist or an administrator may amend ${what}.`,
+      );
+    }
+    if (!amendmentReason?.trim()) {
+      throw new BadRequestException(
+        `This visit is completed. Provide amendmentReason to amend ${what} — ` +
+          'the original values and the reason are kept in the audit trail.',
+      );
+    }
+    return { isAmendment: true };
+  }
+
+  private async writeAudit(
+    client: Prisma.TransactionClient | PrismaService,
+    entry: {
+      action: string;
+      recordId: string;
+      entityType?: string;
+      actorId?: string;
+      oldData?: Record<string, unknown>;
+      newData?: Record<string, unknown>;
+      reason?: string;
+    },
+  ): Promise<void> {
+    try {
+      await client.auditLog.create({
+        data: {
+          userId: entry.actorId ?? null,
+          action: entry.action,
+          module: 'VISITS',
+          entityType: entry.entityType ?? 'Visit',
+          recordId: entry.recordId,
+          oldData: (entry.oldData ?? undefined) as Prisma.InputJsonValue,
+          newData: (entry.newData ?? undefined) as Prisma.InputJsonValue,
+          reason: entry.reason,
+        },
+      });
+    } catch (err) {
+      this.logger.error(
+        `Audit write failed for visit ${entry.recordId} (${entry.action})`,
+        err as Error,
+      );
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // LIFECYCLE
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * STEP 1 — open a visit for a checked-in appointment.
+   * The visit starts ARRIVED; `startExamination` moves it to IN_PROGRESS.
+   */
+  async createVisit(dto: CreateVisitDto, actor?: ActingUser) {
     if (!dto.appointmentId) {
       throw new BadRequestException('appointmentId is required');
-    }
-    if (!dto.dentistId) {
-      throw new BadRequestException('dentistId is required');
     }
 
     const appointment = await this.prisma.appointment.findUnique({
       where: { id: dto.appointmentId },
-      include: { patient: true, visit: true },
+      include: { visit: { select: { id: true } } },
     });
 
     if (!appointment) throw new NotFoundException('Appointment not found');
-
-    if (!appointment.dentistId) {
-      throw new BadRequestException('Appointment has no assigned dentist');
-    }
-
-    const dentistExists = await this.prisma.staff.findUnique({
-      where: { id: appointment.dentistId },
-    });
-
-    if (!dentistExists) {
-      throw new BadRequestException(
-        `Dentist with ID ${appointment.dentistId} not found`,
-      );
-    }
-
     if (appointment.visit) {
       throw new BadRequestException(
         'Visit already exists for this appointment',
       );
     }
-
     if (appointment.status !== AppointmentStatus.ARRIVED) {
       throw new BadRequestException('Patient must be checked in first');
+    }
+
+    // The appointment's dentist is the default; an explicit dentistId covers
+    // the case where another provider takes the chair.
+    const dentistId = dto.dentistId || appointment.dentistId;
+    if (!dentistId) {
+      throw new BadRequestException('Appointment has no assigned dentist');
+    }
+
+    const dentist = await this.prisma.staff.findUnique({
+      where: { id: dentistId },
+      select: { id: true },
+    });
+    if (!dentist) {
+      throw new BadRequestException(`Dentist with ID ${dentistId} not found`);
     }
 
     const visit = await this.prisma.$transaction(async (tx) => {
@@ -152,8 +317,8 @@ export class VisitsService {
           visitCode,
           appointmentId: dto.appointmentId,
           patientId: appointment.patientId,
-          dentistId: appointment.dentistId,
-          status: VisitStatus.IN_PROGRESS,
+          dentistId,
+          status: VisitStatus.ARRIVED,
           checkedInAt: new Date(),
         },
         include: {
@@ -180,11 +345,21 @@ export class VisitsService {
         },
       });
 
-      // ✅ FIX: Use tx (transaction client), not this.prisma
       await tx.appointment.update({
         where: { id: dto.appointmentId },
-        data: {
-          status: AppointmentStatus.IN_PROGRESS,
+        data: { status: AppointmentStatus.IN_PROGRESS },
+      });
+
+      await this.writeAudit(tx, {
+        action: 'CREATE',
+        recordId: newVisit.id,
+        actorId: actor?.id,
+        newData: {
+          visitCode,
+          appointmentId: dto.appointmentId,
+          patientId: appointment.patientId,
+          dentistId,
+          status: VisitStatus.ARRIVED,
         },
       });
 
@@ -193,125 +368,545 @@ export class VisitsService {
 
     return visit;
   }
-  // async createVisit(dto: CreateVisitDto) {
-  //   const appointment = await this.prisma.appointment.findUnique({
-  //     where: { id: dto.appointmentId },
-  //     include: { patient: true, visit: true },
-  //   });
-
-  //   if (!appointment) throw new NotFoundException('Appointment not found');
-
-  //   if (!appointment.dentistId) {
-  //     throw new BadRequestException('Appointment has no assigned dentist');
-  //   }
-
-  //   const dentistExists = await this.prisma.staff.findUnique({
-  //     where: { id: appointment.dentistId },
-  //   });
-
-  //   if (!dentistExists) {
-  //     throw new BadRequestException(
-  //       `Dentist with ID ${appointment.dentistId} not found`,
-  //     );
-  //   }
-
-  //   if (appointment.visit)
-  //     throw new BadRequestException(
-  //       'Visit already exists for this appointment',
-  //     );
-  //   if (appointment.status !== AppointmentStatus.ARRIVED) {
-  //     throw new BadRequestException('Patient must be checked in first');
-  //   }
-
-  //   const visitCode = await this.generateVisitCode();
-
-  //   const visit = await this.prisma.$transaction(async (tx) => {
-  //     // Create the visit
-  //     const newVisit = await tx.visit.create({
-  //       data: {
-  //         visitCode,
-  //         appointmentId: dto.appointmentId,
-  //         patientId: appointment.patientId,
-  //         // dentistId: dto.dentistId,
-  //         dentistId: appointment.dentistId,
-  //         status: VisitStatus.ARRIVED,
-  //         checkedInAt: new Date(),
-  //       },
-  //       include: {
-  //         patient: {
-  //           select: {
-  //             id: true,
-  //             firstName: true,
-  //             lastName: true,
-  //             patientCode: true,
-  //             allergies: true,
-  //             medicalConditions: true,
-  //             dateOfBirth: true,
-  //             gender: true,
-  //           },
-  //         },
-  //         dentist: {
-  //           select: {
-  //             id: true,
-  //             firstName: true,
-  //             lastName: true,
-  //             specialization: true,
-  //           },
-  //         },
-  //       },
-  //     });
-
-  //     // Update appointment to link visit
-  //     // await tx.appointment.update({
-  //     //   where: { id: dto.appointmentId },
-  //     //   data: {
-  //     //     visitId: newVisit.id,
-  //     //     actualStartAt: new Date(),
-  //     //   },
-  //     // });
-
-  //     if (dto.appointmentId) {
-  //       await this.prisma.appointment.update({
-  //         where: { id: dto.appointmentId },
-  //         data: {
-  //           status: AppointmentStatus.IN_PROGRESS,
-  //           // visitId removed - relation is now on Visit side
-  //         },
-  //       });
-  //     }
-
-  //     return newVisit;
-  //   });
-
-  //   return visit;
-  // }
 
   /**
-   * STEP 2: Start Examination (Move to IN_PROGRESS)
+   * STEP 2 — begin the examination.
+   * Idempotent: calling it on a visit already IN_PROGRESS returns the visit
+   * rather than failing, so a double-clicked button is harmless.
    */
-  async startExamination(visitId: string) {
+  async startExamination(visitId: string, actor?: ActingUser) {
+    const visit = await this.loadVisit(visitId);
+
+    if (visit.status === VisitStatus.IN_PROGRESS) return visit;
+    assertVisitTransition(visit.status, VisitStatus.IN_PROGRESS);
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.visit.update({
+        where: { id: visitId },
+        data: {
+          status: VisitStatus.IN_PROGRESS,
+          startedAt: visit.startedAt ?? new Date(),
+        },
+      });
+      await this.writeAudit(tx, {
+        action: 'START_EXAMINATION',
+        recordId: visitId,
+        actorId: actor?.id,
+        oldData: { status: visit.status },
+        newData: { status: row.status },
+      });
+      return row;
+    });
+
+    return updated;
+  }
+
+  /** STEP 3 — close the visit. */
+  async completeVisit(
+    visitId: string,
+    dto: CompleteVisitDto,
+    actor?: ActingUser,
+  ) {
     const visit = await this.prisma.visit.findUnique({
       where: { id: visitId },
+      include: { appointment: { select: { id: true, status: true } } },
     });
+
     if (!visit) throw new NotFoundException('Visit not found');
-    if (visit.status !== VisitStatus.ARRIVED) {
-      throw new BadRequestException(
-        'Visit must be checked in to start examination',
-      );
+    assertVisitTransition(visit.status, VisitStatus.COMPLETED);
+
+    const followUpDate = dto.followUpDate ? new Date(dto.followUpDate) : null;
+    if (followUpDate && isNaN(followUpDate.getTime())) {
+      throw new BadRequestException('Invalid followUpDate');
     }
 
-    return this.prisma.visit.update({
-      where: { id: visitId },
-      data: {
-        status: VisitStatus.IN_PROGRESS,
-        startedAt: new Date(),
-      },
+    return this.prisma.$transaction(async (tx) => {
+      // Heal any drift between the visit total and its procedure lines before
+      // the record closes — this is the figure billing reads afterwards.
+      const procedures = await tx.visitProcedure.findMany({
+        where: { visitId },
+        select: { cost: true },
+      });
+      const totalCost = procedures.reduce(
+        (sum, p) => M.add(sum, p.cost),
+        M.zero(),
+      );
+      const amountPaid = M.of(visit.amountPaid);
+      const paymentStatus = this.derivePaymentStatus(totalCost, amountPaid);
+
+      const completedVisit = await tx.visit.update({
+        where: { id: visitId },
+        data: {
+          status: VisitStatus.COMPLETED,
+          completedAt: new Date(),
+          totalCost,
+          paymentStatus,
+          followUpDate,
+          followUpNotes: dto.followUpNotes,
+          recommendations: dto.recommendations,
+        },
+      });
+
+      if (visit.appointmentId) {
+        await tx.appointment.update({
+          where: { id: visit.appointmentId },
+          data: {
+            status: AppointmentStatus.COMPLETED,
+            actualEndAt: new Date(),
+            followUpDate,
+          },
+        });
+      }
+
+      await this.writeAudit(tx, {
+        action: 'COMPLETE',
+        recordId: visitId,
+        actorId: actor?.id,
+        oldData: { status: visit.status, totalCost: M.str(visit.totalCost) },
+        newData: {
+          status: VisitStatus.COMPLETED,
+          totalCost: M.str(totalCost),
+          paymentStatus,
+        },
+      });
+
+      return completedVisit;
     });
   }
 
   /**
-   * Get Complete Visit Dashboard - Everything for the clinical view
+   * Cancel an open visit — patient left before treatment, wrong patient
+   * checked in, equipment failure. `VisitStatus.CANCELLED` previously had no
+   * endpoint, which left staff forcing such visits to COMPLETED instead.
    */
+  async cancelVisit(visitId: string, reason: string, actor?: ActingUser) {
+    if (!reason?.trim()) {
+      throw new BadRequestException('A cancellation reason is required');
+    }
+
+    const visit = await this.prisma.visit.findUnique({
+      where: { id: visitId },
+      include: {
+        appointment: { select: { id: true, status: true } },
+        _count: { select: { procedures: true, prescriptions: true } },
+      },
+    });
+    if (!visit) throw new NotFoundException('Visit not found');
+    assertVisitTransition(visit.status, VisitStatus.CANCELLED);
+
+    // Cancelling an encounter that already has billable work on it would
+    // orphan those lines. Those visits are completed, then credited.
+    if (visit._count.procedures > 0) {
+      throw new BadRequestException(
+        `Cannot cancel a visit with ${visit._count.procedures} recorded procedure(s). ` +
+          'Complete the visit and credit the invoice instead.',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const row = await tx.visit.update({
+        where: { id: visitId },
+        data: { status: VisitStatus.CANCELLED, completedAt: new Date() },
+      });
+
+      // The chair is free again; an appointment left IN_PROGRESS would sit on
+      // the active board forever.
+      if (
+        visit.appointmentId &&
+        visit.appointment?.status === AppointmentStatus.IN_PROGRESS
+      ) {
+        await tx.appointment.update({
+          where: { id: visit.appointmentId },
+          data: {
+            status: AppointmentStatus.CANCELLED,
+            cancelledReason: `Visit cancelled: ${reason}`,
+          },
+        });
+      }
+
+      await this.writeAudit(tx, {
+        action: 'CANCEL',
+        recordId: visitId,
+        actorId: actor?.id,
+        oldData: { status: visit.status },
+        newData: { status: row.status },
+        reason,
+      });
+
+      return row;
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CLINICAL DATA
+  // ═══════════════════════════════════════════════════════════════════════
+
+  async updateSOAP(
+    visitId: string,
+    dto: UpdateClinicalNotesDto,
+    actor?: ActingUser,
+  ) {
+    const visit = await this.loadVisit(visitId);
+    const { isAmendment } = this.assertClinicalWriteAllowed(
+      visit,
+      actor,
+      dto.amendmentReason,
+      'clinical notes',
+    );
+
+    const FIELDS = [
+      'chiefComplaint',
+      'historyOfPresentIllness',
+      'subjective',
+      'objective',
+      'assessment',
+      'plan',
+      'findings',
+      'recommendations',
+    ] as const;
+
+    const data: Prisma.VisitUpdateInput = {};
+    const before: Record<string, unknown> = {};
+    const after: Record<string, unknown> = {};
+
+    for (const field of FIELDS) {
+      const next = dto[field];
+      if (next === undefined) continue;
+      (data as Record<string, unknown>)[field] = next;
+      // Only changed fields reach the audit row, so an autosave that re-sends
+      // identical text does not bury the real edits.
+      if ((visit as Record<string, unknown>)[field] !== next) {
+        before[field] = (visit as Record<string, unknown>)[field] ?? null;
+        after[field] = next;
+      }
+    }
+
+    if (Object.keys(data).length === 0) {
+      throw new BadRequestException('No clinical note fields supplied');
+    }
+
+    const updated = await this.prisma.visit.update({
+      where: { id: visitId },
+      data,
+      select: {
+        id: true,
+        chiefComplaint: true,
+        historyOfPresentIllness: true,
+        subjective: true,
+        objective: true,
+        assessment: true,
+        plan: true,
+        findings: true,
+        recommendations: true,
+        updatedAt: true,
+      },
+    });
+
+    if (Object.keys(after).length > 0) {
+      await this.writeAudit(this.prisma, {
+        action: isAmendment ? 'AMEND_SOAP' : 'UPDATE_SOAP',
+        recordId: visitId,
+        actorId: actor?.id,
+        oldData: before,
+        newData: after,
+        reason: dto.amendmentReason,
+      });
+    }
+
+    return updated;
+  }
+
+  async updateVitals(
+    visitId: string,
+    dto: UpdateVitalsDto,
+    actor?: ActingUser,
+  ) {
+    const visit = await this.loadVisit(visitId);
+    const { isAmendment } = this.assertClinicalWriteAllowed(
+      visit,
+      actor,
+      dto.amendmentReason,
+      'vitals',
+    );
+
+    const FIELDS = [
+      'bloodPressure',
+      'pulseRate',
+      'temperature',
+      'weight',
+      'height',
+      'oxygenSat',
+    ] as const;
+
+    const data: Prisma.VisitUpdateInput = {};
+    const before: Record<string, unknown> = {};
+    const after: Record<string, unknown> = {};
+
+    for (const field of FIELDS) {
+      const next = dto[field];
+      if (next === undefined) continue;
+      (data as Record<string, unknown>)[field] = next;
+      before[field] = (visit as Record<string, unknown>)[field] ?? null;
+      after[field] = next;
+    }
+
+    if (Object.keys(data).length === 0) {
+      throw new BadRequestException('No vitals supplied');
+    }
+
+    const updated = await this.prisma.visit.update({
+      where: { id: visitId },
+      data,
+      select: {
+        id: true,
+        bloodPressure: true,
+        pulseRate: true,
+        temperature: true,
+        weight: true,
+        height: true,
+        oxygenSat: true,
+        updatedAt: true,
+      },
+    });
+
+    await this.writeAudit(this.prisma, {
+      action: isAmendment ? 'AMEND_VITALS' : 'UPDATE_VITALS',
+      recordId: visitId,
+      actorId: actor?.id,
+      oldData: before,
+      newData: after,
+      reason: dto.amendmentReason,
+    });
+
+    return updated;
+  }
+
+  /**
+   * Record a procedure performed during the visit.
+   *
+   * Price comes from the catalogue via PricingEngine — the same engine the
+   * treatment plans use, so a crown costs the same whichever screen records
+   * it. A caller-supplied `cost` is accepted only from a role that may
+   * discount and only with a reason; the engine figure is stored beside it as
+   * `unitPrice`/`originalPrice` so the discount stays visible.
+   */
+  async addProcedure(
+    visitId: string,
+    dto: AddProcedureDto,
+    actor?: ActingUser,
+  ) {
+    const visit = await this.loadVisit(visitId);
+    if (!isVisitOpen(visit.status)) {
+      throw new BadRequestException(
+        `Cannot add a procedure to a ${visit.status.toLowerCase()} visit.`,
+      );
+    }
+
+    const procedure = await this.prisma.procedure.findUnique({
+      where: { id: dto.procedureId },
+    });
+    if (!procedure) throw new NotFoundException('Procedure not found');
+    if (!procedure.isActive) {
+      throw new BadRequestException(
+        `Procedure ${procedure.name} is no longer active and cannot be recorded.`,
+      );
+    }
+
+    const toothNumbers = dto.toothNumbers ?? [];
+    const exchangeRate = await this.getClinicExchangeRate(procedure.currency);
+
+    const pricing = PricingEngine.calculate(
+      {
+        basePrice: procedure.basePrice,
+        baseCost: procedure.baseCost ?? 0,
+        pricingModel: procedure.pricingModel,
+        priceRangeMin: procedure.priceRangeMin,
+        priceRangeMax: procedure.priceRangeMax,
+        currency: procedure.currency,
+      },
+      {
+        toothNumbers,
+        sessionCount: dto.sessionCount,
+        quantityOverride: dto.quantityOverride,
+        exchangeRate,
+        baseCurrency: 'UGX',
+      },
+    );
+
+    // Engine price, converted to the ledger currency.
+    const enginePrice = M.money(pricing.baseAmount);
+    let finalCost = enginePrice;
+    let overrideApplied = false;
+
+    if (dto.isPriceOverridden && dto.cost != null) {
+      if (!actor?.role || !CAN_OVERRIDE_PRICE.includes(actor.role)) {
+        throw new ForbiddenException(
+          'Your role may not override a procedure price.',
+        );
+      }
+      if (!dto.overrideReason?.trim()) {
+        throw new BadRequestException(
+          'overrideReason is required when overriding the catalogue price',
+        );
+      }
+      finalCost = M.money(dto.cost);
+      overrideApplied = true;
+    } else if (dto.cost != null && !M.eq(dto.cost, enginePrice)) {
+      // A bare `cost` that disagrees with the catalogue is the old, forgeable
+      // shape. Reject it loudly rather than silently billing either figure.
+      throw new BadRequestException(
+        `Supplied cost ${M.str(M.of(dto.cost))} does not match the catalogue price ` +
+          `${M.str(enginePrice)}. Omit cost, or set isPriceOverridden with an overrideReason.`,
+      );
+    }
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.visitProcedure.create({
+        data: {
+          visitId,
+          procedureId: dto.procedureId,
+          toothNumbers,
+          surfaces: (dto.surfaces as any) ?? [],
+          notes: dto.notes,
+          cost: finalCost,
+          unitPrice: M.money(pricing.pricePerUnit),
+          currency: 'UGX',
+          exchangeRate: M.of(pricing.exchangeRate ?? 1),
+          originalPrice: M.money(pricing.totalPrice),
+          originalCurrency: procedure.currency,
+          finalCurrency: 'UGX',
+        },
+        include: { procedure: true },
+      });
+
+      // Same transaction as the insert: a failure here used to leave the
+      // visit total out of step with its own lines.
+      const updatedVisit = await tx.visit.update({
+        where: { id: visitId },
+        data: { totalCost: { increment: finalCost } },
+        select: { totalCost: true, amountPaid: true },
+      });
+
+      await tx.visit.update({
+        where: { id: visitId },
+        data: {
+          paymentStatus: this.derivePaymentStatus(
+            M.of(updatedVisit.totalCost),
+            M.of(updatedVisit.amountPaid),
+          ),
+        },
+      });
+
+      await this.writeAudit(tx, {
+        action: overrideApplied ? 'ADD_PROCEDURE_OVERRIDE' : 'ADD_PROCEDURE',
+        entityType: 'VisitProcedure',
+        recordId: row.id,
+        actorId: actor?.id,
+        newData: {
+          visitId,
+          procedureId: dto.procedureId,
+          procedureName: procedure.name,
+          toothNumbers,
+          quantity: pricing.quantity,
+          cataloguePrice: M.str(enginePrice),
+          chargedCost: M.str(finalCost),
+          pricingBreakdown: pricing.breakdown,
+        },
+        reason: dto.overrideReason,
+      });
+
+      return row;
+    });
+
+    return created;
+  }
+
+  async writePrescription(
+    visitId: string,
+    dto: WritePrescriptionDto,
+    actor?: ActingUser,
+  ) {
+    const visit = await this.loadVisit(visitId);
+    if (!isVisitOpen(visit.status) && visit.status !== VisitStatus.COMPLETED) {
+      throw new BadRequestException(
+        `Cannot prescribe against a ${visit.status.toLowerCase()} visit.`,
+      );
+    }
+
+    if (!dto.items?.length) {
+      throw new BadRequestException('At least one medication required');
+    }
+
+    // A prescription naming a withdrawn or non-existent drug is a dispensing
+    // hazard downstream in pharmacy; fail before it is written.
+    const drugIds = [...new Set(dto.items.map((i) => i.drugId))];
+    const drugs = await this.prisma.drug.findMany({
+      where: { id: { in: drugIds } },
+      select: { id: true, name: true, isActive: true },
+    });
+    const byId = new Map(drugs.map((d) => [d.id, d]));
+    const missing = drugIds.filter((id) => !byId.has(id));
+    if (missing.length) {
+      throw new BadRequestException(
+        `Unknown drug id(s): ${missing.join(', ')}`,
+      );
+    }
+    const inactive = drugs.filter((d) => !d.isActive);
+    if (inactive.length) {
+      throw new BadRequestException(
+        `These drugs are no longer active: ${inactive.map((d) => d.name).join(', ')}`,
+      );
+    }
+
+    const validUntil = dto.validUntil ? new Date(dto.validUntil) : null;
+    if (validUntil && isNaN(validUntil.getTime())) {
+      throw new BadRequestException('Invalid validUntil date');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const code = await this.docNum.next('RX', tx); // RX-YY-NNNN
+      const prescription = await tx.prescription.create({
+        data: {
+          prescriptionCode: code,
+          visitId,
+          patientId: visit.patientId,
+          dentistId: visit.dentistId,
+          notes: dto.notes,
+          validUntil,
+          items: { create: dto.items },
+        },
+        include: {
+          items: { include: { drug: true } },
+        },
+      });
+
+      await this.writeAudit(tx, {
+        action: 'WRITE_PRESCRIPTION',
+        entityType: 'Prescription',
+        recordId: prescription.id,
+        actorId: actor?.id,
+        newData: {
+          visitId,
+          prescriptionCode: code,
+          items: dto.items.map((i) => ({
+            drugId: i.drugId,
+            dosage: i.dosage,
+            frequency: i.frequency,
+            duration: i.duration,
+            quantity: i.quantity,
+          })),
+        },
+      });
+
+      return prescription;
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // READ MODELS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /** Everything the clinical view needs for one visit. */
   async getVisitDashboard(visitId: string) {
     const visit = await this.prisma.visit.findUnique({
       where: { id: visitId },
@@ -335,18 +930,16 @@ export class VisitsService {
         },
         imagingRecords: { orderBy: { takenAt: 'desc' } },
         labOrders: { orderBy: { createdAt: 'desc' } },
-        // payments: true,
       },
     });
 
     if (!visit) throw new NotFoundException('Visit not found');
 
-    // Get patient's previous visits for context
     const previousVisits = await this.prisma.visit.findMany({
       where: {
         patientId: visit.patientId,
         id: { not: visitId },
-        status: 'COMPLETED',
+        status: VisitStatus.COMPLETED,
       },
       include: {
         procedures: { include: { procedure: true }, take: 3 },
@@ -356,343 +949,61 @@ export class VisitsService {
       take: 3,
     });
 
-    // Calculate running totals (procedure.cost is Decimal — coerce at boundary)
-    const totalProcedures = visit.procedures.reduce(
-      (sum, p) => sum + Number(p.cost),
-      0,
+    // Figures come from the stored columns (and the procedure lines), not from
+    // the hardcoded zeros this used to return.
+    const proceduresTotal = visit.procedures.reduce(
+      (sum, p) => M.add(sum, p.cost),
+      M.zero(),
     );
-    // const totalPaid = visit.payments
-    //   .filter((p) => p.status === 'COMPLETED')
-    //   .reduce((sum, p) => sum + p.amount, 0);
+    const totalCost = M.of(visit.totalCost);
+    const amountPaid = M.of(visit.amountPaid);
+    const balance = M.sub(totalCost, amountPaid);
 
     return {
       visit,
       previousVisits,
       financials: {
-        proceduresTotal: totalProcedures,
-        amountPaid: 0,
-        balance: totalProcedures - 0,
-        paymentStatus:
-          0 >= totalProcedures ? 'PAID' : 0 > 0 ? 'PARTIALLY_PAID' : 'OPEN',
+        // Strings, so a Decimal never round-trips through a float on the way
+        // to the browser. The UI formats them.
+        proceduresTotal: M.str(proceduresTotal),
+        totalCost: M.str(totalCost),
+        amountPaid: M.str(amountPaid),
+        balance: M.str(balance),
+        paymentStatus: visit.paymentStatus,
+        /** True when the visit total has drifted from its procedure lines. */
+        totalsInSync: M.eq(totalCost, proceduresTotal),
       },
       progress: this.calculateProgress(visit),
     };
   }
 
-  /**
-   * Update SOAP Notes (Auto-save friendly)
-   */
-  async updateSOAP(visitId: string, dto: UpdateClinicalNotesDto) {
-    const data: Prisma.VisitUpdateInput = {};
-
-    if (dto.chiefComplaint !== undefined)
-      data.chiefComplaint = dto.chiefComplaint;
-    if (dto.historyOfPresentIllness !== undefined)
-      data.historyOfPresentIllness = dto.historyOfPresentIllness;
-    if (dto.subjective !== undefined) data.subjective = dto.subjective;
-    if (dto.objective !== undefined) data.objective = dto.objective;
-    if (dto.assessment !== undefined) data.assessment = dto.assessment;
-    if (dto.plan !== undefined) data.plan = dto.plan;
-    if (dto.findings !== undefined) data.findings = dto.findings; // Add this
-    if (dto.recommendations !== undefined)
-      data.recommendations = dto.recommendations; // Add this
-
-    return this.prisma.visit.update({
-      where: { id: visitId },
-      data,
-      select: {
-        chiefComplaint: true, // ← ADD
-        historyOfPresentIllness: true,
-        id: true,
-        subjective: true,
-        objective: true,
-        assessment: true,
-        plan: true,
-        findings: true, // Add this
-        recommendations: true, // Add this
-        updatedAt: true,
-      },
-    });
-  }
-
-  /**
-   * Update Vitals
-   */
-  async updateVitals(visitId: string, dto: UpdateVitalsDto) {
-    return this.prisma.visit.update({
-      where: { id: visitId },
-      data: {
-        bloodPressure: dto.bloodPressure,
-        pulseRate: dto.pulseRate,
-        temperature: dto.temperature,
-        weight: dto.weight,
-        height: dto.height,
-        oxygenSat: dto.oxygenSat,
-      },
-    });
-  }
-
-  /**
-   * Add Procedure to Visit
-   */
-  async addProcedure(visitId: string, dto: AddProcedureDto) {
-    const visit = await this.prisma.visit.findUnique({
-      where: { id: visitId },
-    });
-    if (!visit) throw new NotFoundException('Visit not found');
-
-    const procedure = await this.prisma.visitProcedure.create({
-      data: {
-        visitId,
-        procedureId: dto.procedureId,
-        toothNumbers: dto.toothNumbers || [],
-        surfaces: (dto.surfaces as any) || [],
-        notes: dto.notes,
-        cost: dto.cost,
-      },
-      include: { procedure: true },
-    });
-
-    // Update visit total cost
-    await this.prisma.visit.update({
-      where: { id: visitId },
-      data: {
-        totalCost: { increment: dto.cost },
-      },
-    });
-
-    return procedure;
-  }
-
-  /**
-   * Write Prescription
-   */
-  async writePrescription(visitId: string, dto: WritePrescriptionDto) {
-    const visit = await this.prisma.visit.findUnique({
-      where: { id: visitId },
-    });
-    if (!visit) throw new NotFoundException('Visit not found');
-
-    if (!dto.items?.length) {
-      throw new BadRequestException('At least one medication required');
-    }
-
-    return this.prisma.$transaction(async (tx) => {
-      const code = await this.docNum.next('RX', tx); // RX-YY-NNNN
-      return tx.prescription.create({
-        data: {
-          prescriptionCode: code,
-          visitId,
-          patientId: visit.patientId,
-          dentistId: visit.dentistId,
-          notes: dto.notes,
-          validUntil: dto.validUntil ? new Date(dto.validUntil) : null,
-          items: { create: dto.items },
-        },
-        include: {
-          items: { include: { drug: true } },
-        },
-      });
-    });
-  }
-
-  /**
-   * Process Payment (Can be done multiple times)
-   */
-  // async processPayment(visitId: string, dto: ProcessPaymentDto) {
-  //   const visit = await this.prisma.visit.findUnique({
-  //     where: { id: visitId },
-  //   });
-  //   if (!visit) throw new NotFoundException('Visit not found');
-
-  //   const payment = await this.prisma.$transaction(async (tx) => {
-  //     // Create payment record
-  //     const newPayment = await tx.visitPayment.create({
-  //       data: {
-  //         visitId,
-  //         amount: dto.amount,
-  //         method: dto.method as any,
-  //         reference: dto.reference,
-  //         notes: dto.notes,
-  //         status: 'COMPLETED',
-  //       },
-  //     });
-
-  //     // Calculate new totals
-  //     const currentAmountPaid = visit.amountPaid || 0;
-  //     const newAmountPaid = currentAmountPaid + dto.amount;
-  //     const totalCost = visit.totalCost || 0;
-  //     const newBalance = totalCost - newAmountPaid;
-
-  //     // Determine payment status using Prisma enum
-  //     const paymentStatus: any = newBalance <= 0 ? 'PAID' : 'PENDING';
-
-  //     // Update visit totals
-  //     const updatedVisit = await tx.visit.update({
-  //       where: { id: visitId },
-  //       data: {
-  //         amountPaid: newAmountPaid,
-  //         paymentStatus: paymentStatus,
-  //       },
-  //     });
-
-  //     return { payment: newPayment, visit: updatedVisit };
-  //   });
-
-  //   return payment;
-  // }
-  /**
-   * Complete Visit
-   */
-  async completeVisit(visitId: string, dto: CompleteVisitDto) {
-    const visit = await this.prisma.visit.findUnique({
-      where: { id: visitId },
-      include: { appointment: true },
-    });
-
-    if (!visit) throw new NotFoundException('Visit not found');
-    if (visit.status !== VisitStatus.IN_PROGRESS) {
-      throw new BadRequestException('Visit must be in progress to complete');
-    }
-
-    return this.prisma.$transaction(async (tx) => {
-      // Complete the visit
-      const completedVisit = await tx.visit.update({
-        where: { id: visitId },
-        data: {
-          status: VisitStatus.COMPLETED,
-          completedAt: new Date(),
-          followUpDate: dto.followUpDate ? new Date(dto.followUpDate) : null,
-          followUpNotes: dto.followUpNotes,
-          recommendations: dto.recommendations,
-        },
-      });
-
-      // Update appointment status
-      if (visit.appointmentId) {
-        await tx.appointment.update({
-          where: { id: visit.appointmentId },
-          data: {
-            status: AppointmentStatus.COMPLETED,
-            actualEndAt: new Date(),
-            followUpDate: dto.followUpDate ? new Date(dto.followUpDate) : null,
-          },
-        });
-      }
-
-      return completedVisit;
-    });
-  }
-
-  /**
-   * Get Active Visits (For today's dashboard)
-   */
+  /** Today's board: who is checked in or in the chair. */
   async getActiveVisits(date?: string) {
-    const targetDate = date ? new Date(date) : new Date();
-    const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+    const { start, end } = dayRange(date);
 
     return this.prisma.visit.findMany({
       where: {
-        checkedInAt: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-        status: { in: ['ARRIVED', 'IN_PROGRESS'] },
+        checkedInAt: { gte: start, lt: end },
+        status: { in: [VisitStatus.ARRIVED, VisitStatus.IN_PROGRESS] },
       },
       include: {
         patient: {
           select: {
+            id: true,
             firstName: true,
             lastName: true,
             patientCode: true,
             avatar: true,
           },
         },
-        dentist: {
-          select: {
-            firstName: true,
-            lastName: true,
-          },
-        },
-        appointment: {
-          select: {
-            scheduledAt: true,
-            type: true,
-          },
-        },
-        _count: {
-          select: {
-            procedures: true,
-            prescriptions: true,
-          },
-        },
+        dentist: { select: { id: true, firstName: true, lastName: true } },
+        appointment: { select: { scheduledAt: true, type: true } },
+        _count: { select: { procedures: true, prescriptions: true } },
       },
       orderBy: { checkedInAt: 'asc' },
     });
   }
 
-  private calculateProgress(visit: any) {
-    return {
-      checkedIn: true,
-      examinationStarted:
-        visit.status === 'IN_PROGRESS' || visit.status === 'COMPLETED',
-      vitalsRecorded: !!(
-        visit.bloodPressure ||
-        visit.pulseRate ||
-        visit.temperature
-      ),
-      soapComplete: !!(
-        visit.subjective &&
-        visit.objective &&
-        visit.assessment &&
-        visit.plan
-      ),
-      proceduresRecorded: visit.procedures?.length > 0,
-      prescriptionsWritten: visit.prescriptions?.length > 0,
-      paymentProcessed: visit.amountPaid > 0,
-      completed: visit.status === 'COMPLETED',
-    };
-  }
-
-  /** @deprecated Visit codes are now issued by DocumentNumberService ('VIS'). */
-  private async generateVisitCode(): Promise<string> {
-    return this.docNum.next('VIS');
-  }
-
-  async getProcedures(query?: string) {
-    const where: any = query
-      ? {
-          OR: [
-            { name: { contains: query, mode: 'insensitive' as const } },
-            { code: { contains: query, mode: 'insensitive' as const } },
-          ],
-          isActive: true,
-        }
-      : { isActive: true };
-
-    return this.prisma.procedure.findMany({
-      where,
-      orderBy: { name: 'asc' },
-    });
-  }
-
-  async searchDrugs(query: string) {
-    return this.prisma.drug.findMany({
-      where: {
-        OR: [
-          { name: { contains: query, mode: 'insensitive' as const } },
-          { genericName: { contains: query, mode: 'insensitive' as const } },
-        ],
-        isActive: true,
-      },
-      take: 20,
-    });
-  }
-
-  /**
-   * Get All Visits (List view with pagination)
-   */
   async getAllVisits(params: {
     page?: number;
     limit?: number;
@@ -704,8 +1015,8 @@ export class VisitsService {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   }) {
-    const page = params.page || 1;
-    const limit = params.limit || 15;
+    const page = Math.max(1, params.page || 1);
+    const limit = Math.min(100, Math.max(1, params.limit || 15));
     const skip = (page - 1) * limit;
 
     // Whitelisted sort columns — anything else falls back to checkedInAt so a
@@ -721,38 +1032,29 @@ export class VisitsService {
     const sortBy = SAFE_SORT.has(params.sortBy ?? '')
       ? (params.sortBy as string)
       : 'checkedInAt';
-    const sortOrder: 'asc' | 'desc' = params.sortOrder === 'asc' ? 'asc' : 'desc';
+    const sortOrder: 'asc' | 'desc' =
+      params.sortOrder === 'asc' ? 'asc' : 'desc';
 
-    const where: any = {};
+    const where: Prisma.VisitWhereInput = {};
 
-    // Filter by status
     if (params.status) {
-      where.status = params.status;
+      const status = params.status.toUpperCase();
+      if (!(status in VisitStatus)) {
+        throw new BadRequestException(
+          `Unknown visit status "${params.status}". Expected one of: ${Object.keys(VisitStatus).join(', ')}.`,
+        );
+      }
+      where.status = status as VisitStatus;
     }
 
-    // Filter by date (checkedInAt)
     if (params.date) {
-      const startOfDay = new Date(params.date);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(params.date);
-      endOfDay.setHours(23, 59, 59, 999);
-      where.checkedInAt = {
-        gte: startOfDay,
-        lte: endOfDay,
-      };
+      const { start, end } = dayRange(params.date);
+      where.checkedInAt = { gte: start, lt: end };
     }
 
-    // Filter by patient
-    if (params.patientId) {
-      where.patientId = params.patientId;
-    }
+    if (params.patientId) where.patientId = params.patientId;
+    if (params.dentistId) where.dentistId = params.dentistId;
 
-    // Filter by dentist
-    if (params.dentistId) {
-      where.dentistId = params.dentistId;
-    }
-
-    // Search by patient name or visit code
     if (params.search) {
       where.OR = [
         {
@@ -793,19 +1095,9 @@ export class VisitsService {
             },
           },
           appointment: {
-            select: {
-              id: true,
-              scheduledAt: true,
-              type: true,
-            },
+            select: { id: true, scheduledAt: true, type: true },
           },
-          _count: {
-            select: {
-              procedures: true,
-              prescriptions: true,
-              // payments: true,
-            },
-          },
+          _count: { select: { procedures: true, prescriptions: true } },
         },
       }),
       this.prisma.visit.count({ where }),
@@ -813,13 +1105,35 @@ export class VisitsService {
 
     return {
       data: visits,
-      meta: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
+  }
+
+  async getProcedures(query?: string) {
+    const where: Prisma.ProcedureWhereInput = query
+      ? {
+          isActive: true,
+          OR: [
+            { name: { contains: query, mode: 'insensitive' } },
+            { code: { contains: query, mode: 'insensitive' } },
+          ],
+        }
+      : { isActive: true };
+
+    return this.prisma.procedure.findMany({ where, orderBy: { name: 'asc' } });
+  }
+
+  async searchDrugs(query: string) {
+    return this.prisma.drug.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { name: { contains: query, mode: 'insensitive' } },
+          { genericName: { contains: query, mode: 'insensitive' } },
+        ],
+      },
+      take: 20,
+    });
   }
 
   async getProgressReportsByPatient(patientId: string) {
@@ -831,5 +1145,80 @@ export class VisitsService {
       },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PRIVATE
+  // ═══════════════════════════════════════════════════════════════════════
+
+  private derivePaymentStatus(
+    totalCost: Prisma.Decimal,
+    amountPaid: Prisma.Decimal,
+  ): BalanceStatus {
+    if (totalCost.lte(0)) return BalanceStatus.OPEN;
+    if (amountPaid.gte(totalCost)) return BalanceStatus.PAID;
+    if (amountPaid.gt(0)) return BalanceStatus.PARTIALLY_PAID;
+    return BalanceStatus.UNPAID;
+  }
+
+  /**
+   * Clinic-configured conversion rate, or undefined to let the pricing engine
+   * fall back to its own table. Mirrors TreatmentPlansService so both screens
+   * price a foreign-currency procedure identically.
+   */
+  private async getClinicExchangeRate(
+    fromCurrency: string,
+  ): Promise<number | undefined> {
+    if (fromCurrency === 'UGX') return undefined;
+
+    const setting = await this.prisma.clinicSettings.findUnique({
+      where: { key: 'EXCHANGE_RATE' },
+    });
+    if (!setting?.value) return undefined;
+
+    const rate = Number(setting.value);
+    if (!Number.isFinite(rate) || rate <= 0) {
+      this.logger.warn(
+        `ClinicSettings EXCHANGE_RATE="${setting.value}" is invalid; engine default will be used`,
+      );
+      return undefined;
+    }
+    return rate;
+  }
+
+  private calculateProgress(visit: {
+    status: VisitStatus;
+    bloodPressure?: string | null;
+    pulseRate?: number | null;
+    temperature?: unknown;
+    subjective?: string | null;
+    objective?: string | null;
+    assessment?: string | null;
+    plan?: string | null;
+    amountPaid?: unknown;
+    procedures?: unknown[];
+    prescriptions?: unknown[];
+  }) {
+    return {
+      checkedIn: true,
+      examinationStarted:
+        visit.status === VisitStatus.IN_PROGRESS ||
+        visit.status === VisitStatus.COMPLETED,
+      vitalsRecorded: !!(
+        visit.bloodPressure ||
+        visit.pulseRate ||
+        visit.temperature
+      ),
+      soapComplete: !!(
+        visit.subjective &&
+        visit.objective &&
+        visit.assessment &&
+        visit.plan
+      ),
+      proceduresRecorded: (visit.procedures?.length ?? 0) > 0,
+      prescriptionsWritten: (visit.prescriptions?.length ?? 0) > 0,
+      paymentProcessed: M.of(visit.amountPaid as any).gt(0),
+      completed: visit.status === VisitStatus.COMPLETED,
+    };
   }
 }

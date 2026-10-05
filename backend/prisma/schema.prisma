@@ -1103,6 +1103,10 @@ model Appointment {
   imagingRecords ImagingRecord[]
   labOrders      LabOrder[]
 
+  @@index([dentistId, scheduledAt])
+  @@index([scheduledAt])
+  @@index([status, scheduledAt])
+  @@index([patientId, scheduledAt])
   @@map("appointments")
 }
 
@@ -1165,6 +1169,10 @@ model Visit {
   chartEntries      ChartEntry[]
   patientConditions PatientCondition[]
 
+  @@index([checkedInAt])
+  @@index([status, checkedInAt])
+  @@index([patientId, checkedInAt])
+  @@index([dentistId, checkedInAt])
   @@map("visits")
 }
 
@@ -1203,6 +1211,7 @@ model VisitProcedure {
 
   inventoryUsages VisitProcedureInventoryUsage[]
 
+  @@index([visitId])
   @@map("visit_procedures")
 }
 

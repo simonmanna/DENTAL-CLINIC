@@ -388,22 +388,42 @@ export const visitsApi = {
     sortOrder?: "asc" | "desc";
   }) => api.get("/visits", { params }).then((r) => r.data),
   getOne: (id: string) => api.get(`/visits/${id}`).then((r) => r.data),
-  create: (data: { appointmentId: string; dentistId: string }) =>
+  create: (data: { appointmentId: string; dentistId?: string }) =>
     api.post("/visits", data).then((r) => r.data),
   startExamination: (id: string) =>
     api.post(`/visits/${id}/start`).then((r) => r.data),
   complete: (id: string, data: any) =>
     api.post(`/visits/${id}/complete`, data).then((r) => r.data),
+  cancel: (id: string, reason: string) =>
+    api.post(`/visits/${id}/cancel`, { reason }).then((r) => r.data),
   updateSOAP: (id: string, data: any) =>
     api.patch(`/visits/${id}/soap`, data).then((r) => r.data),
   updateVitals: (id: string, data: any) =>
     api.patch(`/visits/${id}/vitals`, data).then((r) => r.data),
-  addProcedure: (id: string, data: any) =>
-    api.post(`/visits/${id}/procedures`, data).then((r) => r.data),
+  /**
+   * The backend prices the procedure from the catalogue. Send `cost` only
+   * together with `isPriceOverridden` + `overrideReason`; anything else is
+   * rejected rather than silently billed.
+   */
+  addProcedure: (
+    id: string,
+    data: {
+      procedureId: string;
+      toothNumbers?: number[];
+      surfaces?: string[];
+      notes?: string;
+      sessionCount?: number;
+      quantityOverride?: number;
+      cost?: number;
+      isPriceOverridden?: boolean;
+      overrideReason?: string;
+    },
+  ) => api.post(`/visits/${id}/procedures`, data).then((r) => r.data),
   writePrescription: (id: string, data: any) =>
     api.post(`/visits/${id}/prescriptions`, data).then((r) => r.data),
-  processPayment: (id: string, data: any) =>
-    api.post(`/visits/${id}/payments`, data).then((r) => r.data),
+  // Visit payments are recorded through billing (POST
+  // /billing/invoices/:id/payments). There is no /visits/:id/payments route —
+  // the binding that used to live here 404'd on every call.
   searchDrugs: (q: string) =>
     api.get("/visits/drugs/search", { params: { q } }).then((r) => r.data),
   getProcedures: (q?: string) =>
@@ -570,18 +590,10 @@ export const prescriptionsApi = {
       .then((r) => r.data),
 };
 
-export const paymentsApi = {
-  create: (data: {
-    visitId: string;
-    amount: number;
-    method: "CASH" | "CARD" | "MOBILE_MONEY" | "INSURANCE";
-    reference?: string;
-  }) => api.post("/payments", data).then((r) => r.data),
-  remove: (paymentId: string) =>
-    api.delete(`/payments/${paymentId}`).then((r) => r.data),
-  getByVisit: (visitId: string) =>
-    api.get(`/visits/${visitId}/payments`).then((r) => r.data),
-};
+// A second, unused `paymentsApi` used to sit here. Every route it named is
+// gone from the backend: visit-scoped payment creation, DELETE /payments/:id
+// (removed deliberately — payments are reversed, not deleted) and
+// GET /visits/:id/payments. The live client is `@/lib/api/payments`.
 
 // Same rule as lib/api/client.ts: the dev-server fallback must never survive a
 // production build, or the SPA quietly calls localhost.
