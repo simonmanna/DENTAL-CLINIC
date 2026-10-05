@@ -1,212 +1,288 @@
 // src/pages/dashboard/DashboardPage.tsx
-// Colorful, pictorial dental dashboard — inspired by Alpha POS / Odoo style
-// Drop-in replacement. Adjust imports to match your project structure.
+// Clinic overview. Built entirely on the design tokens in src/index.css so the
+// page tracks light/dark with the rest of the app — no hardcoded surfaces.
+//
+// Reading order is deliberate: today's numbers, then anything needing attention,
+// then the schedule, then trend, then navigation. A receptionist should be able
+// to answer "what is happening right now" without scrolling.
 
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { reportsApi, appointmentsApi, backupsApi } from "../../lib/api";
-import { formatCurrency, formatTime } from "../../lib/utils";
-import { LoadingSpinner, StatusBadge } from "../../components/shared";
 import { useNavigate } from "react-router-dom";
 import {
-  Users,
-  Calendar,
-  CreditCard,
-  TrendingUp,
-  AlertTriangle,
-  Stethoscope,
-  Package,
-  Pill,
-  BarChart3,
-  UserCog,
-  ClipboardList,
-  Scan,
-  FileText,
   Activity,
-  ShoppingBag,
-  Bell,
+  AlertTriangle,
   ArrowRight,
-  ArrowUpRight,
-  Star,
-  Zap,
+  BadgeDollarSign,
+  BarChart3,
+  CalendarDays,
+  CalendarX2,
   CheckCircle2,
-  AlertCircle,
+  ClipboardList,
+  CreditCard,
+  DatabaseBackup,
+  FileText,
+  Minus,
+  Package,
+  PieChart as PieChartIcon,
+  Pill,
+  Receipt,
+  Stethoscope,
+  TrendingDown,
+  TrendingUp,
+  UserCog,
+  Users,
 } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import {
+  Area,
+  AreaChart,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
-// ─── Theme palette ────────────────────────────────────────────────────────────
-const DONUT_COLORS = ["#489af3", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4"];
+import { reportsApi, appointmentsApi, backupsApi } from "../../lib/api";
+import { cn, formatCurrency, formatTime } from "../../lib/utils";
+import { StatusBadge } from "../../components/shared";
+import { useAuthStore } from "../../store/auth.store";
+import { UserRole } from "@/types/shared";
 
-// ─── StatCard (matches ExpensesPage.tsx) ─────────────────────────────────────
-function StatCard({
+// ─── Tone system ──────────────────────────────────────────────────────────────
+// One tone per semantic meaning. Every value resolves to a CSS variable, which
+// is what keeps the cards legible in dark mode without a second colour table.
+type Tone = "primary" | "info" | "success" | "warning" | "danger";
+
+const TONE: Record<Tone, { rail: string; chip: string; icon: string }> = {
+  primary: { rail: "bg-primary", chip: "bg-primary-muted", icon: "text-primary" },
+  info: { rail: "bg-info", chip: "bg-info-muted", icon: "text-info" },
+  success: { rail: "bg-success", chip: "bg-success-muted", icon: "text-success" },
+  warning: { rail: "bg-warning", chip: "bg-warning-muted", icon: "text-warning" },
+  danger: { rail: "bg-danger", chip: "bg-danger-muted", icon: "text-danger" },
+};
+
+const CHART_COLORS = [
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+  "hsl(var(--chart-6))",
+];
+
+const ADMIN_ROLES: UserRole[] = [UserRole.ADMIN, UserRole.SUPER_ADMIN];
+
+// ─── Panel ────────────────────────────────────────────────────────────────────
+function Panel({
+  title,
+  icon: Icon,
+  action,
+  children,
+  className,
+  bodyClassName,
+}: {
+  title: string;
+  icon: React.ElementType;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+  bodyClassName?: string;
+}) {
+  return (
+    <section
+      className={cn(
+        "flex flex-col overflow-hidden rounded-xl border border-border/70 bg-card shadow-xs",
+        className,
+      )}
+    >
+      <header className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          {title}
+        </h2>
+        {action}
+      </header>
+      <div className={cn("flex-1", bodyClassName)}>{children}</div>
+    </section>
+  );
+}
+
+// ─── KPI card ─────────────────────────────────────────────────────────────────
+function KpiCard({
   label,
   value,
   sub,
   icon: Icon,
-  color = "blue",
-  trend,
+  tone = "primary",
+  delta,
+  onClick,
 }: {
   label: string;
   value: string;
   sub?: string;
-  icon: any;
-  color?: "blue" | "amber" | "emerald" | "slate" | "rose";
-  trend?: string;
+  icon: React.ElementType;
+  tone?: Tone;
+  // Growth is signalled by icon and wording as well as colour — colour alone is
+  // not an accessible carrier of meaning.
+  delta?: { value: number; label: string };
+  onClick?: () => void;
 }) {
-  const colors = {
-    blue: {
-      bg: "from-primary to-primary",
-      icon: "bg-primary/30",
-      text: "text-primary/40",
-    },
-    amber: {
-      bg: "from-warning to-warning",
-      icon: "bg-warning/30",
-      text: "text-warning/40",
-    },
-    emerald: {
-      bg: "from-success to-success",
-      icon: "bg-success/30",
-      text: "text-success/40",
-    },
-    slate: {
-      bg: "from-muted-foreground to-foreground",
-      icon: "bg-muted-foreground/30",
-      text: "text-muted-foreground/40",
-    },
-    rose: {
-      bg: "from-danger to-danger",
-      icon: "bg-danger/30",
-      text: "text-danger/40",
-    },
-  }[color];
+  const t = TONE[tone];
+  const dir = delta ? (delta.value > 0 ? "up" : delta.value < 0 ? "down" : "flat") : null;
+  const DeltaIcon = dir === "up" ? TrendingUp : dir === "down" ? TrendingDown : Minus;
 
   return (
-    <div
-      className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${colors.bg} py-3 px-7 text-white shadow-lg`}
+    <article
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      className={cn(
+        "relative overflow-hidden rounded-xl border border-border/70 bg-card p-4 pl-5 shadow-xs",
+        "transition-shadow duration-200",
+        onClick &&
+          "cursor-pointer hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+      )}
     >
-      <div className="flex items-start justify-between">
-        <div>
-          <p
-            className={`text-xs font-medium uppercase tracking-widest ${colors.text} mb-1`}
-          >
+      <span className={cn("absolute inset-y-0 left-0 w-1", t.rail)} aria-hidden="true" />
+
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {label}
           </p>
-          <p className="text-2xl font-bold leading-tight px-4">{value}</p>
-          {sub && <p className={`text-xs mt-1 ${colors.text}`}>{sub}</p>}
+          <p className="mt-1.5 truncate text-2xl font-semibold leading-none tabular-nums text-foreground">
+            {value}
+          </p>
         </div>
-        <div
-          className={`w-11 h-11 ${colors.icon} rounded-xl flex items-center justify-center backdrop-blur-sm`}
+        <span
+          className={cn(
+            "flex h-9 w-9 flex-none items-center justify-center rounded-lg",
+            t.chip,
+          )}
         >
-          <Icon className="w-5 h-5 text-white" />
-        </div>
+          <Icon className={cn("h-4 w-4", t.icon)} aria-hidden="true" />
+        </span>
       </div>
-      {trend && (
-        <div className="absolute bottom-3 right-4 flex items-center gap-1 text-xs opacity-70">
-          <ArrowUpRight className="w-3 h-3" />
-          {trend}
+
+      {(sub || delta) && (
+        <div className="mt-3 flex items-center gap-2 text-xs">
+          {delta && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 font-semibold tabular-nums",
+                dir === "up" && "bg-success-muted text-success",
+                dir === "down" && "bg-danger-muted text-danger",
+                dir === "flat" && "bg-muted text-muted-foreground",
+              )}
+            >
+              <DeltaIcon className="h-3 w-3" aria-hidden="true" />
+              {Math.abs(delta.value)}%
+              <span className="sr-only">
+                {dir === "up" ? "increase" : dir === "down" ? "decrease" : "no change"}
+              </span>
+            </span>
+          )}
+          <span className="truncate text-muted-foreground">{delta?.label ?? sub}</span>
         </div>
       )}
-      {/* decorative circle */}
-      <div className="absolute -bottom-4 -right-4 w-20 h-20 rounded-full bg-white/5" />
+    </article>
+  );
+}
+
+// ─── Quick actions ────────────────────────────────────────────────────────────
+// `roles: undefined` means every signed-in role sees the tile. Gating here means
+// the grid never renders a destination the user cannot open.
+const QUICK_ACTIONS: {
+  label: string;
+  icon: React.ElementType;
+  path: string;
+  tone: Tone;
+  roles?: UserRole[];
+}[] = [
+  { label: "Patients", icon: Users, path: "/patients", tone: "primary" },
+  { label: "Appointments", icon: CalendarDays, path: "/appointments", tone: "info" },
+  { label: "Visits", icon: Stethoscope, path: "/visits", tone: "primary" },
+  { label: "Treatment Plans", icon: ClipboardList, path: "/treatment-plans", tone: "info" },
+  { label: "Billing", icon: CreditCard, path: "/billing", tone: "success" },
+  { label: "Receipts", icon: Receipt, path: "/receipts", tone: "success" },
+  {
+    label: "Pharmacy",
+    icon: Pill,
+    path: "/pharmacy",
+    tone: "info",
+    roles: [...ADMIN_ROLES, UserRole.PHARMACIST, UserRole.DENTIST],
+  },
+  { label: "Inventory", icon: Package, path: "/inventory", tone: "warning" },
+  { label: "Prescriptions", icon: FileText, path: "/prescriptions-list", tone: "primary" },
+  { label: "Staff", icon: UserCog, path: "/staff", tone: "danger", roles: ADMIN_ROLES },
+  { label: "Reports", icon: BarChart3, path: "/reports", tone: "warning", roles: ADMIN_ROLES },
+  {
+    label: "Expenses",
+    icon: BadgeDollarSign,
+    path: "/expenses",
+    tone: "danger",
+    roles: ADMIN_ROLES,
+  },
+];
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-lg bg-muted", className)} />;
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-4 p-4" aria-busy="true" aria-label="Loading dashboard">
+      <Skeleton className="h-9 w-64" />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-28" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
+        <Skeleton className="h-64 lg:col-span-3" />
+        <Skeleton className="h-64 lg:col-span-2" />
+      </div>
     </div>
   );
 }
 
-// ─── Quick-action tiles — easy to ADD / REMOVE entries here ──────────────────
-const QUICK_ACTIONS = [
-  {
-    label: "Patients",
-    icon: "🧑‍⚕️",
-    emoji: true,
-    path: "/patients",
-    bg: "from-primary to-primary",
-    shadow: "shadow-blue-200",
-  },
-  {
-    label: "Appointments",
-    icon: "📅",
-    emoji: true,
-    path: "/appointments",
-    bg: "from-primary-muted to-indigo-400",
-    shadow: "shadow-indigo-200",
-  },
-  {
-    label: "Visits",
-    icon: "📋",
-    emoji: true,
-    path: "/visits",
-    bg: "from-primary-muted to-primary",
-    shadow: "shadow-cyan-200",
-  },
-  {
-    label: "Treatment Plans",
-    icon: "🦷",
-    emoji: true,
-    path: "/treatment-plans",
-    bg: "from-primary to-primary",
-    shadow: "shadow-teal-200",
-  },
-  {
-    label: "Billing",
-    icon: "💳",
-    emoji: true,
-    path: "/billing",
-    bg: "from-success to-success",
-    shadow: "shadow-emerald-200",
-  },
-  {
-    label: "Receipts",
-    icon: "🧾",
-    emoji: true,
-    path: "/receipts",
-    bg: "from-success/80 to-primary",
-    shadow: "shadow-emerald-200",
-  },
-  {
-    label: "Pharmacy Sales",
-    icon: "💊",
-    emoji: true,
-    path: "/pharmacy",
-    bg: "from-pink-500 to-pink-600",
-    shadow: "shadow-pink-200",
-  },
-  {
-    label: "Inventory",
-    icon: "📦",
-    emoji: true,
-    path: "/inventory",
-    bg: "from-warning to-warning",
-    shadow: "shadow-orange-200",
-  },
-  {
-    label: "Staff",
-    icon: "👥",
-    emoji: true,
-    path: "/staff",
-    bg: "from-danger to-danger",
-    shadow: "shadow-rose-200",
-  },
-  {
-    label: "Reports",
-    icon: "📊",
-    emoji: true,
-    path: "/reports",
-    bg: "from-warning to-warning",
-    shadow: "shadow-amber-200",
-  },
-  {
-    label: "Low Stock Alert",
-    icon: "🔔",
-    emoji: true,
-    path: "/inventory?filter=low",
-    bg: "from-danger to-danger",
-    shadow: "shadow-red-200",
-  },
-];
+// ─── Chart tooltip ────────────────────────────────────────────────────────────
+function ChartTooltip({ active, payload, label, money }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-md">
+      {label && <p className="mb-0.5 font-medium text-popover-foreground">{label}</p>}
+      {payload.map((p: any) => (
+        <p key={p.name} className="tabular-nums text-muted-foreground">
+          <span className="font-semibold capitalize text-popover-foreground">
+            {money ? formatCurrency(p.value) : p.value}
+          </span>
+          {!money && ` ${String(p.name).replace(/_/g, " ").toLowerCase()}`}
+        </p>
+      ))}
+    </div>
+  );
+}
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export function DashboardPage() {
   const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = !!user && ADMIN_ROLES.includes(user.role);
 
   const { data: dash, isLoading } = useQuery({
     queryKey: ["dashboard"],
@@ -218,290 +294,434 @@ export function DashboardPage() {
     queryKey: ["backups", "status"],
     queryFn: () => backupsApi.getStatus(),
     refetchInterval: 60_000,
+    enabled: isAdmin,
   });
-  const lastFull = backupStatus?.lastByKind?.full;
 
   const { data: todayApts } = useQuery({
     queryKey: ["appointments", "today"],
     queryFn: () =>
       appointmentsApi.getAll({
         date: new Date().toISOString().split("T")[0],
-        limit: 6,
+        limit: 7,
       }),
     refetchInterval: 30_000,
   });
 
-  if (isLoading) return <LoadingSpinner />;
+  // /reports/revenue is ADMIN-only — gate the request rather than letting every
+  // other role trigger a 403 on page load.
+  const revenueRange = useMemo(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 13);
+    return {
+      startDate: start.toISOString().split("T")[0],
+      endDate: end.toISOString().split("T")[0],
+      groupBy: "day" as const,
+    };
+  }, []);
+
+  const { data: revenueReport } = useQuery({
+    queryKey: ["reports", "revenue", revenueRange],
+    queryFn: () => reportsApi.getRevenue(revenueRange),
+    enabled: isAdmin,
+    staleTime: 5 * 60_000,
+  });
+
+  if (isLoading) return <DashboardSkeleton />;
 
   const d = dash ?? {};
   const apts = todayApts?.data ?? [];
 
-  const appointmentStatusData =
+  const appointmentStatusData: { name: string; value: number }[] =
     d.appointments?.byStatus?.map((s: any) => ({
-      name: s.status.replace(/_/g, " "),
+      name: String(s.status).replace(/_/g, " "),
       value: s._count,
     })) ?? [];
 
+  const revenueTrend =
+    revenueReport?.chart?.map((r: any) => ({
+      date: new Date(r.date).toLocaleDateString("en-UG", {
+        day: "numeric",
+        month: "short",
+      }),
+      revenue: r.revenue,
+    })) ?? [];
+
+  const overdue = d.pending?.overdueInvoices ?? 0;
+  const outstanding = d.pending?.outstandingBalance ?? 0;
+  const lastFull = backupStatus?.lastByKind?.full;
+  const backupStale = !!lastFull && lastFull.status !== "success";
+
   const today = new Date().toLocaleDateString("en-UG", {
     weekday: "long",
-    year: "numeric",
-    month: "long",
     day: "numeric",
+    month: "long",
+    year: "numeric",
   });
 
+  const firstName = user?.staff?.firstName;
+  const visibleActions = QUICK_ACTIONS.filter(
+    (a) => !a.roles || (user && a.roles.includes(user.role)),
+  );
+
   return (
-    <div
-      className="min-h-screen p-2 space-y-2"
-      style={{
-        background:
-          "linear-gradient(135deg,#f0f4ff 0%,#fafafa 60%,#fff7ed 100%)",
-      }}
-    >
+    <div className="space-y-4 p-4">
       {/* ── Header ── */}
-      <div className="flex items-center justify-between">
+      <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1
-            className="text-3xl font-extrabold tracking-tight"
-            style={{
-              fontFamily: '"Sora", "DM Sans", sans-serif',
-              color: "#1e293b",
-            }}
-          >
-            🦷 Clinic Dashboard
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            {firstName ? `Good day, ${firstName}` : "Clinic Dashboard"}
           </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">{today}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">{today}</p>
         </div>
-        <div className="flex items-center gap-2 bg-white rounded-2xl px-4 py-2 shadow-sm border border-border/60">
-          <Zap className="w-4 h-4 text-warning/70" />
-          <span className="text-xs font-semibold text-muted-foreground">
-            Quick Access Dashboard
-          </span>
-        </div>
-        {lastFull && (
-          <a
-            href="/admin/backups"
-            className="flex items-center gap-1.5 bg-white rounded-2xl px-3 py-2 shadow-sm border border-border/60 hover:shadow-md transition-shadow"
-          >
-            {lastFull.status === "success" ? (
-              <CheckCircle2 className="w-3.5 h-3.5 text-success" />
-            ) : (
-              <AlertCircle className="w-3.5 h-3.5 text-warning" />
-            )}
-            <span className="text-xs text-muted-foreground">
-              Backup: {new Date(lastFull.finishedAt).toLocaleTimeString("en-UG", { hour: "2-digit", minute: "2-digit" })}
+
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-60 motion-reduce:animate-none" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-success" />
             </span>
-          </a>
-        )}
-      </div>
-
-      {/* ── Stat Cards (ExpensesPage style) ── */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard
-          label="Total Patients"
-          value={d.patients?.total?.toLocaleString() ?? "—"}
-          sub={`+${d.patients?.newToday ?? 0} today`}
-          icon={Users}
-          color="blue"
-        />
-        <StatCard
-          label="Today's Appointments"
-          value={d.appointments?.today ?? "—"}
-          sub={`${d.appointments?.thisMonth ?? 0} this month`}
-          icon={Calendar}
-          color="amber"
-        />
-        <StatCard
-          label="Revenue Today"
-          value={formatCurrency(d.revenue?.today ?? 0)}
-          trend={`${d.revenue?.growth >= 0 ? "+" : ""}${d.revenue?.growth ?? 0}% vs last month`}
-          icon={TrendingUp}
-          color="emerald"
-        />
-        <StatCard
-          label="Pending Invoices"
-          value={d.pending?.invoices ?? "—"}
-          sub={`${d.staff?.active ?? 0} staff on duty`}
-          icon={AlertTriangle}
-          color="rose"
-        />
-      </div>
-
-      {/* ── Quick Action Grid ── */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2
-            className="text-lg font-bold text-foreground"
-            style={{ fontFamily: '"Sora", sans-serif' }}
-          >
-            Quick Actions
-          </h2>
-          <span className="text-xs text-muted-foreground/70 italic">
-            Click any tile to navigate
+            Live · refreshes every minute
           </span>
-        </div>
 
-        {/* Grid — change grid-cols-* to adjust columns */}
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
-          {QUICK_ACTIONS.map((action) => (
+          {lastFull && (
             <button
-              key={action.label}
-              onClick={() => navigate(action.path)}
-              className={`
-                group relative flex flex-col items-center justify-center gap-2
-                bg-white rounded-2xl border border-border/60 p-2
-                hover:shadow-xl hover:-translate-y-1 active:scale-95
-                transition-all duration-200 cursor-pointer
-                shadow-sm ${action.shadow}
-              `}
+              type="button"
+              onClick={() => navigate("/admin/backups")}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
+                "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                backupStale
+                  ? "border-warning/40 bg-warning-muted text-warning hover:bg-warning-muted/70"
+                  : "border-border/70 bg-card text-muted-foreground hover:bg-muted",
+              )}
             >
-              {/* Colored top strip */}
-              <div
-                className={`absolute top-0 inset-x-0 h-1 rounded-t-2xl bg-gradient-to-r ${action.bg}`}
-              />
-
-              <span className="text-4xl group-hover:scale-110 transition-transform duration-200 leading-none mt-1">
-                {action.icon}
-              </span>
-              <span className="text-s font-semibold text-foreground text-center leading-tight">
-                {action.label}
-              </span>
+              {backupStale ? (
+                <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+              ) : (
+                <CheckCircle2 className="h-3.5 w-3.5 text-success" aria-hidden="true" />
+              )}
+              Backup{" "}
+              {new Date(lastFull.finishedAt).toLocaleTimeString("en-UG", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </button>
-          ))}
+          )}
+        </div>
+      </header>
+
+      {/* ── KPIs ── */}
+      <section aria-label="Key figures">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <KpiCard
+            label="Total Patients"
+            value={d.patients?.total?.toLocaleString() ?? "—"}
+            sub={`${d.patients?.newToday ?? 0} registered today · ${
+              d.patients?.newThisMonth ?? 0
+            } this month`}
+            icon={Users}
+            tone="primary"
+            onClick={() => navigate("/patients")}
+          />
+          <KpiCard
+            label="Appointments Today"
+            value={String(d.appointments?.today ?? "—")}
+            sub={`${d.appointments?.thisMonth ?? 0} booked this month`}
+            icon={CalendarDays}
+            tone="info"
+            onClick={() => navigate("/appointments")}
+          />
+          <KpiCard
+            label="Revenue Today"
+            value={formatCurrency(d.revenue?.today ?? 0, "UGX", true)}
+            icon={TrendingUp}
+            tone="success"
+            delta={{
+              value: d.revenue?.growth ?? 0,
+              label: `${formatCurrency(
+                d.revenue?.thisMonth ?? 0,
+                "UGX",
+                true,
+              )} MTD vs last month`,
+            }}
+            onClick={isAdmin ? () => navigate("/reports") : undefined}
+          />
+          <KpiCard
+            label="Pending Invoices"
+            value={String(d.pending?.invoices ?? "—")}
+            sub={`${formatCurrency(outstanding, "UGX", true)} outstanding`}
+            icon={FileText}
+            tone={overdue > 0 ? "danger" : "warning"}
+            onClick={() => navigate("/billing")}
+          />
         </div>
       </section>
 
-      {/* ── Bottom Row: Schedule + Donut ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Today's Schedule */}
-        <div className="lg:col-span-3 bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border/40">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">📅</span>
-              <h3
-                className="font-bold text-foreground"
-                style={{ fontFamily: '"Sora", sans-serif' }}
-              >
-                Today's Schedule
-              </h3>
-            </div>
+      {/* ── Attention strip ── Renders only when something genuinely needs
+             acting on, so its presence is itself the signal. */}
+      {(overdue > 0 || backupStale) && (
+        <section
+          aria-label="Needs attention"
+          className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-danger/25 bg-danger-muted/60 px-4 py-2.5"
+        >
+          <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-danger">
+            <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+            Needs attention
+          </span>
+          {overdue > 0 && (
             <button
-              onClick={() => navigate("/appointments")}
-              className="flex items-center gap-1 text-xs text-primary hover:underline font-medium"
+              type="button"
+              onClick={() => navigate("/billing")}
+              className="inline-flex items-center gap-1 text-xs font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              View all <ArrowRight className="w-3 h-3" />
+              <span className="font-semibold tabular-nums">{overdue}</span> invoice
+              {overdue === 1 ? "" : "s"} past due
+              <ArrowRight className="h-3 w-3" aria-hidden="true" />
             </button>
-          </div>
+          )}
+          {backupStale && (
+            <button
+              type="button"
+              onClick={() => navigate("/admin/backups")}
+              className="inline-flex items-center gap-1 text-xs font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <DatabaseBackup className="h-3 w-3" aria-hidden="true" />
+              Last backup did not complete
+              <ArrowRight className="h-3 w-3" aria-hidden="true" />
+            </button>
+          )}
+        </section>
+      )}
 
+      {/* ── Schedule + status ── */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
+        <Panel
+          title="Today's Schedule"
+          icon={CalendarDays}
+          className="lg:col-span-3"
+          action={
+            <button
+              type="button"
+              onClick={() => navigate("/appointments")}
+              className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-primary hover:bg-primary-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              View all <ArrowRight className="h-3 w-3" aria-hidden="true" />
+            </button>
+          }
+        >
           {apts.length === 0 ? (
-            <div className="py-14 flex flex-col items-center text-muted-foreground/50">
-              <span className="text-5xl mb-3">📭</span>
-              <p className="text-sm font-medium">No appointments today</p>
+            <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
+              <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                <CalendarX2 className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+              </span>
+              <p className="text-sm font-medium text-foreground">
+                No appointments scheduled today
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate("/appointments")}
+                className="mt-3 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                Book an appointment
+              </button>
             </div>
           ) : (
-            <div className="divide-y divide-border/40">
+            <ul className="divide-y divide-border/60">
               {apts.map((apt: any) => (
-                <div
-                  key={apt.id}
-                  className="flex items-center gap-4 px-5 py-3 hover:bg-primary-muted/40 transition-colors"
-                >
-                  <div className="text-center min-w-[52px]">
-                    <p className="text-sm font-bold text-primary">
-                      {formatTime(apt.scheduledAt)}
-                    </p>
-                    <p className="text-xs text-muted-foreground/70">{apt.duration}m</p>
-                  </div>
-                  <div className="w-px h-10 bg-muted" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">
-                      {apt.patient?.firstName} {apt.patient?.lastName}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {apt.type?.replace(/_/g, " ")} · Dr.{" "}
-                      {apt.dentist?.lastName}
-                    </p>
-                  </div>
-                  <StatusBadge status={apt.status} />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Appointment Status Donut */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden">
-          <div className="flex items-center gap-2 px-5 py-4 border-b border-border/40">
-            <span className="text-xl">🍩</span>
-            <h3
-              className="font-bold text-foreground"
-              style={{ fontFamily: '"Sora", sans-serif' }}
-            >
-              Appt. Status
-            </h3>
-          </div>
-
-          {appointmentStatusData.length > 0 ? (
-            <div className="px-4 pb-4">
-              <ResponsiveContainer width="100%" height={170}>
-                <PieChart>
-                  <Pie
-                    data={appointmentStatusData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={75}
-                    paddingAngle={3}
-                    dataKey="value"
+                <li key={apt.id}>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/appointments/${apt.id}`)}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   >
-                    {appointmentStatusData.map((_: any, i: number) => (
-                      <Cell
-                        key={i}
-                        fill={DONUT_COLORS[i % DONUT_COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      borderRadius: "12px",
-                      border: "1px solid #e2e8f0",
-                      fontSize: "12px",
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-
-              <div className="space-y-2 mt-2">
-                {appointmentStatusData.map((item: any, i: number) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between text-xs"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                        style={{
-                          backgroundColor:
-                            DONUT_COLORS[i % DONUT_COLORS.length],
-                        }}
-                      />
-                      <span className="text-muted-foreground capitalize">
-                        {item.name}
-                      </span>
+                    <div className="w-[58px] flex-none">
+                      <p className="text-sm font-semibold tabular-nums text-foreground">
+                        {formatTime(apt.scheduledAt)}
+                      </p>
+                      <p className="text-xs tabular-nums text-muted-foreground">
+                        {apt.duration}&nbsp;min
+                      </p>
                     </div>
-                    <span className="font-bold text-foreground">
+                    <span className="h-9 w-px flex-none bg-border" aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {apt.patient?.firstName} {apt.patient?.lastName}
+                      </p>
+                      <p className="truncate text-xs capitalize text-muted-foreground">
+                        {String(apt.type ?? "")
+                          .replace(/_/g, " ")
+                          .toLowerCase()}
+                        {apt.dentist?.lastName && ` · Dr. ${apt.dentist.lastName}`}
+                      </p>
+                    </div>
+                    <StatusBadge status={apt.status} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+
+        <Panel
+          title="Appointment Status"
+          icon={PieChartIcon}
+          className="lg:col-span-2"
+          bodyClassName="p-4"
+        >
+          {appointmentStatusData.length > 0 ? (
+            <div className="flex flex-col gap-3">
+              <div className="relative">
+                <ResponsiveContainer width="100%" height={150}>
+                  <PieChart>
+                    <Pie
+                      data={appointmentStatusData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={48}
+                      outerRadius={70}
+                      paddingAngle={2}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {appointmentStatusData.map((_, i) => (
+                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<ChartTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* Centre total: the donut's own label, so the legend stays a
+                    breakdown rather than doubling as the headline figure. */}
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-xl font-semibold tabular-nums text-foreground">
+                    {appointmentStatusData.reduce((s, i) => s + i.value, 0)}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">today</span>
+                </div>
+              </div>
+
+              <ul className="space-y-1.5">
+                {appointmentStatusData.map((item, i) => (
+                  <li key={item.name} className="flex items-center justify-between text-xs">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span
+                        className="h-2 w-2 flex-none rounded-full"
+                        style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}
+                        aria-hidden="true"
+                      />
+                      <span className="truncate capitalize text-muted-foreground">
+                        {item.name.toLowerCase()}
+                      </span>
+                    </span>
+                    <span className="font-semibold tabular-nums text-foreground">
                       {item.value}
                     </span>
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           ) : (
-            <div className="py-14 flex flex-col items-center text-muted-foreground/50">
-              <span className="text-5xl mb-3">📊</span>
-              <p className="text-sm font-medium">No data yet</p>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                <Activity className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+              </span>
+              <p className="text-sm font-medium text-foreground">No activity yet</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Status appears once today's appointments are booked.
+              </p>
             </div>
           )}
-        </div>
+        </Panel>
       </div>
+
+      {/* ── Revenue trend (admin only) ── */}
+      {isAdmin && revenueTrend.length > 1 && (
+        <Panel
+          title="Revenue · last 14 days"
+          icon={TrendingUp}
+          bodyClassName="px-2 pb-3 pt-4"
+          action={
+            <span className="text-xs tabular-nums text-muted-foreground">
+              {formatCurrency(revenueReport?.total ?? 0, "UGX", true)} collected ·{" "}
+              {revenueReport?.count ?? 0} receipts
+            </span>
+          }
+        >
+          <ResponsiveContainer width="100%" height={180}>
+            <AreaChart data={revenueTrend} margin={{ top: 4, right: 12, left: 4, bottom: 0 }}>
+              <defs>
+                <linearGradient id="dashRevenue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis
+                dataKey="date"
+                tickLine={false}
+                axisLine={false}
+                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                interval="preserveStartEnd"
+                minTickGap={24}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                width={48}
+                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                tickFormatter={(v) => formatCurrency(v, "", true).trim()}
+              />
+              <Tooltip content={<ChartTooltip money />} />
+              <Area
+                type="monotone"
+                dataKey="revenue"
+                stroke="hsl(var(--chart-1))"
+                strokeWidth={2}
+                fill="url(#dashRevenue)"
+                dot={false}
+                activeDot={{ r: 4, strokeWidth: 0 }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </Panel>
+      )}
+
+      {/* ── Quick actions ── */}
+      <section aria-labelledby="quick-actions-heading">
+        <h2 id="quick-actions-heading" className="mb-2.5 text-sm font-semibold text-foreground">
+          Quick actions
+        </h2>
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+          {visibleActions.map((action) => {
+            const t = TONE[action.tone];
+            return (
+              <button
+                key={action.label}
+                type="button"
+                onClick={() => navigate(action.path)}
+                className={cn(
+                  "group flex min-h-[44px] items-center gap-2.5 rounded-xl border border-border/70 bg-card px-3 py-2.5 text-left shadow-xs",
+                  "transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:shadow-md active:translate-y-0",
+                  "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex h-8 w-8 flex-none items-center justify-center rounded-lg",
+                    t.chip,
+                  )}
+                >
+                  <action.icon className={cn("h-4 w-4", t.icon)} aria-hidden="true" />
+                </span>
+                <span className="min-w-0 truncate text-sm font-medium text-foreground">
+                  {action.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }
