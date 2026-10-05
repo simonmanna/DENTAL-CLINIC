@@ -10,10 +10,18 @@ import {
 import { StockLogService } from './stock-log.service';
 import { GetStockLogsDto } from './dto/get-stock-logs.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole, StockLedgerType } from '@prisma/client';  // ✅ Added StockLedgerType
 
+// Read-only stock ledger views, for the roles that actually move stock.
 @Controller('stock-logs')
 @UseGuards(JwtAuthGuard)
+@Roles(
+  UserRole.SUPER_ADMIN,
+  UserRole.ADMIN,
+  UserRole.PHARMACIST,
+  UserRole.NURSE,
+)
 export class StockLogController {
   constructor(private readonly stockLogService: StockLogService) {}
 

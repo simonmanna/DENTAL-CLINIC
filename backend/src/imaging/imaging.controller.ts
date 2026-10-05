@@ -225,7 +225,12 @@ export class ImagingController {
       await this.storageService.deleteFile(record.storagePath);
     }
     if (record.thumbnailUrl) {
-      const thumbnailPath = record.thumbnailUrl.replace('/uploads/', '');
+      // thumbnailUrl is stored as a /uploads/... URL, but deleteFile unlinks an
+      // absolute path — resolve it first or the thumbnail is left on disk.
+      const relative = record.thumbnailUrl.replace('/uploads/', '');
+      const thumbnailPath = relative
+        ? this.storageService.resolveUploadPath(relative)
+        : null;
       if (thumbnailPath) {
         await this.storageService.deleteFile(thumbnailPath);
       }

@@ -59,4 +59,22 @@ export class StorageService {
   async getFile(filePath: string): Promise<Buffer> {
     return fs.readFile(filePath);
   }
+
+  /**
+   * Turn a client-supplied relative path into an absolute one inside the upload
+   * directory, or null if it would escape it. Callers must treat null as
+   * "not found" — the path came from a URL.
+   */
+  resolveUploadPath(relativePath: string): string | null {
+    if (!relativePath) return null;
+    const decoded = decodeURIComponent(relativePath);
+    if (decoded.indexOf('\u0000') !== -1) return null;
+
+    const absolute = path.resolve(this.uploadDir, decoded);
+    const root = path.resolve(this.uploadDir);
+    if (absolute !== root && !absolute.startsWith(root + path.sep)) {
+      return null;
+    }
+    return absolute;
+  }
 }

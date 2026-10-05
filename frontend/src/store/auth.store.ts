@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { authApi } from '../lib/api';
 import { UserRole } from '@/types/shared';
+import { clearFileToken } from '@/lib/uploads';
 
 interface User {
   id: string;
@@ -70,7 +71,8 @@ export const useAuthStore = create<AuthState>()(
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user_id'); // Don't forget to clear this too
-        
+        clearFileToken();
+
         set({ user: null, token: null, isAuthenticated: false });
       },
 

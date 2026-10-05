@@ -1,7 +1,6 @@
 // src/app.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { corsOrigins } from './common/config/validate-env';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
@@ -48,8 +47,6 @@ import { ChartEntryModule } from './chart-entry/chart-entry.module';
 import { StorageModule } from './storage/storage.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 
-import { ServeStaticModule } from '@nestjs/serve-static';
-import { join } from 'path';
 // import { ClinicalReportModule } from './clinical-report/clinical-report.module';
 import { ClinicalReportsModule } from './clinical-report/clinical-report.module';
 import { ConditionsModule } from './conditions/conditions.module';
@@ -68,22 +65,17 @@ import { TreatmentConsumptionsModule } from './treatment-consumptions/treatment-
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { HealthModule } from './health/health.module';
 import { BackupModule } from './backup/backup.module';
+// Uploaded patient files are streamed through FilesModule behind a signed
+// token — never mounted as unauthenticated static content.
+import { FilesModule } from './files/files.module';
 
 @Module({
   imports: [
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'uploads'), // Path to your uploads folder
-      serveRoot: '/uploads', // The URL prefix
-      serveStaticOptions: {
-        setHeaders: (res: import('express').Response) => {
-          res.set('Access-Control-Allow-Origin', corsOrigins()[0]);
-        },
-      },
-    }),
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     ScheduleModule.forRoot(),
     HealthModule,
+    FilesModule,
     PrismaModule,
     SequenceModule,
     DocumentNumberModule,

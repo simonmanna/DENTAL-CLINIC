@@ -24,15 +24,7 @@ import { toast } from 'sonner';
 import imagingService from '@/services/imaging.service';
 import { ImagingRecord, ImagingType, ImagingStage, ImagingSource } from '@/types/imaging';
 
-// const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
-const API_BASE = (import.meta as any).env?.VITE_API_URL || "http://localhost:3001";
-
-
-const resolveUrl = (url?: string) => {
-  if (!url) return '';
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
-};
+import { resolveUpload as resolveUrl, useFileToken } from '@/lib/uploads';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -393,6 +385,8 @@ export const SessionImagingSection: React.FC<Props> = ({
   onChange,
   readOnly = false,
 }) => {
+  // Uploaded imaging is served behind a signed token; prime it for this view.
+  useFileToken();
   // All imaging records fetched from the server for this session
   const [linked,       setLinked]       = useState<ImagingRecord[]>([]);
   // Records available to pick (uploaded for this patient/visit but not yet linked)

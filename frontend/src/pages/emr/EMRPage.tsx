@@ -7,6 +7,7 @@ import { formatCurrency } from '../../lib/utils';
 import { formatDateTime, cn } from '../../lib/utils';
 import { PageHeader, Button, Table, Tr, Td, LoadingSpinner, Modal, FormField, Input, Select, Textarea, Pagination } from '../../components/shared';
 import { FileText, Plus, Stethoscope, Eye } from 'lucide-react';
+import { resolveUpload, useFileToken } from '@/lib/uploads';
 
 export function EMRPage() {
   const navigate = useNavigate();
@@ -117,6 +118,8 @@ export function EMRPage() {
 // IMAGING PAGE
 // ─────────────────────────────────────────────────────────────
 export function ImagingPage() {
+  // Uploaded imaging is served behind a signed token; prime it for this view.
+  useFileToken();
   const [showUpload, setShowUpload] = useState(false);
   const qc = useQueryClient();
   const [form, setForm] = useState<any>({
@@ -160,7 +163,7 @@ export function ImagingPage() {
             <div key={rec.id} className="bg-white rounded-xl border border-border/60 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
               <div className="aspect-video bg-gradient-to-br from-foreground to-foreground flex items-center justify-center relative">
                 {rec.fileUrl ? (
-                  <img src={rec.fileUrl} alt={rec.title} className="w-full h-full object-cover" onError={e => (e.currentTarget.style.display = 'none')} />
+                  <img src={resolveUpload(rec.fileUrl)} alt={rec.title} className="w-full h-full object-cover" onError={e => (e.currentTarget.style.display = 'none')} />
                 ) : null}
                 <div className="absolute top-2 left-2">
                   <span className="bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">{rec.type}</span>

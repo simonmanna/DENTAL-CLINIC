@@ -19,7 +19,19 @@ import { CreateBillingServiceDto } from './dto/create-billing-service.dto';
 import { UpdateBillingServiceDto } from './dto/update-billing-service.dto';
 import { BillingServiceResponseDto } from './dto/billing-service-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '@prisma/client';
 import { UseGuards } from '@nestjs/common';
+
+// The service catalogue carries prices, so only practice management edits it;
+// the roles that raise invoices need to read it.
+const CAN_EDIT_CATALOGUE = [UserRole.SUPER_ADMIN, UserRole.ADMIN];
+const CAN_VIEW_CATALOGUE = [
+  UserRole.SUPER_ADMIN,
+  UserRole.ADMIN,
+  UserRole.DENTIST,
+  UserRole.RECEPTIONIST,
+];
 
 @ApiTags('Billing Services')
 @UseGuards(JwtAuthGuard)
@@ -28,6 +40,7 @@ export class BillingServicesController {
   constructor(private readonly service: BillingServicesService) {}
 
   @Post()
+  @Roles(...CAN_EDIT_CATALOGUE)
   @ApiOperation({ summary: 'Create new billing service' })
   @ApiResponse({ status: 201, type: BillingServiceResponseDto })
   @ApiResponse({ status: 409, description: 'Service code already exists' })
@@ -36,6 +49,7 @@ export class BillingServicesController {
   }
 
   @Get()
+  @Roles(...CAN_VIEW_CATALOGUE)
   @ApiOperation({ summary: 'Get all billing services with pagination and filters' })
   @ApiQuery({ name: 'skip', required: false, type: Number })
   @ApiQuery({ name: 'take', required: false, type: Number })
@@ -57,6 +71,7 @@ export class BillingServicesController {
   }
 
   @Get(':id')
+  @Roles(...CAN_VIEW_CATALOGUE)
   @ApiOperation({ summary: 'Get billing service by ID' })
   @ApiResponse({ status: 200, type: BillingServiceResponseDto })
   @ApiResponse({ status: 404, description: 'Not found' })
@@ -65,6 +80,7 @@ export class BillingServicesController {
   }
 
   @Put(':id')
+  @Roles(...CAN_EDIT_CATALOGUE)
   @ApiOperation({ summary: 'Update billing service' })
   @ApiResponse({ status: 200, type: BillingServiceResponseDto })
   update(@Param('id') id: string, @Body() dto: UpdateBillingServiceDto) {
@@ -72,6 +88,7 @@ export class BillingServicesController {
   }
 
   @Delete(':id')
+  @Roles(...CAN_EDIT_CATALOGUE)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete billing service' })
   remove(@Param('id') id: string) {
@@ -79,12 +96,14 @@ export class BillingServicesController {
   }
 
   @Post(':id/toggle-favorite')
+  @Roles(...CAN_VIEW_CATALOGUE)
   @ApiOperation({ summary: 'Toggle favorite status' })
   toggleFavorite(@Param('id') id: string) {
     return this.service.toggleFavorite(id);
   }
 
   @Post(':id/duplicate')
+  @Roles(...CAN_EDIT_CATALOGUE)
   @ApiOperation({ summary: 'Duplicate billing service' })
   duplicate(@Param('id') id: string) {
     return this.service.duplicate(id);

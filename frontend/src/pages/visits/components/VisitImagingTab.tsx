@@ -25,14 +25,7 @@ import { toast } from 'sonner';
 import { isValidFdi } from '../../../lib/dental/notation';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-// const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
-const API_BASE = (import.meta as any).env?.VITE_API_URL ?? '';
-
-const resolveUrl = (url?: string): string => {
-  if (!url) return '';
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
-};
+import { resolveUpload as resolveUrl, useFileToken } from '@/lib/uploads';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface VisitImagingTabProps {
@@ -621,6 +614,8 @@ const StatCard: React.FC<{ label: string; value: number; icon: React.ReactNode; 
 // Main Component
 // ═════════════════════════════════════════════════════════════════════════════
 export const VisitImagingTab: React.FC<VisitImagingTabProps> = ({ visitId, patientId, dentistId }) => {
+  // Uploaded imaging is served behind a signed token; prime it for this view.
+  useFileToken();
   const [records,      setRecords]      = useState<ImagingRecord[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [viewMode,     setViewMode]     = useState<ViewMode>('gallery');

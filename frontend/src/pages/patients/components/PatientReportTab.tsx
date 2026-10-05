@@ -6,6 +6,7 @@ import { chartEntriesApi } from "../../../lib/api/chart-entries";
 import { treatmentProceduresApi } from "../../../lib/api/treatment-procedures";
 import { prescriptionsApi, imagingApi } from "../../../lib/api";
 import { formatDate, getAge, cn } from "../../../lib/utils";
+import { resolveUpload, useFileToken } from "@/lib/uploads";
 import {
   Loader2, Printer, Activity, Clock, Syringe, CheckCircle, XCircle,
   Pill, User, FileText, Stethoscope, CalendarDays, ClipboardList,
@@ -196,6 +197,8 @@ function getInitials(p: any) {
 }
 
 export function PatientReportTab({ patientId, visit }: Props) {
+  // Uploaded imaging is served behind a signed token; prime it for this view.
+  useFileToken();
   const { data: patient, isLoading: load1 } = useQuery({
     queryKey: ["patient", patientId],
     queryFn: () => patientsApi.getOne(patientId),
@@ -390,12 +393,7 @@ export function PatientReportTab({ patientId, visit }: Props) {
   const hasSOAP = !!(visit?.subjective || visit?.objective || visit?.assessment || visit?.plan);
   const hasFindingsRecs = !!(visit?.findings || visit?.recommendations);
 
-  const VITE_API = (import.meta as any).env?.VITE_API_URL ?? "";
-  const resolveUrl = (url?: string) => {
-    if (!url) return "";
-    if (url.startsWith("http")) return url;
-    return `${VITE_API}${url.startsWith("/") ? "" : "/"}${url}`;
-  };
+  const resolveUrl = resolveUpload;
 
   const generatedDate = new Date().toLocaleDateString("en-UG", { day: "numeric", month: "short", year: "numeric" });
 

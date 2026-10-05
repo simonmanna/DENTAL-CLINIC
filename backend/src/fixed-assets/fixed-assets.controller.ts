@@ -11,7 +11,8 @@ import {
   PostDepreciationDto, FixedAssetQueryDto,
 } from './dto/fixed-assets.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-// import { Roles } from '../auth/decorators/roles.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '@prisma/client';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -20,9 +21,11 @@ import {
 } from '@nestjs/swagger';
 
 
+// The asset register and depreciation postings are accounting functions.
 @Controller('fixed-assets')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
+@Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
 export class FixedAssetsController {
   constructor(private readonly service: FixedAssetsService) {}
 
