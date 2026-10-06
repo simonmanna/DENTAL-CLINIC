@@ -1,5 +1,6 @@
 // backend/src/modules/imaging/dto/imaging-query.dto.ts
-import { IsOptional, IsString, IsEnum, IsUUID, IsDateString } from 'class-validator';
+import {
+  IsIn, IsOptional, IsString, IsEnum, IsUUID, IsDateString } from 'class-validator';
 import { ImagingType, ImagingStage } from '@prisma/client';
 
 export class ImagingQueryDto {
@@ -22,6 +23,16 @@ export class ImagingQueryDto {
   @IsOptional()
   @IsString()
   groupId?: string;
+
+  /** Images attached to one procedure session. */
+  @IsOptional()
+  @IsString()
+  procedureSessionId?: string;
+
+  /** 'true' → only images not attached to any session yet. */
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  unlinked?: string;
 
   @IsOptional()
   @IsDateString()

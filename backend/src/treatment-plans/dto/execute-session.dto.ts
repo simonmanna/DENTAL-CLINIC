@@ -1,21 +1,22 @@
 // src/treatment-plans/dto/execute-session.dto.ts
 import {
   IsOptional, IsString, IsArray, IsNumber,
-  IsBoolean, ValidateNested,
+  IsBoolean, ValidateNested, IsEnum, IsISO8601, IsInt, IsNotEmpty, MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ToothSurface } from '@prisma/client';
 
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 
 export class ToothStatusDto {
-  @IsNumber()
+  @IsInt()
   toothNumber: number;
 
   @IsOptional() @IsString()
   chartEntryId?: string;
 
-  @IsOptional() @IsArray() @IsString({ each: true })
+  @IsOptional() @IsArray() @IsEnum(ToothSurface, { each: true })
   surfaces?: string[];
 
   @IsString()
@@ -24,7 +25,7 @@ export class ToothStatusDto {
   @IsOptional() @IsString()
   notes?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional() @IsISO8601()
   performedDate?: string;
 }
 
@@ -73,12 +74,19 @@ export class SessionImageUploadMetaDto {
 
 
 export class ExecuteSessionDto {
-  @IsOptional() @IsString()   performedDate?: string;
+  // Not in the future (checked in the service, with a day of TZ grace).
+  @IsOptional() @IsISO8601()  performedDate?: string;
   @IsOptional() @IsString()   performedNotes?: string;
-  @IsOptional() @IsArray()    surfaces?: string[];      // surfaces treated this session
+  /** Legacy single surface list — prefer per-tooth toothStatuses[].surfaces. */
+  @IsOptional() @IsArray() @IsEnum(ToothSurface, { each: true })
+  surfaces?: string[];
+  /** Consumables: [{ inventoryItemId, quantityUsed, … }] — issued from stock. */
   @IsOptional() @IsArray()    actualInputsUsed?: any[];
   @IsOptional() @IsString()   dentistId?: string;
-  @IsOptional() @IsString()   visitId?: string;
+  /** The visit the session is recorded in (required). */
+  @IsString() @IsNotEmpty()   visitId: string;
+  /** Required when the visit is already COMPLETED (amendment). */
+  @IsOptional() @IsString() @MaxLength(1000) amendmentReason?: string;
   @IsOptional() @IsNumber()   sessionPrice?: number;
   @IsOptional() @IsNumber()   sessionPriceOriginal?: number;
 
@@ -124,4 +132,19 @@ export class ExecuteSessionDto {
   @IsOptional() @IsString()
   imagingGroupId?: string;
 
+}
+
+/**
+ * POST …/sessions/extra. A class (not an inline type) so the ValidationPipe
+ * runs on it. Any client `sessionCost` is stripped — the price is derived.
+ */
+export class AddExtraSessionDto {
+  @IsOptional() @IsString() @MaxLength(200) sessionLabel?: string;
+  @IsOptional() @IsInt() visitGroup?: number;
+  @IsOptional() @IsArray() @IsEnum(ToothSurface, { each: true })
+  surfaces?: string[];
+  @IsOptional() @IsArray() @IsInt({ each: true }) toothNumbers?: number[];
+  @IsOptional() @IsString() visitId?: string;
+  @IsOptional() @IsString() providerId?: string;
+  @IsOptional() @IsString() @MaxLength(2000) notes?: string;
 }

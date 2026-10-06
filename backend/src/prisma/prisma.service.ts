@@ -53,6 +53,9 @@ export class PrismaService
       // direct DB write or future bug could still push these negative. See
       // prisma/sql/2026-06-21_invoice_balance_nonneg.sql.
       '2026-06-21_invoice_balance_nonneg.sql',
+      // One ACTIVE invoice line per treatment procedure. The migration skips it
+      // while duplicate lines exist; this retries it after they are repaired.
+      'invoice_items_active_tp_unique.sql',
     ];
 
     for (const file of sqlFiles) {

@@ -131,11 +131,16 @@ export class UpdateTreatmentPlanDto {
 export class AddTreatmentProcedureDto {
   @IsString() procedureId: string;
 
-  @IsNumber({}, { each: true })
-  @ArrayMinSize(1, { message: 'At least one tooth number is required' })
+  // Optional for mouth-level procedures (FIXED / PER_SESSION / PER_UNIT);
+  // tooth-priced models require teeth (checked in the service).
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
   toothNumbers: number[];
 
-  @IsString({ each: true }) surfaces: ToothSurface[];
+  @IsOptional()
+  @IsString({ each: true })
+  surfaces: ToothSurface[];
 
   // 💰 Pricing (required: final price patient pays)
   @IsNumber() totalPrice: number; // ← renamed from "cost"

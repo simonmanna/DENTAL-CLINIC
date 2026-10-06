@@ -6,10 +6,13 @@
 import { Module } from '@nestjs/common';
 import { ChartEntryController } from './chart-entry.controller';
 import { ChartEntryService } from './chart-entry.service';
-import { PrismaModule } from '../prisma/prisma.module';  // adjust path
+import { PrismaModule } from '../prisma/prisma.module';
+import { TreatmentPlansModule } from '../treatment-plans/treatment-plans.module';
 
 @Module({
-  imports: [PrismaModule],
+  // Quick actions delegate to TreatmentPlansService (no cycle: the plans
+  // module does not import this one).
+  imports: [PrismaModule, TreatmentPlansModule],
   controllers: [ChartEntryController],
   providers: [ChartEntryService],
   exports: [ChartEntryService],  // export so TreatmentPlansModule can inject it

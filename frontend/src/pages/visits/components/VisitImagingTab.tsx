@@ -32,6 +32,8 @@ interface VisitImagingTabProps {
   visitId:   string;
   patientId: string;
   dentistId?: string;
+  /** Closed (completed / cancelled) visit: view only, no upload or delete. */
+  readOnly?: boolean;
 }
 type ViewMode    = 'gallery' | 'compare' | 'timeline';
 type StageFilter = 'ALL' | 'BEFORE' | 'AFTER' | 'PROGRESS' | 'BASELINE';
@@ -613,7 +615,7 @@ const StatCard: React.FC<{ label: string; value: number; icon: React.ReactNode; 
 // ═════════════════════════════════════════════════════════════════════════════
 // Main Component
 // ═════════════════════════════════════════════════════════════════════════════
-export const VisitImagingTab: React.FC<VisitImagingTabProps> = ({ visitId, patientId, dentistId }) => {
+export const VisitImagingTab: React.FC<VisitImagingTabProps> = ({ visitId, patientId, dentistId, readOnly = false }) => {
   // Uploaded imaging is served behind a signed token; prime it for this view.
   useFileToken();
   const [records,      setRecords]      = useState<ImagingRecord[]>([]);
@@ -739,10 +741,10 @@ export const VisitImagingTab: React.FC<VisitImagingTabProps> = ({ visitId, patie
             <RefreshCw className="h-4 w-4" />
           </button>
 
-          <Button onClick={() => setUploadOpen(true)}
+          {!readOnly && <Button onClick={() => setUploadOpen(true)}
             className="h-8 bg-white text-primary hover:bg-primary-muted/60 text-xs px-3 gap-1.5 font-semibold shadow-sm">
             <Plus className="h-3.5 w-3.5" />Upload
-          </Button>
+          </Button>}
         </div>
       </div>
 
@@ -831,9 +833,9 @@ export const VisitImagingTab: React.FC<VisitImagingTabProps> = ({ visitId, patie
               <p className="text-muted-foreground font-semibold">No imaging records yet</p>
               <p className="text-sm text-muted-foreground/70">Upload X-rays and photos to track treatment progress</p>
             </div>
-            <Button onClick={() => setUploadOpen(true)} className="bg-primary hover:bg-primary text-white gap-2 shadow-sm">
+            {!readOnly && <Button onClick={() => setUploadOpen(true)} className="bg-primary hover:bg-primary text-white gap-2 shadow-sm">
               <Camera className="h-4 w-4" />Upload first image
-            </Button>
+            </Button>}
           </div>
 
         ) : viewMode === 'gallery' ? (
@@ -878,7 +880,7 @@ export const VisitImagingTab: React.FC<VisitImagingTabProps> = ({ visitId, patie
                           {group.before.map((r, i) => (
                             <ImgThumb key={r.id} record={r} showStage={false}
                               onClick={() => setLightbox({ records: group.before, index: i })}
-                              onDelete={() => setDeleteTarget(r.id)} />
+                              onDelete={readOnly ? undefined : () => setDeleteTarget(r.id)} />
                           ))}
                         </div>
                       </div>
@@ -891,7 +893,7 @@ export const VisitImagingTab: React.FC<VisitImagingTabProps> = ({ visitId, patie
                           {group.after.map((r, i) => (
                             <ImgThumb key={r.id} record={r} showStage={false}
                               onClick={() => setLightbox({ records: group.after, index: i })}
-                              onDelete={() => setDeleteTarget(r.id)} />
+                              onDelete={readOnly ? undefined : () => setDeleteTarget(r.id)} />
                           ))}
                         </div>
                       </div>
@@ -902,7 +904,7 @@ export const VisitImagingTab: React.FC<VisitImagingTabProps> = ({ visitId, patie
                       {allInGroup.map((r, i) => (
                         <ImgThumb key={r.id} record={r}
                           onClick={() => setLightbox({ records: allInGroup, index: i })}
-                          onDelete={() => setDeleteTarget(r.id)} />
+                          onDelete={readOnly ? undefined : () => setDeleteTarget(r.id)} />
                       ))}
                     </div>
                   )}
@@ -913,7 +915,7 @@ export const VisitImagingTab: React.FC<VisitImagingTabProps> = ({ visitId, patie
                       {group.other.map((r, i) => (
                         <ImgThumb key={r.id} record={r}
                           onClick={() => setLightbox({ records: group.other, index: i })}
-                          onDelete={() => setDeleteTarget(r.id)} />
+                          onDelete={readOnly ? undefined : () => setDeleteTarget(r.id)} />
                       ))}
                     </div>
                   )}

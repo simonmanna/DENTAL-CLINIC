@@ -108,10 +108,48 @@ export interface UpdateProcedureResult {
   warning?: string;   // Present when surfaces changed with sessions existing
 }
 
+/** How cancelling / deleting a procedure changed its invoice. */
+export interface ProcedureBillingReversal {
+  invoiceId: string | null;
+  invoiceNumber: string | null;
+  invoiceStatus: "DRAFT" | "POSTED" | "VOID" | null;
+  /** The invoice was POSTED and its revenue was reversed in the ledger. */
+  glAdjusted: boolean;
+  /** Amount the patient has paid beyond the new invoice total (invoice currency). */
+  refundDue: string;
+  currency: string | null;
+}
+
+/** POST …/cancel returns the cancelled procedure plus its billing outcome. */
 export interface CancelProcedureResult {
-  data:               any;
-  sessionsPreserved:  number;
-  message:            string;
+  id: string;
+  status: string;
+  billing?: ProcedureBillingReversal;
+  [key: string]: unknown;
+}
+
+/**
+ * User-facing summary of a cancellation's billing effect. `warning` is set
+ * when money must go back to the patient (refund via Billing).
+ */
+export function describeBillingReversal(
+  billing?: ProcedureBillingReversal | null,
+): { message: string; warning?: string } {
+  const message = billing?.glAdjusted && billing.invoiceNumber
+    ? `Procedure cancelled — invoice ${billing.invoiceNumber} adjusted.`
+    : "Procedure cancelled.";
+  const due = Number(billing?.refundDue ?? 0);
+  if (!billing || !(due > 0)) return { message };
+  const amount = `${billing.currency ?? ""} ${due.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })}`.trim();
+  return {
+    message,
+    warning:
+      `The patient has paid ${amount} more than invoice ` +
+      `${billing.invoiceNumber ?? ""} now totals. Process a refund from Billing.`,
+  };
 }
 
 // ─── API ──────────────────────────────────────────────────────────────────────

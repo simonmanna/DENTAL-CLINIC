@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api/client";
+import { toast } from "sonner";
 
 const progressApi = {
   getVisitReports : (visitId: string) => api.get(`/visits/${visitId}/progress-reports`).then(r => r.data),
@@ -20,8 +21,9 @@ const progressApi = {
     api.post(`/visits/${visitId}/progress-reports`, data).then(r => r.data),
   update : (reportId: string, data: any) =>
     api.patch(`/visits/progress-reports/${reportId}`, data).then(r => r.data),
-  delete : (reportId: string) =>
-    api.delete(`/visits/progress-reports/${reportId}`).then(r => r.data),
+  // Soft delete — the reason is required by the server (audit trail).
+  delete : (reportId: string, reason: string) =>
+    api.delete(`/visits/progress-reports/${reportId}`, { data: { reason } }).then(r => r.data),
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -538,11 +540,12 @@ function ProgressReportCard({
 }: {
   report: ProgressReport;
   onEdit: () => void;
-  onDelete: () => void;
+  onDelete: (reason: string) => void;
   readOnly?: boolean;
 }) {
   const [expanded, setExpanded]       = useState(true);
   const [confirmDelete, setConfirm]   = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
 
   const csMap = {
     IMPROVED: { label: "Improved", Icon: TrendingUp,   cls: "bg-success-muted/60 text-success border-success/25" },
@@ -638,11 +641,19 @@ function ProgressReportCard({
           {!readOnly && (
             confirmDelete ? (
               <div className="flex items-center gap-1">
-                <button onClick={onDelete}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-danger text-white text-xs font-semibold hover:bg-danger">
+                <input
+                  autoFocus
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  placeholder="Reason for deletion"
+                  className="w-44 px-2 py-1 rounded-lg border border-border text-xs"
+                />
+                <button onClick={() => onDelete(deleteReason.trim())}
+                  disabled={!deleteReason.trim()}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-danger text-white text-xs font-semibold hover:bg-danger disabled:opacity-50">
                   <Check className="w-3 h-3" /> Confirm
                 </button>
-                <button onClick={() => setConfirm(false)}
+                <button onClick={() => { setConfirm(false); setDeleteReason(""); }}
                   className="px-2 py-1 rounded-lg border border-border text-xs text-muted-foreground hover:bg-muted/50">
                   Cancel
                 </button>
@@ -809,20 +820,27 @@ function ProgressReportsSection({
     patientConditionIds: r.conditionLinks.map((l) => l.patientConditionId),
   });
 
+  const showError = (e: any, fallback: string) =>
+    toast.error(e?.response?.data?.message ?? fallback);
+
   const createMut = useMutation({
     mutationFn: (data: FormData) => progressApi.create(visitId, toPayload(data)),
     onSuccess:  () => { invalidate(); setShowForm(false); },
+    onError:    (e) => showError(e, "Failed to save progress report"),
   });
 
   const updateMut = useMutation({
     mutationFn: ({ id, data }: { id: string; data: FormData }) =>
       progressApi.update(id, toPayload(data)),
     onSuccess: () => { invalidate(); setEditing(null); },
+    onError:   (e) => showError(e, "Failed to update progress report"),
   });
 
   const deleteMut = useMutation({
-    mutationFn: (id: string) => progressApi.delete(id),
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      progressApi.delete(id, reason),
     onSuccess:  invalidate,
+    onError:    (e) => showError(e, "Failed to delete progress report"),
   });
 
   return (
@@ -899,7 +917,7 @@ function ProgressReportsSection({
             ) : (
               <ProgressReportCard key={r.id} report={r} readOnly={readOnly}
                 onEdit={() => { setShowForm(false); setEditing(r); }}
-                onDelete={() => deleteMut.mutate(r.id)} />
+                onDelete={(reason) => deleteMut.mutate({ id: r.id, reason })} />
             )
           )}
         </div>
@@ -908,7 +926,7 @@ function ProgressReportsSection({
       {readOnly && (
         <div className="flex items-center gap-2 px-4 py-3 bg-warning-muted/60 border border-warning/25 rounded-xl text-sm text-warning">
           <AlertTriangle className="w-4 h-4 shrink-0" />
-          This visit is completed — reports are read-only.
+          This visit is closed — reports are read-only.
         </div>
       )}
     </div>

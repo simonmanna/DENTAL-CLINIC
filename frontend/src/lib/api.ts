@@ -734,9 +734,12 @@ export const visitProceduresApi = {
       body: JSON.stringify(data),
     }),
 
-  remove: (id: string) =>
-    apiFetch<{ message: string }>(`/visit-procedures/${id}`, {
+  // Soft delete: stock is returned and the invoice line reversed. The
+  // reason is required (audit trail).
+  remove: (id: string, reason: string) =>
+    apiFetch<{ success: boolean }>(`/visit-procedures/${id}`, {
       method: "DELETE",
+      body: JSON.stringify({ reason }),
     }),
 };
 

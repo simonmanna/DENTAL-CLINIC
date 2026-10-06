@@ -47,6 +47,11 @@ export class PrismaExceptionFilter implements ExceptionFilter {
           (exception.meta as any)?.cause ?? 'Record not found.',
         );
         break;
+      case 'P2034': // serialization failure / deadlock — safe to retry
+        mapped = new ConflictException(
+          'The record was changed by a concurrent request. Please retry.',
+        );
+        break;
       case 'P2003': // foreign-key constraint failed
         mapped = new ConflictException(
           'Operation violates a reference constraint (related record missing or still in use).',

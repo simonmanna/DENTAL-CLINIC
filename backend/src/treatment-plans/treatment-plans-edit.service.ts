@@ -33,12 +33,14 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { InvoiceLifecycleService } from '../billing/invoice-lifecycle.service';
-import { assertFdiTooth } from '../common/dental/dental-validation';
+import { assertFdiTooth, assertSurfaces } from '../common/dental/dental-validation';
 import {
   UpdateTreatmentProcedureDto,
   ProcedureDeleteEligibility,
 } from './dto/update-treatment-procedure.dto';
 import { TreatmentPlansService } from './treatment-plans.service';
+import { deriveProcedureStatus } from './procedure-status';
+import { collectionsByProcedure, collectionStatus } from './procedure-collections';
 
 /**
  * Substantive clinical fields: changes to these for a procedure that already
@@ -74,20 +76,23 @@ function isSubstantiveClinicalEdit(dto: UpdateTreatmentProcedureDto): boolean {
 }
 
 // ─── Status transition rules ────────────────────────────────────────────────
-// Spec:
-//   PLANNED     → IN_PROGRESS, ON_HOLD
-//   IN_PROGRESS → COMPLETED, ON_HOLD
-//   ON_HOLD     → PLANNED, IN_PROGRESS
-//   COMPLETED   → (no transitions — read-only except for notes append)
-//   CANCELLED   → (use /restore endpoint, not edit)
-//   PENDING     → PLANNED (legacy)
-//   REFERRED    → (terminal; create a new procedure if patient returns)
+// IN_PROGRESS and COMPLETED are CLINICAL facts derived from executed sessions
+// (see procedure-status.ts) — they are never set by hand. A manual flip to
+// COMPLETED used to leave the chart PLANNED, the linked conditions unresolved
+// and an extracted tooth still charted present, because only session
+// execution performs those side effects. What remains editable is parking:
+//   PLANNED / IN_PROGRESS → ON_HOLD
+//   ON_HOLD               → resume (PLANNED or IN_PROGRESS — the server
+//                           derives which one from the sessions)
+//   PENDING               → PLANNED (legacy)
+//   COMPLETED / CANCELLED / REFERRED / DELETED → none here
+//     (CANCELLED uses the /restore endpoint)
 const ALLOWED_STATUS_TRANSITIONS: Record<
   TreatmentStatus,
   ReadonlyArray<TreatmentStatus>
 > = {
-  PLANNED: [TreatmentStatus.IN_PROGRESS, TreatmentStatus.ON_HOLD],
-  IN_PROGRESS: [TreatmentStatus.COMPLETED, TreatmentStatus.ON_HOLD],
+  PLANNED: [TreatmentStatus.ON_HOLD],
+  IN_PROGRESS: [TreatmentStatus.ON_HOLD],
   ON_HOLD: [TreatmentStatus.PLANNED, TreatmentStatus.IN_PROGRESS],
   COMPLETED: [],
   CANCELLED: [],
@@ -97,9 +102,12 @@ const ALLOWED_STATUS_TRANSITIONS: Record<
 };
 
 const ALLOWED_TRANSITIONS_HELP: Record<TreatmentStatus, string> = {
-  PLANNED: 'Allowed transitions: PLANNED → IN_PROGRESS | ON_HOLD.',
-  IN_PROGRESS: 'Allowed transitions: IN_PROGRESS → COMPLETED | ON_HOLD.',
-  ON_HOLD: 'Allowed transitions: ON_HOLD → PLANNED | IN_PROGRESS.',
+  PLANNED:
+    'PLANNED → ON_HOLD. Treatment starts automatically when the first session is recorded.',
+  IN_PROGRESS:
+    'IN_PROGRESS → ON_HOLD. Complete the procedure by recording its final session.',
+  ON_HOLD:
+    'ON_HOLD → resume. The resumed status follows the recorded sessions.',
   COMPLETED: 'Completed procedures cannot transition to any other status.',
   CANCELLED:
     'Cancelled procedures must be restored before they can transition.',
@@ -235,7 +243,11 @@ export class TreatmentPlansEditService {
     if (!tp) throw new NotFoundException('Procedure not found in this plan');
 
     const sessionsCount = tp._count.sessions;
-    const paymentStatus = (tp as any).paymentStatus as string;
+    // Payments are recorded on invoices; the procedure's own paymentStatus
+    // column is never written, so derive it.
+    const paymentStatus = collectionStatus(
+      (await collectionsByProcedure(this.prisma, [tp.id])).get(tp.id),
+    );
     const status = tp.status as string;
 
     const hasSessions = sessionsCount > 0;
@@ -319,7 +331,12 @@ export class TreatmentPlansEditService {
     performedById?: string,
   ) {
     const tp = await this.prisma.treatmentProcedure.findFirst({
-      where: { id: procedureId, treatmentPlanId: planId },
+      where: {
+        id: procedureId,
+        treatmentPlanId: planId,
+        deletedAt: null,
+        status: { not: TreatmentStatus.DELETED },
+      },
       include: {
         treatmentPlan: { select: { patientId: true } },
         targets: true,
@@ -329,6 +346,8 @@ export class TreatmentPlansEditService {
             status: true,
             sessionNumber: true,
             performedDate: true,
+            isFinal: true,
+            deletedAt: true,
           },
         },
         _count: { select: { sessions: true } },
@@ -340,8 +359,6 @@ export class TreatmentPlansEditService {
 
     const sessionsCount = tp._count.sessions;
     const hasSessions = sessionsCount > 0;
-    const paymentStatus = (tp as any).paymentStatus as string;
-    const isPaid = paymentStatus === BalanceStatus.PAID;
 
     // ── Hard blocks ────────────────────────────────────────────────────────
     if (tp.status === TreatmentStatus.CANCELLED) {
@@ -352,9 +369,9 @@ export class TreatmentPlansEditService {
           'Use the "Restore to Planned" action to bring it back.',
       );
     }
-    if (isPaid) {
-      throw new BadRequestException('Cannot modify a fully-paid procedure.');
-    }
+    // (The old "fully-paid procedure" block read TreatmentProcedure
+    // .paymentStatus, which payments never update — it could not fire.
+    // Money edits are guarded against the linked invoice further down.)
 
     // ── (H2) Optimistic lock — reject a stale edit from a second clinician ──
     if (
@@ -367,13 +384,25 @@ export class TreatmentPlansEditService {
       );
     }
 
-    // ── Status transition validation (PLANNED → IN_PROGRESS → COMPLETED) ──
+    // ── Status transition validation (parking only — see the rules above) ──
     if (dto.status !== undefined && dto.status !== tp.status) {
+      if (dto.status === TreatmentStatus.COMPLETED) {
+        throw new BadRequestException(
+          'A procedure is completed by recording its final session ' +
+            '(Record session → mark as final), so the chart, linked ' +
+            'conditions and tooth presence update with it.',
+        );
+      }
       if (!isAllowedStatusTransition(tp.status, dto.status)) {
         throw new BadRequestException(
           `Invalid status transition: ${tp.status} → ${dto.status}. ` +
             ALLOWED_TRANSITIONS_HELP[tp.status],
         );
+      }
+      // Resuming from ON_HOLD: the real status follows the sessions, whatever
+      // the client asked for (PLANNED vs IN_PROGRESS).
+      if (tp.status === TreatmentStatus.ON_HOLD) {
+        dto.status = deriveProcedureStatus(tp.sessions ?? []);
       }
     }
 
@@ -438,6 +467,109 @@ export class TreatmentPlansEditService {
         dto.surfaces ?? [],
         procedureId, // exclude self
       );
+    }
+
+    // ── B12/B13: pricing is server-authoritative ───────────────────────────
+    // The client may set ONE figure: an explicit override total. Everything
+    // derived from it (per-unit, quantity, discount, tax, cost, rate, base
+    // amount) comes from the PricingEngine. Unchanged values are dropped so
+    // an edit of notes on a paid procedure is not refused as a "price
+    // change" (the UI used to send currency + a live FX rate every time).
+    for (const k of [
+      'pricePerUnit',
+      'quantity',
+      'subtotalPrice',
+      'discountAmount',
+      'taxAmount',
+      'subtotalCost',
+      'costPerUnit',
+      'exchangeRate',
+      'baseAmount',
+    ] as const) {
+      delete (dto as any)[k];
+    }
+    if (dto.currency !== undefined) {
+      if (dto.currency === tp.currency) delete dto.currency;
+      else
+        throw new BadRequestException(
+          'A procedure is priced in its catalogue currency; the currency cannot be changed here.',
+        );
+    }
+    const sameSet = (a: number[], b: number[]) =>
+      a.length === b.length && [...a].sort().join(',') === [...b].sort().join(',');
+    const procTargets = tp.targets.filter((t) => !t.procedureSessionId);
+    const currentTeeth = procTargets
+      .map((t) => t.toothNumber)
+      .filter((n): n is number => n != null);
+    const currentSurfaces = [
+      ...new Set(procTargets.flatMap((t) => (t.surfaces ?? []) as string[])),
+    ];
+    if (dto.toothNumbers !== undefined && sameSet(dto.toothNumbers, currentTeeth)) {
+      delete dto.toothNumbers;
+    }
+    const teethChanged = dto.toothNumbers !== undefined;
+    if (
+      dto.surfaces !== undefined &&
+      [...new Set(dto.surfaces as string[])].sort().join(',') ===
+        [...currentSurfaces].sort().join(',')
+    ) {
+      delete dto.surfaces;
+    }
+    const overrideTotal =
+      dto.isPriceOverridden === true && dto.totalPrice != null
+        ? Number(dto.totalPrice)
+        : null;
+    if (overrideTotal !== null && (!Number.isFinite(overrideTotal) || overrideTotal < 0)) {
+      throw new BadRequestException('Invalid override price.');
+    }
+    // A bare totalPrice (no override flag) is not trusted.
+    if (overrideTotal === null) {
+      delete dto.totalPrice;
+      delete dto.isPriceOverridden;
+    } else if (Math.abs(overrideTotal - Number(tp.totalPrice)) < 0.005 && !teethChanged) {
+      delete dto.totalPrice;
+      delete dto.isPriceOverridden;
+    }
+    if (dto.billingType !== undefined && dto.billingType === tp.billingType) delete dto.billingType;
+    if (dto.sessionType !== undefined && dto.sessionType === tp.sessionType) delete dto.sessionType;
+    if (dto.sessionCount !== undefined && dto.sessionCount === tp.sessionCount) delete dto.sessionCount;
+
+    let repriced = false;
+    if (
+      teethChanged ||
+      dto.totalPrice !== undefined ||
+      dto.sessionType !== undefined ||
+      dto.sessionCount !== undefined ||
+      dto.quantityBasis !== undefined
+    ) {
+      const catalog = await this.prisma.procedure.findUnique({
+        where: { id: tp.procedureId },
+      });
+      if (!catalog) throw new NotFoundException('Catalogue procedure not found');
+      const priced = await this.plans.priceProcedure(catalog, {
+        toothNumbers: teethChanged ? dto.toothNumbers! : currentTeeth,
+        sessionType: dto.sessionType ?? tp.sessionType,
+        sessionCount: dto.sessionCount ?? tp.sessionCount,
+        quantityBasis: dto.quantityBasis ?? null,
+        // A procedure keeps the rate it was priced at.
+        exchangeRate: tp.exchangeRate ? Number(tp.exchangeRate) : null,
+      });
+      const round2 = (n: number) => Math.round(n * 100) / 100;
+      const engineTotal = Number(priced.totalPrice);
+      const total = dto.totalPrice !== undefined ? Number(dto.totalPrice) : engineTotal;
+      dto.totalPrice = total;
+      dto.pricePerUnit = Number(priced.pricePerUnit);
+      dto.quantity = priced.quantity;
+      dto.subtotalPrice = Number(priced.subtotalPrice);
+      dto.discountAmount =
+        total !== engineTotal ? round2(engineTotal - total) : Number(priced.discountAmount ?? 0);
+      dto.taxAmount = Number(priced.taxAmount ?? 0);
+      dto.subtotalCost = Number(priced.subtotalCost ?? 0);
+      dto.costPerUnit = Number(priced.costPerUnit ?? 0);
+      dto.baseAmount =
+        tp.currency === 'UGX' ? total : round2(total * Number(priced.exchangeRate ?? 1));
+      dto.isPriceOverridden = total !== engineTotal;
+      repriced = true;
     }
 
     // ── Substantive clinical edit requires a reason once sessions exist ────
@@ -616,8 +748,12 @@ export class TreatmentPlansEditService {
     }
 
     // ── Pricing snapshot diffs ─────────────────────────────────────────────
+    // Also on a tooth change: the invoice line's description names the teeth.
     const pricingChanged =
-      dto.totalPrice !== undefined && dto.totalPrice !== Number(tp.totalPrice);
+      repriced &&
+      (teethChanged ||
+        dto.totalPrice !== Number(tp.totalPrice) ||
+        dto.quantity !== (tp as any).quantity);
     if (dto.totalPrice !== undefined) {
       recordIfChanged('totalPrice', Number(tp.totalPrice), dto.totalPrice);
     }
@@ -859,12 +995,15 @@ export class TreatmentPlansEditService {
           await tx.procedureTarget.deleteMany({
             where: { treatmentProcedureId: procedureId },
           });
+          // Surfaces carry over to the new teeth (folded per tooth) unless
+          // the edit sets new ones — they used to be dropped to [].
+          const carried = (dto.surfaces ?? currentSurfaces) as string[];
           for (const toothNumber of dto.toothNumbers) {
             await tx.procedureTarget.create({
               data: {
                 treatmentProcedureId: procedureId,
                 toothNumber,
-                surfaces: dto.surfaces ?? [],
+                surfaces: assertSurfaces(carried, toothNumber) as any,
               },
             });
           }
@@ -907,7 +1046,10 @@ export class TreatmentPlansEditService {
                 patientId: tp.treatmentPlan.patientId,
                 visitId: carryVisitId,
                 toothNumber,
-                surfaces: dto.surfaces ?? [],
+                surfaces: assertSurfaces(
+                  (dto.surfaces ?? currentSurfaces) as string[],
+                  toothNumber,
+                ) as any,
                 type: 'PLANNED',
                 status: ChartEntryStatus.ACTIVE,
                 label: tp.procedure.name,
@@ -920,13 +1062,28 @@ export class TreatmentPlansEditService {
         } else if (dto.surfaces !== undefined) {
           // Only surfaces changed — update existing procedure-level targets.
           // Session targets are NEVER touched to preserve execution records.
-          await tx.procedureTarget.updateMany({
-            where: {
-              treatmentProcedureId: procedureId,
-              procedureSessionId: null,
-            },
-            data: { surfaces: dto.surfaces },
-          });
+          for (const target of procTargets) {
+            const folded =
+              target.toothNumber != null
+                ? assertSurfaces(dto.surfaces as string[], target.toothNumber)
+                : [];
+            await tx.procedureTarget.update({
+              where: { id: target.id },
+              data: { surfaces: folded as any },
+            });
+            // The PLANNED marker paints the same surfaces.
+            if (target.toothNumber != null) {
+              await tx.chartEntry.updateMany({
+                where: {
+                  treatmentProcedureId: procedureId,
+                  toothNumber: target.toothNumber,
+                  type: 'PLANNED',
+                  status: ChartEntryStatus.ACTIVE,
+                },
+                data: { surfaces: folded as any },
+              });
+            }
+          }
 
           if (hasSessions) {
             this.logger.warn(
@@ -960,6 +1117,7 @@ export class TreatmentPlansEditService {
           const alreadyLinked = new Set(
             existingConditionLinks.map((l) => l.patientConditionId),
           );
+          const added: string[] = [];
           for (const patientConditionId of desired) {
             if (alreadyLinked.has(patientConditionId)) continue;
 
@@ -985,7 +1143,15 @@ export class TreatmentPlansEditService {
                 conditionStatusAtLink: pc.status ?? null,
               },
             });
+            added.push(patientConditionId);
           }
+
+          // Unlinked / newly linked diagnoses re-evaluate their status.
+          await this.plans.applyLinkLifecycleTx(
+            tx,
+            [...toUnlink.map((l) => l.patientConditionId), ...added],
+            performedById,
+          );
         }
 
         // ── Persist the main TP update ─────────────────────────────────────
@@ -1002,8 +1168,13 @@ export class TreatmentPlansEditService {
           },
         });
 
-        // ── If status changed, re-derive plan cost/status/completion ───────
+        // ── If status changed, re-sync linked conditions and the plan ─────
         if (statusChanged) {
+          await this.plans.syncConditionsForProcedureTx(
+            tx,
+            procedureId,
+            performedById ?? null,
+          );
           await this.plans.recalculatePlanTx(tx, planId);
         }
 
@@ -1024,10 +1195,7 @@ export class TreatmentPlansEditService {
           userId: performedById ?? null,
         });
 
-        return {
-          updated,
-          pricingChanged,
-          pricingSnapshot: pricingChanged
+        const pricingSnapshot = pricingChanged
             ? {
                 description: this.buildDescription(
                   (tp.procedure as any)?.name ?? '',
@@ -1046,12 +1214,54 @@ export class TreatmentPlansEditService {
                   ? Number(updated.exchangeRate)
                   : null,
               }
-            : null,
+            : null;
+
+        // ── Invoice line follows in the SAME transaction (B13) ─────────────
+        let txInvoiceSync: {
+          invoiceId: string | null;
+          invoiceStatus: string | null;
+        } | null = null;
+        if (pricingSnapshot) {
+          const synced = await this.invoiceLifecycle.updateProcedureItemPricingTx(
+            tx,
+            procedureId,
+            pricingSnapshot,
+          );
+          txInvoiceSync = synced;
+          if (!synced.invoiceId) {
+            const visitRow = await tx.chartEntry.findFirst({
+              where: { treatmentProcedureId: procedureId, visitId: { not: null } },
+              select: { visitId: true },
+              orderBy: { createdAt: 'asc' },
+            });
+            const invoiceId = await this.invoiceLifecycle.addProcedureItemTx(
+              tx,
+              tp.treatmentPlan.patientId,
+              visitRow?.visitId ?? null,
+              planId,
+              {
+                id: procedureId,
+                ...pricingSnapshot,
+                baseAmount: Number(updated.baseAmount ?? 0),
+              },
+              dto.initialPaymentAmount ?? null,
+              dto.initialPaymentCurrency ?? null,
+              performedById ?? null,
+            );
+            txInvoiceSync = { invoiceId, invoiceStatus: 'CREATED_VIA_EDIT' };
+          }
+        }
+
+        return {
+          updated,
+          pricingChanged,
+          pricingSnapshot,
+          txInvoiceSync,
         };
       },
       {
         maxWait: 5000,
-        timeout: 15000,
+        timeout: 20000,
       },
     );
 
@@ -1061,56 +1271,8 @@ export class TreatmentPlansEditService {
       invoiceStatus: string | null;
     } | null = null;
     if (result.pricingChanged && result.pricingSnapshot) {
-      // Note: any 409 from updateProcedureItemPricing (PAID invoice, etc.)
-      // propagates to the caller — we never want to silently swallow a
-      // billing-side rejection of an attempted price edit.
-      invoiceSync = await this.invoiceLifecycle.updateProcedureItemPricing(
-        procedureId,
-        result.pricingSnapshot,
-      );
-
-      // If no InvoiceItem existed yet (post-commit drift recovery),
-      // create one via addProcedureItem.
-      if (invoiceSync && !invoiceSync.invoiceId) {
-        const tpAfter = await this.prisma.treatmentProcedure.findUnique({
-          where: { id: procedureId },
-          include: {
-            procedure: { select: { name: true, code: true } },
-            treatmentPlan: { select: { id: true, patientId: true } },
-            chartEntries: {
-              where: { visitId: { not: null } },
-              select: { visitId: true },
-              orderBy: { createdAt: 'asc' },
-              take: 1,
-            },
-          },
-        });
-        if (tpAfter) {
-          await this.invoiceLifecycle.addProcedureItem(
-            tpAfter.treatmentPlan.patientId,
-            tpAfter.chartEntries[0]?.visitId ?? null,
-            tpAfter.treatmentPlan.id,
-            {
-              id: tpAfter.id,
-              description: result.pricingSnapshot.description,
-              quantity: result.pricingSnapshot.quantity,
-              pricePerUnit: result.pricingSnapshot.pricePerUnit,
-              discountAmount: result.pricingSnapshot.discountAmount,
-              taxAmount: result.pricingSnapshot.taxAmount,
-              totalPrice: result.pricingSnapshot.totalPrice,
-              currency: result.pricingSnapshot.currency,
-              exchangeRate: result.pricingSnapshot.exchangeRate,
-              baseAmount: Number(tpAfter.baseAmount ?? 0),
-            },
-            dto.initialPaymentAmount ?? null,
-            dto.initialPaymentCurrency ?? null,
-          );
-          invoiceSync = {
-            invoiceId: null,
-            invoiceStatus: 'CREATED_VIA_EDIT',
-          };
-        }
-      }
+      // Synced inside the transaction above.
+      invoiceSync = result.txInvoiceSync;
     } else if (
       dto.initialPaymentAmount !== undefined ||
       dto.initialPaymentCurrency !== undefined
@@ -1179,7 +1341,12 @@ export class TreatmentPlansEditService {
 
   async getAllowedStatusTransitions(planId: string, procedureId: string) {
     const tp = await this.prisma.treatmentProcedure.findFirst({
-      where: { id: procedureId, treatmentPlanId: planId },
+      where: {
+        id: procedureId,
+        treatmentPlanId: planId,
+        deletedAt: null,
+        status: { not: TreatmentStatus.DELETED },
+      },
       select: { status: true },
     });
     if (!tp) throw new NotFoundException('Procedure not found in this plan');
@@ -1210,12 +1377,12 @@ export class TreatmentPlansEditService {
     }
 
     const tp = await this.prisma.treatmentProcedure.findFirst({
-      where: { id: procedureId, treatmentPlanId: planId },
+      where: { id: procedureId, treatmentPlanId: planId, deletedAt: null },
       include: {
-        chartEntries: {
-          where: { status: ChartEntryStatus.SUPERSEDED, type: 'PLANNED' },
+        targets: { where: { procedureSessionId: null } },
+        sessions: {
+          select: { id: true, status: true, isFinal: true, deletedAt: true },
         },
-        sessions: { select: { id: true, status: true } },
       },
     });
 
@@ -1226,82 +1393,157 @@ export class TreatmentPlansEditService {
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      // 1. Restore chart entries that were superseded at cancel time.
-      const restoredCount = tp.chartEntries.length;
-      if (restoredCount > 0) {
-        await tx.chartEntry.updateMany({
+    // Completed sessions survive a cancellation (the work was done), so the
+    // restored procedure resumes where it stopped rather than at PLANNED.
+    const restoredStatus = deriveProcedureStatus(tp.sessions);
+    const targetTeeth = tp.targets
+      .map((t) => t.toothNumber)
+      .filter((n): n is number => n != null);
+
+    const result = await this.prisma.$transaction(
+      async (tx) => {
+        // 1. Chart: re-activate only the PLANNED markers THIS cancellation
+        //    superseded (cancelProcedure stamps them "Cancelled: …"), only on
+        //    the procedure's current teeth, at most one per tooth, and never on
+        //    a tooth whose work already has a live COMPLETED row. Re-activating
+        //    every superseded row resurrected markers from earlier re-plans and
+        //    planned marks on teeth that were already treated.
+        const candidates = await tx.chartEntry.findMany({
           where: {
-            id: { in: tp.chartEntries.map((c) => c.id) },
+            treatmentProcedureId: procedureId,
+            type: 'PLANNED',
             status: ChartEntryStatus.SUPERSEDED,
+            notes: { startsWith: 'Cancelled:' },
           },
-          data: {
+          orderBy: { createdAt: 'desc' },
+        });
+        const completedRows = await tx.chartEntry.findMany({
+          where: {
+            treatmentProcedureId: procedureId,
+            type: 'COMPLETED',
             status: ChartEntryStatus.ACTIVE,
-            notes: `Restored from CANCELLED on ${new Date().toISOString()}: ${reason}`,
+          },
+          select: { toothNumber: true },
+        });
+        const doneTeeth = new Set(completedRows.map((r) => r.toothNumber));
+        const seen = new Set<number | null>();
+        const toRestore: string[] = [];
+        for (const row of candidates) {
+          const tooth = row.toothNumber ?? null;
+          if (tooth != null && targetTeeth.length > 0 && !targetTeeth.includes(tooth)) continue;
+          if (tooth == null && targetTeeth.length > 0) continue;
+          if (doneTeeth.has(tooth)) continue;
+          if (seen.has(tooth)) continue;
+          seen.add(tooth);
+          toRestore.push(row.id);
+        }
+        if (toRestore.length > 0) {
+          await tx.chartEntry.updateMany({
+            where: { id: { in: toRestore }, status: ChartEntryStatus.SUPERSEDED },
+            data: {
+              status: ChartEntryStatus.ACTIVE,
+              notes: `Restored from CANCELLED on ${new Date().toISOString()}: ${reason}`,
+            },
+          });
+        }
+
+        // 2. Condition links unlinked by the cancellation come back (unless an
+        //    equivalent active link was created since — the partial unique
+        //    index allows only one).
+        const cancelledLinks = await tx.conditionProcedureLink.findMany({
+          where: {
+            treatmentProcedureId: procedureId,
+            deletedAt: { not: null },
+            deletedReason: 'Procedure cancelled',
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+        const activeLinks = await tx.conditionProcedureLink.findMany({
+          where: { treatmentProcedureId: procedureId, deletedAt: null },
+          select: { patientConditionId: true },
+        });
+        const linked = new Set(activeLinks.map((l) => l.patientConditionId));
+        let linksRestored = 0;
+        for (const link of cancelledLinks) {
+          if (linked.has(link.patientConditionId)) continue;
+          linked.add(link.patientConditionId);
+          await tx.conditionProcedureLink.update({
+            where: { id: link.id },
+            data: { deletedAt: null, unlinkedById: null, deletedReason: null },
+          });
+          linksRestored++;
+        }
+
+        // 3. Status follows the sessions; clear the cancellation stamp.
+        const updated = await tx.treatmentProcedure.update({
+          where: { id: procedureId },
+          data: {
+            status: restoredStatus,
+            cancellationReason: null,
+            version: { increment: 1 },
+          },
+          include: {
+            procedure: { select: { id: true, name: true } },
+            targets: true,
+            sessions: { select: { id: true, status: true } },
           },
         });
-      }
 
-      // 2. Restore procedure status + clear cancellation reason.
-      const updated = await tx.treatmentProcedure.update({
-        where: { id: procedureId },
-        data: {
-          status: TreatmentStatus.PLANNED,
-          cancellationReason: null,
-        },
-        include: {
-          procedure: { select: { id: true, name: true } },
-          targets: true,
-          sessions: { select: { id: true, status: true } },
-        },
-      });
+        // 4. Billing: put the voided line back (GL reconciled when POSTED).
+        const billing = await this.invoiceLifecycle.reinstateProcedureBillingTx(
+          tx,
+          procedureId,
+          performedById ?? null,
+        );
 
-      // 3. Recalculate plan cost.
-      await this.recalculatePlanCost(tx, planId);
+        // 5. Conditions + plan follow the procedure again.
+        await this.plans.syncConditionsForProcedureTx(
+          tx,
+          procedureId,
+          performedById ?? null,
+        );
+        await this.plans.recalculatePlanTx(tx, planId);
 
-      // 4. Audit: RESTORE action with old=CANCELLED, new=PLANNED.
-      await this.writeAuditTx(tx, {
-        action: 'RESTORE',
-        entityType: 'TreatmentProcedure',
-        entityId: procedureId,
-        userId: performedById ?? null,
-        reason,
-        oldData: {
-          status: 'CANCELLED',
-          cancellationReason: tp.cancellationReason,
-          chartEntriesSuperseded: restoredCount,
-        },
-        newData: {
-          status: 'PLANNED',
-          chartEntriesRestored: restoredCount,
-        },
-      });
+        // 6. Audit: RESTORE action.
+        await this.writeAuditTx(tx, {
+          action: 'RESTORE',
+          entityType: 'TreatmentProcedure',
+          entityId: procedureId,
+          userId: performedById ?? null,
+          reason,
+          oldData: {
+            status: 'CANCELLED',
+            cancellationReason: tp.cancellationReason,
+          },
+          newData: {
+            status: restoredStatus,
+            chartEntriesRestored: toRestore.length,
+            conditionLinksRestored: linksRestored,
+            billing,
+          },
+        });
 
-      return {
-        data: updated,
-        chartEntriesRestored: restoredCount,
-        message: `Procedure restored to PLANNED. ${restoredCount} chart entr${restoredCount === 1 ? 'y was' : 'ies were'} re-activated.`,
-      };
-    });
-  }
-
-  // ─── Private helpers ──────────────────────────────────────────────────────
-
-  private async recalculatePlanCost(
-    tx: Prisma.TransactionClient,
-    planId: string,
-  ) {
-    const result = await tx.treatmentProcedure.aggregate({
-      where: {
-        treatmentPlanId: planId,
-        status: { not: TreatmentStatus.CANCELLED },
+        return { updated, restoredCount: toRestore.length, billing };
       },
-      _sum: { totalPrice: true },
-    });
-    await tx.treatmentPlan.update({
-      where: { id: planId },
-      data: { estimatedCost: Number(result._sum.totalPrice ?? 0) },
-    });
+      { maxWait: 5000, timeout: 20000 },
+    );
+
+    // No reusable invoice line (none, or its invoice was voided meanwhile):
+    // bill it afresh now, post-commit, like addProcedure does.
+    let billedNow = false;
+    if (result.billing.needsNewItem) {
+      billedNow = await this.plans.billProcedureSafe(procedureId);
+    }
+
+    const n = result.restoredCount;
+    return {
+      data: result.updated,
+      chartEntriesRestored: n,
+      billing: { ...result.billing, billedNow },
+      message:
+        `Procedure restored to ${restoredStatus}. ` +
+        `${n} chart entr${n === 1 ? 'y was' : 'ies were'} re-activated.`,
+    };
   }
 
   private buildDescription(

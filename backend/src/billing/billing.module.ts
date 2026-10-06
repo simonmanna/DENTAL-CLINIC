@@ -6,6 +6,7 @@ import { BillingService } from './billing.service';
 import { LedgerService } from './ledger.service';
 import { InvoicesService } from './invoices.service';
 import { InvoiceLifecycleService } from './invoice-lifecycle.service';
+import { InvoiceGlSyncService } from './invoice-gl-sync.service';
 import { CurrencyService } from './currency.service';
 
 import { PaymentAccountResolverService } from './payment-account-resolver.service';
@@ -19,6 +20,7 @@ import { GeneralLedgerModule } from '../general-ledger/general-ledger.module';
     LedgerService,
     InvoicesService,
     InvoiceLifecycleService,
+    InvoiceGlSyncService,
     CurrencyService,
     PaymentAccountResolverService,
   ],

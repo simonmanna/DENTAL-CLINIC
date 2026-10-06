@@ -219,10 +219,30 @@ const SURFACE_ORDER: Record<string, number> = { M: 0, O: 1, I: 1, D: 2, B: 3, L:
 // A bite surface stored on the wrong tooth type (INCISAL on a molar, OCCLUSAL
 // on an incisor — legacy rows saved before O/I resolution existed) is folded
 // onto the tooth's real bite surface. Side surfaces are never remapped.
-function toAnatomicalBite(s: CanonicalSurface, fdi: number): CanonicalSurface {
-  if (s !== 'INCISAL' && s !== 'OCCLUSAL') return s;
+// Every side folds to the name that is anatomically right for the tooth:
+//   bite        → INCISAL (anterior) / OCCLUSAL (posterior)
+//   cheek / lip → LABIAL (anterior) / BUCCAL (posterior); FACIAL is the
+//                 generic name for the same side
+//   tongue      → PALATAL (upper) / LINGUAL (lower)
+// Only the bite used to be folded, so LABIAL on a molar or PALATAL on a
+// lower tooth was stored as sent.
+function toAnatomical(s: CanonicalSurface, fdi: number): CanonicalSurface {
   const kind = getToothKind(fdi);
-  return kind === 'incisor' || kind === 'canine' ? 'INCISAL' : 'OCCLUSAL';
+  const anterior = kind === 'incisor' || kind === 'canine';
+  switch (s) {
+    case 'INCISAL':
+    case 'OCCLUSAL':
+      return anterior ? 'INCISAL' : 'OCCLUSAL';
+    case 'BUCCAL':
+    case 'LABIAL':
+    case 'FACIAL':
+      return anterior ? 'LABIAL' : 'BUCCAL';
+    case 'LINGUAL':
+    case 'PALATAL':
+      return getArch(fdi) === 'UPPER' ? 'PALATAL' : 'LINGUAL';
+    default:
+      return s;
+  }
 }
 
 // Normalize an arbitrary surface array (from any layer) to canonical enum
@@ -237,11 +257,12 @@ export function normalizeSurfaces(
   for (const r of raw) {
     if (!r) continue;
     if (isValidSurface(r)) {
-      const fixed = toAnatomicalBite(r, fdi);
+      const fixed = toAnatomical(r, fdi);
       if (!out.includes(fixed)) out.push(fixed);
       continue;
     }
-    const resolved = uiCodeToCanonical(r, fdi);
+    const code = uiCodeToCanonical(r, fdi);
+    const resolved = code ? toAnatomical(code, fdi) : null;
     if (resolved && !out.includes(resolved)) out.push(resolved);
   }
   return out.sort(

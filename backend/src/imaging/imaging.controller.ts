@@ -11,7 +11,6 @@ import {
   UseInterceptors,
   UploadedFiles,
   UseGuards,
-  ParseUUIDPipe,
   BadRequestException,
   Req,
 } from '@nestjs/common';
@@ -25,6 +24,7 @@ import { StorageService, UploadedFile } from '../storage/storage.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 import { UserRole } from '@prisma/client';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('imaging')
 @UseGuards(JwtAuthGuard)
@@ -35,7 +35,7 @@ export class ImagingController {
   ) { }
 
   @Post()
-  // @Roles(UserRole.ADMIN, UserRole.DENTIST, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DENTIST, UserRole.NURSE)
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'image', maxCount: 1 },
@@ -178,47 +178,47 @@ export class ImagingController {
   }
 
   @Get()
-  // @Roles(UserRole.ADMIN, UserRole.DENTIST, UserRole.NURSE, UserRole.RECEPTIONIST, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DENTIST, UserRole.NURSE, UserRole.RECEPTIONIST, UserRole.LAB_TECHNICIAN)
   async findAll(@Query() query: ImagingQueryDto) {
     return this.imagingService.findAll(query);
   }
 
   @Get('visit/:visitId')
-  // @Roles(UserRole.ADMIN, UserRole.DENTIST, UserRole.NURSE, UserRole.RECEPTIONIST, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DENTIST, UserRole.NURSE, UserRole.RECEPTIONIST, UserRole.LAB_TECHNICIAN)
   async findByVisitId(@Param('visitId') visitId: string) {
   return this.imagingService.findByVisitId(visitId);
 }
 
   @Get('group/:groupId')
-  // @Roles(UserRole.ADMIN, UserRole.DENTIST, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DENTIST, UserRole.NURSE, UserRole.RECEPTIONIST, UserRole.LAB_TECHNICIAN)
   async getGroupedImages(@Param('groupId') groupId: string) {
     return this.imagingService.getGroupedImages(groupId);
   }
 
   @Get('statistics/patient/:patientId')
-  // @Roles(UserRole.ADMIN, UserRole.DENTIST, UserRole.SUPER_ADMIN)
-  async getStatistics(@Param('patientId', ParseUUIDPipe) patientId: string) {
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DENTIST, UserRole.NURSE, UserRole.RECEPTIONIST, UserRole.LAB_TECHNICIAN)
+  async getStatistics(@Param('patientId') patientId: string) {
     return this.imagingService.getStatistics(patientId);
   }
 
   @Get(':id')
-  // @Roles(UserRole.ADMIN, UserRole.DENTIST, UserRole.NURSE, UserRole.RECEPTIONIST, UserRole.SUPER_ADMIN)
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DENTIST, UserRole.NURSE, UserRole.RECEPTIONIST, UserRole.LAB_TECHNICIAN)
+  async findOne(@Param('id') id: string) {
     return this.imagingService.findOne(id);
   }
 
   @Patch(':id')
-  // @Roles(UserRole.ADMIN, UserRole.DENTIST, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DENTIST, UserRole.NURSE)
   async update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() updateDto: UpdateImagingRecordDto,
   ) {
     return this.imagingService.update(id, updateDto);
   }
 
   @Delete(':id')
-  // @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  async remove(@Param('id', ParseUUIDPipe) id: string) {
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DENTIST)
+  async remove(@Param('id') id: string) {
     const record = await this.imagingService.findOne(id);
 
     if (record.storagePath) {
@@ -240,7 +240,7 @@ export class ImagingController {
   }
 
   @Post('compare')
-  // @Roles(UserRole.ADMIN, UserRole.DENTIST, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DENTIST, UserRole.NURSE)
   async createComparison(@Body() createComparisonDto: CreateImagingComparisonDto) {
     return this.imagingService.createComparison(
       createComparisonDto.baseImageId,
@@ -250,8 +250,8 @@ export class ImagingController {
   }
 
   @Delete('compare/:id')
-  // @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  async removeComparison(@Param('id', ParseUUIDPipe) id: string) {
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DENTIST)
+  async removeComparison(@Param('id') id: string) {
     return this.imagingService.removeComparison(id);
   }
 }

@@ -21,12 +21,14 @@ export class ProcedureInventoryInputDto {
   locationId?: string;
 
   @IsNumber()
-  @Min(0)
+  @Min(0.0001)
   quantityUsed: number;
 
+  /** Ignored — stock is valued at the batch it is drawn from. */
+  @IsOptional()
   @IsNumber()
   @Min(0)
-  unitCost: number;
+  unitCost?: number;
 
   @IsOptional()
   @IsString()
@@ -185,7 +187,11 @@ export class AddVisitProcedureDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
-  cost?: number; // override default cost
+  cost?: number; // price override — needs overrideReason + an override role
+
+  @IsOptional()
+  @IsString()
+  overrideReason?: string;
 
   @IsOptional()
   @IsArray()

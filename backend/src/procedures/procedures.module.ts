@@ -7,11 +7,12 @@ import {
 } from './procedures.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { BillingModule } from '../billing/billing.module';
+import { VisitModule } from '../visit/visit.module';
 import { ProcedureCategoriesController } from './procedure-categories.controller';
 import { ProcedureCategoriesService } from './procedure-categories.service';
 
 @Module({
-  imports: [PrismaModule, BillingModule],
+  imports: [PrismaModule, BillingModule, VisitModule],
   controllers: [
     ProceduresController,
     VisitProceduresController,

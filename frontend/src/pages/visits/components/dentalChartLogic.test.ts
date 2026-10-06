@@ -13,6 +13,9 @@ import {
   restorationKind,
   pickRestoration,
   isBridgePonticEntry,
+  groupLedgerProcedureRows,
+  hiddenDentitionCount,
+  allEntriesPrimary,
   type ChartEntry,
 } from "./dentalChartLogic";
 
@@ -661,5 +664,58 @@ describe("resolvePresence — pontic & retained root", () => {
     const pontic = entry({ type: "PLANNED", code: "D6240", label: "Pontic" });
     const implant = entry({ type: "COMPLETED", code: "D6010", label: "Implant" });
     expect(resolvePresence([pontic, implant]).primary).toBe("IMPLANT");
+  });
+});
+
+describe("ledger grouping and dentition helpers", () => {
+  const row = (over: Partial<ChartEntry>): ChartEntry =>
+    ({
+      id: Math.random().toString(36).slice(2),
+      toothNumbers: [11],
+      surfaces: [],
+      type: "PLANNED",
+      status: "ACTIVE",
+      label: "Crown",
+      date: "2026-10-01",
+      ...over,
+    }) as ChartEntry;
+
+  it("folds one procedure's per-tooth rows into a single priced row", () => {
+    const rows = [
+      row({ treatmentProcedureId: "tp1", toothNumbers: [13], totalPrice: 900 }),
+      row({ treatmentProcedureId: "tp1", toothNumbers: [11], totalPrice: 900, date: "2026-10-03" }),
+      row({ treatmentProcedureId: "tp1", toothNumbers: [12], totalPrice: 900 }),
+      row({ type: "CONDITION", toothNumbers: [16] }),
+    ];
+    const out = groupLedgerProcedureRows(rows);
+    expect(out).toHaveLength(2);
+    const proc = out.find((r) => r.treatmentProcedureId === "tp1")!;
+    expect(proc.toothNumbers).toEqual([11, 12, 13]);
+    expect(proc.totalPrice).toBe(900);
+    expect(proc.date).toBe("2026-10-03");
+  });
+
+  it("keeps planned and completed layers of one procedure apart", () => {
+    const out = groupLedgerProcedureRows([
+      row({ treatmentProcedureId: "tp1", type: "PLANNED", toothNumbers: [11] }),
+      row({ treatmentProcedureId: "tp1", type: "COMPLETED", toothNumbers: [12] }),
+    ]);
+    expect(out).toHaveLength(2);
+  });
+
+  it("counts live findings on the hidden dentition", () => {
+    const entries = [
+      row({ toothNumbers: [55], type: "CONDITION" }),
+      row({ toothNumbers: [16], type: "CONDITION" }),
+      row({ toothNumbers: [75], status: "SUPERSEDED" as any }),
+    ];
+    expect(hiddenDentitionCount(entries, "permanent")).toBe(1);
+    expect(hiddenDentitionCount(entries, "primary")).toBe(1);
+  });
+
+  it("detects a primary-only chart", () => {
+    expect(allEntriesPrimary([row({ toothNumbers: [55] }), row({ toothNumbers: [] })])).toBe(true);
+    expect(allEntriesPrimary([row({ toothNumbers: [55] }), row({ toothNumbers: [16] })])).toBe(false);
+    expect(allEntriesPrimary([])).toBe(false);
   });
 });

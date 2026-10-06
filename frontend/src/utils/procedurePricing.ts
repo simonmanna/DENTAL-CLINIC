@@ -201,18 +201,21 @@ export function deriveQuantity(
 
     case "PER_ARCH": {
       if (archCount != null && archCount > 0) return archCount;
-      const hasUpper = toothNumbers.some((n) => (n >= 11 && n <= 28) || (n >= 1 && n <= 16));
-      const hasLower = toothNumbers.some((n) => (n >= 31 && n <= 48) || (n >= 17 && n <= 32));
+      // FDI quadrant digit: 1/2 (permanent) and 5/6 (primary) are upper,
+      // 3/4 and 7/8 lower. (A Universal 1–32 branch here used to count an
+      // upper second molar, FDI 17/18, as a lower tooth too.)
+      const q = (n: number) => Math.floor(n / 10);
+      const hasUpper = toothNumbers.some((n) => [1, 2, 5, 6].includes(q(n)));
+      const hasLower = toothNumbers.some((n) => [3, 4, 7, 8].includes(q(n)));
       return Math.max(1, (hasUpper ? 1 : 0) + (hasLower ? 1 : 0));
     }
 
     case "PER_QUADRANT": {
       const quadrants = new Set<number>();
       toothNumbers.forEach((n) => {
-        if (n >= 11 && n <= 18) quadrants.add(1);
-        if (n >= 21 && n <= 28) quadrants.add(2);
-        if (n >= 31 && n <= 38) quadrants.add(3);
-        if (n >= 41 && n <= 48) quadrants.add(4);
+        // Primary quadrants 5–8 map onto permanent 1–4.
+        const quad = Math.floor(n / 10);
+        if (quad >= 1 && quad <= 8) quadrants.add(((quad - 1) % 4) + 1);
       });
       return Math.max(1, quadrants.size);
     }

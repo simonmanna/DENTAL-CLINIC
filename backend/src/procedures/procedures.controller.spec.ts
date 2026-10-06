@@ -6,6 +6,6 @@ describe('Procedures controllers', () => {
     expect(new ProceduresController(createAutoMock())).toBeDefined();
   });
   it('VisitProceduresController constructs with its service', () => {
-    expect(new VisitProceduresController(createAutoMock())).toBeDefined();
+    expect(new VisitProceduresController(createAutoMock(), createAutoMock())).toBeDefined();
   });
 });

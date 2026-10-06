@@ -30,7 +30,7 @@ import { toast } from "react-hot-toast";
 
 import { treatmentPlansApi } from "../../../lib/api/treatment-plans";
 import { newIdempotencyKey } from "../../../lib/api/conditions";
-import { treatmentProceduresEditApi } from "../../../lib/api/treatment-procedures-edit";
+import { treatmentProceduresEditApi, describeBillingReversal } from "../../../lib/api/treatment-procedures-edit";
 import { ProcedureActionMenu } from "./ProcedureActionMenu";
 import { EditProcedureDialog } from "./EditProcedureDialog";
 import { DeleteProcedureDialog } from "./DeleteProcedureDialog";
@@ -1374,8 +1374,10 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
   const cancelProcMut = useMutation({
     mutationFn: ({ procId, reason }: { procId: string; reason: string }) =>
       treatmentProceduresEditApi.cancelProcedure(activePlanId!, procId, { reason }),
-    onSuccess: () => {
-      toast.success("Procedure cancelled");
+    onSuccess: (result) => {
+      const outcome = describeBillingReversal(result?.billing);
+      toast.success(outcome.message);
+      if (outcome.warning) toast(outcome.warning, { duration: 12000, icon: "⚠️" });
       inv();
       setCancelDialogProc(null);
     },
@@ -1450,7 +1452,7 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
     onSuccess: () => {
       toast.success("Session recorded successfully");
       inv();
-      queryClient.invalidateQueries({ queryKey: ["chart-entries", patientId, visitId], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["chart-entries", patientId], refetchType: 'all' });
       queryClient.invalidateQueries({ queryKey: ["treatment-procedures", patientId], refetchType: 'all' });
     },
     onError: (error: any) => {
@@ -1512,7 +1514,6 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
             isFinal: sessionData.isFinal,
             finalOverrideReason: sessionData.finalOverrideReason,
             phase: sessionData.phase,
-            surfaces: sessionData.surfaces,
             providerId: resolvedDentistId,
             dentistId: resolvedDentistId,
             visitId,

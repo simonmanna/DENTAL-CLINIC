@@ -22,6 +22,13 @@ describe('ChartEntryService', () => {
       status: 'ACTIVE',
       patientId: 'p1',
     });
+    // Quick actions record into a visit: default an open one of patient p1.
+    prisma.visit.findUnique.mockResolvedValue({
+      id: 'v1',
+      patientId: 'p1',
+      dentistId: 'd1',
+      status: 'IN_PROGRESS',
+    });
   });
 
   it('is defined', () => {
@@ -36,7 +43,7 @@ describe('ChartEntryService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
-    it('creates an entry and tolerates an unresolved provider (saves anyway)', async () => {
+    it('creates an entry and stores an unresolved provider as NULL', async () => {
       prisma.staff.findUnique.mockResolvedValue(null); // provider not in Staff
       prisma.chartEntry.create.mockResolvedValue({
         id: 'ce1', createdAt: new Date('2026-01-01'), updatedAt: new Date('2026-01-01'),
@@ -46,6 +53,8 @@ describe('ChartEntryService', () => {
         surfaces: [], providerId: 'maybe-bad',
       } as any);
       expect(prisma.chartEntry.create).toHaveBeenCalledTimes(1);
+      expect(prisma.chartEntry.create.mock.calls[0][0].data.providerId).toBeNull();
+      expect(prisma.auditLog.create).toHaveBeenCalled();
       expect(out.id).toBe('ce1');
       expect(typeof out.createdAt).toBe('string'); // formatEntry → ISO
     });
@@ -290,270 +299,164 @@ describe('ChartEntryService', () => {
       expect(out.chartEntry.id).toBe('ce9');
     });
 
-    it('PLAN_TREATMENT requires a procedure reference', async () => {
-      await expect(
-        service.executeQuickAction({ patientId: 'p1', toothNumber: 11, action: 'PLAN_TREATMENT' } as any),
-      ).rejects.toBeInstanceOf(BadRequestException);
-    });
+    describe('treatment actions delegate to TreatmentPlansService', () => {
+      let plans: any;
+      beforeEach(() => {
+        plans = {
+          createTreatmentPlan: jest
+            .fn()
+            .mockResolvedValue({ id: 'plan-new', title: 'Treatment Plan' }),
+          addProcedure: jest.fn().mockResolvedValue({
+            id: 'tp1',
+            chartEntries: [{ id: 'ce-planned', toothNumber: 16 }],
+          }),
+          executeSession: jest
+            .fn()
+            .mockResolvedValue({ data: { id: 's1', sessionNumber: 1 } }),
+        };
+        service = new ChartEntryService(prisma as any, plans);
+        prisma.procedure.findFirst.mockResolvedValue({
+          id: 'proc-1',
+          name: 'Composite',
+          currency: 'UGX',
+        });
+        prisma.treatmentPlan.findFirst.mockResolvedValue({
+          id: 'plan-1',
+          title: 'Existing plan',
+        });
+        prisma.chartEntry.findUnique.mockResolvedValue({
+          id: 'ce-planned',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        prisma.chartEntry.findFirst.mockResolvedValue({
+          id: 'ce-done',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      });
 
-    it('PLAN_TREATMENT blocks surface work on an absent tooth', async () => {
-      // Active CONDITION marks tooth 16 absent (K08.1) → presence guard fires.
-      // Detection is dual-source (PatientCondition + ChartEntry); the absent
-      // row carries the toothNumber the guard matches against.
-      prisma.chartEntry.findMany.mockResolvedValue([
-        { toothNumber: 16, type: 'CONDITION', conditionCode: 'K08.1' },
-      ]);
+      const base = {
+        patientId: 'p1',
+        visitId: 'v1',
+        toothNumber: 16,
+        surfaces: ['OCCLUSAL'],
+        procedureCatalogId: 'proc-1',
+      };
+
+      it('PLAN_TREATMENT requires a catalogue procedure', async () => {
+        await expect(
+          service.executeQuickAction(
+            { ...base, procedureCatalogId: undefined, procedureLabel: 'free text', action: 'PLAN_TREATMENT' } as any,
+            'user-1',
+          ),
+        ).rejects.toThrow(/procedureCatalogId is required/);
+        expect(plans.addProcedure).not.toHaveBeenCalled();
+      });
+
+      it('PLAN_TREATMENT adds to the open plan through addProcedure and ignores a client price', async () => {
+        const out = await service.executeQuickAction(
+          { ...base, procedureCost: 1, action: 'PLAN_TREATMENT' } as any,
+          'user-1',
+        );
+        expect(plans.createTreatmentPlan).not.toHaveBeenCalled();
+        const [planId, dto, actor] = plans.addProcedure.mock.calls[0];
+        expect(planId).toBe('plan-1');
+        expect(dto).toMatchObject({
+          procedureId: 'proc-1',
+          toothNumbers: [16],
+          visitId: 'v1',
+        });
+        expect(dto.isPriceOverridden).toBeUndefined();
+        expect(actor).toBe('user-1');
+        expect(out.treatmentPlan).toEqual({ id: 'plan-1', title: 'Existing plan', wasCreated: false });
+        expect(out.treatmentProcedure).toEqual({ id: 'tp1', procedureName: 'Composite' });
+        expect(out.chartEntry.id).toBe('ce-planned');
+      });
+
+      it('PLAN_TREATMENT creates a plan through createTreatmentPlan when none is open', async () => {
+        prisma.treatmentPlan.findFirst.mockResolvedValue(null);
+        const out = await service.executeQuickAction(
+          { ...base, action: 'PLAN_TREATMENT' } as any,
+          'user-1',
+        );
+        expect(plans.createTreatmentPlan.mock.calls[0][0]).toMatchObject({
+          patientId: 'p1',
+          dentistId: 'd1',
+          priority: 'NORMAL',
+        });
+        expect(out.treatmentPlan?.wasCreated).toBe(true);
+      });
+
+      it('PERFORM_NOW executes a final session through executeSession', async () => {
+        const out = await service.executeQuickAction(
+          { ...base, action: 'PERFORM_NOW', performedDate: '2026-10-01' } as any,
+          'user-1',
+        );
+        const [planId, tpId, dto] = plans.executeSession.mock.calls[0];
+        expect(planId).toBe('plan-1');
+        expect(tpId).toBe('tp1');
+        expect(dto).toMatchObject({
+          visitId: 'v1',
+          isFinal: true,
+          toothStatuses: [{ toothNumber: 16, surfaces: ['OCCLUSAL'], status: 'COMPLETED' }],
+        });
+        expect(out.procedureSession).toEqual({ id: 's1', sessionNumber: 1 });
+        expect(out.chartEntry.id).toBe('ce-done');
+      });
+
+      it('rejects an on-the-fly plan when no dentist can be resolved (400, not a raw FK crash)', async () => {
+        prisma.treatmentPlan.findFirst.mockResolvedValue(null);
+        prisma.visit.findUnique.mockResolvedValue({ id: 'v1', patientId: 'p1', dentistId: null });
+        prisma.staff.findUnique.mockResolvedValue(null);
+        await expect(
+          service.executeQuickAction({ ...base, action: 'PLAN_TREATMENT' } as any, 'user-1'),
+        ).rejects.toBeInstanceOf(BadRequestException);
+      });
+
+      it("rejects another patient's visit", async () => {
+        prisma.visit.findUnique.mockResolvedValue({ id: 'v1', patientId: 'p2', dentistId: 'd1' });
+        await expect(
+          service.executeQuickAction({ ...base, action: 'PLAN_TREATMENT' } as any, 'user-1'),
+        ).rejects.toThrow(/different patient/);
+      });
+    });
+  });
+
+  describe('createEntry — links', () => {
+    it("rejects linking another patient's procedure", async () => {
+      prisma.treatmentProcedure.findUnique.mockResolvedValue({
+        treatmentPlan: { patientId: 'p2' },
+      });
       await expect(
-        service.executeQuickAction({
-          patientId: 'p1', toothNumber: 16, action: 'PLAN_TREATMENT',
-          surfaces: ['OCCLUSAL'], procedureLabel: 'Filling',
+        service.createEntry({
+          patientId: 'p1', toothNumber: 11, type: 'PLANNED', label: 'x',
+          treatmentProcedureId: 'tp-other',
         } as any),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toThrow(/different patient/);
+      expect(prisma.chartEntry.create).not.toHaveBeenCalled();
     });
 
-    it('PLAN_TREATMENT creates plan procedure + target + PLANNED chart entry from catalog', async () => {
-      prisma.chartEntry.findMany.mockResolvedValue([]); // restorable
-      prisma.treatmentPlan.findFirst.mockResolvedValue({ id: 'tp1', title: 'Plan A' }); // existing plan
-      prisma.procedure.findUnique.mockResolvedValue({
-        id: 'cat1', name: 'Composite Filling', code: 'D2391', basePrice: 120000,
+    it('refuses to chart into a cancelled visit', async () => {
+      prisma.visit.findUnique.mockResolvedValue({
+        id: 'v1', patientId: 'p1', dentistId: 'd1', status: 'CANCELLED',
       });
-      prisma.treatmentProcedure.findFirst.mockResolvedValue(null); // first proc in plan
-      prisma.treatmentProcedure.create.mockResolvedValue({ id: 'proc1' });
-      prisma.procedureTarget.create.mockResolvedValue({ id: 'tgt1' });
-      prisma.chartEntry.create.mockResolvedValue({ id: 'ce1', createdAt: new Date(), updatedAt: new Date() });
-
-      const out = await service.executeQuickAction({
-        patientId: 'p1', toothNumber: 16, action: 'PLAN_TREATMENT',
-        procedureCatalogId: 'cat1', surfaces: [],
-      } as any);
-
-      expect(prisma.treatmentProcedure.create).toHaveBeenCalledTimes(1);
-      expect(prisma.procedureTarget.create).toHaveBeenCalledTimes(1);
-      const ce = prisma.chartEntry.create.mock.calls[0][0];
-      expect(ce.data.type).toBe('PLANNED');
-      expect(out.treatmentProcedure?.procedureName).toBe('Composite Filling');
-      expect(out.treatmentPlan?.wasCreated).toBe(false);
-    });
-
-    it('PLAN_TREATMENT audits TreatmentProcedure + ChartEntry (and TreatmentPlan only if newly created)', async () => {
-      prisma.chartEntry.findMany.mockResolvedValue([]);
-      // ── Case A: an EXISTING active plan is reused → no TreatmentPlan audit.
-      prisma.treatmentPlan.findFirst.mockResolvedValue({
-        id: 'tp-existing', title: 'Plan A', patientId: 'p1', status: 'PLANNED',
-      });
-      prisma.procedure.findUnique.mockResolvedValue({
-        id: 'cat1', name: 'Filling', code: 'D2391', basePrice: 100,
-      });
-      prisma.treatmentProcedure.findFirst.mockResolvedValue(null);
-      prisma.treatmentProcedure.create.mockResolvedValue({ id: 'proc-existing' });
-      prisma.procedureTarget.create.mockResolvedValue({ id: 'tgt-x' });
-      prisma.chartEntry.create.mockResolvedValue({ id: 'ce-existing', createdAt: new Date(), updatedAt: new Date() });
-      prisma.user.findUnique.mockResolvedValue({
-        id: 'user-dentist-1',
-        staff: { firstName: 'Ada', lastName: 'Lovelace' },
-      });
-
-      await service.executeQuickAction(
-        {
-          patientId: 'p1', toothNumber: 16, action: 'PLAN_TREATMENT',
-          procedureCatalogId: 'cat1', surfaces: [],
-        } as any,
-        'user-dentist-1',
-      );
-
-      // 2 audit calls: TreatmentProcedure + ChartEntry. NO TreatmentPlan audit
-      // (the plan was pre-existing — appending a procedure to it is a procedure
-      // event, not a plan-creation event).
-      expect(prisma.auditLog.create).toHaveBeenCalledTimes(2);
-      const audits = prisma.auditLog.create.mock.calls.map((c) => c[0].data);
-      const modules = audits.map((a: any) => `${a.module}/${a.entityType}`).sort();
-      expect(modules).toEqual([
-        'CHART_ENTRY/ChartEntry',
-        'TREATMENT_PLANS/TreatmentProcedure',
-      ]);
-      for (const a of audits) {
-        expect(a.action).toBe('CREATE');
-        expect(a.userId).toBe('user-dentist-1');
-        expect(a.userName).toBe('Ada Lovelace');
-        expect(a.newData.via).toBe('quick-action:PLAN_TREATMENT');
-      }
-      const procAudit = audits.find((a: any) => a.entityType === 'TreatmentProcedure');
-      expect(procAudit.recordId).toBe('proc-existing');
-      const ceAudit = audits.find((a: any) => a.entityType === 'ChartEntry');
-      expect(ceAudit.recordId).toBe('ce-existing');
-    });
-
-    it('PLAN_TREATMENT audits TreatmentPlan ONLY when a new one was created', async () => {
-      prisma.chartEntry.findMany.mockResolvedValue([]);
-      // No existing plan → resolveOrCreatePlan will create one.
-      prisma.treatmentPlan.findFirst.mockResolvedValue(null);
-      // First call returns null (no existing plan); the service creates one
-      // via tx.treatmentPlan.create; we stub that.
-      prisma.treatmentPlan.create.mockResolvedValue({
-        id: 'tp-new', title: 'New Plan', patientId: 'p1', status: 'PLANNED',
-        estimatedCost: 0,
-      });
-      prisma.procedure.findUnique.mockResolvedValue({
-        id: 'cat1', name: 'Filling', code: 'D2391', basePrice: 100,
-      });
-      prisma.treatmentProcedure.findFirst.mockResolvedValue(null);
-      prisma.treatmentProcedure.create.mockResolvedValue({ id: 'proc-new' });
-      prisma.procedureTarget.create.mockResolvedValue({ id: 'tgt-new' });
-      prisma.chartEntry.create.mockResolvedValue({ id: 'ce-new', createdAt: new Date(), updatedAt: new Date() });
-      // On-the-fly plan with no visit → dentistId resolves from the acting
-      // user's own staff record (required-FK guard).
-      prisma.staff.findUnique.mockResolvedValue({ id: 'staff-dentist' });
-      prisma.user.findUnique.mockResolvedValue({
-        id: 'user-dentist-2',
-        staff: { firstName: 'Grace', lastName: 'Hopper' },
-      });
-
-      await service.executeQuickAction(
-        {
-          patientId: 'p1', toothNumber: 16, action: 'PLAN_TREATMENT',
-          procedureCatalogId: 'cat1', surfaces: [],
-        } as any,
-        'user-dentist-2',
-      );
-
-      // 3 audit calls now: TreatmentPlan (NEW) + TreatmentProcedure + ChartEntry.
-      expect(prisma.auditLog.create).toHaveBeenCalledTimes(3);
-      const audits = prisma.auditLog.create.mock.calls.map((c) => c[0].data);
-      const modules = audits.map((a: any) => `${a.module}/${a.entityType}`).sort();
-      expect(modules).toEqual([
-        'CHART_ENTRY/ChartEntry',
-        'TREATMENT_PLANS/TreatmentPlan',
-        'TREATMENT_PLANS/TreatmentProcedure',
-      ]);
-      const planAudit = audits.find((a: any) => a.entityType === 'TreatmentPlan');
-      expect(planAudit.recordId).toBe('tp-new');
-      expect(planAudit.newData.via).toBe('quick-action:PLAN_TREATMENT');
-      expect(planAudit.userName).toBe('Grace Hopper');
-    });
-
-    it('PERFORM_NOW audits TreatmentProcedure + ProcedureSession + ChartEntry (and TreatmentPlan only if newly created)', async () => {
-      prisma.chartEntry.findMany.mockResolvedValue([]);
-      prisma.treatmentPlan.findFirst.mockResolvedValue({
-        id: 'tp-existing', title: 'Plan A', patientId: 'p1', status: 'PLANNED',
-      });
-      prisma.procedure.findUnique.mockResolvedValue({
-        id: 'cat1', name: 'Filling', code: 'D2391', basePrice: 100,
-      });
-      prisma.treatmentProcedure.findFirst.mockResolvedValue(null);
-      prisma.treatmentProcedure.create.mockResolvedValue({ id: 'proc-perf' });
-      prisma.procedureTarget.create.mockResolvedValue({ id: 'tgt-perf' });
-      prisma.procedureSession.create.mockResolvedValue({ id: 'ses-perf', sessionNumber: 1 });
-      prisma.chartEntry.updateMany.mockResolvedValue({ count: 0 });
-      prisma.chartEntry.create.mockResolvedValue({ id: 'ce-perf', createdAt: new Date(), updatedAt: new Date() });
-      prisma.user.findUnique.mockResolvedValue({
-        id: 'user-dentist-3',
-        staff: { firstName: 'Margaret', lastName: 'Hamilton' },
-      });
-
-      await service.executeQuickAction(
-        {
-          patientId: 'p1', toothNumber: 16, action: 'PERFORM_NOW',
-          procedureCatalogId: 'cat1', surfaces: [],
-        } as any,
-        'user-dentist-3',
-      );
-
-      // 3 audit calls: TreatmentProcedure + ProcedureSession + ChartEntry.
-      // NO TreatmentPlan audit (plan was pre-existing).
-      expect(prisma.auditLog.create).toHaveBeenCalledTimes(3);
-      const audits = prisma.auditLog.create.mock.calls.map((c) => c[0].data);
-      const modules = audits.map((a: any) => `${a.module}/${a.entityType}`).sort();
-      expect(modules).toEqual([
-        'CHART_ENTRY/ChartEntry',
-        'TREATMENT_PLANS/ProcedureSession',
-        'TREATMENT_PLANS/TreatmentProcedure',
-      ]);
-      for (const a of audits) {
-        expect(a.action).toBe('CREATE');
-        expect(a.userId).toBe('user-dentist-3');
-        expect(a.userName).toBe('Margaret Hamilton');
-        expect(a.newData.via).toBe('quick-action:PERFORM_NOW');
-      }
-      const procAudit = audits.find((a: any) => a.entityType === 'TreatmentProcedure');
-      expect(procAudit.recordId).toBe('proc-perf');
-      const sesAudit = audits.find((a: any) => a.entityType === 'ProcedureSession');
-      expect(sesAudit.recordId).toBe('ses-perf');
-      const ceAudit = audits.find((a: any) => a.entityType === 'ChartEntry');
-      expect(ceAudit.recordId).toBe('ce-perf');
-      // ChartEntry audit must reference BOTH the procedure AND the session.
-      expect(ceAudit.newData.treatmentProcedureId).toBe('proc-perf');
-      expect(ceAudit.newData.procedureSessionId).toBe('ses-perf');
-    });
-
-    it('PERFORM_NOW audits the TreatmentPlan when it had to be created on the fly', async () => {
-      prisma.chartEntry.findMany.mockResolvedValue([]);
-      prisma.treatmentPlan.findFirst.mockResolvedValue(null);
-      prisma.treatmentPlan.create.mockResolvedValue({
-        id: 'tp-perf-new', title: 'Auto Plan', patientId: 'p1', status: 'PLANNED',
-      });
-      prisma.procedure.findUnique.mockResolvedValue({
-        id: 'cat1', name: 'Filling', code: 'D2391', basePrice: 100,
-      });
-      prisma.treatmentProcedure.findFirst.mockResolvedValue(null);
-      prisma.treatmentProcedure.create.mockResolvedValue({ id: 'proc-perf2' });
-      prisma.procedureTarget.create.mockResolvedValue({ id: 'tgt-perf2' });
-      prisma.procedureSession.create.mockResolvedValue({ id: 'ses-perf2', sessionNumber: 1 });
-      prisma.chartEntry.updateMany.mockResolvedValue({ count: 0 });
-      prisma.chartEntry.create.mockResolvedValue({ id: 'ce-perf2', createdAt: new Date(), updatedAt: new Date() });
-      // On-the-fly plan with no visit → dentistId resolves from the acting
-      // user's own staff record (required-FK guard).
-      prisma.staff.findUnique.mockResolvedValue({ id: 'staff-dentist' });
-      prisma.user.findUnique.mockResolvedValue({
-        id: 'user-dentist-4',
-        staff: { firstName: 'Edsger', lastName: 'Dijkstra' },
-      });
-
-      await service.executeQuickAction(
-        {
-          patientId: 'p1', toothNumber: 16, action: 'PERFORM_NOW',
-          procedureCatalogId: 'cat1', surfaces: [],
-        } as any,
-        'user-dentist-4',
-      );
-
-      // 4 audit calls: TreatmentPlan (NEW) + TreatmentProcedure + ProcedureSession + ChartEntry.
-      expect(prisma.auditLog.create).toHaveBeenCalledTimes(4);
-      const audits = prisma.auditLog.create.mock.calls.map((c) => c[0].data);
-      const planAudit = audits.find((a: any) => a.entityType === 'TreatmentPlan');
-      expect(planAudit).toBeDefined();
-      expect(planAudit.recordId).toBe('tp-perf-new');
-      expect(planAudit.newData.via).toBe('quick-action:PERFORM_NOW');
-      expect(planAudit.userName).toBe('Edsger Dijkstra');
-    });
-
-    it('rejects an on-the-fly plan when no dentist can be resolved (400, not a raw FK crash)', async () => {
-      prisma.chartEntry.findMany.mockResolvedValue([]);
-      prisma.treatmentPlan.findFirst.mockResolvedValue(null); // no active plan
-      prisma.procedure.findUnique.mockResolvedValue({
-        id: 'cat1', name: 'Filling', code: 'D2391', basePrice: 100,
-      });
-      // No visit dentist and the actor has no staff record → unresolvable.
-      prisma.staff.findUnique.mockResolvedValue(null);
-
       await expect(
-        service.executeQuickAction(
-          {
-            patientId: 'p1', toothNumber: 16, action: 'PLAN_TREATMENT',
-            procedureCatalogId: 'cat1', surfaces: [],
-          } as any,
-          'user-no-staff',
-        ),
-      ).rejects.toBeInstanceOf(BadRequestException);
-      // The plan must NOT be created when the dentist can't be resolved.
-      expect(prisma.treatmentPlan.create).not.toHaveBeenCalled();
+        service.createEntry({
+          patientId: 'p1', visitId: 'v1', toothNumber: 11, type: 'CONDITION', label: 'x',
+        } as any),
+      ).rejects.toThrow(/cancelled visit/);
     });
   });
 
   describe('addExistingProcedure', () => {
     it('creates an EXISTING entry', async () => {
+      prisma.visit.findUnique.mockResolvedValue({
+        id: 'v1', patientId: 'p1', dentistId: 'd1', status: 'IN_PROGRESS',
+      });
       prisma.chartEntry.create.mockResolvedValue({ id: 'ce1' });
       await service.addExistingProcedure({
-        patientId: 'p1', toothNumber: 11, surfaces: [], procedureName: 'Old crown', procedureCode: 'X',
+        patientId: 'p1', visitId: 'v1', toothNumber: 11, surfaces: [], procedureName: 'Old crown', procedureCode: 'X',
       } as any);
       const arg = prisma.chartEntry.create.mock.calls[0][0];
       expect(arg.data.type).toBe('EXISTING');

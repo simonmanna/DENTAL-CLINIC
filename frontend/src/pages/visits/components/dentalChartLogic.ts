@@ -80,6 +80,8 @@ export interface ChartEntry {
   name?: string;
   notes?: string;
   date: string;
+  /** Visit the row was recorded in (persisted rows only). */
+  visitId?: string;
   provider?: string;
   patientConditionId?: string;
   conditionId?: string;
@@ -645,4 +647,75 @@ export function highestPriorityEntry(candidates: ChartEntry[]): ChartEntry | nul
     }
   }
   return best;
+}
+
+// ─── Ledger grouping (C4) ─────────────────────────────────────────────────────
+
+/** FDI primary (deciduous) tooth: quadrants 5–8. */
+export const isPrimaryFdi = (n: number) => n >= 51 && n <= 85;
+
+/**
+ * One ledger row per treatment procedure and layer. The chart stores one
+ * row per tooth, so a 3-tooth bridge used to appear three times — each
+ * showing the FULL procedure price — and a multi-session procedure added a
+ * row per session. Rows without a procedure (conditions, existing work) are
+ * left as they are. Teeth and surfaces are joined, the date is the latest.
+ */
+export function groupLedgerProcedureRows(rows: ChartEntry[]): ChartEntry[] {
+  const out: ChartEntry[] = [];
+  const byKey = new Map<string, ChartEntry>();
+  for (const e of rows) {
+    if (!e.treatmentProcedureId) {
+      out.push(e);
+      continue;
+    }
+    const key = `${e.treatmentProcedureId}|${layerForEntry(e)}`;
+    const seen = byKey.get(key);
+    if (!seen) {
+      const copy: ChartEntry = {
+        ...e,
+        toothNumbers: [...e.toothNumbers],
+        surfaces: [...e.surfaces],
+      };
+      byKey.set(key, copy);
+      out.push(copy);
+      continue;
+    }
+    seen.toothNumbers = [...new Set([...seen.toothNumbers, ...e.toothNumbers])].sort(
+      (a, b) => a - b,
+    );
+    seen.surfaces = [...new Set([...seen.surfaces, ...e.surfaces])];
+    if ((e.date ?? "") > (seen.date ?? "")) seen.date = e.date;
+    seen.totalPrice = seen.totalPrice ?? e.totalPrice;
+    seen.currency = seen.currency ?? e.currency;
+  }
+  return out;
+}
+
+/**
+ * Live findings on the dentition that is NOT on screen — shown as a badge
+ * on the dentition toggle so nothing recorded on hidden teeth goes unseen.
+ */
+export function hiddenDentitionCount(
+  entries: ChartEntry[],
+  showing: "permanent" | "primary",
+): number {
+  return entries.filter(
+    (e) =>
+      e.status === "ACTIVE" &&
+      e.toothNumbers.some((t) =>
+        showing === "permanent" ? isPrimaryFdi(t) : !isPrimaryFdi(t),
+      ),
+  ).length;
+}
+
+/** True when every tooth-bound live entry is on primary teeth. */
+export function allEntriesPrimary(entries: ChartEntry[]): boolean {
+  const toothBound = entries.filter(
+    (e) => e.status === "ACTIVE" && e.toothNumbers.length > 0,
+  );
+  return (
+    toothBound.length > 0 &&
+    toothBound.every((e) => e.toothNumbers.every(isPrimaryFdi))
+  );
 }

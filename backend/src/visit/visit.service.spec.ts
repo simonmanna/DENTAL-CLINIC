@@ -20,6 +20,8 @@ function build() {
     id: 'v1',
     ...data,
   }));
+  // Lifecycle transitions are conditional updates.
+  prisma.visit.updateMany.mockResolvedValue({ count: 1 });
 
   return { svc, prisma, docNum };
 }
@@ -183,9 +185,21 @@ describe('VisitsService', () => {
       );
 
       await svc.startExamination('v1', DENTIST);
-      const data = prisma.visit.update.mock.calls[0][0].data;
-      expect(data.status).toBe(VisitStatus.IN_PROGRESS);
-      expect(data.startedAt).toBeInstanceOf(Date);
+      const call = prisma.visit.updateMany.mock.calls[0][0];
+      expect(call.where).toEqual({ id: 'v1', status: VisitStatus.ARRIVED });
+      expect(call.data.status).toBe(VisitStatus.IN_PROGRESS);
+      expect(call.data.startedAt).toBeInstanceOf(Date);
+    });
+
+    it('409s when a concurrent request already moved the visit', async () => {
+      const { svc, prisma } = build();
+      prisma.visit.findUnique.mockResolvedValue(
+        visitRow({ status: VisitStatus.ARRIVED }),
+      );
+      prisma.visit.updateMany.mockResolvedValue({ count: 0 });
+      await expect(svc.startExamination('v1', DENTIST)).rejects.toThrow(
+        /changed by another request/,
+      );
     });
 
     it('is idempotent for a double-clicked button', async () => {
@@ -470,17 +484,43 @@ describe('VisitsService', () => {
       ).rejects.toThrow(/overrideReason is required/);
     });
 
-    it('increments the visit total in the same transaction as the insert', async () => {
-      const { svc, prisma } = setup();
-      await svc.addProcedure(
+    it('bills the line on the visit invoice in the same transaction as the insert', async () => {
+      const ctx = setup();
+      const lifecycle = {
+        addVisitProcedureItemTx: jest.fn().mockResolvedValue({
+          invoiceId: 'inv1',
+          invoiceNumber: 'INV-1',
+          invoiceStatus: 'DRAFT',
+        }),
+      };
+      const svc = new VisitsService(ctx.prisma, ctx.docNum, lifecycle as any);
+      const res: any = await svc.addProcedure(
         'v1',
         { procedureId: 'proc-1', toothNumbers: [36, 37] } as any,
         DENTIST,
       );
 
-      const increment = prisma.visit.update.mock.calls[0][0].data.totalCost;
-      expect(increment.increment.toString()).toBe('300000');
-      expect(prisma.$transaction).toHaveBeenCalled();
+      const args = lifecycle.addVisitProcedureItemTx.mock.calls[0][1];
+      expect(args).toMatchObject({
+        visitId: 'v1',
+        visitProcedureId: 'vp1',
+        procedureId: 'proc-1',
+      });
+      expect(args.total.toString()).toBe('300000');
+      expect(res.billing.invoiceId).toBe('inv1');
+      // The visit's legacy total column is no longer written.
+      expect(ctx.prisma.visit.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects an invalid FDI tooth', async () => {
+      const { svc } = setup();
+      await expect(
+        svc.addProcedure(
+          'v1',
+          { procedureId: 'proc-1', toothNumbers: [19] } as any,
+          DENTIST,
+        ),
+      ).rejects.toThrow(/Invalid tooth number/);
     });
 
     it('refuses a withdrawn procedure', async () => {
@@ -505,7 +545,7 @@ describe('VisitsService', () => {
       const { svc } = setup({ status: VisitStatus.COMPLETED });
       await expect(
         svc.addProcedure('v1', { procedureId: 'proc-1' } as any, DENTIST),
-      ).rejects.toThrow(/completed visit/);
+      ).rejects.toThrow(/reason/i);
     });
   });
 
@@ -577,30 +617,27 @@ describe('VisitsService', () => {
   // ── completion & cancellation ──────────────────────────────────────────────
 
   describe('completeVisit', () => {
-    it('recomputes the total from the procedure lines and derives the balance status', async () => {
+    it('closes the visit atomically without rewriting its money columns', async () => {
       const { svc, prisma } = build();
       prisma.visit.findUnique.mockResolvedValue(
         visitRow({ totalCost: D(999), amountPaid: D(100000) }),
       );
-      prisma.visitProcedure.findMany.mockResolvedValue([
-        { cost: D(150000) },
-        { cost: D(50000) },
-      ]);
-      prisma.visit.update.mockResolvedValue({ id: 'v1' });
+      prisma.procedureSession.count.mockResolvedValue(1);
+      prisma.invoice.count.mockResolvedValue(2);
 
-      await svc.completeVisit('v1', {} as any, DENTIST);
+      const res: any = await svc.completeVisit('v1', {} as any, DENTIST);
 
-      const data = prisma.visit.update.mock.calls[0][0].data;
-      expect(data.totalCost.toString()).toBe('200000');
-      expect(data.paymentStatus).toBe('PARTIALLY_PAID');
-      expect(data.status).toBe(VisitStatus.COMPLETED);
+      const call = prisma.visit.updateMany.mock.calls[0][0];
+      expect(call.where).toEqual({ id: 'v1', status: VisitStatus.IN_PROGRESS });
+      expect(call.data.status).toBe(VisitStatus.COMPLETED);
+      expect(call.data.totalCost).toBeUndefined();
+      expect(call.data.paymentStatus).toBeUndefined();
+      expect(res.warnings).toEqual({ openSessions: 1, draftInvoices: 2 });
     });
 
     it('marks the appointment completed', async () => {
       const { svc, prisma } = build();
       prisma.visit.findUnique.mockResolvedValue(visitRow());
-      prisma.visitProcedure.findMany.mockResolvedValue([]);
-      prisma.visit.update.mockResolvedValue({ id: 'v1' });
 
       await svc.completeVisit('v1', {} as any, DENTIST);
       expect(prisma.appointment.update.mock.calls[0][0].data.status).toBe(
@@ -625,13 +662,11 @@ describe('VisitsService', () => {
       prisma.visit.findUnique.mockResolvedValue({
         ...visitRow(),
         appointment: { id: 'apt-1', status: AppointmentStatus.IN_PROGRESS },
-        _count: { procedures: 0, prescriptions: 0 },
       });
-      prisma.visit.update.mockResolvedValue({ id: 'v1' });
 
       await svc.cancelVisit('v1', 'patient left', DENTIST);
 
-      expect(prisma.visit.update.mock.calls[0][0].data.status).toBe(
+      expect(prisma.visit.updateMany.mock.calls[0][0].data.status).toBe(
         VisitStatus.CANCELLED,
       );
       expect(prisma.appointment.update.mock.calls[0][0].data.status).toBe(
@@ -644,12 +679,27 @@ describe('VisitsService', () => {
       prisma.visit.findUnique.mockResolvedValue({
         ...visitRow(),
         appointment: { id: 'apt-1', status: AppointmentStatus.IN_PROGRESS },
-        _count: { procedures: 2, prescriptions: 0 },
       });
+      prisma.visitProcedure.count.mockResolvedValue(2);
 
       await expect(
         svc.cancelVisit('v1', 'changed mind', DENTIST),
-      ).rejects.toThrow(/credit the invoice instead/);
+      ).rejects.toThrow(/already holds records [(]2 procedures[)]/);
+    });
+
+    it('refuses to cancel a visit with executed sessions or an invoice', async () => {
+      const { svc, prisma } = build();
+      prisma.visit.findUnique.mockResolvedValue({
+        ...visitRow(),
+        appointment: { id: 'apt-1', status: AppointmentStatus.IN_PROGRESS },
+      });
+      prisma.procedureSession.count.mockResolvedValue(1);
+      prisma.invoice.count.mockResolvedValue(1);
+
+      await expect(
+        svc.cancelVisit('v1', 'changed mind', DENTIST),
+      ).rejects.toThrow(/1 sessions, 1 invoices/);
+      expect(prisma.visit.updateMany).not.toHaveBeenCalled();
     });
 
     it('requires a reason', async () => {
@@ -663,40 +713,40 @@ describe('VisitsService', () => {
   // ── dashboard ──────────────────────────────────────────────────────────────
 
   describe('getVisitDashboard', () => {
-    it('reports the stored money columns rather than hardcoded zeros', async () => {
+    it('reports money from the visit invoices, not the legacy columns', async () => {
       const { svc, prisma } = build();
       prisma.visit.findUnique.mockResolvedValue({
-        ...visitRow({
-          totalCost: D(200000),
-          amountPaid: D(50000),
-          paymentStatus: 'PARTIALLY_PAID',
-        }),
+        ...visitRow({ totalCost: D(0), amountPaid: D(0) }),
         procedures: [{ cost: D(150000) }, { cost: D(50000) }],
         prescriptions: [],
       });
       prisma.visit.findMany.mockResolvedValue([]);
+      prisma.invoice.findMany.mockResolvedValue([
+        {
+          id: 'i1',
+          invoiceNumber: 'INV-1',
+          status: 'POSTED',
+          currency: 'UGX',
+          total: D(200000),
+          amountPaid: D(50000),
+          baseTotal: D(200000),
+          baseAmountPaid: D(50000),
+        },
+      ]);
 
       const res: any = await svc.getVisitDashboard('v1');
       expect(res.financials).toMatchObject({
+        proceduresTotal: '200000.00',
         totalCost: '200000.00',
         amountPaid: '50000.00',
         balance: '150000.00',
+        refundDue: '0.00',
         paymentStatus: 'PARTIALLY_PAID',
-        totalsInSync: true,
       });
-    });
-
-    it('flags a visit whose total has drifted from its procedure lines', async () => {
-      const { svc, prisma } = build();
-      prisma.visit.findUnique.mockResolvedValue({
-        ...visitRow({ totalCost: D(10), amountPaid: D(0) }),
-        procedures: [{ cost: D(150000) }],
-        prescriptions: [],
+      expect(prisma.invoice.findMany.mock.calls[0][0].where).toMatchObject({
+        visitId: 'v1',
+        status: { not: 'VOID' },
       });
-      prisma.visit.findMany.mockResolvedValue([]);
-
-      const res: any = await svc.getVisitDashboard('v1');
-      expect(res.financials.totalsInSync).toBe(false);
     });
 
     it('404s on a missing visit', async () => {
@@ -754,5 +804,77 @@ describe('VisitsService', () => {
       const res = await svc.getAllVisits({ limit: 10_000 });
       expect(res.meta.limit).toBe(100);
     });
+  });
+});
+
+describe('VisitsService.removeProcedure', () => {
+  function setup() {
+    const prisma = createPrismaMock() as any;
+    const docNum: any = { next: jest.fn() };
+    const lifecycle = {
+      reverseVisitProcedureBillingTx: jest.fn().mockResolvedValue({
+        invoiceId: 'inv1',
+        invoiceStatus: 'POSTED',
+        glAdjusted: true,
+        refundDue: '0.00',
+      }),
+    };
+    const stock = { reverseDocument: jest.fn().mockResolvedValue({ reversed: 2 }) };
+    const svc = new VisitsService(prisma, docNum, lifecycle as any, stock as any);
+    prisma.visitProcedure.findUnique.mockResolvedValue({
+      id: 'vp1',
+      visitId: 'v1',
+      cost: new Prisma.Decimal(300000),
+      deletedAt: null,
+      procedure: { name: 'Composite' },
+    });
+    prisma.visit.findUnique.mockResolvedValue({
+      id: 'v1',
+      patientId: 'p1',
+      dentistId: 'd1',
+      status: VisitStatus.IN_PROGRESS,
+    });
+    prisma.visitProcedure.updateMany.mockResolvedValue({ count: 1 });
+    prisma.inventoryLedger.count.mockResolvedValue(2);
+    return { prisma, svc, lifecycle, stock };
+  }
+
+  it('soft-deletes, returns stock and reverses the invoice line', async () => {
+    const { prisma, svc, lifecycle, stock } = setup();
+    const res: any = await svc.removeProcedure('vp1', { reason: 'wrong tooth' }, DENTIST);
+
+    const upd = prisma.visitProcedure.updateMany.mock.calls[0][0];
+    expect(upd.where).toEqual({ id: 'vp1', deletedAt: null });
+    expect(upd.data.deletedReason).toBe('wrong tooth');
+    expect(prisma.visitProcedure.delete).not.toHaveBeenCalled();
+    expect(stock.reverseDocument.mock.calls[0][1]).toMatchObject({
+      referenceType: 'VISIT_PROCEDURE',
+      referenceId: 'vp1',
+    });
+    expect(lifecycle.reverseVisitProcedureBillingTx).toHaveBeenCalledWith(
+      expect.anything(),
+      'vp1',
+      'wrong tooth',
+      'u-dentist',
+    );
+    expect(res).toMatchObject({ success: true, stockReversed: 2 });
+  });
+
+  it('404s on an already-removed procedure', async () => {
+    const { prisma, svc } = setup();
+    prisma.visitProcedure.findUnique.mockResolvedValue({ id: 'vp1', deletedAt: new Date() });
+    await expect(
+      svc.removeProcedure('vp1', { reason: 'x' }, DENTIST),
+    ).rejects.toThrow(/not found/);
+  });
+
+  it('refuses on a cancelled visit', async () => {
+    const { prisma, svc } = setup();
+    prisma.visit.findUnique.mockResolvedValue({
+      id: 'v1', patientId: 'p1', dentistId: 'd1', status: VisitStatus.CANCELLED,
+    });
+    await expect(
+      svc.removeProcedure('vp1', { reason: 'x' }, DENTIST),
+    ).rejects.toThrow(/cancelled visit/);
   });
 });

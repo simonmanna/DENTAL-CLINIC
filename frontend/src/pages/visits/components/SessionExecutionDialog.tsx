@@ -355,7 +355,8 @@ interface SessionExecutionDialogProps {
     outcome: "PARTIAL" | "COMPLETED";
     isFinal: boolean;
     phase?: string;
-    surfaces: string[];
+    /** Legacy single list — surfaces now travel per tooth in toothStatuses. */
+    surfaces?: string[];
     providerId?: string;
     performedNotes: string;
     sessionPrice?: number;
@@ -431,7 +432,17 @@ export function SessionExecutionDialog({
     setProviderId(dentistId ?? "");
     setPhase(session?.phase ?? "");
     setOutcome((session?.outcome as any) ?? "COMPLETED");
-    setIsFinal(session?.isFinal ?? procedure.sessionType === "SINGLE");
+    // Final by default for a SINGLE procedure and for the last planned
+    // session of a MULTI one (it used to default to "not final", leaving
+    // the procedure IN_PROGRESS after its last session).
+    const doneSoFar = (procedure.sessions ?? []).filter(
+      (s: any) => s.status === "COMPLETED",
+    ).length;
+    setIsFinal(
+      session?.isFinal ??
+        (procedure.sessionType !== "MULTI" ||
+          doneSoFar + 1 >= (procedure.sessionCount ?? 1)),
+    );
     setFinalOverrideReason("");
     setNotes("");
     setImagingLinks([]);
@@ -524,11 +535,13 @@ export function SessionExecutionDialog({
     if (!procedure) return;
     if (!resolvedProviderId) return;
 
-    // Convert UiSurface → CanonicalSurface for the backend
-    const refTooth = procedure.targets?.[0]?.toothNumber ?? 11;
-    const canonicalSurfaces: CanonicalSurface[] = sessionSurfaces.map((s) =>
-      uiToCanonical(s, refTooth),
-    );
+    // Surfaces are converted PER TOOTH (a molar's buccal is an incisor's
+    // labial) and sent on each tooth — the old single list, converted on
+    // the first tooth, was applied to every tooth of the session.
+    const surfacesFor = (tooth: number, own: CanonicalSurface[]) =>
+      sessionSurfaces.length
+        ? ([...new Set(sessionSurfaces.map((s) => uiToCanonical(s, tooth)))] as CanonicalSurface[])
+        : own;
 
     onComplete({
       sessionId: session?.id,
@@ -539,7 +552,6 @@ export function SessionExecutionDialog({
         ? finalOverrideReason.trim()
         : undefined,
       phase: phase || undefined,
-      surfaces: canonicalSurfaces,
       providerId: resolvedProviderId,
       performedNotes: notes,
       actualInputsUsed: inputs.filter((i) => i.inventoryItemId || i.name),
@@ -547,6 +559,7 @@ export function SessionExecutionDialog({
       // FIX-8: Explicit status mapping instead of regex
       toothStatuses: toothStatuses.map((t) => ({
         ...t,
+        surfaces: surfacesFor(t.toothNumber, t.surfaces),
         status: STATUS_TO_BACKEND[t.status] ?? t.status.toUpperCase(),
       })),
       sessionNumber: nextSessionNum,

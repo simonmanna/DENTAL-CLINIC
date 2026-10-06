@@ -315,10 +315,13 @@ export function EditProcedureDialog({
   // Allowed status transitions: the server is the source of truth, but we
   // also keep a client-side fallback table so the dropdown works even when
   // the query fails (no crash on offline / 500).
+  // IN_PROGRESS / COMPLETED follow the recorded sessions and are never set
+  // by hand (completion goes through the session dialog's "final session"),
+  // so the only manual moves are parking on hold and resuming.
   const ALLOWED_NEXT_STATUSES_FALLBACK: Record<string, string[]> = {
-    PLANNED:     ['IN_PROGRESS', 'ON_HOLD'],
-    IN_PROGRESS: ['COMPLETED', 'ON_HOLD'],
-    ON_HOLD:     ['PLANNED', 'IN_PROGRESS'],
+    PLANNED:     ['ON_HOLD'],
+    IN_PROGRESS: ['ON_HOLD'],
+    ON_HOLD:     ['PLANNED'],
     COMPLETED:   [],
     CANCELLED:   [],
     PENDING:     ['PLANNED'],
@@ -487,9 +490,10 @@ export function EditProcedureDialog({
         status:                 payload.status,
         // Pricing — only send when the user actually overrode the total.
         // The server recomputes discount/tax from the existing snapshot.
+        // Only the override total is sent; currency and rate never change on
+        // an edit (sending them every time made the server treat each edit
+        // as a price change and refuse it once the invoice had payments).
         totalPrice:             payload.totalPrice,
-        currency:               initialData.currency,
-        exchangeRate:           isUSD ? exchangeRate : undefined,
         isPriceOverridden:      payload.isPriceOverridden,
         sessionType:            payload.sessionType,
         sessionCount:           payload.sessionCount,
@@ -830,9 +834,17 @@ export function EditProcedureDialog({
                   title={statusHelpText || `Current: ${initialData.status}`}
                 >
                   <option value={initialData.status}>{initialData.status} (current)</option>
-                  {allowedNextStatuses.map(s => (
-                    <option key={s} value={s}>→ {s}</option>
-                  ))}
+                  {initialData.status === 'ON_HOLD'
+                    ? (
+                      // Resume: the server derives PLANNED vs IN_PROGRESS from
+                      // the recorded sessions, so offer a single choice.
+                      <option value="PLANNED">→ Resume (follows recorded sessions)</option>
+                    )
+                    : allowedNextStatuses
+                        .filter(s => s !== 'COMPLETED' && s !== 'IN_PROGRESS')
+                        .map(s => (
+                          <option key={s} value={s}>→ {s}</option>
+                        ))}
                 </select>
               )}
             </FieldCell>

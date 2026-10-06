@@ -8,7 +8,11 @@
 import { BadRequestException, Logger } from '@nestjs/common';
 import { PricingModel, BillingUnit } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
-// Add this re-export near the top, after the NestJS imports:
+/** FDI quadrant 1/2/5/6 → upper arch; 3/4/7/8 → lower arch. */
+const fdiQuadrant = (n: number) => Math.floor(n / 10);
+export const isUpperFdi = (n: number) => [1, 2, 5, 6].includes(fdiQuadrant(n));
+export const isLowerFdi = (n: number) => [3, 4, 7, 8].includes(fdiQuadrant(n));
+
 export { PricingModel, BillingUnit } from '@prisma/client';
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -206,10 +210,10 @@ export class PricingEngine {
 
       case PricingModel.PER_ARCH: {
         if (input.archCount != null) return Math.max(1, input.archCount);
-        // FDI numbering: upper = 11-28, lower = 31-48
-        const hasUpper = teeth.some((n) => n >= 11 && n <= 28);
-        const hasLower = teeth.some((n) => n >= 31 && n <= 48);
-        const archCount = (hasUpper ? 1 : 0) + (hasLower ? 1 : 0);
+        // FDI quadrant digit: 1/2 (permanent) and 5/6 (primary) are upper,
+        // 3/4 and 7/8 lower — primary teeth used to count as no arch at all.
+        const archCount =
+          (teeth.some(isUpperFdi) ? 1 : 0) + (teeth.some(isLowerFdi) ? 1 : 0);
         return Math.max(1, archCount);
       }
 
@@ -404,9 +408,10 @@ export function deriveQuantity(
       return Math.max(1, teeth.length);
     case 'PER_ARCH': {
       if (extras?.archCount) return extras.archCount;
-      const hasUpper = teeth.some((n) => n >= 11 && n <= 28);
-      const hasLower = teeth.some((n) => n >= 31 && n <= 48);
-      return Math.max(1, (hasUpper ? 1 : 0) + (hasLower ? 1 : 0));
+      return Math.max(
+        1,
+        (teeth.some(isUpperFdi) ? 1 : 0) + (teeth.some(isLowerFdi) ? 1 : 0),
+      );
     }
     case 'PER_SESSION':
       return Math.max(1, extras?.sessionCount ?? 1);

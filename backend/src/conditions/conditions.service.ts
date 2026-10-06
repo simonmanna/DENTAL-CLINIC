@@ -24,6 +24,95 @@ import { UpdatePatientConditionDto } from './dto/update-patient-condition.dto';
 import { ConditionsReportQueryDto, PatientConditionStatusEnum, ConditionCategoryEnum, ConditionSeverityEnum } from './dto/conditions-report-query.dto';
 
 import { ConditionCategory, ConditionSeverity, ToothSurface, Prisma, PatientConditionStatus, TreatmentStatus, ChartEntryType, ChartEntryStatus } from '@prisma/client';
+import { assertVisitWritableTx } from '../visit/visit-guard';
+
+/**
+ * Chart row status for a diagnosis status. A RESOLVED or RULED_OUT diagnosis
+ * stops painting the tooth (and stops counting as an absence); the edit paths
+ * used to recreate its row ACTIVE whatever the status.
+ */
+export function chartStatusForCondition(
+  status: PatientConditionStatus | string | null | undefined,
+): ChartEntryStatus {
+  return status === PatientConditionStatus.RESOLVED ||
+    status === PatientConditionStatus.RULED_OUT
+    ? ChartEntryStatus.RESOLVED
+    : ChartEntryStatus.ACTIVE;
+}
+
+/** resolvedAt that goes with a status change (kept when already resolved). */
+function resolvedAtFor(
+  next: PatientConditionStatus | string,
+  prev: PatientConditionStatus | string,
+  prevResolvedAt: Date | null | undefined,
+): Date | null {
+  if (next !== PatientConditionStatus.RESOLVED) return null;
+  return prev === PatientConditionStatus.RESOLVED && prevResolvedAt
+    ? prevResolvedAt
+    : new Date();
+}
+
+const dayOf = (d: Date | string | null | undefined): string | null => {
+  if (!d) return null;
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  return isNaN(dt.getTime()) ? String(d) : dt.toISOString().slice(0, 10);
+};
+
+/**
+ * Which clinical fields an edit actually changes, compared by value. The old
+ * rule treated any field that was merely PRESENT in the payload as a change,
+ * and the UI always sends every field — so the "reason required" rule could
+ * not be enforced without blocking pure status flips.
+ */
+export function substantiveConditionChanges(
+  dto: {
+    conditionId?: string;
+    toothNumber?: number | null;
+    surfaces?: string[];
+    severity?: string | null;
+    providerId?: string | null;
+    diagnosedAt?: string | Date | null;
+    notes?: string | null;
+  },
+  existing: {
+    conditionId: string;
+    toothNumber: number | null;
+    surfaces: string[];
+    severity: string | null;
+    providerId: string | null;
+    diagnosedAt: Date | null;
+    notes: string | null;
+  },
+): string[] {
+  const changed: string[] = [];
+  const sameSet = (a: string[], b: string[]) =>
+    a.length === b.length && [...a].sort().join('|') === [...b].sort().join('|');
+  if (dto.conditionId !== undefined && dto.conditionId !== existing.conditionId)
+    changed.push('conditionId');
+  if (dto.toothNumber !== undefined && (dto.toothNumber ?? null) !== existing.toothNumber)
+    changed.push('toothNumber');
+  if (dto.surfaces !== undefined && !sameSet(dto.surfaces ?? [], existing.surfaces ?? []))
+    changed.push('surfaces');
+  if (dto.severity !== undefined && (dto.severity || null) !== (existing.severity || null))
+    changed.push('severity');
+  if (dto.providerId !== undefined && (dto.providerId || null) !== (existing.providerId || null))
+    changed.push('providerId');
+  if (dto.diagnosedAt !== undefined && dto.diagnosedAt !== null &&
+      dayOf(dto.diagnosedAt) !== dayOf(existing.diagnosedAt))
+    changed.push('diagnosedAt');
+  if (dto.notes !== undefined && (dto.notes ?? '').trim() !== (existing.notes ?? '').trim())
+    changed.push('notes');
+  return changed;
+}
+
+function requireEditReason(changed: string[], reason: string | undefined) {
+  if (changed.length > 0 && !reason?.trim()) {
+    throw new BadRequestException(
+      `A reason is required to change ${changed.join(', ')} on a recorded diagnosis ` +
+        '(kept in the clinical audit trail). Status changes alone need no reason.',
+    );
+  }
+}
 
 
 @Injectable()
@@ -630,6 +719,17 @@ async createPatientCondition(
   const surfaces = validatedSurfaces as unknown as ToothSurface[];
 
   return this.prisma.$transaction(async (tx) => {
+    // A diagnosis recorded against a visit lands only on an open visit of
+    // this patient (or as a reasoned amendment of a closed one).
+    if (dto.visitId) {
+      await assertVisitWritableTx(tx, {
+        visitId: dto.visitId,
+        patientId: dto.patientId,
+        actorUserId,
+        amendmentReason: (dto as any).amendmentReason,
+        what: 'diagnoses',
+      });
+    }
     const created = await tx.patientCondition.create({
       data: {
         patientId:   dto.patientId,
@@ -772,16 +872,11 @@ async updatePatientCondition(
     if (!staff) throw new NotFoundException(`Staff member ${dto.providerId} not found`);
   }
 
-  // Substantive clinical edits get a required reason for the audit trail.
-  // (Pure status flips like RESOLVED/RULED_OUT can flow through without one.)
-  const substantiveChange =
-    dto.conditionId !== undefined ||
-    dto.toothNumber !== undefined ||
-    dto.surfaces !== undefined ||
-    dto.severity !== undefined ||
-    dto.providerId !== undefined ||
-    dto.diagnosedAt !== undefined ||
-    dto.notes !== undefined;
+  // Substantive clinical edits need a reason for the audit trail; pure
+  // status flips (RESOLVED / RULED_OUT / MONITORED) do not. Compared by value.
+  const changedFields = substantiveConditionChanges(dto as any, existing as any);
+  const substantiveChange = changedFields.length > 0;
+  requireEditReason(changedFields, (dto as any).editReason);
 
   const updateData: any = {
     conditionId: dto.conditionId,
@@ -798,8 +893,14 @@ async updatePatientCondition(
     updateData.lastEditReason = (dto as any).editReason;
   }
 
-  if (dto.diagnosedAt) updateData.diagnosedAt = new Date(dto.diagnosedAt as string);
-  if (dto.surfaces)    updateData.surfaces = dto.surfaces.map(s => s as ToothSurface);
+  if (changedFields.includes('diagnosedAt'))
+    updateData.diagnosedAt = new Date(dto.diagnosedAt as string);
+  if (dto.surfaces)
+    updateData.surfaces = assertSurfaces(dto.surfaces, effectiveTooth) as unknown as ToothSurface[];
+  if (dto.status !== undefined && dto.status !== existing.status) {
+    updateData.resolvedAt = resolvedAtFor(dto.status, existing.status, (existing as any).resolvedAt);
+    if (dto.status !== PatientConditionStatus.RESOLVED) updateData.resolvedByProcedureId = null;
+  }
 
   // OL-1: optimistic-lock token. Bumped on every successful mutation.
   // If the client supplied expectedVersion, gate on it; a stale token raises
@@ -807,6 +908,15 @@ async updatePatientCondition(
   const expectedVersion = (dto as any).expectedVersion as number | undefined;
 
   return this.prisma.$transaction(async (tx) => {
+    if (dto.visitId) {
+      await assertVisitWritableTx(tx, {
+        visitId: dto.visitId,
+        patientId: existing.patientId,
+        actorUserId,
+        amendmentReason: (dto as any).editReason,
+        what: 'diagnoses',
+      });
+    }
     // 1. Version guard. Atomic updateMany with `where: { id, version }` so a
     //    racing concurrent edit that already bumped version cannot also pass.
     //    Even when no expectedVersion is supplied, bump unconditionally so the
@@ -863,7 +973,10 @@ async updatePatientCondition(
     // mirrors the batch update endpoint's behaviour so single-row and batch
     // edits stay visually consistent on the chart.
     await tx.chartEntry.updateMany({
-      where: { patientConditionId: id, status: 'ACTIVE' },
+      where: {
+        patientConditionId: id,
+        status: { in: [ChartEntryStatus.ACTIVE, ChartEntryStatus.RESOLVED] },
+      },
       data: { status: 'SUPERSEDED' },
     });
 
@@ -874,7 +987,7 @@ async updatePatientCondition(
         toothNumber:       updated.toothNumber,
         surfaces:          updated.surfaces,
         type:              'CONDITION',
-        status:            'ACTIVE',
+        status:            chartStatusForCondition(updated.status),
         conditionStatus:   updated.status,
         label:             updated.condition?.name ?? 'Condition',
         conditionCode:     updated.condition?.icd10Code ?? null,
@@ -1171,6 +1284,29 @@ async findOnePatientCondition(id: string, opts: { includeDeleted?: boolean } = {
       if (!entries.length) {
         throw new BadRequestException('At least one entry is required');
       }
+      // One patient and one visit per batch, taken from the condition rows —
+      // the paired chart rows used to carry their own (client-supplied)
+      // patientId / visitId, so a chart marker could land on another
+      // patient's chart.
+      const batchPatientIds = [...new Set(entries.map((e) => e.patientId))];
+      if (batchPatientIds.length !== 1 || !batchPatientIds[0]) {
+        throw new BadRequestException(
+          'A batch must contain conditions for exactly one patient.',
+        );
+      }
+      const batchPatientId = batchPatientIds[0];
+      const batchVisitIds = [
+        ...new Set(entries.map((e) => e.visitId).filter((v): v is string => !!v)),
+      ];
+      if (batchVisitIds.length > 1) {
+        throw new BadRequestException('A batch must belong to a single visit.');
+      }
+      const batchVisitId = batchVisitIds[0];
+      for (const ce of chartEntries) {
+        ce.patientId = batchPatientId;
+        ce.visitId = batchVisitId;
+      }
+
       // Validate upstream once so the transaction doesn't open if the
       // request is obviously malformed. The inline `@Body() body: {...}`
       // type in the controller bypasses class-validator on the nested
@@ -1191,6 +1327,12 @@ async findOnePatientCondition(id: string, opts: { includeDeleted?: boolean } = {
         where: { id: { in: conditionIds } },
       });
       const condById = new Map(conditions.map((c) => [c.id, c]));
+      const patientRow = await this.prisma.patient.findUnique({
+        where: { id: batchPatientId },
+        select: { id: true },
+      });
+      if (!patientRow) throw new NotFoundException(`Patient ${batchPatientId} not found`);
+
       for (const e of entries) {
         if (!e.patientId) {
           throw new BadRequestException('Every entry must include patientId.');
@@ -1278,6 +1420,15 @@ async findOnePatientCondition(id: string, opts: { includeDeleted?: boolean } = {
         typeof s === 'string' && s.length === 0 ? undefined : s;
 
       return this.prisma.$transaction(async (tx) => {
+        if (batchVisitId) {
+          await assertVisitWritableTx(tx, {
+            visitId: batchVisitId,
+            patientId: batchPatientId,
+            actorUserId,
+            amendmentReason: (entries[0] as any)?.amendmentReason,
+            what: 'diagnoses',
+          });
+        }
         const createdPatientConditions: any[] = [];
         const createdChartEntries: any[] = [];
 
@@ -1344,11 +1495,12 @@ async findOnePatientCondition(id: string, opts: { includeDeleted?: boolean } = {
           if (ce) {
             const entry = await tx.chartEntry.create({
               data: {
-                patientId: ce.patientId,
-                visitId: blank(ce.visitId),
+                patientId: pc.patientId,
+                visitId: pc.visitId,
                 toothNumber: ce.toothNumber,
                 surfaces: (ce.surfaces ?? []) as ToothSurface[],
                 type: 'CONDITION',
+                status: chartStatusForCondition(pc.status),
                 conditionStatus: pc.status,
                 label: ce.label,
                 conditionCode: blank(ce.conditionCode),
@@ -1455,15 +1607,30 @@ async findOnePatientCondition(id: string, opts: { includeDeleted?: boolean } = {
           );
       }
 
+      // Chart rows belong to this condition's patient, and to the visit the
+      // edit is recorded in — never to ids the client put on each row.
+      const editVisitId = update.visitId ?? existing.visitId ?? null;
+      for (const ce of chartEntries) {
+        ce.patientId = existing.patientId;
+        ce.visitId = editVisitId ?? undefined;
+        if (ce.toothNumber != null) assertFdiTooth(ce.toothNumber);
+        ce.surfaces = assertSurfaces(ce.surfaces, ce.toothNumber ?? null) as any;
+      }
+      const effectiveTooth = update.toothNumber ?? existing.toothNumber ?? null;
+      if (update.toothNumber != null) assertFdiTooth(update.toothNumber);
+      if (update.surfaces !== undefined) {
+        update.surfaces = assertSurfaces(update.surfaces, effectiveTooth) as any;
+        await assertToothPresence(this.prisma, {
+          patientId: existing.patientId,
+          toothNumbers: [effectiveTooth],
+          surfaces: update.surfaces as any,
+        });
+      }
+
       // Substantive edits require a reason (same rule as the single-row update)
-      const substantiveChange =
-        update.conditionId !== undefined ||
-        update.toothNumber !== undefined ||
-        update.surfaces !== undefined ||
-        update.severity !== undefined ||
-        update.providerId !== undefined ||
-        update.diagnosedAt !== undefined ||
-        update.notes !== undefined;
+      const changedFields = substantiveConditionChanges(update as any, existing as any);
+      const substantiveChange = changedFields.length > 0;
+      requireEditReason(changedFields, (update as any).editReason);
 
       // OL-1: optimistic-lock token. Mirrors single-row update so a stale
       // token raises 409 with the current version, preventing silent lost
@@ -1471,6 +1638,15 @@ async findOnePatientCondition(id: string, opts: { includeDeleted?: boolean } = {
       const expectedVersion = (update as any).expectedVersion as number | undefined;
 
       return this.prisma.$transaction(async (tx) => {
+        if (update.visitId) {
+          await assertVisitWritableTx(tx, {
+            visitId: update.visitId,
+            patientId: existing.patientId,
+            actorUserId,
+            amendmentReason: (update as any).editReason,
+            what: 'diagnoses',
+          });
+        }
         // 1. Version guard — same atomic updateMany pattern as single-row.
         if (expectedVersion !== undefined && expectedVersion !== null) {
           const ev = Number(expectedVersion);
@@ -1522,10 +1698,19 @@ async findOnePatientCondition(id: string, opts: { includeDeleted?: boolean } = {
           providerId: update.providerId,
           updatedById: actorUserId ?? null,
         };
-        if (update.diagnosedAt)
+        if (changedFields.includes('diagnosedAt'))
           updateData.diagnosedAt = new Date(update.diagnosedAt as string);
         if (update.surfaces)
           updateData.surfaces = update.surfaces as ToothSurface[];
+        if (update.status !== undefined && update.status !== existing.status) {
+          updateData.resolvedAt = resolvedAtFor(
+            update.status,
+            existing.status,
+            (existing as any).resolvedAt,
+          );
+          if (update.status !== PatientConditionStatus.RESOLVED)
+            updateData.resolvedByProcedureId = null;
+        }
         if (substantiveChange && (update as any).editReason)
           updateData.lastEditReason = (update as any).editReason;
 
@@ -1541,17 +1726,16 @@ async findOnePatientCondition(id: string, opts: { includeDeleted?: boolean } = {
         const supersededResult = await tx.chartEntry.updateMany({
           where: {
             patientConditionId: patientConditionId,
-            status: 'ACTIVE',
+            status: { in: [ChartEntryStatus.ACTIVE, ChartEntryStatus.RESOLVED] },
           },
           data: { status: 'SUPERSEDED' },
         });
 
-        // 3. Recreate the chart entries the caller wants to keep ACTIVE.
+        // 3. Recreate the chart rows. The diagnosis date is the condition's
+        //    (unchanged unless edited), not "now" or the row's createdAt.
         const createdChartEntries: any[] = [];
-        const editDiagnosedAt = update.diagnosedAt
-          ? new Date(update.diagnosedAt as string)
-          : undefined;
-        const effectiveStatus = update.status ?? existing.status;
+        const editDiagnosedAt = updated.diagnosedAt ?? null;
+        const effectiveStatus = updated.status;
         for (const ce of chartEntries) {
           const entry = await tx.chartEntry.create({
             data: {
@@ -1560,14 +1744,15 @@ async findOnePatientCondition(id: string, opts: { includeDeleted?: boolean } = {
               toothNumber: ce.toothNumber,
               surfaces: (ce.surfaces ?? []) as ToothSurface[],
               type: 'CONDITION',
+              status: chartStatusForCondition(effectiveStatus),
               conditionStatus: effectiveStatus,
               label: ce.label,
               conditionCode: ce.conditionCode,
               conditionId: ce.conditionId,
               patientConditionId: patientConditionId,
               notes: ce.notes,
-              providerId: ce.providerId ?? null,
-              diagnosedAt: editDiagnosedAt ?? null,
+              providerId: ce.providerId || null,
+              diagnosedAt: editDiagnosedAt,
             },
           });
           createdChartEntries.push(entry);
@@ -1740,10 +1925,19 @@ async findOnePatientCondition(id: string, opts: { includeDeleted?: boolean } = {
         }
 
         // ── Evaluate linked procedures ─────────────────────────────────────
+        // Links to cancelled / deleted procedures never count — otherwise a
+        // cancelled plan line kept the diagnosis IN_TREATMENT (or blocked
+        // its resolution) forever.
         const links = await tx.conditionProcedureLink.findMany({
             where: {
                 patientConditionId,
                 deletedAt: null,
+                treatmentProcedure: {
+                    deletedAt: null,
+                    status: {
+                        notIn: [TreatmentStatus.CANCELLED, TreatmentStatus.DELETED],
+                    },
+                },
             },
             include: {
                 treatmentProcedure: {
@@ -1857,19 +2051,22 @@ async findOnePatientCondition(id: string, opts: { includeDeleted?: boolean } = {
             OR: [
                 { patientConditionId },
                 // Legacy entries (pre-patientConditionId) match on catalog
-                // conditionId — MUST be scoped to this patient, otherwise we
-                // flip every other patient's same-diagnosis chart entries.
-                ...(conditionId ? [{ conditionId, patientId: pc.patientId }] : []),
+                // conditionId — scoped to this patient AND to rows that carry
+                // no patientConditionId. A row linked to another
+                // PatientCondition (the same diagnosis on a different tooth)
+                // belongs to that condition's lifecycle, not this one;
+                // without this guard resolving caries on 16 greyed out the
+                // caries on 26.
+                ...(conditionId
+                    ? [{ conditionId, patientId: pc.patientId, patientConditionId: null }]
+                    : []),
             ],
         };
         await tx.chartEntry.updateMany({
             where,
             data: {
                 conditionStatus: newStatus,
-                status:
-                    newStatus === PatientConditionStatus.RESOLVED
-                        ? ChartEntryStatus.RESOLVED
-                        : ChartEntryStatus.ACTIVE,
+                status: chartStatusForCondition(newStatus),
             },
         });
     }
@@ -1910,10 +2107,13 @@ async findOnePatientCondition(id: string, opts: { includeDeleted?: boolean } = {
                 status: { in: [ChartEntryStatus.ACTIVE, ChartEntryStatus.RESOLVED] },
                 OR: [
                     { patientConditionId: id },
-                    // Legacy entries: scope catalog-id match to this patient so
-                    // resolving one patient never touches another patient's
-                    // identical diagnosis.
-                    ...(conditionId ? [{ conditionId, patientId: existing.patientId }] : []),
+                    // Legacy entries: catalog-id match scoped to this patient
+                    // and to unlinked rows only — a row linked to a different
+                    // PatientCondition (same diagnosis, other tooth) is not
+                    // this condition's to resolve.
+                    ...(conditionId
+                        ? [{ conditionId, patientId: existing.patientId, patientConditionId: null }]
+                        : []),
                 ],
             };
             await tx.chartEntry.updateMany({

@@ -13,7 +13,13 @@ import {
   ClipboardList,
   Loader2,
   CalendarDays,
+  XCircle,
+  AlertTriangle,
 } from "lucide-react";
+import { toast } from "sonner";
+import { usePermissions } from "@/hooks/usePermissions";
+import { UserRole } from "@/types/shared";
+import { billingApi } from "@/lib/api/billing";
 
 import { TreatmentPlanTab } from "./components/TreatmentPlanTab";
 import { DentalChart } from "./components/DentalChart";
@@ -25,6 +31,159 @@ import { ProgressTab } from "./components/ProgressTab";
 import { VisitImagingTab } from "./components/VisitImagingTab";
 import { VisitProcedureSessionsTab } from "./components/VisitProcedureSessionsTab";
 import { visitsApi } from "@/lib/api";
+
+/** Opening and closing an encounter — front desk included (matches the API). */
+const CAN_MANAGE_VISIT = [
+  UserRole.SUPER_ADMIN,
+  UserRole.ADMIN,
+  UserRole.DENTIST,
+  UserRole.NURSE,
+  UserRole.RECEPTIONIST,
+];
+
+const apiError = (e: any, fallback: string) =>
+  e?.response?.data?.message
+    ? Array.isArray(e.response.data.message)
+      ? e.response.data.message.join(", ")
+      : String(e.response.data.message)
+    : fallback;
+
+// ─── Complete-visit confirmation ───────────────────────────────────────────────
+function CompleteVisitDialog({
+  visitId,
+  open,
+  onClose,
+  onConfirm,
+  pending,
+}: {
+  visitId: string;
+  open: boolean;
+  onClose: () => void;
+  onConfirm: (data: { followUpDate?: string; followUpNotes?: string }) => void;
+  pending: boolean;
+}) {
+  const [followUpDate, setFollowUpDate] = useState("");
+  const [followUpNotes, setFollowUpNotes] = useState("");
+  // Draft invoices still on this visit: the front desk should post (or
+  // void) them — completing the visit does not do it.
+  const { data: drafts } = useQuery({
+    queryKey: ["billing-invoices", visitId, "DRAFT"],
+    queryFn: () => billingApi.getInvoices({ visitId, status: "DRAFT" }),
+    enabled: open,
+  });
+  const draftCount = (drafts as any)?.data?.length ?? 0;
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="w-full max-w-md rounded-xl bg-white shadow-xl p-5 space-y-3">
+        <h3 className="text-base font-semibold text-foreground">Complete this visit?</h3>
+        <p className="text-sm text-muted-foreground">
+          The clinical record becomes read-only. Later corrections are
+          amendments by the treating dentist or an administrator, with a reason.
+        </p>
+        {draftCount > 0 && (
+          <div className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning-muted/50 px-3 py-2 text-xs text-foreground">
+            <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
+            <span>
+              {draftCount} draft invoice{draftCount === 1 ? "" : "s"} on this visit
+              still need{draftCount === 1 ? "s" : ""} to be posted at check-out.
+            </span>
+          </div>
+        )}
+        <label className="block text-xs font-medium text-muted-foreground">
+          Follow-up date (optional)
+          <input
+            type="date"
+            value={followUpDate}
+            onChange={(e) => setFollowUpDate(e.target.value)}
+            className="mt-1 w-full rounded border border-border px-2 py-1 text-sm"
+          />
+        </label>
+        <label className="block text-xs font-medium text-muted-foreground">
+          Follow-up notes (optional)
+          <textarea
+            value={followUpNotes}
+            onChange={(e) => setFollowUpNotes(e.target.value)}
+            rows={2}
+            className="mt-1 w-full rounded border border-border px-2 py-1 text-sm"
+          />
+        </label>
+        <div className="flex justify-end gap-2 pt-1">
+          <button
+            onClick={onClose}
+            className="px-3 py-1.5 rounded border border-border text-sm text-muted-foreground hover:bg-muted"
+          >
+            Back
+          </button>
+          <button
+            disabled={pending}
+            onClick={() =>
+              onConfirm({
+                followUpDate: followUpDate || undefined,
+                followUpNotes: followUpNotes.trim() || undefined,
+              })
+            }
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-success text-white text-sm font-semibold disabled:opacity-60"
+          >
+            {pending ? <Spinner size="sm" /> : <CheckCircle className="w-4 h-4" />}
+            Complete visit
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Cancel-visit dialog ───────────────────────────────────────────────────────
+function CancelVisitDialog({
+  open,
+  onClose,
+  onConfirm,
+  pending,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: (reason: string) => void;
+  pending: boolean;
+}) {
+  const [reason, setReason] = useState("");
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="w-full max-w-md rounded-xl bg-white shadow-xl p-5 space-y-3">
+        <h3 className="text-base font-semibold text-foreground">Cancel this visit?</h3>
+        <p className="text-sm text-muted-foreground">
+          Only a visit with nothing recorded can be cancelled. A visit with
+          treatment, diagnoses, prescriptions or invoices is completed instead.
+        </p>
+        <textarea
+          autoFocus
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          rows={3}
+          placeholder="Reason (required)"
+          className="w-full rounded border border-border px-2 py-1 text-sm"
+        />
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-3 py-1.5 rounded border border-border text-sm text-muted-foreground hover:bg-muted"
+          >
+            Back
+          </button>
+          <button
+            disabled={pending || !reason.trim()}
+            onClick={() => onConfirm(reason.trim())}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-danger text-white text-sm font-semibold disabled:opacity-60"
+          >
+            {pending ? <Spinner size="sm" /> : <XCircle className="w-4 h-4" />}
+            Cancel visit
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 type VisitStatus =
@@ -96,6 +255,10 @@ export function VisitPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState("chart");
+  const [confirmComplete, setConfirmComplete] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const { hasRole } = usePermissions();
+  const canManageVisit = hasRole(CAN_MANAGE_VISIT);
 
   const {
     data: visitData,
@@ -110,14 +273,42 @@ export function VisitPage() {
   const startMutation = useMutation({
     mutationFn: () => visitsApi.startExamination(id!),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["visit", id] }),
+    onError: (e) => toast.error(apiError(e, "Could not start the examination")),
   });
 
   const completeMutation = useMutation({
     mutationFn: (data: any) => visitsApi.complete(id!, data),
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       qc.invalidateQueries({ queryKey: ["visit", id] });
+      setConfirmComplete(false);
+      const open = res?.warnings?.openSessions ?? 0;
+      const drafts = res?.warnings?.draftInvoices ?? 0;
+      if (open || drafts) {
+        toast.warning(
+          [
+            open ? `${open} session(s) still pending` : null,
+            drafts ? `${drafts} draft invoice(s) to post at check-out` : null,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+        );
+      } else {
+        toast.success("Visit completed");
+      }
       navigate("/visits");
     },
+    onError: (e) => toast.error(apiError(e, "Could not complete the visit")),
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: (reason: string) => visitsApi.cancel(id!, reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["visit", id] });
+      setConfirmCancel(false);
+      toast.success("Visit cancelled");
+      navigate("/visits");
+    },
+    onError: (e) => toast.error(apiError(e, "Could not cancel the visit")),
   });
 
   if (!id)
@@ -155,6 +346,9 @@ export function VisitPage() {
   const isArrived = status === "ARRIVED";
   const isInProgress = status === "IN_PROGRESS";
   const isCompleted = status === "COMPLETED";
+  // Clinical writes are allowed only while the visit is open (the API
+  // enforces the same rule); a completed or cancelled visit is read-only.
+  const readOnly = !(isArrived || isInProgress);
   const patientId = visit.patient?.id || visit.patientId;
   const dentistId = visit.dentist?.id || visit.dentistId;
 
@@ -264,9 +458,19 @@ export function VisitPage() {
                   Start Examination
                 </button>
               )}
+              {(isArrived || isInProgress) && canManageVisit && (
+                <button
+                  onClick={() => setConfirmCancel(true)}
+                  disabled={cancelMutation.isPending}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 border border-white/40 text-white rounded text-xs font-semibold hover:bg-white/20 transition-colors disabled:opacity-60"
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                  Cancel Visit
+                </button>
+              )}
               {isInProgress && (
                 <button
-                  onClick={() => completeMutation.mutate({})}
+                  onClick={() => setConfirmComplete(true)}
                   disabled={completeMutation.isPending}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-success text-white rounded text-xs font-semibold hover:bg-success transition-colors disabled:opacity-60"
                 >
@@ -282,6 +486,20 @@ export function VisitPage() {
           </div>
 
         </div>
+
+        <CompleteVisitDialog
+          visitId={id}
+          open={confirmComplete}
+          onClose={() => setConfirmComplete(false)}
+          onConfirm={(data) => completeMutation.mutate(data)}
+          pending={completeMutation.isPending}
+        />
+        <CancelVisitDialog
+          open={confirmCancel}
+          onClose={() => setConfirmCancel(false)}
+          onConfirm={(reason) => cancelMutation.mutate(reason)}
+          pending={cancelMutation.isPending}
+        />
 
         {/* ── Tabs ─────────────────────────────────────────────────────── */}
         <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
@@ -312,7 +530,7 @@ export function VisitPage() {
               patientId={patientId}
               visit={visitData}
               visitId={id}
-              readOnly={isCompleted}
+              readOnly={readOnly}
               dentistId={dentistId}
             />
           )}
@@ -321,7 +539,7 @@ export function VisitPage() {
               <ExaminationTab
                 visitId={id}
                 visit={visit}
-                readOnly={isCompleted}
+                readOnly={readOnly}
               />
             )}
             {activeTab === "treatment" && (
@@ -329,7 +547,7 @@ export function VisitPage() {
                 patientId={patientId}
                 visitId={id}
                 dentistId={dentistId}
-                readOnly={isCompleted}
+                readOnly={readOnly}
               />
             )}
             {activeTab === "imaging" && (
@@ -337,13 +555,14 @@ export function VisitPage() {
                 patientId={patientId}
                 visitId={id}
                 dentistId={dentistId}
+                readOnly={readOnly}
               />
             )}
             {activeTab === "prescriptions" && (
               <PrescriptionTab
                 visitId={id}
                 visit={visitData}
-                readOnly={isCompleted}
+                readOnly={readOnly}
               />
             )}
             {activeTab === "appointments" && (
@@ -359,7 +578,7 @@ export function VisitPage() {
               />
             )}
             {activeTab === "tx-progress" && (
-              <ProgressTab visitId={id} patientId={patientId} />
+              <ProgressTab visitId={id} patientId={patientId} readOnly={readOnly} />
             )}
             {activeTab === "sessions" && (
               <VisitProcedureSessionsTab visitId={id} />

@@ -8,11 +8,14 @@ import {
   IsInt,
   Min,
   ValidateNested,
+  IsEnum,
+  IsISO8601,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ToothSurface } from '@prisma/client';
 
 export class EditToothStatusDto {
-  @IsNumber()
+  @IsInt()
   toothNumber: number;
 
   @IsOptional()
@@ -21,7 +24,7 @@ export class EditToothStatusDto {
 
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
+  @IsEnum(ToothSurface, { each: true })
   surfaces?: string[];
 
   @IsString()
@@ -36,7 +39,7 @@ export class EditSessionDto {
   // ── Existing fields ───────────────────────────────────────────────────
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
+  @IsEnum(ToothSurface, { each: true })
   surfaces?: string[]; // new desired surface list
 
   @IsOptional()
@@ -51,13 +54,12 @@ export class EditSessionDto {
   @IsString()
   reason?: string;
 
-  @IsOptional()
-  @IsString()
-  editedById?: string;
+  // No editedById: the audit actor is the authenticated user (JWT), passed by
+  // the controller. A body field let any client attribute the edit to anyone.
 
   // ── Newly-editable fields on an executed session ──────────────────────
   @IsOptional()
-  @IsString()
+  @IsISO8601()
   performedDate?: string;
 
   @IsOptional()
@@ -89,9 +91,7 @@ export class DeleteSessionDto {
   @IsString()
   reason: string; // required — why deleting
 
-  @IsOptional()
-  @IsString()
-  deletedById?: string;
+  // No deletedById: the actor comes from the JWT (see EditSessionDto).
 
   // ── (H2) Optimistic-lock token ────────────────────────────────────────────
   @IsOptional()

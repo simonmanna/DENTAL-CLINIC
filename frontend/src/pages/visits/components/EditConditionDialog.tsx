@@ -102,6 +102,9 @@ export function EditConditionDialog({
   );
   const [notes, setNotes] = useState(initialData.notes ?? "");
   const [editReason, setEditReason] = useState("");
+  // The date input is pre-filled (today when the record has none), so a
+  // change is "the user edited the field", not "the value differs from ''".
+  const [diagnosedTouched, setDiagnosedTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const { data: dentists = [] } = useQuery<Dentist[]>({
@@ -169,6 +172,7 @@ export function EditConditionDialog({
     setSurfaces(initialData.surfaces);
     setStatus(initialData.status ?? "ACTIVE");
     setDiagnosedAt(initialData.diagnosedAt ?? toLocalISODate());
+    setDiagnosedTouched(false);
     setSeverity(initialData.severity ?? "");
     setNotes(initialData.notes ?? "");
     setEditReason("");
@@ -219,6 +223,8 @@ export function EditConditionDialog({
   // A "substantive" edit is anything beyond a pure status flip — same rule
   // the backend uses to decide whether to require editReason. We compute it
   // here so the UI can ask for the reason exactly when needed.
+  const diagnosedChanged =
+    diagnosedTouched && diagnosedAt !== (initialData.diagnosedAt ?? "");
   const substantiveChange =
     !!selectedCondition &&
     (selectedCondition.id !== initialData.conditionId ||
@@ -227,7 +233,7 @@ export function EditConditionDialog({
       severity !== (initialData.severity ?? "") ||
       (selectedProviderId || "") !==
         (initialData.providerId ?? initialData.diagnosedBy ?? "") ||
-      diagnosedAt !== (initialData.diagnosedAt ?? "") ||
+      diagnosedChanged ||
       (notes ?? "") !== (initialData.notes ?? ""));
 
   const handleSubmit = async () => {
@@ -250,7 +256,9 @@ export function EditConditionDialog({
           selectedCondition!.icd10Code || selectedCondition!.snodentCode || "",
         notes: notes || undefined,
         conditionId: selectedCondition!.id,
-        diagnosedAt,
+        // Only when the user changed it — otherwise the server keeps the
+        // recorded diagnosis date (it used to be overwritten on every edit).
+        diagnosedAt: diagnosedChanged ? diagnosedAt : undefined,
         diagnosedBy: selectedProviderId || undefined,
         providerId: selectedProviderId || undefined,
         severity: severity || undefined,
@@ -644,7 +652,10 @@ export function EditConditionDialog({
                   <input
                     type="date"
                     value={diagnosedAt}
-                    onChange={(e) => setDiagnosedAt(e.target.value)}
+                    onChange={(e) => {
+                      setDiagnosedAt(e.target.value);
+                      setDiagnosedTouched(true);
+                    }}
                     style={inp}
                   />
                 </div>

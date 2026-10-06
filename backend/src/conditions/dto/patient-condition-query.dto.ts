@@ -1,11 +1,16 @@
 // src/modules/conditions/dto/patient-condition-query.dto.ts
-import { IsOptional, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
+// Ids in this schema are cuids (`@default(cuid())`), never UUIDs. `@IsUUID()`
+// here rejected every real patient id with a 400, which left the patient
+// Conditions tab silently empty.
 export class PatientConditionQueryDto {
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
   patientId: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
   visitId?: string;
 }

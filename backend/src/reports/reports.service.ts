@@ -1,6 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { InvoiceStatus, VisitStatus } from '@prisma/client';
+import { InvoiceStatus, Prisma, VisitStatus } from '@prisma/client';
+
+/**
+ * Per-visit money from the visit's invoices (base currency). Visit.totalCost
+ * / amountPaid were only ever fed by legacy VisitProcedure lines, so every
+ * visit report read 0 for modern visits (treatment procedures bill on
+ * invoices). Join this as `vm` on `vm."visitId" = v.id`.
+ */
+const VISIT_MONEY_SQL = Prisma.sql`
+  SELECT i."visitId",
+         SUM(i."baseTotal")      AS billed,
+         SUM(i."baseAmountPaid") AS paid
+  FROM "invoices" i
+  WHERE i.status <> 'VOID' AND i."deletedAt" IS NULL AND i."visitId" IS NOT NULL
+  GROUP BY i."visitId"`;
 import {
   VisitReportQueryDto,
   ExportReportDto,
@@ -432,7 +446,7 @@ export class ReportsService {
         SUM(iip.total) as total
       FROM "invoice_items" iip
       JOIN "invoices" i ON i.id = iip."invoiceId"
-      JOIN "visit_procedures" vp ON vp.id = iip."procedureId"
+      JOIN "visit_procedures" vp ON vp.id = iip."procedureId" AND vp."deletedAt" IS NULL
       WHERE iip.status = 'ACTIVE'
         AND vp."performedAt" BETWEEN ${new Date(startDate)} AND ${new Date(endDate)}
         AND i.status <> 'VOID'
@@ -905,6 +919,48 @@ export class ReportsService {
     return where;
   }
 
+  /** Invoice-derived money per visit (base currency). */
+  private async visitMoney(
+    visitIds: string[],
+  ): Promise<Map<string, { billed: number; paid: number }>> {
+    const ids = [...new Set(visitIds)].filter(Boolean);
+    if (ids.length === 0) return new Map();
+    const rows = await this.prisma.invoice.groupBy({
+      by: ['visitId'],
+      where: {
+        visitId: { in: ids },
+        status: { not: InvoiceStatus.VOID },
+        deletedAt: null,
+      },
+      _sum: { baseTotal: true, baseAmountPaid: true },
+    });
+    return new Map(
+      rows.map((r) => [
+        r.visitId as string,
+        {
+          billed: toNum(r._sum.baseTotal),
+          paid: toNum(r._sum.baseAmountPaid),
+        },
+      ]),
+    );
+  }
+
+  /** Overwrite the legacy visit money columns with invoice figures. */
+  private async withInvoiceMoney<T extends { id: string }>(
+    visits: T[],
+  ): Promise<Array<T & { totalCost: number; amountPaid: number; balance: number }>> {
+    const money = await this.visitMoney(visits.map((v) => v.id));
+    return visits.map((v) => {
+      const m = money.get(v.id) ?? { billed: 0, paid: 0 };
+      return {
+        ...v,
+        totalCost: m.billed,
+        amountPaid: m.paid,
+        balance: Math.max(0, m.billed - m.paid),
+      };
+    });
+  }
+
   private async getVisitSummaryReport(
     where: any,
     startDate: Date,
@@ -919,21 +975,28 @@ export class ReportsService {
         this.prisma.visit.count({
           where: { ...where, status: VisitStatus.CANCELLED },
         }),
-        this.prisma.visit.aggregate({
-          where: { ...where, status: VisitStatus.COMPLETED },
-          _sum: { totalCost: true, amountPaid: true },
+        this.prisma.invoice.aggregate({
+          where: {
+            visit: { ...where, status: VisitStatus.COMPLETED },
+            status: { not: InvoiceStatus.VOID },
+            deletedAt: null,
+          },
+          _sum: { baseTotal: true, baseAmountPaid: true },
         }),
       ]);
+    const revenueSum = toNum(totalRevenue._sum.baseTotal);
+    const collectedSum = toNum(totalRevenue._sum.baseAmountPaid);
 
     const dailyTrends = await this.prisma.$queryRaw`
           SELECT
-            DATE_TRUNC('day', "createdAt") as date,
+            DATE_TRUNC('day', v."createdAt") as date,
             COUNT(*) as total_visits,
-            SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) as completed_visits,
-            SUM("totalCost") as revenue
-          FROM "visits"
-          WHERE "createdAt" BETWEEN ${startDate} AND ${endDate}
-          GROUP BY DATE_TRUNC('day', "createdAt")
+            SUM(CASE WHEN v.status = 'COMPLETED' THEN 1 ELSE 0 END) as completed_visits,
+            COALESCE(SUM(vm.billed), 0) as revenue
+          FROM "visits" v
+          LEFT JOIN (${VISIT_MONEY_SQL}) vm ON vm."visitId" = v.id
+          WHERE v."createdAt" BETWEEN ${startDate} AND ${endDate}
+          GROUP BY DATE_TRUNC('day', v."createdAt")
           ORDER BY date ASC
         `;
 
@@ -945,7 +1008,7 @@ export class ReportsService {
           FROM "visit_procedures" vp
           JOIN "procedures" p ON p.id = vp."procedureId"
           JOIN "visits" v ON v.id = vp."visitId"
-          WHERE v."createdAt" BETWEEN ${startDate} AND ${endDate}
+          WHERE vp."deletedAt" IS NULL AND v."createdAt" BETWEEN ${startDate} AND ${endDate}
           GROUP BY p.id, p.name
           ORDER BY total_revenue DESC
           LIMIT 10
@@ -959,19 +1022,11 @@ export class ReportsService {
         cancelledVisits,
         completionRate:
           visits > 0 ? ((completedVisits / visits) * 100).toFixed(1) : 0,
-        totalRevenue: toNum(totalRevenue._sum.totalCost),
-        totalCollected: toNum(totalRevenue._sum.amountPaid),
-        outstandingBalance:
-          toNum(totalRevenue._sum.totalCost) -
-          toNum(totalRevenue._sum.amountPaid),
+        totalRevenue: revenueSum,
+        totalCollected: collectedSum,
+        outstandingBalance: Math.max(0, revenueSum - collectedSum),
         collectionRate:
-          toNum(totalRevenue._sum.totalCost) > 0
-            ? (
-              (toNum(totalRevenue._sum.amountPaid) /
-                toNum(totalRevenue._sum.totalCost)) *
-              100
-            ).toFixed(1)
-            : 0,
+          revenueSum > 0 ? ((collectedSum / revenueSum) * 100).toFixed(1) : 0,
       },
       dailyTrends,
       topProcedures,
@@ -1012,7 +1067,7 @@ export class ReportsService {
         JOIN "procedures" p ON p.id = vp."procedureId"
         JOIN "procedure_categories" pc ON pc.id = p."categoryId"
         JOIN "visits" v ON v.id = vp."visitId"
-        WHERE v."createdAt" BETWEEN ${startDate} AND ${endDate}
+        WHERE vp."deletedAt" IS NULL AND v."createdAt" BETWEEN ${startDate} AND ${endDate}
         GROUP BY pc.id, pc.name
         ORDER BY total_revenue DESC
       `,
@@ -1020,13 +1075,17 @@ export class ReportsService {
         where: {
           ...where,
           status: VisitStatus.COMPLETED,
-          amountPaid: { lt: this.prisma.visit.fields.totalCost },
+          invoices: {
+            some: {
+              status: InvoiceStatus.POSTED,
+              deletedAt: null,
+              baseBalance: { gt: 0 },
+            },
+          },
         },
         select: {
           id: true,
           visitCode: true,
-          totalCost: true,
-          amountPaid: true,
           patient: { select: { id: true, firstName: true, lastName: true, patientCode: true, previousCardNumber: true } },
           dentist: { select: { firstName: true, lastName: true } },
           createdAt: true,
@@ -1034,6 +1093,7 @@ export class ReportsService {
         take: 20,
       }),
     ]);
+    const outstandingWithMoney = await this.withInvoiceMoney(outstandingInvoices);
 
     const revenueTrends = await this.prisma.$queryRaw`
       SELECT
@@ -1054,14 +1114,11 @@ export class ReportsService {
       period: { startDate, endDate },
       revenueByPaymentMethod,
       revenueByProcedureCategory,
-      outstandingInvoices: outstandingInvoices.map((inv: any) => ({
-        ...inv,
-        balance: toNum(inv.totalCost) - toNum(inv.amountPaid),
-      })),
+      outstandingInvoices: outstandingWithMoney,
       revenueTrends,
       summary: {
-        totalOutstanding: outstandingInvoices.reduce(
-          (sum, inv) => sum + (toNum(inv.totalCost) - toNum(inv.amountPaid)),
+        totalOutstanding: outstandingWithMoney.reduce(
+          (sum, inv) => sum + inv.balance,
           0,
         ),
         accountsReceivableAging: await this.getAgingReport(),
@@ -1097,7 +1154,7 @@ export class ReportsService {
           FROM "visit_procedures" vp
           JOIN "procedures" p ON p.id = vp."procedureId"
           JOIN "visits" v ON v.id = vp."visitId"
-          WHERE v."createdAt" BETWEEN ${startDate} AND ${endDate}
+          WHERE vp."deletedAt" IS NULL AND v."createdAt" BETWEEN ${startDate} AND ${endDate}
           GROUP BY p.id, p.name
           ORDER BY times_performed DESC
           LIMIT 20
@@ -1137,24 +1194,26 @@ export class ReportsService {
   ) {
     const patientWhere = patientId ? { ...where, patientId } : where;
 
-    const [patientVisits, patientSummary] = await Promise.all([
-      this.prisma.visit.findMany({
-        where: patientWhere,
-        include: {
-          patient: true,
-          dentist: { select: { firstName: true, lastName: true } },
-          procedures: { include: { procedure: true } },
-          // payments: true,
-        },
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prisma.visit.aggregate({
-        where: patientWhere,
-        _count: true,
-        _sum: { totalCost: true, amountPaid: true },
-        _avg: { totalCost: true },
-      }),
-    ]);
+    const rawVisits = await this.prisma.visit.findMany({
+      where: patientWhere,
+      include: {
+        patient: true,
+        dentist: { select: { firstName: true, lastName: true } },
+        procedures: { where: { deletedAt: null }, include: { procedure: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    const patientVisits = await this.withInvoiceMoney(rawVisits);
+    const sumCost = patientVisits.reduce((s, v) => s + v.totalCost, 0);
+    const sumPaid = patientVisits.reduce((s, v) => s + v.amountPaid, 0);
+    // Same shape as the old visit.aggregate, from invoice figures.
+    const patientSummary = {
+      _count: patientVisits.length,
+      _sum: { totalCost: sumCost, amountPaid: sumPaid },
+      _avg: {
+        totalCost: patientVisits.length ? sumCost / patientVisits.length : null,
+      },
+    };
 
     const patientMap = new Map();
     for (const visit of patientVisits) {
@@ -1203,16 +1262,30 @@ export class ReportsService {
         s.specialization,
         COUNT(DISTINCT v.id) as total_visits,
         COUNT(DISTINCT CASE WHEN v.status = 'COMPLETED' THEN v.id END) as completed_visits,
-        SUM(v."totalCost") as total_revenue,
-        SUM(v."amountPaid") as amount_collected,
-        AVG(v."totalCost") as avg_revenue_per_visit,
+        -- Money per visit from invoices, summed in correlated subqueries so
+        -- the procedure / prescription joins below cannot multiply it.
+        COALESCE((
+          SELECT SUM(vm.billed) FROM "visits" v2
+          JOIN (${VISIT_MONEY_SQL}) vm ON vm."visitId" = v2.id
+          WHERE v2."dentistId" = s.id AND v2."createdAt" BETWEEN ${startDate} AND ${endDate}
+        ), 0) as total_revenue,
+        COALESCE((
+          SELECT SUM(vm.paid) FROM "visits" v2
+          JOIN (${VISIT_MONEY_SQL}) vm ON vm."visitId" = v2.id
+          WHERE v2."dentistId" = s.id AND v2."createdAt" BETWEEN ${startDate} AND ${endDate}
+        ), 0) as amount_collected,
+        (
+          SELECT AVG(COALESCE(vm.billed, 0)) FROM "visits" v2
+          LEFT JOIN (${VISIT_MONEY_SQL}) vm ON vm."visitId" = v2.id
+          WHERE v2."dentistId" = s.id AND v2."createdAt" BETWEEN ${startDate} AND ${endDate}
+        ) as avg_revenue_per_visit,
         COUNT(DISTINCT vp.id) as procedures_performed,
         COUNT(DISTINCT p.id) as prescriptions_written
       FROM "staff" s
       LEFT JOIN "visits" v ON v."dentistId" = s.id AND v."createdAt" BETWEEN ${startDate} AND ${endDate}
-      LEFT JOIN "visit_procedures" vp ON vp."visitId" = v.id
+      LEFT JOIN "visit_procedures" vp ON vp."visitId" = v.id AND vp."deletedAt" IS NULL
       LEFT JOIN "prescriptions" p ON p."visitId" = v.id
-      ${dentistId ? 'WHERE s.id = ' + dentistId : ''}
+      ${dentistId ? Prisma.sql`WHERE s.id = ${dentistId}` : Prisma.empty}
       GROUP BY s.id, s."firstName", s."lastName", s.specialization
       ORDER BY total_revenue DESC
     `;
@@ -1224,9 +1297,10 @@ export class ReportsService {
         s."lastName",
         DATE_TRUNC('month', v."createdAt") as month,
         COUNT(*) as visits,
-        SUM(v."totalCost") as revenue
+        COALESCE(SUM(vm.billed), 0) as revenue
       FROM "staff" s
       JOIN "visits" v ON v."dentistId" = s.id
+      LEFT JOIN (${VISIT_MONEY_SQL}) vm ON vm."visitId" = v.id
       WHERE v."createdAt" BETWEEN ${startDate} AND ${endDate}
       GROUP BY s.id, s."firstName", s."lastName", DATE_TRUNC('month', v."createdAt")
       ORDER BY dentist_id, month ASC
@@ -1270,7 +1344,7 @@ export class ReportsService {
       JOIN "procedures" p ON p.id = vp."procedureId"
       LEFT JOIN "procedure_categories" pc ON pc.id = p."categoryId"
       JOIN "visits" v ON v.id = vp."visitId"
-      WHERE v."createdAt" BETWEEN ${startDate} AND ${endDate}
+      WHERE vp."deletedAt" IS NULL AND v."createdAt" BETWEEN ${startDate} AND ${endDate}
       GROUP BY p.id, p.name, pc.name
       ORDER BY total_revenue DESC
     `;
@@ -1284,7 +1358,7 @@ export class ReportsService {
       FROM "visit_procedures" vp
       JOIN "procedures" p ON p.id = vp."procedureId"
       JOIN "visits" v ON v.id = vp."visitId"
-      WHERE v."createdAt" BETWEEN ${startDate} AND ${endDate}
+      WHERE vp."deletedAt" IS NULL AND v."createdAt" BETWEEN ${startDate} AND ${endDate}
       GROUP BY p.id, p.name, DATE_TRUNC('month', v."createdAt")
       ORDER BY procedure_name, month ASC
     `;
@@ -1296,7 +1370,7 @@ export class ReportsService {
         COUNT(DISTINCT v.id) as visit_count
       FROM "visit_procedures" vp
       JOIN "visits" v ON v.id = vp."visitId"
-      WHERE v."createdAt" BETWEEN ${startDate} AND ${endDate}
+      WHERE vp."deletedAt" IS NULL AND v."createdAt" BETWEEN ${startDate} AND ${endDate}
         AND array_length("toothNumbers", 1) > 0
       GROUP BY tooth_number
       ORDER BY treatment_count DESC
@@ -1369,6 +1443,7 @@ export class ReportsService {
             },
           },
           procedures: {
+            where: { deletedAt: null },
             include: { procedure: true },
           },
           procedureSessions: {
@@ -1407,9 +1482,10 @@ export class ReportsService {
       }
     }
 
-    // Then in the data transformation:
+    // Money from the visit's invoices, not the legacy visit columns.
+    const visitsWithMoney = await this.withInvoiceMoney(visits);
 
-    const transformed = visits.map(visit => ({
+    const transformed = visitsWithMoney.map(visit => ({
       ...visit,
       treatmentProcedures: visit.procedureSessions
         .map(ps => ps.treatmentProcedure)
@@ -1483,7 +1559,7 @@ export class ReportsService {
       FROM (
         SELECT v.id, COUNT(vp.id) as procedure_count
         FROM "visits" v
-        LEFT JOIN "visit_procedures" vp ON vp."visitId" = v.id
+        LEFT JOIN "visit_procedures" vp ON vp."visitId" = v.id AND vp."deletedAt" IS NULL
         WHERE v."createdAt" BETWEEN ${where.createdAt.gte} AND ${where.createdAt.lte}
         GROUP BY v.id
       ) sub

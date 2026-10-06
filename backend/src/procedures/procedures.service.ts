@@ -9,11 +9,9 @@ import {
   CreateProcedureDto,
   UpdateProcedureDto,
   ProcedureQueryDto,
-  AddVisitProcedureDto,
-  UpdateVisitProcedureDto,
 } from './dto/procedure.dto';
 import { LedgerService } from '../billing/ledger.service';
-import { StockLedgerType, Prisma, LedgerAccountType } from '@prisma/client';
+import { Prisma, LedgerAccountType } from '@prisma/client';
 
 function toNum(v: unknown): number {
   if (v == null) return 0;
@@ -467,157 +465,9 @@ export class ProceduresService {
 
   // ─── Visit Procedures ─────────────────────────────────────────────────────
 
-  private generateLedgerCode(): string {
-    const timestamp = Date.now().toString(36).toUpperCase();
-    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-    return `ILG-${new Date().getFullYear()}-${timestamp}${random}`;
-  }
-
-  async addVisitProcedure(dto: AddVisitProcedureDto) {
-    const { visitId, procedureId, inventoryUsages, cost, ...rest } = dto;
-
-    const [visit, procedure] = await Promise.all([
-      this.prisma.visit.findUnique({ where: { id: visitId } }),
-      this.prisma.procedure.findUnique({
-        where: { id: procedureId },
-        include: { inputs: true },
-      }),
-    ]);
-
-    if (!visit) throw new NotFoundException('Visit not found');
-    if (!procedure) throw new NotFoundException('Procedure not found');
-
-    const actualCost = cost ?? Number(procedure.baseCost);
-
-    return this.prisma.$transaction(async (tx) => {
-      const visitProcedure = await tx.visitProcedure.create({
-        data: {  // ← FIXED: added `data:`
-          visitId,
-          procedureId,
-          cost: actualCost,
-          toothNumbers: rest.toothNumbers ?? [],
-          surfaces: (rest.surfaces as any) ?? [],
-          notes: rest.notes,
-          inventoryUsages: inventoryUsages?.length
-            ? {
-                create: inventoryUsages.map((u) => ({
-                  inventoryItemId: u.inventoryItemId,
-                  locationId: u.locationId,
-                  quantityUsed: u.quantityUsed,
-                  unitCost: u.unitCost,
-                  totalCost: u.quantityUsed * u.unitCost,
-                  batchNumber: u.batchNumber,
-                  notes: u.notes,
-                })),
-              }
-            : undefined,
-        },
-        include: this.visitProcedureInclude(),
-      });
-
-      // ✅ Deduct inventory + write InventoryLedger entries
-      if (inventoryUsages?.length) {
-        for (const usage of inventoryUsages) {
-          // 1. Get current location stock for ledger snapshot
-          const locationStock = await tx.inventoryLocationStock.findFirst({
-            where: {
-              itemId: usage.inventoryItemId,
-              locationId: usage.locationId,
-            },
-            select: { id: true, quantity: true },  // ✅ Select id for update
-          });
-          const qtyBefore = locationStock?.quantity ?? 0;
-          const qtyChange = -usage.quantityUsed;
-          const qtyAfter = qtyBefore + qtyChange;
-          const unitCost = usage.unitCost ?? 0;
-
-          // 2. Update location stock ONLY (no master quantity update)
-          if (locationStock) {
-            await tx.inventoryLocationStock.update({
-              where: { id: locationStock.id },  // ✅ Use id for update
-              data: { quantity: qtyAfter },  // ← FIXED: added `data:`
-            });
-          } else if (qtyAfter > 0) {
-            await tx.inventoryLocationStock.create({
-              data: {  // ← FIXED: added `data:`
-                itemId: usage.inventoryItemId,
-                locationId: usage.locationId,
-                quantity: qtyAfter,
-                minQuantity: 0,
-              },
-            });
-          }
-
-          // 3. Optional: Deduct from specific batch (FIFO)
-          let batchId: string | null = null;
-          if (usage.batchNumber) {
-            const batch = await tx.inventoryBatch.findFirst({
-              where: {
-                itemId: usage.inventoryItemId,
-                locationId: usage.locationId,
-                batchNumber: usage.batchNumber,
-                isActive: true,
-                quantity: { gt: 0 },
-              },
-              orderBy: [{ expiryDate: 'asc' }, { receivedAt: 'asc' }],
-              select: { id: true, quantity: true },
-            });
-            if (batch) {
-              const newBatchQty = batch.quantity - usage.quantityUsed;
-              await tx.inventoryBatch.update({
-                where: { id: batch.id },
-                data: {  // ← FIXED: added `data:`
-                  quantity: { decrement: usage.quantityUsed },
-                  isActive: newBatchQty > 0,
-                },
-              });
-              batchId = batch.id;
-            }
-          }
-
-          // 4. Write InventoryLedger entry
-          await tx.inventoryLedger.create({
-            data: {  // ← FIXED: added `data:`
-              ledgerCode: this.generateLedgerCode(),
-              itemId: usage.inventoryItemId,
-              locationId: usage.locationId,
-              batchId,
-              type: StockLedgerType.USAGE,
-              quantityBefore: qtyBefore,
-              quantityChange: qtyChange,
-              quantityAfter: qtyAfter,
-              unitCost,
-              totalValue: Math.abs(qtyChange) * unitCost,
-              referenceType: 'VISIT_PROCEDURE',
-              referenceId: visitProcedure.id,
-              notes: `Used in procedure: ${procedure.name}${usage.notes ? ` — ${usage.notes}` : ''}`,
-              performedById: null,
-            },
-          });
-        }
-      }
-
-      // 5. Recalculate visit total cost
-      const allProcedures = await tx.visitProcedure.findMany({
-        where: { visitId },
-        select: { cost: true },
-      });
-      const totalCost = allProcedures.reduce((sum, p) => sum + toNum(p.cost), 0);
-      await tx.visit.update({ 
-        where: { id: visitId }, 
-        data: { totalCost }  // ← FIXED: added `data:`
-      });
-
-      return visitProcedure;
-    }).then(async (visitProcedure) => {
-      try {
-        await this.ledgerService.createFromProcedure(visitProcedure.id);
-      } catch (error) {
-        console.error('Failed to create ledger entry for procedure:', error);
-      }
-      return visitProcedure;
-    });
-  }
+  // Visit procedures are written by VisitsService.addProcedure /
+  // removeProcedure — the one implementation with catalogue pricing, the
+  // visit guard, stock movements, invoice lines and soft delete.
 
   async getVisitProcedures(visitId: string) {
     const visit = await this.prisma.visit.findUnique({
@@ -626,7 +476,7 @@ export class ProceduresService {
     if (!visit) throw new NotFoundException('Visit not found');
 
     const procedures = await this.prisma.visitProcedure.findMany({
-      where: { visitId },
+      where: { visitId, deletedAt: null },
       include: this.visitProcedureInclude(),
       orderBy: { performedAt: 'asc' },
     });
@@ -651,67 +501,6 @@ export class ProceduresService {
         totalCost: procedureCost,
       },
     };
-  }
-
-  async removeVisitProcedure(id: string) {
-    const vp = await this.prisma.visitProcedure.findUnique({
-      where: { id },
-      include: { inventoryUsages: true },
-    });
-    if (!vp) throw new NotFoundException('Visit procedure not found');
-
-    return this.prisma
-      .$transaction(async (tx) => {
-        // Restore inventory
-        for (const usage of (vp as any).inventoryUsages ?? []) {
-          const locationStock = await tx.inventoryLocationStock.findFirst({
-            where: {
-              itemId: usage.inventoryItemId,
-              locationId: usage.locationId,
-            },
-            select: { id: true, quantity: true },
-          });
-
-          if (locationStock) {
-            await tx.inventoryLocationStock.update({
-              where: { id: locationStock.id },
-              data: { quantity: { increment: usage.quantityUsed } },  // ← FIXED: added `data:`
-            });
-          }
-        }
-
-        await tx.visitProcedure.delete({ where: { id } });
-
-        const remaining = await tx.visitProcedure.findMany({
-          where: { visitId: vp.visitId },
-          select: { cost: true },
-        });
-        await tx.visit.update({
-          where: { id: vp.visitId },
-          data: { totalCost: remaining.reduce((s, p) => s + toNum(p.cost), 0) },  // ← FIXED: added `data:`
-        });
-
-        return { message: 'Procedure removed and inventory restored' };
-      })
-      .then(async (result) => {
-        try {
-          const ledgerEntry = await this.prisma.ledgerEntry.findFirst({
-            where: {
-              sourceType: 'VISIT_PROCEDURE',
-              sourceId: id,
-            },
-          });
-          if (ledgerEntry && ledgerEntry.status === 'PENDING') {
-            await this.ledgerService.voidEntry(
-              ledgerEntry.id,
-              'Procedure removed from visit',
-            );
-          }
-        } catch (error) {
-          console.error('Failed to void ledger entry:', error);
-        }
-        return result;
-      });
   }
 
   // ─── Procedure Cost Analysis ──────────────────────────────────────────────

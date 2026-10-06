@@ -15,6 +15,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -35,6 +36,7 @@ import {
   WritePrescriptionDto,
   CompleteVisitDto,
   CancelVisitDto,
+  RemoveVisitProcedureDto,
 } from './visit.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -115,6 +117,7 @@ export class VisitsController {
   }
 
   @Get('patients/:patientId/progress-reports')
+  @Roles(UserRole.DENTIST, UserRole.NURSE, UserRole.ADMIN)
   @ApiOperation({ summary: 'Get patient progress reports' })
   getPatientProgressReports(@Param('patientId') patientId: string) {
     return this.svc.getProgressReportsByPatient(patientId);
@@ -228,6 +231,21 @@ export class VisitsController {
     @CurrentUser() user: ActingUser,
   ) {
     return this.svc.addProcedure(id, dto, user);
+  }
+
+  @Delete('procedures/:visitProcedureId')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.DENTIST)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Remove a visit procedure (soft delete; stock returned, invoice line reversed)',
+  })
+  removeProcedure(
+    @Param('visitProcedureId') visitProcedureId: string,
+    @Body() dto: RemoveVisitProcedureDto,
+    @CurrentUser() user: ActingUser,
+  ) {
+    return this.svc.removeProcedure(visitProcedureId, dto, user);
   }
 
   @Post(':id/prescriptions')

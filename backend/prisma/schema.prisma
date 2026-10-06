@@ -1213,9 +1213,18 @@ model VisitProcedure {
   finalCurrency    String   @default("UGX") // Always UGX for ledger
   amountPaid       Decimal  @default(0) @db.Decimal(10, 2)
 
+  // Soft delete — a removed visit procedure keeps its row (stock movement and
+  // invoice line are reversed, not erased).
+  createdById   String?
+  deletedAt     DateTime?
+  deletedById   String?
+  deletedReason String?
+
   inventoryUsages VisitProcedureInventoryUsage[]
+  invoiceItems    InvoiceItem[]
 
   @@index([visitId])
+  @@index([deletedAt])
   @@map("visit_procedures")
 }
 
@@ -1636,8 +1645,13 @@ model InvoiceItem {
   prescriptionItemId String?
   prescriptionItem   PrescriptionItem? @relation(fields: [prescriptionItemId], references: [id], onDelete: SetNull)
 
+  // Line billed for an ad-hoc visit procedure (VisitProcedure).
+  visitProcedureId String?
+  visitProcedure   VisitProcedure? @relation(fields: [visitProcedureId], references: [id], onDelete: SetNull)
+
   @@index([invoiceId])
   @@index([treatmentProcedureId])
+  @@index([visitProcedureId])
   @@map("invoice_items")
 }
 
@@ -2970,11 +2984,22 @@ model ProgressReport {
   procedureLinks ProgressReportProcedure[]
   conditionLinks ProgressReportCondition[]
 
+  // ── Audit actors (User.id) + soft delete ─────────────────────────────
+  // Progress notes are clinical records: never hard-deleted. Plain String?
+  // (no FK) like PatientCondition's actors, so a user delete never blocks a
+  // clinical write.
+  createdById   String?
+  updatedById   String?
+  deletedAt     DateTime?
+  deletedById   String?
+  deletedReason String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([visitId])
   @@index([patientId])
+  @@index([deletedAt])
   @@map("progress_reports")
 }
 

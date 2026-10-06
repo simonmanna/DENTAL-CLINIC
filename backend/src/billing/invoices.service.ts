@@ -42,6 +42,7 @@ import {
   GL,
 } from '../general-ledger/general-ledger.service';
 import { glCashKeyForMethod } from '../general-ledger/gl-accounts';
+import { InvoiceGlSyncService } from './invoice-gl-sync.service';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -211,6 +212,7 @@ export class InvoicesService {
     private readonly accountResolver: PaymentAccountResolverService,
     private readonly docNum: DocumentNumberService,
     private readonly gl: GeneralLedgerService,
+    private readonly invoiceGlSync?: InvoiceGlSyncService,
   ) {}
 
   // ── Create invoice from selected ledger entries ────────────────────────────
@@ -1347,15 +1349,26 @@ export class InvoicesService {
         UPDATE "invoices"
         SET
           "amountPaid"     = "amountPaid" - ${refundInv}::numeric,
-          "balance"        = "total" - ("amountPaid" - ${refundInv}::numeric),
+          -- An invoice can be OVERPAID (e.g. a procedure on it was cancelled
+          -- after payment) and the refund returns only the excess, so the
+          -- balance must floor at 0 (invoices_balance_nonneg) and the status
+          -- stays PAID while what remains still covers the total.
+          "balance"        = GREATEST("total" - ("amountPaid" - ${refundInv}::numeric), 0),
           "baseAmountPaid" = GREATEST("baseAmountPaid" - ${refundBaseM}::numeric, 0),
-          "baseBalance"    = "baseTotal" - GREATEST("baseAmountPaid" - ${refundBaseM}::numeric, 0),
+          "baseBalance"    = GREATEST("baseTotal" - GREATEST("baseAmountPaid" - ${refundBaseM}::numeric, 0), 0),
           "paymentStatus"  = CASE
             WHEN ("amountPaid" - ${refundInv}::numeric) <= 0.01
               THEN 'UNPAID'::"InvoicePaymentStatus"
+            WHEN ("total" - ("amountPaid" - ${refundInv}::numeric)) <= 0.01
+              THEN 'PAID'::"InvoicePaymentStatus"
             ELSE 'PARTIALLY_PAID'::"InvoicePaymentStatus"
           END,
-          "paidAt"      = NULL,
+          "paidAt" = CASE
+            WHEN ("amountPaid" - ${refundInv}::numeric) > 0.01
+             AND ("total" - ("amountPaid" - ${refundInv}::numeric)) <= 0.01
+              THEN "paidAt"
+            ELSE NULL
+          END,
           "version"     = "version" + 1,
           "updatedAt"   = NOW(),
           "updatedById" = ${currentUserId ?? null}
@@ -2303,248 +2316,20 @@ export class InvoicesService {
 
   /**
    * ACC-1: reconcile an invoice's GL revenue recognition to its CURRENT totals.
-   * Posts only the DELTA between the invoice's target recognition (gross
-   * revenue / discount / tax, plus the balancing A/R) and what has already been
-   * posted for it — so a discount/tax/currency change on an already-POSTED
-   * invoice updates the GL instead of letting A/R drift. Idempotent (delta nets
-   * to zero → no-op) and non-blocking (safePost). POSTED invoices only.
-   *
-   * It touches only the recognition quartet (A/R, Revenue, Sales Discount, Tax);
-   * payment/deposit entries on A/R are separate and intentionally untouched.
+   * Delegates to InvoiceGlSyncService (shared with InvoiceLifecycleService,
+   * which needs the same reconciliation when a treatment procedure on a POSTED
+   * invoice is cancelled or reinstated).
    */
   private async syncInvoiceRevenueGl(
     invoiceId: string,
     tx?: Prisma.TransactionClient,
   ) {
-    if (!(await this.gl.isAutoPostingEnabled())) return;
-    const db = tx ?? this.prisma;
-
-    const inv = await db.invoice.findUnique({
-      where: { id: invoiceId },
-      select: {
-        status: true,
-        invoiceNumber: true,
-        patientId: true,
-        baseSubtotal: true,
-        baseDiscountAmount: true,
-        baseTaxAmount: true,
-        // Items + their resolved revenue accounts so the revenue delta can be
-        // split across the same per-procedure / per-category accounts that
-        // activateInvoice posts to (procedure → category → default).
-        items: {
-          select: {
-            total: true,
-            originalTotal: true,
-            exchangeRate: true,
-            procedure: {
-              select: {
-                revenueAccountId: true,
-                category: { select: { revenueAccountId: true } },
-              },
-            },
-            treatmentProcedure: {
-              select: {
-                procedure: {
-                  select: {
-                    revenueAccountId: true,
-                    category: { select: { revenueAccountId: true } },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-    if (!inv || inv.status !== InvoiceStatus.POSTED) return;
-
-    const targetRevenueTotal = M.money(inv.baseSubtotal ?? 0);
-    const targetDiscount = M.money(inv.baseDiscountAmount ?? 0);
-    const targetTax = M.money(inv.baseTaxAmount ?? 0);
-
-    // Resolve the fallback (default) revenue account id once. If it can't be
-    // resolved we can't reconcile per-account safely — bail rather than drift.
-    const defaultAcc = await db.ledgerAccount.findUnique({
-      where: { systemKey: GL.TREATMENT_REVENUE },
-      select: { id: true },
-    });
-    if (!defaultAcc) return;
-    const defaultAccountId = defaultAcc.id;
-
-    // ── Target gross revenue per account id (base currency) ──────────────────
-    // Everything resolves to a concrete accountId (default bucket included) so a
-    // procedure mapped to the Treatment Revenue account itself merges correctly.
-    const targetByAccountId = new Map<string, Money>();
-    let bucketed = M.zero();
-    for (const item of inv.items) {
-      const base = M.money(
-        M.mul(M.of(item.originalTotal ?? item.total), M.of(item.exchangeRate ?? 1)),
-      );
-      const proc =
-        (item as any).treatmentProcedure?.procedure ??
-        (item as any).procedure ??
-        null;
-      const accId =
-        proc?.revenueAccountId ??
-        proc?.category?.revenueAccountId ??
-        defaultAccountId;
-      targetByAccountId.set(
-        accId,
-        M.add(targetByAccountId.get(accId) ?? M.zero(), base),
-      );
-      bucketed = M.add(bucketed, base);
-    }
-    // Push any rounding residual into the default bucket so Σ(targets) ties to
-    // the invoice's stored baseSubtotal exactly (A/R must reconcile precisely).
-    const residual = M.sub(targetRevenueTotal, bucketed);
-    if (!M.isZero(residual)) {
-      targetByAccountId.set(
-        defaultAccountId,
-        M.add(targetByAccountId.get(defaultAccountId) ?? M.zero(), residual),
-      );
-    }
-
-    // ── Net revenue already posted for this invoice, per account ─────────────
-    // Scan INCOME accounts (excluding the contra Sales Discount, handled below)
-    // so remapped procedures' old accounts get wound back to zero too.
-    const discountAcc = await db.ledgerAccount.findUnique({
-      where: { systemKey: GL.SALES_DISCOUNT },
-      select: { id: true },
-    });
-    const postedRevenue = await db.journalLine.groupBy({
-      by: ['accountId'],
-      where: {
-        journalEntry: {
-          sourceType: 'INVOICE',
-          sourceId: invoiceId,
-          status: 'POSTED',
-        },
-        account: {
-          type: 'INCOME',
-          ...(discountAcc ? { id: { not: discountAcc.id } } : {}),
-        },
-      },
-      _sum: { debit: true, credit: true },
-    });
-    const netByAccountId = new Map<string, Money>();
-    for (const row of postedRevenue) {
-      netByAccountId.set(
-        row.accountId,
-        M.sub(M.money(row._sum.credit ?? 0), M.money(row._sum.debit ?? 0)),
-      );
-    }
-
-    // ── Revenue deltas across union(target, already-posted) ──────────────────
-    const allRevenueAccountIds = new Set<string>([
-      ...targetByAccountId.keys(),
-      ...netByAccountId.keys(),
-    ]);
-    let totalRevDelta = M.zero();
-    const revenueLegs: any[] = [];
-    for (const accId of allRevenueAccountIds) {
-      const target = targetByAccountId.get(accId) ?? M.zero();
-      const net = netByAccountId.get(accId) ?? M.zero();
-      const delta = M.sub(target, net);
-      totalRevDelta = M.add(totalRevDelta, delta);
-      const line = this.signedGlLeg({ accountId: accId }, delta, false);
-      if (line) revenueLegs.push(line);
-    }
-
-    const discDelta = M.sub(
-      targetDiscount,
-      await this.netPostedForInvoice(invoiceId, { systemKey: GL.SALES_DISCOUNT }, 'debit', tx),
-    );
-    const taxDelta = M.sub(
-      targetTax,
-      await this.netPostedForInvoice(invoiceId, { systemKey: GL.TAX_PAYABLE }, 'credit', tx),
-    );
-    const arDelta = M.add(M.sub(totalRevDelta, discDelta), taxDelta);
-
-    const lines = [
-      this.signedGlLeg({ key: GL.ACCOUNTS_RECEIVABLE }, arDelta, true, inv.patientId),
-      ...revenueLegs,
-      this.signedGlLeg({ key: GL.SALES_DISCOUNT }, discDelta, true),
-      this.signedGlLeg({ key: GL.TAX_PAYABLE }, taxDelta, false),
-    ].filter((l): l is NonNullable<typeof l> => l !== null);
-
-    if (lines.length === 0) return;
-
-    // tx-aware: when the caller provides a transaction client, the GL delta
-    // commits atomically with the invoice update — no failure window between
-    // the invoice writing new totals and the GL recognising them. safePost
-    // accepts an optional tx (second arg) per GeneralLedgerService.
-    await this.gl.safePost(
-      {
-        memo: `Invoice ${inv.invoiceNumber} revenue/discount/tax adjustment`,
-        sourceType: 'INVOICE',
-        sourceId: invoiceId,
-        patientId: inv.patientId,
-        skipIfZero: true,
-        lines,
-      },
-      tx,
-    );
+    await this.glSync().syncInvoiceRevenueGl(invoiceId, tx);
   }
 
-  /**
-   * Net amount already posted for an invoice on one account (by systemKey or id),
-   * returned on the requested normal side. Used by the revenue/discount/tax
-   * reconciliation in {@link syncInvoiceRevenueGl}.
-   */
-  private async netPostedForInvoice(
-    invoiceId: string,
-    ref: { systemKey?: string; accountId?: string },
-    side: 'credit' | 'debit',
-    tx?: Prisma.TransactionClient,
-  ): Promise<Money> {
-    const db = tx ?? this.prisma;
-    let accountId = ref.accountId;
-    if (!accountId && ref.systemKey) {
-      const acc = await db.ledgerAccount.findUnique({
-        where: { systemKey: ref.systemKey },
-        select: { id: true },
-      });
-      if (!acc) return M.zero();
-      accountId = acc.id;
-    }
-    if (!accountId) return M.zero();
-    const agg = await db.journalLine.aggregate({
-      where: {
-        accountId,
-        journalEntry: {
-          sourceType: 'INVOICE',
-          sourceId: invoiceId,
-          status: 'POSTED',
-        },
-      },
-      _sum: { debit: true, credit: true },
-    });
-    const debit = M.money(agg._sum.debit ?? 0);
-    const credit = M.money(agg._sum.credit ?? 0);
-    return side === 'credit' ? M.sub(credit, debit) : M.sub(debit, credit);
-  }
-
-  /**
-   * Place a signed amount on an account's normal side, flipping to the opposite
-   * side when negative — so every emitted line carries a single non-negative
-   * amount. Accepts either a systemKey (`key`) or a raw `accountId`. Returns null
-   * for a zero amount (no line needed).
-   */
-  private signedGlLeg(
-    ref: { key?: string; accountId?: string },
-    signed: Money,
-    normalDebit: boolean,
-    patientId?: string,
-  ): Record<string, unknown> | null {
-    const amt = M.money(signed);
-    if (M.isZero(amt)) return null;
-    const negative = M.isNegative(amt);
-    const abs = M.money(negative ? M.neg(amt) : amt);
-    const onDebit = normalDebit ? !negative : negative;
-    const target = ref.key ? { key: ref.key } : { accountId: ref.accountId };
-    return onDebit
-      ? { ...target, debit: abs, ...(patientId ? { patientId } : {}) }
-      : { ...target, credit: abs, ...(patientId ? { patientId } : {}) };
+  /** Injected in the app; built on demand in unit specs that pass 6 args. */
+  private glSync(): InvoiceGlSyncService {
+    return this.invoiceGlSync ?? new InvoiceGlSyncService(this.prisma, this.gl);
   }
 
   /**

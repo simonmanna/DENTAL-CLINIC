@@ -165,6 +165,7 @@ describe('InvoiceLifecycleService — Adding Procedure spec: invoice currency', 
       );
       // re-bind recalcDraft on the instance so the call lands in the mock
       (svc as any).recalcDraft = prisma.recalcDraft;
+      (svc as any).recalcInvoiceAtomicTx = jest.fn().mockResolvedValue({});
 
       await svc.addProcedureItem(
         'p1',
@@ -209,6 +210,7 @@ describe('InvoiceLifecycleService — Adding Procedure spec: invoice currency', 
         gl as any,
       );
       (svc as any).recalcDraft = prisma.recalcDraft;
+      (svc as any).recalcInvoiceAtomicTx = jest.fn().mockResolvedValue({});
 
       await svc.addProcedureItem('p1', 'v1', 'plan1', baseTp, null, null);
 
@@ -241,6 +243,7 @@ describe('InvoiceLifecycleService — Adding Procedure spec: invoice currency', 
         gl as any,
       );
       (svc as any).recalcDraft = prisma.recalcDraft;
+      (svc as any).recalcInvoiceAtomicTx = jest.fn().mockResolvedValue({});
 
       const ugxTp = {
         ...baseTp,
@@ -279,6 +282,7 @@ describe('InvoiceLifecycleService — Adding Procedure spec: invoice currency', 
         gl as any,
       );
       (svc as any).recalcDraft = prisma.recalcDraft;
+      (svc as any).recalcInvoiceAtomicTx = jest.fn().mockResolvedValue({});
 
       // Caller tried to claim a USD invoice with a USD deposit, but the
       // existing DRAFT is in UGX — the spec says: existing draft wins, do

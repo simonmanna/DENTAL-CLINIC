@@ -1,7 +1,7 @@
 // src/conditions/dto/update-patient-condition.dto.ts
 import {
   IsOptional,
-  IsUUID,
+  IsNotEmpty,
   IsNumber,
   IsArray,
   IsString,
@@ -43,8 +43,10 @@ export class UpdatePatientConditionDto {
   @IsString()
   providerId?: string;        // ← NEW: staff FK
 
+  // cuid, not UUID — see patient-condition-query.dto.ts.
   @IsOptional()
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
   visitId?: string;
 
   @IsOptional()

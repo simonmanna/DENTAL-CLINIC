@@ -27,13 +27,13 @@ function groupBadge(count: number) {
 }
 
 export function PatientConditionsTab({ patientId }: Props) {
-  const { data: rawConditions, isLoading: load1 } = useQuery({
+  const { data: rawConditions, isLoading: load1, isError: err1, refetch: refetch1 } = useQuery({
     queryKey: ["patient-conditions-tab", patientId],
     queryFn: () => conditionsApi.getPatientConditions(patientId),
     enabled: !!patientId,
   });
 
-  const { data: rawEntries, isLoading: load2 } = useQuery({
+  const { data: rawEntries, isLoading: load2, isError: err2, refetch: refetch2 } = useQuery({
     queryKey: ["patient-chart-entries-conditions", patientId],
     queryFn: () => chartEntriesApi.getPatientEntries(patientId),
     enabled: !!patientId,
@@ -45,6 +45,24 @@ export function PatientConditionsTab({ patientId }: Props) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // A failed load used to render as "no conditions" — clinically misleading.
+  if (err1 || err2) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-2 py-16 text-sm">
+        <p className="text-danger">Could not load this patient's conditions.</p>
+        <button
+          onClick={() => {
+            refetch1();
+            refetch2();
+          }}
+          className="px-3 py-1 rounded border border-border text-muted-foreground hover:bg-muted"
+        >
+          Retry
+        </button>
       </div>
     );
   }

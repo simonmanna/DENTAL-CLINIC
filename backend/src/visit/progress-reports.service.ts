@@ -1,40 +1,63 @@
 // src/visits/progress-reports.service.ts
+//
+// Clinical progress notes attached to a visit.
+//
+// Hardened for production:
+//  • Every write is checked against the visit (exists, open — or an audited
+//    amendment of a completed visit) through the shared visit guard.
+//  • Linked sessions / conditions must belong to the visit's patient, so a
+//    note can never point at another patient's record.
+//  • Report codes come from the atomic document counter (PR-YY-NNNN). The old
+//    `count() + 1` scheme collided with an existing code as soon as one report
+//    was deleted, after which every new report failed on the unique index.
+//  • Delete is a soft delete with a reason; every write lands an audit row.
+//  • Tooth numbers are validated as FDI (permanent AND primary teeth).
 
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import {
-  IsString, IsOptional, IsInt, Min, Max, IsEnum, IsArray,
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import {
+  IsString,
+  IsOptional,
+  IsInt,
+  IsEnum,
+  IsArray,
+  IsNotEmpty,
+  MaxLength,
 } from 'class-validator';
+import { PrismaService } from '../prisma/prisma.service';
+import { DocumentNumberService } from '../common/document-number/document-number.service';
+import { assertFdiTooth } from '../common/dental/dental-validation';
+import { assertVisitWritableTx, VisitWriteActor } from './visit-guard';
 
 export type ComplaintStatus = 'IMPROVED' | 'SAME' | 'WORSE';
-export type ProgressOutcome  = 'GOOD' | 'FAIR' | 'POOR';
+export type ProgressOutcome = 'GOOD' | 'FAIR' | 'POOR';
 
-export class CreateProgressReportDto {
-  @IsOptional() @IsString()  complaint?: string;
+class ProgressReportFieldsDto {
+  @IsOptional() @IsString() @MaxLength(5000) complaint?: string;
   @IsOptional() @IsEnum(['IMPROVED', 'SAME', 'WORSE']) complaintStatus?: ComplaintStatus;
-  @IsOptional() @IsString()  treatmentStatus?: string;
+  @IsOptional() @IsString() @MaxLength(200) treatmentStatus?: string;
   @IsOptional() @IsEnum(['GOOD', 'FAIR', 'POOR']) outcome?: ProgressOutcome;
-  @IsOptional() @IsInt() @Min(11) @Max(48) toothNumber?: number;
-  @IsOptional() @IsString()  procedureName?: string;
-  @IsOptional() @IsString()  findings?: string;
-  @IsOptional() @IsString()  notes?: string;
-  @IsOptional() @IsString()  nextPlan?: string;
+  // FDI (11-48 permanent, 51-85 primary) — validated in the service.
+  @IsOptional() @IsInt() toothNumber?: number;
+  @IsOptional() @IsString() @MaxLength(500) procedureName?: string;
+  @IsOptional() @IsString() @MaxLength(10000) findings?: string;
+  @IsOptional() @IsString() @MaxLength(10000) notes?: string;
+  @IsOptional() @IsString() @MaxLength(10000) nextPlan?: string;
   @IsOptional() @IsArray() @IsString({ each: true }) procedureSessionIds?: string[];
   @IsOptional() @IsArray() @IsString({ each: true }) patientConditionIds?: string[];
+  /** Required when writing against a COMPLETED visit (audited amendment). */
+  @IsOptional() @IsString() @MaxLength(1000) amendmentReason?: string;
 }
 
-export class UpdateProgressReportDto {
-  @IsOptional() @IsString()  complaint?: string;
-  @IsOptional() @IsEnum(['IMPROVED', 'SAME', 'WORSE']) complaintStatus?: ComplaintStatus;
-  @IsOptional() @IsString()  treatmentStatus?: string;
-  @IsOptional() @IsEnum(['GOOD', 'FAIR', 'POOR']) outcome?: ProgressOutcome;
-  @IsOptional() @IsInt() @Min(11) @Max(48) toothNumber?: number;
-  @IsOptional() @IsString()  procedureName?: string;
-  @IsOptional() @IsString()  findings?: string;
-  @IsOptional() @IsString()  notes?: string;
-  @IsOptional() @IsString()  nextPlan?: string;
-  @IsOptional() @IsArray() @IsString({ each: true }) procedureSessionIds?: string[];
-  @IsOptional() @IsArray() @IsString({ each: true }) patientConditionIds?: string[];
+export class CreateProgressReportDto extends ProgressReportFieldsDto {}
+export class UpdateProgressReportDto extends ProgressReportFieldsDto {}
+
+export class DeleteProgressReportDto {
+  @IsString() @IsNotEmpty() @MaxLength(1000) reason: string;
 }
 
 // ── Shared include shape ──────────────────────────────────────────────────────
@@ -65,7 +88,10 @@ const REPORT_INCLUDE = {
 
 @Injectable()
 export class ProgressReportsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private docNum: DocumentNumberService,
+  ) {}
 
   // ── Visit-scoped list ─────────────────────────────────────────────────────
   async getVisitProgressReports(visitId: string) {
@@ -73,7 +99,7 @@ export class ProgressReportsService {
     if (!visit) throw new NotFoundException('Visit not found');
 
     return this.prisma.progressReport.findMany({
-      where: { visitId },
+      where: { visitId, deletedAt: null },
       include: REPORT_INCLUDE,
       orderBy: { createdAt: 'desc' },
     });
@@ -82,7 +108,7 @@ export class ProgressReportsService {
   // ── Patient-scoped list (all visits) ─────────────────────────────────────
   async getPatientProgressReports(patientId: string) {
     return this.prisma.progressReport.findMany({
-      where: { patientId },
+      where: { patientId, deletedAt: null },
       include: {
         ...REPORT_INCLUDE,
         visit: { select: { id: true, visitCode: true, checkedInAt: true, status: true } },
@@ -123,52 +149,116 @@ export class ProgressReportsService {
   }
 
   // ── Create ────────────────────────────────────────────────────────────────
-  async createProgressReport(visitId: string, dto: CreateProgressReportDto) {
-    const visit = await this.prisma.visit.findUnique({
-      where: { id: visitId },
-      select: { id: true, patientId: true, dentistId: true },
-    });
-    if (!visit) throw new NotFoundException('Visit not found');
+  async createProgressReport(
+    visitId: string,
+    dto: CreateProgressReportDto,
+    actor?: VisitWriteActor,
+  ) {
+    if (dto.toothNumber != null) assertFdiTooth(dto.toothNumber);
 
-    const reportCode = await this.generateReportCode();
-
-    return this.prisma.progressReport.create({
-      data: {
-        reportCode,
+    return this.prisma.$transaction(async (tx) => {
+      const { visit, isAmendment } = await assertVisitWritableTx(tx, {
         visitId,
-        patientId: visit.patientId,
-        dentistId: visit.dentistId,
-        complaint:       dto.complaint,
-        complaintStatus: dto.complaintStatus as any,
-        treatmentStatus: dto.treatmentStatus,
-        outcome:         dto.outcome as any,
-        toothNumber:     dto.toothNumber,
-        procedureName:   dto.procedureName,
-        findings:        dto.findings,
-        notes:           dto.notes,
-        nextPlan:        dto.nextPlan,
-        procedureLinks: dto.procedureSessionIds?.length
-          ? { create: dto.procedureSessionIds.map((procedureSessionId) => ({ procedureSessionId })) }
-          : undefined,
-        conditionLinks: dto.patientConditionIds?.length
-          ? { create: dto.patientConditionIds.map((patientConditionId) => ({ patientConditionId })) }
-          : undefined,
-      },
-      include: REPORT_INCLUDE,
+        actor,
+        amendmentReason: dto.amendmentReason,
+        what: 'progress reports',
+      });
+      await this.assertLinksBelongToPatient(
+        tx,
+        visit.patientId,
+        dto.procedureSessionIds,
+        dto.patientConditionIds,
+      );
+
+      const reportCode = await this.docNum.next('PR', tx); // PR-YY-NNNN
+      const report = await tx.progressReport.create({
+        data: {
+          reportCode,
+          visitId,
+          patientId: visit.patientId,
+          dentistId: visit.dentistId,
+          createdById: actor?.id ?? null,
+          complaint: dto.complaint,
+          complaintStatus: dto.complaintStatus as any,
+          treatmentStatus: dto.treatmentStatus,
+          outcome: dto.outcome as any,
+          toothNumber: dto.toothNumber,
+          procedureName: dto.procedureName,
+          findings: dto.findings,
+          notes: dto.notes,
+          nextPlan: dto.nextPlan,
+          procedureLinks: dto.procedureSessionIds?.length
+            ? {
+                create: [...new Set(dto.procedureSessionIds)].map(
+                  (procedureSessionId) => ({ procedureSessionId }),
+                ),
+              }
+            : undefined,
+          conditionLinks: dto.patientConditionIds?.length
+            ? {
+                create: [...new Set(dto.patientConditionIds)].map(
+                  (patientConditionId) => ({ patientConditionId }),
+                ),
+              }
+            : undefined,
+        },
+        include: REPORT_INCLUDE,
+      });
+
+      await this.audit(tx, {
+        action: isAmendment ? 'AMEND_CREATE' : 'CREATE',
+        reportId: report.id,
+        actor,
+        reason: dto.amendmentReason,
+        newData: {
+          reportCode,
+          visitId,
+          toothNumber: report.toothNumber,
+          procedureSessionIds: dto.procedureSessionIds ?? [],
+          patientConditionIds: dto.patientConditionIds ?? [],
+        },
+      });
+
+      return report;
     });
   }
 
   // ── Update (replace strategy for links) ──────────────────────────────────
-  async updateProgressReport(reportId: string, dto: UpdateProgressReportDto) {
-    const report = await this.prisma.progressReport.findUnique({ where: { id: reportId } });
-    if (!report) throw new NotFoundException('Progress report not found');
+  async updateProgressReport(
+    reportId: string,
+    dto: UpdateProgressReportDto,
+    actor?: VisitWriteActor,
+  ) {
+    if (dto.toothNumber != null) assertFdiTooth(dto.toothNumber);
 
     return this.prisma.$transaction(async (tx) => {
+      const report = await tx.progressReport.findFirst({
+        where: { id: reportId, deletedAt: null },
+      });
+      if (!report) throw new NotFoundException('Progress report not found');
+
+      const { isAmendment } = await assertVisitWritableTx(tx, {
+        visitId: report.visitId,
+        patientId: report.patientId,
+        actor,
+        amendmentReason: dto.amendmentReason,
+        what: 'progress reports',
+      });
+      await this.assertLinksBelongToPatient(
+        tx,
+        report.patientId,
+        dto.procedureSessionIds,
+        dto.patientConditionIds,
+      );
+
       if (dto.procedureSessionIds !== undefined) {
         await tx.progressReportProcedure.deleteMany({ where: { reportId } });
         if (dto.procedureSessionIds.length > 0) {
           await tx.progressReportProcedure.createMany({
-            data: dto.procedureSessionIds.map((procedureSessionId) => ({ reportId, procedureSessionId })),
+            data: [...new Set(dto.procedureSessionIds)].map((procedureSessionId) => ({
+              reportId,
+              procedureSessionId,
+            })),
           });
         }
       }
@@ -177,41 +267,112 @@ export class ProgressReportsService {
         await tx.progressReportCondition.deleteMany({ where: { reportId } });
         if (dto.patientConditionIds.length > 0) {
           await tx.progressReportCondition.createMany({
-            data: dto.patientConditionIds.map((patientConditionId) => ({ reportId, patientConditionId })),
+            data: [...new Set(dto.patientConditionIds)].map((patientConditionId) => ({
+              reportId,
+              patientConditionId,
+            })),
           });
         }
       }
 
-      return tx.progressReport.update({
+      const updated = await tx.progressReport.update({
         where: { id: reportId },
         data: {
-          complaint:       dto.complaint,
+          complaint: dto.complaint,
           complaintStatus: dto.complaintStatus as any,
           treatmentStatus: dto.treatmentStatus,
-          outcome:         dto.outcome as any,
-          toothNumber:     dto.toothNumber,
-          procedureName:   dto.procedureName,
-          findings:        dto.findings,
-          notes:           dto.notes,
-          nextPlan:        dto.nextPlan,
+          outcome: dto.outcome as any,
+          toothNumber: dto.toothNumber,
+          procedureName: dto.procedureName,
+          findings: dto.findings,
+          notes: dto.notes,
+          nextPlan: dto.nextPlan,
+          updatedById: actor?.id ?? null,
         },
         include: REPORT_INCLUDE,
       });
+
+      await this.audit(tx, {
+        action: isAmendment ? 'AMEND' : 'UPDATE',
+        reportId,
+        actor,
+        reason: dto.amendmentReason,
+        oldData: {
+          complaint: report.complaint,
+          complaintStatus: report.complaintStatus,
+          treatmentStatus: report.treatmentStatus,
+          outcome: report.outcome,
+          toothNumber: report.toothNumber,
+          procedureName: report.procedureName,
+          findings: report.findings,
+          notes: report.notes,
+          nextPlan: report.nextPlan,
+        },
+        newData: {
+          complaint: updated.complaint,
+          complaintStatus: updated.complaintStatus,
+          treatmentStatus: updated.treatmentStatus,
+          outcome: updated.outcome,
+          toothNumber: updated.toothNumber,
+          procedureName: updated.procedureName,
+          findings: updated.findings,
+          notes: updated.notes,
+          nextPlan: updated.nextPlan,
+        },
+      });
+
+      return updated;
     });
   }
 
-  // ── Delete ────────────────────────────────────────────────────────────────
-  async deleteProgressReport(reportId: string) {
-    const report = await this.prisma.progressReport.findUnique({ where: { id: reportId } });
-    if (!report) throw new NotFoundException('Progress report not found');
-    await this.prisma.progressReport.delete({ where: { id: reportId } });
-    return { success: true, id: reportId };
+  // ── Delete (soft) ─────────────────────────────────────────────────────────
+  async deleteProgressReport(
+    reportId: string,
+    reason: string,
+    actor?: VisitWriteActor,
+  ) {
+    if (!reason?.trim()) {
+      throw new BadRequestException(
+        'A reason is required to delete a progress report (clinical audit trail).',
+      );
+    }
+    return this.prisma.$transaction(async (tx) => {
+      const report = await tx.progressReport.findFirst({
+        where: { id: reportId, deletedAt: null },
+      });
+      if (!report) throw new NotFoundException('Progress report not found');
+
+      await tx.progressReport.update({
+        where: { id: reportId },
+        data: {
+          deletedAt: new Date(),
+          deletedById: actor?.id ?? null,
+          deletedReason: reason.trim(),
+        },
+      });
+
+      await this.audit(tx, {
+        action: 'DELETE',
+        reportId,
+        actor,
+        reason: reason.trim(),
+        oldData: {
+          reportCode: report.reportCode,
+          visitId: report.visitId,
+          toothNumber: report.toothNumber,
+          findings: report.findings,
+          notes: report.notes,
+        },
+      });
+
+      return { success: true, id: reportId };
+    });
   }
 
   // ── Single fetch ──────────────────────────────────────────────────────────
   async getProgressReport(reportId: string) {
-    const report = await this.prisma.progressReport.findUnique({
-      where: { id: reportId },
+    const report = await this.prisma.progressReport.findFirst({
+      where: { id: reportId, deletedAt: null },
       include: {
         ...REPORT_INCLUDE,
         visit: { select: { id: true, visitCode: true, checkedInAt: true } },
@@ -221,10 +382,65 @@ export class ProgressReportsService {
     return report;
   }
 
-  private async generateReportCode(): Promise<string> {
-    const count = await this.prisma.progressReport.count();
-    const year  = new Date().getFullYear();
-    const seq   = (count + 1).toString().padStart(4, '0');
-    return `PR-${year}-${seq}`;
+  // ── Private ───────────────────────────────────────────────────────────────
+
+  /** Linked sessions / conditions must be live and belong to this patient. */
+  private async assertLinksBelongToPatient(
+    tx: Prisma.TransactionClient,
+    patientId: string,
+    sessionIds?: string[],
+    conditionIds?: string[],
+  ) {
+    const sIds = [...new Set(sessionIds ?? [])];
+    if (sIds.length) {
+      const found = await tx.procedureSession.count({
+        where: {
+          id: { in: sIds },
+          deletedAt: null,
+          treatmentProcedure: { treatmentPlan: { patientId } },
+        },
+      });
+      if (found !== sIds.length) {
+        throw new BadRequestException(
+          "One or more linked sessions do not belong to this patient's treatment.",
+        );
+      }
+    }
+    const cIds = [...new Set(conditionIds ?? [])];
+    if (cIds.length) {
+      const found = await tx.patientCondition.count({
+        where: { id: { in: cIds }, patientId, deletedAt: null },
+      });
+      if (found !== cIds.length) {
+        throw new BadRequestException(
+          'One or more linked conditions do not belong to this patient.',
+        );
+      }
+    }
+  }
+
+  private async audit(
+    tx: Prisma.TransactionClient,
+    entry: {
+      action: string;
+      reportId: string;
+      actor?: VisitWriteActor;
+      reason?: string;
+      oldData?: Record<string, unknown>;
+      newData?: Record<string, unknown>;
+    },
+  ) {
+    await tx.auditLog.create({
+      data: {
+        userId: entry.actor?.id ?? null,
+        action: entry.action,
+        module: 'PROGRESS_REPORTS',
+        entityType: 'ProgressReport',
+        recordId: entry.reportId,
+        oldData: (entry.oldData ?? undefined) as Prisma.InputJsonValue,
+        newData: (entry.newData ?? undefined) as Prisma.InputJsonValue,
+        reason: entry.reason ?? null,
+      },
+    });
   }
 }

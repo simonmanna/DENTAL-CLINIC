@@ -76,15 +76,16 @@ import {
   isLiveConditionEntry,
   toLocalISODate,
   isImplantEntry,
-  IMPLANT_ADA_CODES,
   DERIVED_PROC_ID_PREFIX,
   RENDERABLE_PROC_STATUS,
   LAYER_PAINT_PRIORITY,
   highestPriorityEntry,
   pickRestoration,
   restorationKind,
+  groupLedgerProcedureRows,
+  hiddenDentitionCount,
+  allEntriesPrimary,
   type ChartEntry,
-  type EntryStatus,
   type Layer,
   type RestorationKind,
 } from "./dentalChartLogic";
@@ -101,6 +102,7 @@ export type { ChartEntry } from "./dentalChartLogic";
 import { ToothAnatomy } from "./ToothAnatomy";
 import { occlusalGeometry, OCC_VIEW } from "./occlusalGeometry";
 import { displayToothNumber, type ToothNumbering } from "./dentalChartDisplay";
+import { toChartEntry } from "./chartEntryMapping";
 import "./DentalChart.css";
 
 // Layer, LAYER_FOR_TYPE and layerForEntry live in ./dentalChartLogic so the
@@ -1077,6 +1079,10 @@ function SplitLedger({
         .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? "")),
     [entries, procFilter],
   );
+  const procedureRows = useMemo(
+    () => groupLedgerProcedureRows(procedures),
+    [procedures],
+  );
 
   const fmtMoney = (n?: number, cur?: string): string => {
     if (n == null || !Number.isFinite(Number(n))) return "—";
@@ -1270,7 +1276,9 @@ function SplitLedger({
                         fontSize: 10,
                       }}
                     >
-                      {entry.toothNumbers.join(", ")}
+                      {entry.toothNumbers.length
+                        ? entry.toothNumbers.join(", ")
+                        : "Whole mouth"}
                     </td>
                     <td
                       style={{
@@ -1460,7 +1468,8 @@ function SplitLedger({
           "Procedures",
           <ClipboardList size={14} />,
           LAYER_COLOR.PLANNED.c,
-          procedures,
+          // One row per procedure and layer (teeth joined, price once).
+          procedureRows,
           <>
             {(
               [
@@ -2001,9 +2010,13 @@ function DentalChartInner({
   const [numbering, setNumbering] = useState<ToothNumbering>("FDI");
   const [zoom, setZoom] = useState(100);
   const [ledgerSelectionOnly, setLedgerSelectionOnly] = useState(false);
+  const [ledgerThisVisitOnly, setLedgerThisVisitOnly] = useState(false);
   const [dentition, setDentition] = useState<"permanent" | "primary">(
     "permanent",
   );
+  // Set once the user picks a dentition, so the automatic switch below never
+  // overrides a deliberate choice.
+  const dentitionChosenRef = useRef(false);
   const [drawerTooth, setDrawerTooth] = useState<number | null>(null);
   const [viewingCondition, setViewingCondition] = useState<ChartEntry | null>(null);
   const [showCond, setShowCond] = useState(false);
@@ -2050,8 +2063,12 @@ function DentalChartInner({
     error,
     refetch,
   } = useQuery({
-    queryKey: ["chart-entries", patientId, visitId],
-    queryFn: () => chartEntriesApi.getPatientEntries(patientId!, visitId),
+    // The chart is the patient's mouth, not this visit's notes: load the FULL
+    // history in every visit. Filtering by visitId hid every earlier
+    // diagnosis, prior restoration and missing tooth at the next visit. The
+    // ledger can still narrow to "This visit" (entries carry their visitId).
+    queryKey: ["chart-entries", patientId],
+    queryFn: () => chartEntriesApi.getPatientEntries(patientId!),
     enabled: !isDemo && !!patientId,
     staleTime: 30_000, // ← stops focus-event cascade
   });
@@ -2067,72 +2084,14 @@ function DentalChartInner({
     staleTime: 30_000,
   });
 
-  // ── Chart-entries API → ChartEntry ────────────────────────────────────────
-  const apiAsEntries = useMemo<ChartEntry[]>(() => {
-    return (apiEntries as APIChartEntry[])
-      .map((e): ChartEntry | null => {
-        const t = e.toothNumber || 0;
-        if (!t || !isValidFdi(t)) return null;
-        const prov =
-          (e as any).provider?.id ??
-          (e as any).patientCondition?.provider?.id ??
-          (typeof (e as any).providerId === "string"
-            ? (e as any).providerId
-            : undefined);
-        const tp = (e as any).treatmentProcedure;
-        // Drop entries whose linked procedure is cancelled / terminal so a
-        // cancelled treatment never paints the tooth. CONDITION and EXISTING
-        // entries carry no linked procedure (tp undefined) and are unaffected.
-        if (tp?.status && !RENDERABLE_PROC_STATUS.has(tp.status)) return null;
-        const presenceEffect =
-          ((e as any).condition?.chartPresenceEffect as
-            | ChartEntry["chartPresenceEffect"]
-            | undefined) ??
-          ((e as any).patientCondition?.condition?.chartPresenceEffect as
-            | ChartEntry["chartPresenceEffect"]
-            | undefined);
-
-        // isImplant: prefer catalog flag, then ADA code, then label
-        const procIsImplant: boolean =
-          tp?.procedure?.isImplant === true ||
-          (tp?.procedure?.code &&
-            IMPLANT_ADA_CODES.has(String(tp.procedure.code).toUpperCase())) ||
-          false;
-
-        return {
-          id: e.id,
-          toothNumbers: [t],
-          surfaces: (e.surfaces || []).map((s) =>
-            canonicalToUiForTooth(s as string, t),
-          ),
-          type: e.type as ChartEntry["type"],
-          status: e.status as EntryStatus,
-          label: e.label,
-          code: e.conditionCode || e.procedureCode,
-          notes: e.notes,
-          date: toLocalISODate(e.createdAt),
-          provider: prov,
-          patientConditionId:
-            (e as any).patientConditionId ?? (e as any).patientCondition?.id,
-          conditionId:
-            (e as any).conditionId ?? (e as any).patientCondition?.conditionId,
-          severity: ((e as any).patientCondition?.severity ?? "") as any,
-          conditionStatus: ((e as any).patientCondition?.status ??
-            "ACTIVE") as PatientConditionStatus,
-          chartPresenceEffect: presenceEffect,
-          treatmentProcedureId: (e as any).treatmentProcedureId ?? tp?.id,
-          treatmentPlanId: tp?.treatmentPlanId,
-          procedureStatus: tp?.status,
-          totalPrice:
-            tp?.totalPrice != null ? Number(tp.totalPrice) : undefined,
-          currency: tp?.currency,
-          isImplant: procIsImplant,
-          sessionsCount: (tp as any)?.sessions?.length ?? 0,
-          version: (e as any).version,
-        };
-      })
-      .filter((e): e is ChartEntry => e !== null);
-  }, [apiEntries]);
+  // ── Chart-entries API → ChartEntry (pure mapper, unit-tested) ─────────────
+  const apiAsEntries = useMemo<ChartEntry[]>(
+    () =>
+      (apiEntries as APIChartEntry[])
+        .map((e) => toChartEntry(e as any))
+        .filter((e): e is ChartEntry => e !== null),
+    [apiEntries],
+  );
 
   // ── TreatmentProcedures → ChartEntry, one row per tooth target ────────────
   const procAsEntries = useMemo<ChartEntry[]>(() => {
@@ -2194,6 +2153,15 @@ function DentalChartInner({
     if (isDemo) return internalEntries;
     return mergeChartEntries([...apiAsEntries, ...procAsEntries]);
   }, [isDemo, internalEntries, apiAsEntries, procAsEntries]);
+
+  // A child's chart (every live finding on primary teeth) opens on the
+  // primary dentition — unless the user already chose one.
+  useEffect(() => {
+    if (dentitionChosenRef.current) return;
+    if (dentition === "permanent" && allEntriesPrimary(entries)) {
+      setDentition("primary");
+    }
+  }, [entries, dentition]);
 
   // ── Per-tooth entry index ──────────────────────────────────────────────────
   const toothMap = useMemo(() => {
@@ -2370,7 +2338,7 @@ function DentalChartInner({
         { entries: condEntries, chartEntries },
         newIdempotencyKey(),
       );
-      qc.invalidateQueries({ queryKey: ["chart-entries", patientId, visitId] });
+      qc.invalidateQueries({ queryKey: ["chart-entries", patientId] });
       qc.invalidateQueries({ queryKey: ["patient-conditions", patientId] });
     },
     [
@@ -2492,7 +2460,7 @@ function DentalChartInner({
         }
         await Promise.all([
           qc.invalidateQueries({
-            queryKey: ["chart-entries", patientId, visitId],
+            queryKey: ["chart-entries", patientId],
           }),
           qc.invalidateQueries({ queryKey: ["patient-conditions", patientId] }),
         ]);
@@ -2512,7 +2480,7 @@ function DentalChartInner({
           // Force the chart queries to re-fetch so the form re-binds to the
           // server's current version on next open.
           qc.invalidateQueries({ queryKey: ["patient-conditions", patientId] });
-          qc.invalidateQueries({ queryKey: ["chart-entries", patientId, visitId] });
+          qc.invalidateQueries({ queryKey: ["chart-entries", patientId] });
           throw e;
         }
         toast.error(e?.response?.data?.message || "Failed to update condition");
@@ -2633,7 +2601,7 @@ function DentalChartInner({
         );
         await Promise.all([
           qc.invalidateQueries({
-            queryKey: ["chart-entries", patientId, visitId],
+            queryKey: ["chart-entries", patientId],
           }),
           qc.invalidateQueries({ queryKey: ["patient-conditions", patientId] }),
         ]);
@@ -2823,8 +2791,10 @@ function DentalChartInner({
             <button className="dc-button" disabled={!selected.length} onClick={() => setShowCond(true)}>
               <Plus size={15} aria-hidden="true" /> Add condition
             </button>
-            <button className="dc-button dc-button--primary" disabled={!selected.length || isDemo} title={isDemo ? "Procedures require a patient record" : undefined} onClick={() => setShowTx(true)}>
-              <Plus size={15} aria-hidden="true" /> Add procedure
+            <button className="dc-button dc-button--primary" disabled={isDemo}
+              title={isDemo ? "Procedures require a patient record" : !selected.length ? "No tooth selected — plan a whole-mouth procedure (cleaning, full-mouth X-ray…)" : undefined}
+              onClick={() => setShowTx(true)}>
+              <Plus size={15} aria-hidden="true" /> {selected.length ? "Add procedure" : "Whole-mouth procedure"}
             </button>
           </>}
         </div>
@@ -2832,10 +2802,16 @@ function DentalChartInner({
 
       <div className="dc-toolbar">
         <div className="dc-segmented" role="group" aria-label="Dentition">
-          {(["permanent", "primary"] as const).map(d => <button key={d} aria-pressed={dentition === d}
-            onClick={() => { setDentition(d); clearSelection(); }}>
-            {d === "permanent" ? "Permanent" : "Primary"}
-          </button>)}
+          {(["permanent", "primary"] as const).map(d => {
+            // Live findings recorded on the dentition that is not on screen.
+            const hidden = d !== dentition ? hiddenDentitionCount(entries, dentition) : 0;
+            return <button key={d} aria-pressed={dentition === d}
+              title={hidden ? `${hidden} active finding(s) on ${d} teeth` : undefined}
+              onClick={() => { dentitionChosenRef.current = true; setDentition(d); clearSelection(); }}>
+              {d === "permanent" ? "Permanent" : "Primary"}
+              {hidden > 0 && <span className="dc-count-badge" style={{ marginLeft: 6, padding: "0 6px", borderRadius: 8, background: "#f59e0b", color: "#fff", fontSize: 10, fontWeight: 700 }}>{hidden}</span>}
+            </button>;
+          })}
         </div>
         <label className="dc-numbering">Numbering
           <select value={numbering} onChange={e => setNumbering(e.target.value as ToothNumbering)}>
@@ -3070,10 +3046,15 @@ function DentalChartInner({
 
       <div className="dc-ledger-heading">
         <div><h3>Clinical record</h3><span>Conditions and procedures</span></div>
-        <label><input type="checkbox" checked={ledgerSelectionOnly} onChange={e => setLedgerSelectionOnly(e.target.checked)} /> Selected teeth only</label>
+        <div className="dc-ledger-filters">
+          {visitId && <label><input type="checkbox" checked={ledgerThisVisitOnly} onChange={e => setLedgerThisVisitOnly(e.target.checked)} /> This visit only</label>}
+          <label><input type="checkbox" checked={ledgerSelectionOnly} onChange={e => setLedgerSelectionOnly(e.target.checked)} /> Selected teeth only</label>
+        </div>
       </div>
       <SplitLedger
-        entries={ledgerSelectionOnly ? selectedEntries : entries}
+        entries={(ledgerSelectionOnly ? selectedEntries : entries).filter(
+          (e) => !ledgerThisVisitOnly || !visitId || e.visitId === visitId,
+        )}
         selectedTeeth={selected}
         onRowClick={(teeth) => {
           setSelected(teeth);
@@ -3125,7 +3106,7 @@ function DentalChartInner({
           onSuccess={() => {
             if (!isDemo) {
               qc.invalidateQueries({
-                queryKey: ["chart-entries", patientId, visitId],
+                queryKey: ["chart-entries", patientId],
               });
               qc.invalidateQueries({
                 queryKey: ["treatment-procedures", patientId],

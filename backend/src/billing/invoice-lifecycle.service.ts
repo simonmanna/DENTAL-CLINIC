@@ -28,6 +28,7 @@ import {
 import { withUniqueCodeRetry } from './utils/unique-code';
 import { DocumentNumberService } from '../common/document-number/document-number.service';
 import { GeneralLedgerService, GL } from '../general-ledger/general-ledger.service';
+import { InvoiceGlSyncService } from './invoice-gl-sync.service';
 import { M, type Money } from '../common/money/money';
 
 function toNum(v: unknown): number {
@@ -42,6 +43,21 @@ function genLedgerCode(): string {
   const timestamp = Date.now().toString(36).toUpperCase();
   const random = Math.random().toString(36).substring(2, 5).toUpperCase();
   return `ILG-${new Date().getFullYear()}-${timestamp}${random}`;
+}
+
+/** Outcome of reversing a treatment procedure's billing (cancel / delete). */
+export interface ProcedureBillingReversal {
+  invoiceId: string | null;
+  invoiceNumber: string | null;
+  invoiceStatus: InvoiceStatus | null;
+  /** True when the invoice was POSTED and its GL recognition was adjusted. */
+  glAdjusted: boolean;
+  /**
+   * Money the patient has paid beyond the invoice's new total, in the invoice
+   * currency. Refund it through POST /billing/invoices/:id/refunds.
+   */
+  refundDue: string;
+  currency: string | null;
 }
 
 export interface AddEncounterItemDto {
@@ -63,7 +79,13 @@ export class InvoiceLifecycleService {
     private readonly currency: CurrencyService,
     private readonly docNum: DocumentNumberService,
     private readonly gl: GeneralLedgerService,
+    private readonly invoiceGlSync?: InvoiceGlSyncService,
   ) {}
+
+  /** Injected in the app; built on demand in unit specs that pass 4 args. */
+  private glSync(): InvoiceGlSyncService {
+    return this.invoiceGlSync ?? new InvoiceGlSyncService(this.prisma, this.gl);
+  }
 
   // ── Find or create the DRAFT invoice for a patient/visit/plan ─────────────
   //
@@ -202,13 +224,59 @@ export class InvoiceLifecycleService {
     initialPaymentCurrency?: string | null,
     createdById?: string | null,
   ) {
+    // Standalone callers (drift repair, restore re-bill): one transaction.
+    const invoiceId = await this.prisma.$transaction(
+      (tx) =>
+        this.addProcedureItemTx(
+          tx,
+          patientId,
+          visitId,
+          treatmentPlanId,
+          tp,
+          initialPaymentAmount,
+          initialPaymentCurrency,
+          createdById,
+        ),
+      { maxWait: 5000, timeout: 20000 },
+    );
+    return this.prisma.invoice.findUnique({ where: { id: invoiceId } });
+  }
+
+  /**
+   * Bill a treatment procedure inside the caller's transaction — addProcedure
+   * runs this in the same transaction that creates the procedure, so a
+   * committed procedure always has its invoice line (the old post-commit step
+   * could fail and leave the work unbilled until the drift cron caught it).
+   * Returns the invoice id.
+   */
+  async addProcedureItemTx(
+    tx: Prisma.TransactionClient,
+    patientId: string,
+    visitId: string | null,
+    treatmentPlanId: string | null,
+    tp: {
+      id: string;
+      description: string;
+      quantity: number;
+      pricePerUnit: number;
+      discountAmount: number;
+      taxAmount: number;
+      totalPrice: number;
+      currency: string;
+      exchangeRate?: number | null;
+      baseAmount: number;
+    },
+    initialPaymentAmount?: number | null,
+    initialPaymentCurrency?: string | null,
+    createdById?: string | null,
+  ): Promise<string> {
     // ── 1. Resolve the invoice to use ────────────────────────────────────────
     let invoice: Awaited<ReturnType<typeof this.prisma.invoice.findFirst>>;
     let invoiceIsActive = false;
 
     if (visitId) {
       // Check for an already-posted invoice on this visit first
-      const activeInv = await this.prisma.invoice.findFirst({
+      const activeInv = await tx.invoice.findFirst({
         where: {
           patientId,
           visitId,
@@ -235,7 +303,7 @@ export class InvoiceLifecycleService {
       //   3. No existing DRAFT + pay in full → use the procedure's currency.
       //   4. No deposit info available → fall back to the clinic base
       //      currency (UGX) for backward compatibility.
-      const existingDraft = await this.prisma.invoice.findFirst({
+      const existingDraft = await tx.invoice.findFirst({
         where: {
           patientId,
           status: InvoiceStatus.DRAFT,
@@ -280,18 +348,19 @@ export class InvoiceLifecycleService {
           newCurrency = baseCurrency;
           newRate = 1;
         }
-        invoice = await this.getOrCreateDraft(
+        invoice = await this.createDraftTx(tx, {
           patientId,
           visitId,
           treatmentPlanId,
-          { currency: newCurrency, exchangeRate: newRate },
+          currency: newCurrency,
+          exchangeRate: newRate,
           createdById,
-        );
+        });
       }
     }
 
     // ── 2. Build the invoice-item payload ────────────────────────────────────
-    const existing = await this.prisma.invoiceItem.findFirst({
+    const existing = await tx.invoiceItem.findFirst({
       where: { invoiceId: invoice!.id, treatmentProcedureId: tp.id },
     });
 
@@ -345,9 +414,9 @@ export class InvoiceLifecycleService {
 
       // Resolve the procedure's mapped revenue account (→ category → default).
       const revenueAccountId =
-        await this.revenueAccountIdForTreatmentProcedure(tp.id);
+        await this.revenueAccountIdForTreatmentProcedure(tp.id, tx);
 
-      await this.prisma.$transaction(async (tx) => {
+      {
         if (existing) {
           await tx.invoiceItem.update({ where: { id: existing.id }, data: itemData });
         } else {
@@ -405,12 +474,12 @@ export class InvoiceLifecycleService {
             tx,
           );
         }
-      });
+      }
 
       if (initialPaymentAmount != null && initialPaymentAmount > 0) {
         // Spec wording: deposit stored as "initialCurrency & initialReceipt".
         // DB field names: initialPaymentCurrency / initialPaymentAmount.
-        await this.prisma.invoice.update({
+        await tx.invoice.update({
           where: { id: invoice!.id },
           data: {
             initialPaymentAmount,
@@ -419,14 +488,15 @@ export class InvoiceLifecycleService {
         });
       }
 
-      return this.recalcActive(invoice!.id);
+      await this.recalcInvoiceAtomicTx(tx, invoice!.id, undefined, createdById ?? undefined);
+      return invoice!.id;
     }
 
     // ── 3b. DRAFT — append item only (ledger entry is posted at activation) ───
     if (existing) {
-      await this.prisma.invoiceItem.update({ where: { id: existing.id }, data: itemData });
+      await tx.invoiceItem.update({ where: { id: existing.id }, data: itemData });
     } else {
-      await this.prisma.invoiceItem.create({ data: itemData });
+      await tx.invoiceItem.create({ data: itemData });
     }
 
     // If a partial payment amount was requested, store it on the invoice
@@ -440,7 +510,7 @@ export class InvoiceLifecycleService {
     // currency — so the deposit receipt can be displayed in the patient's
     // chosen currency even when the invoice itself is in a different one.
     if (initialPaymentAmount != null && initialPaymentAmount > 0) {
-      await this.prisma.invoice.update({
+      await tx.invoice.update({
         where: { id: invoice!.id },
         data: {
           initialPaymentAmount,
@@ -451,7 +521,50 @@ export class InvoiceLifecycleService {
       });
     }
 
-    return this.recalcDraft(invoice!.id);
+    await this.recalcInvoiceAtomicTx(tx, invoice!.id, undefined, createdById ?? undefined);
+    return invoice!.id;
+  }
+
+  /** Create a DRAFT invoice inside the caller's transaction. */
+  private async createDraftTx(
+    tx: Prisma.TransactionClient,
+    args: {
+      patientId: string;
+      visitId?: string | null;
+      treatmentPlanId?: string | null;
+      currency: string;
+      exchangeRate: number;
+      createdById?: string | null;
+    },
+  ) {
+    const baseCurrency = this.currency.getBaseCurrency();
+    return tx.invoice.create({
+      data: {
+        invoiceNumber: await this.generateInvoiceNumber(tx),
+        patientId: args.patientId,
+        visitId: args.visitId ?? null,
+        treatmentPlanId: args.treatmentPlanId ?? null,
+        status: InvoiceStatus.DRAFT,
+        currency: args.currency,
+        exchangeRate: args.exchangeRate,
+        baseCurrency,
+        subtotal: 0,
+        discountAmount: 0,
+        taxPercent: 0,
+        taxAmount: 0,
+        total: 0,
+        amountPaid: 0,
+        balance: 0,
+        baseSubtotal: 0,
+        baseDiscountAmount: 0,
+        baseTaxAmount: 0,
+        baseTotal: 0,
+        baseAmountPaid: 0,
+        baseBalance: 0,
+        createdById: args.createdById ?? null,
+        updatedById: args.createdById ?? null,
+      },
+    });
   }
 
   // ── Update pricing on an existing TreatmentProcedure invoice line ─────────
@@ -483,8 +596,34 @@ export class InvoiceLifecycleService {
       exchangeRate?: number | null;
     },
   ): Promise<{ invoiceId: string | null; created: boolean; invoiceStatus: string | null }> {
-    const item = await this.prisma.invoiceItem.findFirst({
-      where: { treatmentProcedureId },
+    return this.prisma.$transaction((tx) =>
+      this.updateProcedureItemPricingTx(tx, treatmentProcedureId, pricing),
+    );
+  }
+
+  /**
+   * Same, inside the caller's transaction — the procedure edit runs it in
+   * the transaction that changes the price, so the procedure and its invoice
+   * line can never disagree (the post-commit sync could fail after the
+   * procedure had already been saved).
+   */
+  async updateProcedureItemPricingTx(
+    tx: Prisma.TransactionClient,
+    treatmentProcedureId: string,
+    pricing: {
+      description: string;
+      quantity: number;
+      pricePerUnit: number;
+      discountAmount: number;
+      taxAmount: number;
+      totalPrice: number;
+      currency: string;
+      exchangeRate?: number | null;
+    },
+  ): Promise<{ invoiceId: string | null; created: boolean; invoiceStatus: string | null }> {
+    // The live line only (a voided line from an earlier cancel is history).
+    const item = await tx.invoiceItem.findFirst({
+      where: { treatmentProcedureId, status: 'ACTIVE' },
       include: {
         invoice: {
           select: {
@@ -546,7 +685,7 @@ export class InvoiceLifecycleService {
     const totalInv = M.money(await toInvoiceCcy(toNum(pricing.totalPrice)));
     const discountInv = M.money(await toInvoiceCcy(toNum(pricing.discountAmount)));
 
-    await this.prisma.invoiceItem.update({
+    await tx.invoiceItem.update({
       where: { id: item.id },
       data: {
         description: pricing.description,
@@ -561,7 +700,7 @@ export class InvoiceLifecycleService {
       },
     });
 
-    await this.recalcInvoice(item.invoice.id);
+    await this.recalcInvoiceAtomicTx(tx, item.invoice.id);
 
     return { invoiceId: item.invoice.id, created: false, invoiceStatus: item.invoice.status };
   }
@@ -591,52 +730,397 @@ export class InvoiceLifecycleService {
   // ── Reverse ALL billing for a treatment procedure (cancel / remove) ────────
   //
   // Runs INSIDE the caller's transaction so the billing reversal commits or
-  // rolls back atomically with the clinical cancellation. Call recalcInvoice()
-  // afterwards (post-commit) to refresh invoice totals.
+  // rolls back atomically with the clinical change, totals included.
   //
-  // It does two things:
-  //   1. VOIDs every non-void CHARGE ledger entry sourced from this procedure
-  //      (these are written by addProcedureItem when the invoice is POSTED).
-  //   2. Deletes the procedure's InvoiceItem so the patient stops being billed.
+  //   DRAFT  invoice → the line is voided; drafts carry no revenue in the GL
+  //                    (advance payments sit in Patient Deposits).
+  //   POSTED invoice → the line is voided, its CHARGE ledger rows are voided,
+  //                    the invoice is re-totalled and the GL recognition is
+  //                    reconciled to the new totals (revenue on the procedure's
+  //                    own revenue account, discount, tax and A/R) — previously
+  //                    the GL kept the revenue of cancelled work forever.
+  //   VOID invoice   → nothing to reverse.
   //
-  // SAFETY: if the invoice already has payments against it, we refuse to silently
-  // drop the line (that would corrupt the paid/total relationship). The caller's
-  // whole transaction rolls back and the user is told to refund/void first.
-  async voidProcedureBillingTx(
+  // Payments are never touched. If the patient has now paid more than the
+  // invoice total, `refundDue` reports the excess; the cashier refunds it via
+  // the existing refund endpoint (DR A/R · CR Cash).
+  async reverseProcedureBillingTx(
     tx: Prisma.TransactionClient,
     treatmentProcedureId: string,
     reason?: string,
-  ): Promise<{ invoiceId: string | null }> {
-    await tx.ledgerEntry.updateMany({
-      where: {
-        sourceType: InvoiceItemType.TREATMENT_PROCEDURE,
-        sourceId: treatmentProcedureId,
-        status: { not: 'VOID' },
+    actorUserId?: string | null,
+  ): Promise<ProcedureBillingReversal> {
+    return this.reverseLineBillingTx(
+      tx,
+      {
+        itemWhere: { treatmentProcedureId },
+        ledgerWhere: {
+          sourceType: InvoiceItemType.TREATMENT_PROCEDURE,
+          sourceId: treatmentProcedureId,
+        },
       },
+      reason,
+      actorUserId,
+    );
+  }
+
+  /** Same reversal for a line billed from an ad-hoc VisitProcedure. */
+  async reverseVisitProcedureBillingTx(
+    tx: Prisma.TransactionClient,
+    visitProcedureId: string,
+    reason?: string,
+    actorUserId?: string | null,
+  ): Promise<ProcedureBillingReversal> {
+    return this.reverseLineBillingTx(
+      tx,
+      {
+        itemWhere: { visitProcedureId },
+        ledgerWhere: {
+          sourceType: InvoiceItemType.OTHER,
+          sourceId: visitProcedureId,
+        },
+      },
+      reason,
+      actorUserId,
+    );
+  }
+
+  private async reverseLineBillingTx(
+    tx: Prisma.TransactionClient,
+    match: {
+      itemWhere: Prisma.InvoiceItemWhereInput;
+      ledgerWhere: Prisma.LedgerEntryWhereInput;
+    },
+    reason?: string,
+    actorUserId?: string | null,
+  ): Promise<ProcedureBillingReversal> {
+    await tx.ledgerEntry.updateMany({
+      where: { ...match.ledgerWhere, status: { not: 'VOID' } },
       data: {
         status: 'VOID',
         notes: reason ? `Voided: ${reason}` : 'Procedure cancelled/removed',
       },
     });
 
+    const none: ProcedureBillingReversal = {
+      invoiceId: null,
+      invoiceNumber: null,
+      invoiceStatus: null,
+      glAdjusted: false,
+      refundDue: '0.00',
+      currency: null,
+    };
+
     const item = await tx.invoiceItem.findFirst({
-      where: { treatmentProcedureId },
+      where: { ...match.itemWhere, status: 'ACTIVE' },
+      orderBy: { createdAt: 'desc' },
       include: {
-        invoice: { select: { id: true, status: true, amountPaid: true } },
+        invoice: {
+          select: { id: true, invoiceNumber: true, status: true, currency: true },
+        },
       },
     });
-    if (!item) return { invoiceId: null };
+    if (!item) return none;
 
     // Whole invoice already void — nothing else to reverse.
     if (item.invoice.status === InvoiceStatus.VOID) {
-      return { invoiceId: null };
+      return { ...none, invoiceStatus: InvoiceStatus.VOID };
     }
 
     await tx.invoiceItem.update({
       where: { id: item.id },
       data: { status: 'VOID' },
     });
-    return { invoiceId: item.invoice.id };
+    await this.recalcInvoiceAtomicTx(tx, item.invoice.id, undefined, actorUserId ?? undefined);
+
+    let glAdjusted = false;
+    if (item.invoice.status === InvoiceStatus.POSTED) {
+      const entry = await this.glSync().syncInvoiceRevenueGl(item.invoice.id, tx, {
+        memo:
+          `Invoice ${item.invoice.invoiceNumber}: "${item.description}" reversed` +
+          (reason ? ` — ${reason}` : ''),
+        postedById: actorUserId ?? null,
+      });
+      glAdjusted = !!entry;
+    }
+
+    const after = await tx.invoice.findUnique({
+      where: { id: item.invoice.id },
+      select: { amountPaid: true, total: true },
+    });
+    const refundDue = after
+      ? M.max(M.sub(M.of(after.amountPaid), M.of(after.total)), 0)
+      : M.zero();
+
+    return {
+      invoiceId: item.invoice.id,
+      invoiceNumber: item.invoice.invoiceNumber,
+      invoiceStatus: item.invoice.status,
+      glAdjusted,
+      refundDue: M.str(M.money(refundDue)),
+      currency: item.invoice.currency,
+    };
+  }
+
+  // ── Bill an ad-hoc visit procedure, inside the caller's transaction ───────
+  //
+  // Visit procedures are priced in the clinic base currency. The line goes
+  // onto the visit's POSTED invoice when there is one (CHARGE ledger row +
+  // GL recognition now), otherwise onto the visit's DRAFT (created when
+  // missing) and is recognised at activation like every other draft line.
+  // Same transaction as the VisitProcedure insert, so a failure can never
+  // leave performed work unbilled or a bill without the work.
+  async addVisitProcedureItemTx(
+    tx: Prisma.TransactionClient,
+    params: {
+      patientId: string;
+      visitId: string;
+      visitProcedureId: string;
+      procedureId: string;
+      description: string;
+      quantity: number;
+      /** Base-currency amounts. */
+      unitPrice: Prisma.Decimal | number | string;
+      total: Prisma.Decimal | number | string;
+      toothNumbers: number[];
+      actorUserId?: string | null;
+    },
+  ): Promise<{ invoiceId: string; invoiceNumber: string; invoiceStatus: InvoiceStatus }> {
+    const baseCurrency = this.currency.getBaseCurrency();
+
+    let invoice =
+      (await tx.invoice.findFirst({
+        where: {
+          patientId: params.patientId,
+          visitId: params.visitId,
+          status: InvoiceStatus.POSTED,
+          deletedAt: null,
+        },
+        orderBy: { activatedAt: 'desc' },
+      })) ??
+      (await tx.invoice.findFirst({
+        where: {
+          patientId: params.patientId,
+          visitId: params.visitId,
+          status: InvoiceStatus.DRAFT,
+          deletedAt: null,
+        },
+        orderBy: { createdAt: 'desc' },
+      }));
+
+    if (!invoice) {
+      invoice = await tx.invoice.create({
+        data: {
+          invoiceNumber: await this.generateInvoiceNumber(tx),
+          patientId: params.patientId,
+          visitId: params.visitId,
+          status: InvoiceStatus.DRAFT,
+          currency: baseCurrency,
+          exchangeRate: 1,
+          baseCurrency,
+          subtotal: 0,
+          discountAmount: 0,
+          taxPercent: 0,
+          taxAmount: 0,
+          total: 0,
+          amountPaid: 0,
+          balance: 0,
+          baseSubtotal: 0,
+          baseDiscountAmount: 0,
+          baseTaxAmount: 0,
+          baseTotal: 0,
+          baseAmountPaid: 0,
+          baseBalance: 0,
+          createdById: params.actorUserId ?? null,
+          updatedById: params.actorUserId ?? null,
+        },
+      });
+    }
+
+    // Item amounts are stored in the invoice currency; the base snapshot
+    // (originalTotal × exchangeRate=1) is what recalc derives base totals from.
+    const toInv = M.of(invoice.currency === baseCurrency ? 1 : invoice.exchangeRate);
+    const unitBase = M.money(params.unitPrice);
+    const totalBase = M.money(params.total);
+
+    await tx.invoiceItem.create({
+      data: {
+        invoiceId: invoice.id,
+        description: params.description,
+        itemType: InvoiceItemType.OTHER,
+        procedureId: params.procedureId,
+        visitProcedureId: params.visitProcedureId,
+        quantity: params.quantity,
+        unitPrice: M.money(M.mul(unitBase, toInv)),
+        discount: 0,
+        total: M.money(M.mul(totalBase, toInv)),
+        toothNumbers: params.toothNumbers,
+        originalCurrency: baseCurrency,
+        originalUnitPrice: unitBase,
+        originalTotal: totalBase,
+        exchangeRate: 1,
+      },
+    });
+
+    if (invoice.status === InvoiceStatus.POSTED) {
+      await withUniqueCodeRetry(
+        () => this.generateLedgerEntryCode(tx),
+        (entryCode) =>
+          tx.ledgerEntry.create({
+            data: {
+              entryCode,
+              patientId: params.patientId,
+              visitId: params.visitId,
+              type: LedgerEntryType.CHARGE,
+              description: params.description,
+              sourceType: InvoiceItemType.OTHER,
+              sourceId: params.visitProcedureId,
+              quantity: params.quantity,
+              pricePerUnit: unitBase,
+              subtotalPrice: totalBase,
+              discountAmount: 0,
+              taxAmount: 0,
+              totalPrice: totalBase,
+              currency: baseCurrency,
+              baseCurrency,
+              baseAmount: totalBase,
+              status: 'INVOICED',
+            },
+          }),
+      );
+    }
+
+    await this.recalcInvoiceAtomicTx(tx, invoice.id, undefined, params.actorUserId ?? undefined);
+
+    if (invoice.status === InvoiceStatus.POSTED) {
+      await this.glSync().syncInvoiceRevenueGl(invoice.id, tx, {
+        memo: `Invoice ${invoice.invoiceNumber}: "${params.description}" added`,
+        postedById: params.actorUserId ?? null,
+      });
+    }
+
+    return {
+      invoiceId: invoice.id,
+      invoiceNumber: invoice.invoiceNumber,
+      invoiceStatus: invoice.status,
+    };
+  }
+
+  // ── Re-bill a treatment procedure after its cancellation is reversed ──────
+  //
+  // The cancel voided the procedure's line; restoring the procedure must put
+  // it back, or the work is never charged (the drift cron only looks for
+  // procedures with NO line at all, and a voided line counts as one).
+  //
+  //   active line exists            → nothing to do
+  //   VOID line on a DRAFT invoice  → line re-activated, invoice re-totalled
+  //   VOID line on a POSTED invoice → line re-activated, CHARGE ledger row
+  //                                   written, invoice re-totalled and the GL
+  //                                   recognition reconciled
+  //   no usable line (none, or the
+  //   invoice itself was voided)    → `needsNewItem` — the caller bills it
+  //                                   afresh after commit via addProcedureItem
+  async reinstateProcedureBillingTx(
+    tx: Prisma.TransactionClient,
+    treatmentProcedureId: string,
+    actorUserId?: string | null,
+  ): Promise<{ invoiceId: string | null; reinstated: boolean; needsNewItem: boolean }> {
+    const active = await tx.invoiceItem.findFirst({
+      where: {
+        treatmentProcedureId,
+        status: 'ACTIVE',
+        invoice: { status: { not: InvoiceStatus.VOID } },
+      },
+      select: { invoiceId: true },
+    });
+    if (active) {
+      return { invoiceId: active.invoiceId, reinstated: false, needsNewItem: false };
+    }
+
+    const item = await tx.invoiceItem.findFirst({
+      where: {
+        treatmentProcedureId,
+        status: 'VOID',
+        invoice: { status: { not: InvoiceStatus.VOID } },
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        invoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            status: true,
+            patientId: true,
+            visitId: true,
+            currency: true,
+            exchangeRate: true,
+          },
+        },
+      },
+    });
+    if (!item) {
+      return { invoiceId: null, reinstated: false, needsNewItem: true };
+    }
+
+    await tx.invoiceItem.update({
+      where: { id: item.id },
+      data: { status: 'ACTIVE' },
+    });
+    await this.recalcInvoiceAtomicTx(tx, item.invoice.id, undefined, actorUserId ?? undefined);
+
+    if (item.invoice.status === InvoiceStatus.POSTED) {
+      const baseCurrency = this.currency.getBaseCurrency();
+      const entryCurrency = item.originalCurrency ?? item.invoice.currency;
+      const rate = toNum(item.exchangeRate ?? item.invoice.exchangeRate ?? 1);
+      const originalTotal = M.of(item.originalTotal ?? item.total);
+      const baseAmt =
+        entryCurrency === baseCurrency ? originalTotal : M.mul(originalTotal, M.of(rate));
+
+      await withUniqueCodeRetry(
+        () => this.generateLedgerEntryCode(tx),
+        (entryCode) =>
+          tx.ledgerEntry.create({
+            data: {
+              entryCode,
+              patientId: item.invoice.patientId,
+              visitId: item.invoice.visitId ?? null,
+              type: LedgerEntryType.CHARGE,
+              description: item.description,
+              sourceType: InvoiceItemType.TREATMENT_PROCEDURE,
+              sourceId: treatmentProcedureId,
+              quantity: item.quantity,
+              pricePerUnit: toNum(item.unitPrice),
+              subtotalPrice: M.money(M.mul(M.of(item.unitPrice), M.of(item.quantity))),
+              discountAmount: toNum(item.discount ?? 0),
+              taxAmount: 0,
+              totalPrice: toNum(item.total),
+              currency: entryCurrency,
+              exchangeRate: rate !== 1 ? rate : null,
+              baseCurrency,
+              baseAmount: M.money(baseAmt),
+              notes: 'Reinstated after procedure restore',
+              status: 'INVOICED',
+            },
+          }),
+      );
+
+      await this.glSync().syncInvoiceRevenueGl(item.invoice.id, tx, {
+        memo: `Invoice ${item.invoice.invoiceNumber}: "${item.description}" reinstated`,
+        postedById: actorUserId ?? null,
+      });
+    }
+
+    return { invoiceId: item.invoice.id, reinstated: true, needsNewItem: false };
+  }
+
+  /** Re-total an invoice inside the caller's transaction (no-op when VOID). */
+  async recalcInvoiceTx(tx: Prisma.TransactionClient, invoiceId: string) {
+    const inv = await tx.invoice.findUnique({
+      where: { id: invoiceId },
+      select: { status: true },
+    });
+    if (!inv || inv.status === InvoiceStatus.VOID) return null;
+    return this.recalcInvoiceAtomicTx(tx, invoiceId);
   }
 
   // ── Recompute invoice totals after a structural change (post-commit) ───────
@@ -1661,8 +2145,9 @@ export class InvoiceLifecycleService {
   /** Resolve the revenue account for a TreatmentProcedure by its id. */
   private async revenueAccountIdForTreatmentProcedure(
     treatmentProcedureId: string,
+    db: Prisma.TransactionClient = this.prisma,
   ): Promise<string | null> {
-    const tp = await this.prisma.treatmentProcedure.findUnique({
+    const tp = await db.treatmentProcedure.findUnique({
       where: { id: treatmentProcedureId },
       select: {
         procedure: {

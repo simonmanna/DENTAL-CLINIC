@@ -1,5 +1,5 @@
 // src/treatment-plans/dto/pricing-calculation.dto.ts
-import { IsString, IsNumber, IsOptional, IsArray, IsInt } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsArray, IsInt, IsIn, Min, Max } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger'; // Optional, if using Swagger
 
 export class PricingCalculationDto {
@@ -17,11 +17,24 @@ export class PricingCalculationDto {
   @IsInt()
   quantityBasis?: number;
 
-  @ApiProperty({ description: 'Procedure currency (USD or UGX)', example: 'UGX' })
-  @IsString()
-  currency: string;
+  @ApiProperty({ description: 'SINGLE | MULTI (PER_SESSION pricing)', required: false })
+  @IsOptional()
+  @IsIn(['SINGLE', 'MULTI'])
+  sessionType?: string;
 
-  @ApiProperty({ description: 'Exchange rate if currency is USD', required: false, example: 3700 })
+  @ApiProperty({ description: 'Planned sessions (MULTI)', required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(20)
+  sessionCount?: number;
+
+  /** Ignored — the procedure's catalogue currency is used. Kept for old clients. */
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  /** Ignored — the clinic exchange rate is used. Kept for old clients. */
   @IsOptional()
   @IsNumber()
   exchangeRate?: number;

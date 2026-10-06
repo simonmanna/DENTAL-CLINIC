@@ -27,12 +27,16 @@ describe('ChartEntryController', () => {
 
   it('createEntry falls back to JWT staffId when no providerId in body', () => {
     controller.createEntry({ patientId: 'p1' } as any, req);
-    expect(service.createEntry).toHaveBeenCalledWith({ patientId: 'p1', providerId: 'staff-1' });
+    expect(service.createEntry).toHaveBeenCalledWith(
+      { patientId: 'p1', providerId: 'staff-1' }, 'user-1', null, null,
+    );
   });
 
   it('createEntry prefers an explicit providerId in the body', () => {
     controller.createEntry({ patientId: 'p1', providerId: 'explicit' } as any, req);
-    expect(service.createEntry).toHaveBeenCalledWith({ patientId: 'p1', providerId: 'explicit' });
+    expect(service.createEntry).toHaveBeenCalledWith(
+      { patientId: 'p1', providerId: 'explicit' }, 'user-1', null, null,
+    );
   });
 
   it('quickAction injects the JWT staff as provider fallback AND forwards the actor id', () => {

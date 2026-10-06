@@ -312,7 +312,7 @@ export const treatmentPlansApi = {
       notes?: string;
       phase?: string;
       reason?: string;
-      editedById?: string;
+      // No editedById: the server records the authenticated user.
       // ── newly editable execution fields ────────────────────────────────
       performedDate?: string;
       providerId?: string;
@@ -339,7 +339,7 @@ export const treatmentPlansApi = {
     planId: string,
     procedureId: string,
     sessionId: string,
-    data: { reason: string; deletedById?: string }
+    data: { reason: string }
   ): Promise<any> => {
     const res = await api.delete(
       `/treatment-plans/${planId}/procedures/${procedureId}/sessions/${sessionId}`,
@@ -354,11 +354,11 @@ export const treatmentPlansApi = {
     planId: string,
     procedureId: string,
     sessionId: string,
-    data: { reason: string; voidedById?: string }
+    data: { reason: string }
   ): Promise<any> => {
     const res = await api.delete(
       `/treatment-plans/${planId}/procedures/${procedureId}/sessions/${sessionId}`,
-      { data: { reason: data.reason, deletedById: data.voidedById } }
+      { data: { reason: data.reason } }
     );
     return res.data;
   },

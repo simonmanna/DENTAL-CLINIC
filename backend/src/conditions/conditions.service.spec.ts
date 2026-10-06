@@ -237,6 +237,7 @@ describe('ConditionsService', () => {
       prisma.condition.findUnique.mockResolvedValue({
         id: 'c1', name: 'Caries', requiresSurface: true, isToothSpecific: true,
       });
+      prisma.patient.findUnique.mockResolvedValue({ id: 'p1' });
       // Absence detection — tooth 16 is recorded absent.
       prisma.patientCondition.findMany.mockResolvedValue([{ toothNumber: 16 }]);
       await expect(
@@ -319,6 +320,7 @@ describe('ConditionsService', () => {
       prisma.condition.findMany.mockResolvedValue([
         { id: 'c1', name: 'Caries', requiresSurface: true, isToothSpecific: true },
       ]);
+      prisma.patient.findUnique.mockResolvedValue({ id: 'p1' });
       // Absence detection — tooth 16 is recorded absent.
       prisma.patientCondition.findMany.mockResolvedValue([{ toothNumber: 16 }]);
       await expect(
@@ -452,17 +454,17 @@ describe('ConditionsService', () => {
 
       await service.updatePatientCondition(
         'pc1',
-        { surfaces: ['MESIAL', 'OCCLUSAL', 'DISTAL'] } as any,
+        { surfaces: ['MESIAL', 'OCCLUSAL', 'DISTAL'], editReason: 'extent re-assessed' } as any,
         'user-1',
       );
 
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
 
-      // 1) Prior ACTIVE chart entries for this PC must be SUPERSEDED.
+      // 1) Prior live chart entries for this PC must be SUPERSEDED.
       const supersedeArg = prisma.chartEntry.updateMany.mock.calls[0][0];
       expect(supersedeArg.where).toMatchObject({
         patientConditionId: 'pc1',
-        status: 'ACTIVE',
+        status: { in: ['ACTIVE', 'RESOLVED'] },
       });
       expect(supersedeArg.data.status).toBe('SUPERSEDED');
 
@@ -505,6 +507,61 @@ describe('ConditionsService', () => {
     });
   });
 
+  describe('updatePatientCondition — reason + status rules', () => {
+    const existing = {
+      id: 'pc1', patientId: 'p1', conditionId: 'c1', toothNumber: 16,
+      surfaces: ['OCCLUSAL'], severity: null, status: 'ACTIVE',
+      notes: 'note', providerId: 's1', visitId: null,
+      diagnosedAt: new Date('2026-09-01T08:00:00Z'), resolvedAt: null,
+    };
+    const updatedRow = (over: Record<string, unknown> = {}) => ({
+      ...existing,
+      condition: { name: 'Caries', icd10Code: 'K02.9' },
+      ...over,
+    });
+
+    it('requires a reason when a clinical field really changes', async () => {
+      prisma.patientCondition.findFirst.mockResolvedValue(existing);
+      await expect(
+        service.updatePatientCondition('pc1', { notes: 'different' } as any, 'user-1'),
+      ).rejects.toThrow(/reason is required to change notes/);
+    });
+
+    it('lets an unchanged full payload + status flip through without a reason', async () => {
+      prisma.patientCondition.findFirst.mockResolvedValue(existing);
+      prisma.patientCondition.update.mockResolvedValue(updatedRow({ status: 'RULED_OUT' }));
+      prisma.staff.findUnique.mockResolvedValue({ id: 's1' });
+      prisma.chartEntry.create.mockResolvedValue({ id: 'ce-new' });
+
+      await service.updatePatientCondition(
+        'pc1',
+        {
+          conditionId: 'c1', toothNumber: 16, surfaces: ['OCCLUSAL'],
+          notes: 'note', providerId: 's1', diagnosedAt: '2026-09-01',
+          status: 'RULED_OUT',
+        } as any,
+        'user-1',
+      );
+
+      // diagnosedAt not rewritten when unchanged.
+      const data = prisma.patientCondition.update.mock.calls.at(-1)[0].data;
+      expect(data.diagnosedAt).toBeUndefined();
+      expect(data.resolvedAt).toBeNull();
+      // A ruled-out diagnosis no longer paints the tooth.
+      expect(prisma.chartEntry.create.mock.calls[0][0].data.status).toBe('RESOLVED');
+    });
+
+    it('stamps resolvedAt when the status becomes RESOLVED', async () => {
+      prisma.patientCondition.findFirst.mockResolvedValue(existing);
+      prisma.patientCondition.update.mockResolvedValue(updatedRow({ status: 'RESOLVED' }));
+      prisma.chartEntry.create.mockResolvedValue({ id: 'ce-new' });
+
+      await service.updatePatientCondition('pc1', { status: 'RESOLVED' } as any, 'user-1');
+      const data = prisma.patientCondition.update.mock.calls.at(-1)[0].data;
+      expect(data.resolvedAt).toBeInstanceOf(Date);
+    });
+  });
+
   describe('createPatientConditionsBatch', () => {
     it('rejects an empty batch', async () => {
       await expect(service.createPatientConditionsBatch([], [])).rejects.toBeInstanceOf(
@@ -522,6 +579,7 @@ describe('ConditionsService', () => {
     });
 
     it('creates each PatientCondition + paired ChartEntry atomically', async () => {
+      prisma.patient.findUnique.mockResolvedValue({ id: 'p1' });
       prisma.condition.findMany.mockResolvedValue([
         { id: 'c1', name: 'Caries', requiresSurface: false, isToothSpecific: true },
       ]);
@@ -548,6 +606,56 @@ describe('ConditionsService', () => {
       expect(prisma.chartEntry.create).toHaveBeenCalledTimes(2);
       expect(out.patientConditions).toHaveLength(2);
       expect(out.chartEntries).toHaveLength(2);
+    });
+
+    it('takes the chart rows\' patient from the conditions, not from the client', async () => {
+      prisma.patient.findUnique.mockResolvedValue({ id: 'p1' });
+      prisma.condition.findMany.mockResolvedValue([
+        { id: 'c1', name: 'Caries', requiresSurface: false, isToothSpecific: true },
+      ]);
+      prisma.patientCondition.create.mockResolvedValue({
+        id: 'pc1', patientId: 'p1', visitId: null, conditionId: 'c1', toothNumber: 11, surfaces: [], status: 'ACTIVE',
+      });
+      prisma.chartEntry.create.mockResolvedValue({ id: 'ce1' });
+
+      await service.createPatientConditionsBatch(
+        [{ patientId: 'p1', conditionId: 'c1', toothNumber: 11 } as any],
+        [{ patientId: 'OTHER', visitId: 'v-other', toothNumber: 11, surfaces: [], label: 'Caries', conditionId: 'c1' }],
+        'user-1',
+      );
+      const data = prisma.chartEntry.create.mock.calls[0][0].data;
+      expect(data.patientId).toBe('p1');
+      expect(data.visitId).toBeNull();
+    });
+
+    it('rejects a batch spanning two patients', async () => {
+      await expect(
+        service.createPatientConditionsBatch(
+          [
+            { patientId: 'p1', conditionId: 'c1', toothNumber: 11 } as any,
+            { patientId: 'p2', conditionId: 'c1', toothNumber: 12 } as any,
+          ],
+          [],
+        ),
+      ).rejects.toThrow(/exactly one patient/);
+    });
+
+    it('refuses to record into a cancelled visit', async () => {
+      prisma.patient.findUnique.mockResolvedValue({ id: 'p1' });
+      prisma.condition.findMany.mockResolvedValue([
+        { id: 'c1', name: 'Caries', requiresSurface: false, isToothSpecific: true },
+      ]);
+      prisma.visit.findUnique.mockResolvedValue({
+        id: 'v1', patientId: 'p1', dentistId: 'd1', status: 'CANCELLED',
+      });
+      await expect(
+        service.createPatientConditionsBatch(
+          [{ patientId: 'p1', visitId: 'v1', conditionId: 'c1', toothNumber: 11 } as any],
+          [],
+          'user-1',
+        ),
+      ).rejects.toThrow(/cancelled visit/);
+      expect(prisma.patientCondition.create).not.toHaveBeenCalled();
     });
   });
 
@@ -681,6 +789,60 @@ describe('ConditionsService', () => {
       expect(arg.data.resolvedAt).toEqual(new Date('2024-01-15'));
       expect(arg.data.resolvedByProcedureId).toBe('procB');
     });
+
+    it('syncs only its own chart rows — the same diagnosis on another tooth is untouched', async () => {
+      prisma.patientCondition.findUnique.mockResolvedValue({
+        id: 'pc16',
+        patientId: 'p1',
+        conditionId: 'cond-caries',
+        status: 'IN_TREATMENT',
+        deletedAt: null,
+        condition: { chartPresenceEffect: 'NONE', autoResolves: true, name: 'Caries' },
+      });
+      prisma.conditionProcedureLink.findMany.mockResolvedValue([
+        {
+          treatmentProcedure: {
+            id: 'proc16',
+            status: 'COMPLETED',
+            completedAt: new Date('2024-02-01'),
+            updatedAt: new Date('2024-02-01'),
+          },
+        },
+      ]);
+      prisma.patientCondition.update.mockResolvedValue({ id: 'pc16' });
+
+      await (service as any).applyConditionLifecycleTx(prisma, 'pc16', 'user-1');
+
+      const where = prisma.chartEntry.updateMany.mock.calls[0][0].where;
+      expect(where.OR).toEqual([
+        { patientConditionId: 'pc16' },
+        // Legacy match must exclude rows owned by another PatientCondition
+        // (e.g. caries on tooth 26 → pc26).
+        { conditionId: 'cond-caries', patientId: 'p1', patientConditionId: null },
+      ]);
+    });
+  });
+
+  describe('resolvePatientCondition — chart row scope', () => {
+    it('never resolves chart rows linked to a different PatientCondition', async () => {
+      prisma.patientCondition.findFirst.mockResolvedValue({
+        id: 'pc16',
+        patientId: 'p1',
+        status: 'ACTIVE',
+      });
+      prisma.patientCondition.update.mockResolvedValue({ id: 'pc16', status: 'RESOLVED' });
+      prisma.patientCondition.findUnique.mockResolvedValue({ conditionId: 'cond-caries' });
+
+      await service.resolvePatientCondition('pc16', 'user-1');
+
+      const where = prisma.chartEntry.updateMany.mock.calls[0][0].where;
+      expect(where.OR).toContainEqual({
+        conditionId: 'cond-caries',
+        patientId: 'p1',
+        patientConditionId: null,
+      });
+      expect(where.OR).not.toContainEqual({ conditionId: 'cond-caries', patientId: 'p1' });
+    });
   });
 
   // ── OL-1: optimistic-lock token on PatientCondition ──────────────────────
@@ -727,7 +889,7 @@ describe('ConditionsService', () => {
       await expect(
         service.updatePatientCondition(
           'pc1',
-          { notes: 'new', expectedVersion: 6 } as any,
+          { notes: 'new', expectedVersion: 6, editReason: 'typo' } as any,
           'user-1',
         ),
       ).rejects.toMatchObject({
@@ -761,7 +923,7 @@ describe('ConditionsService', () => {
       await expect(
         service.updatePatientCondition(
           'pc1',
-          { notes: 'new', expectedVersion: 7 } as any,
+          { notes: 'new', expectedVersion: 7, editReason: 'typo' } as any,
           'user-1',
         ),
       ).resolves.toMatchObject({ id: 'pc1', version: 8 });
@@ -789,7 +951,7 @@ describe('ConditionsService', () => {
       prisma.chartEntry.create.mockResolvedValue({ id: 'ce-new' });
 
       await service.updatePatientCondition(
-        'pc1', { notes: 'new' } as any, 'user-1',
+        'pc1', { notes: 'new', editReason: 'typo' } as any, 'user-1',
       );
 
       // First call was the unconditional version bump (legacy compat path).

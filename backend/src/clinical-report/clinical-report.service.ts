@@ -904,6 +904,28 @@ export class ClinicalReportsService {
             _count: true,
         });
 
+        // Visit money from the visit's invoices (base currency) — the visit
+        // columns were only fed by legacy VisitProcedure lines.
+        const moneyRows = visits.length
+            ? await this.prisma.invoice.groupBy({
+                by: ['visitId'],
+                where: {
+                    visitId: { in: visits.map((v) => v.id) },
+                    status: { not: 'VOID' },
+                    deletedAt: null,
+                },
+                _sum: { baseTotal: true, baseAmountPaid: true },
+            })
+            : [];
+        const money = new Map(
+            moneyRows.map((r) => [
+                r.visitId as string,
+                { billed: toNum(r._sum.baseTotal), paid: toNum(r._sum.baseAmountPaid) },
+            ]),
+        );
+        const billedOf = (id: string) => money.get(id)?.billed ?? 0;
+        const paidOf = (id: string) => money.get(id)?.paid ?? 0;
+
         const rows = visits.map((v) => ({
             visitId: v.id,
             visitCode: v.visitCode,
@@ -915,10 +937,17 @@ export class ClinicalReportsService {
             dentistName: `Dr. ${v.dentist.firstName} ${v.dentist.lastName}`,
             dentistSpecialization: v.dentist.specialization,
             status: v.status,
-            paymentStatus: v.paymentStatus,
-            totalCost: toNum(v.totalCost),
-            amountPaid: toNum(v.amountPaid),
-            balance: toNum(v.totalCost) - toNum(v.amountPaid),
+            paymentStatus:
+                billedOf(v.id) <= 0
+                    ? 'OPEN'
+                    : paidOf(v.id) + 0.01 >= billedOf(v.id)
+                        ? 'PAID'
+                        : paidOf(v.id) > 0
+                            ? 'PARTIALLY_PAID'
+                            : 'UNPAID',
+            totalCost: billedOf(v.id),
+            amountPaid: paidOf(v.id),
+            balance: Math.max(0, billedOf(v.id) - paidOf(v.id)),
             diagnosis: v.diagnosis,
             icdCodes: v.icdCodes,
             procedureCount: v.procedures.length,
@@ -999,9 +1028,13 @@ export class ClinicalReportsService {
                     }),
                     this.prisma.treatmentPlan.count({ where: { dentistId: d.id, createdAt: { gte: startDate, lte: endDate } } }),
                     this.prisma.treatmentPlan.count({ where: { dentistId: d.id, status: TreatmentStatus.COMPLETED, createdAt: { gte: startDate, lte: endDate } } }),
-                    this.prisma.visit.aggregate({
-                        where: { dentistId: d.id, status: 'COMPLETED', createdAt: { gte: startDate, lte: endDate } },
-                        _sum: { totalCost: true, amountPaid: true },
+                    this.prisma.invoice.aggregate({
+                        where: {
+                            visit: { dentistId: d.id, status: 'COMPLETED', createdAt: { gte: startDate, lte: endDate } },
+                            status: { not: 'VOID' },
+                            deletedAt: null,
+                        },
+                        _sum: { baseTotal: true, baseAmountPaid: true },
                     }),
                 ]);
 
@@ -1018,8 +1051,8 @@ export class ClinicalReportsService {
                     totalPlans,
                     completedPlans,
                     planCompletionRate: totalPlans > 0 ? Math.round((completedPlans / totalPlans) * 100) : 0,
-                    totalRevenue: toNum(revenueData._sum.totalCost),
-                    totalCollected: toNum(revenueData._sum.amountPaid),
+                    totalRevenue: toNum(revenueData._sum.baseTotal),
+                    totalCollected: toNum(revenueData._sum.baseAmountPaid),
                 };
             }),
         );

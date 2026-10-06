@@ -1116,6 +1116,20 @@ export function VisitBillingPage() {
     enabled: !!visitId,
   });
 
+  // Charges are billed where the work was planned (bill-at-plan), so a
+  // patient can owe on invoices of earlier visits. Show them here too.
+  const { data: patientInvoicesData } = useQuery<InvoiceListResponse>({
+    queryKey: ["billing-invoices", "patient", patientId],
+    queryFn: () => billingApi.getInvoices({ patientId: patientId!, limit: 100 }),
+    enabled: !!patientId,
+  });
+  const otherOpenInvoices: Invoice[] = (patientInvoicesData?.data ?? []).filter(
+    (inv) =>
+      inv.visitId !== visitId &&
+      inv.status !== "VOID" &&
+      (inv.status === "DRAFT" || Number(inv.balance ?? 0) > 0.009),
+  );
+
   const { data: rateData } = useQuery<{
     from: string;
     to: string;
@@ -1783,6 +1797,51 @@ export function VisitBillingPage() {
 
       {/* ── Main content — single-column invoice document ────────────── */}
       <div className="flex-1 overflow-y-auto p-1">
+        {otherOpenInvoices.length > 0 && (
+          <div className="max-w-7xl mx-auto mb-2 rounded-xl border border-warning/30 bg-warning-muted/40 px-5 py-3">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="w-4 h-4 text-warning" />
+              <p className="text-sm font-semibold text-foreground">
+                Other open charges for this patient
+              </p>
+              <span className="text-xs text-muted-foreground">
+                (billed on earlier visits — collect or settle them too)
+              </span>
+            </div>
+            <div className="divide-y divide-border/60">
+              {otherOpenInvoices.map((inv) => (
+                <div
+                  key={inv.id}
+                  className="flex items-center gap-3 py-1.5 text-sm"
+                >
+                  <span className="font-mono text-xs">{inv.invoiceNumber}</span>
+                  <span className="px-1.5 py-0.5 rounded bg-muted text-[11px] font-semibold text-muted-foreground">
+                    {getDisplayStatus(inv.status)}
+                  </span>
+                  <span className="text-muted-foreground text-xs">
+                    {new Date((inv as any).createdAt ?? Date.now()).toLocaleDateString()}
+                  </span>
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    Total {formatCurrency(inv.total, inv.currency)}
+                  </span>
+                  <span className="text-xs font-semibold text-foreground">
+                    Balance {formatCurrency(inv.balance, inv.currency)}
+                  </span>
+                  {inv.visitId && (
+                    <button
+                      onClick={() =>
+                        navigate(`/VisitBillingPage/${inv.visitId}/${patientId}`)
+                      }
+                      className="text-xs font-semibold text-primary hover:underline"
+                    >
+                      Open
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {selectedInvoice ? (
           <div className="max-w-7xl mx-auto bg-white rounded-xl border border-border shadow-sm overflow-hidden">
             {/* ── HEADER ──────────────────────────────────────────────── */}
@@ -1793,6 +1852,19 @@ export function VisitBillingPage() {
                     <span>Customer Invoice: </span>{" "}
                     {selectedInvoice.invoiceNumber}
                   </h2>
+                  {/* A cancelled procedure on a paid invoice can leave the
+                      patient in credit — the cashier refunds it here. */}
+                  {Number(selectedInvoice.amountPaid ?? 0) >
+                    Number(selectedInvoice.total ?? 0) + 0.009 && (
+                    <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded border border-warning/40 bg-warning-muted/60 text-xs font-semibold text-warning">
+                      <AlertTriangle className="w-3 h-3" />
+                      Refund due{" "}
+                      {formatCurrency(
+                        Number(selectedInvoice.amountPaid) - Number(selectedInvoice.total),
+                        selectedInvoice.currency,
+                      )}
+                    </span>
+                  )}
                   {/* <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <span
                       className={cn(

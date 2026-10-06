@@ -51,9 +51,11 @@ export const progressApi = {
   update: (reportId: string, data: ProgressReportFormData) =>
     api.patch<ProgressReport>(`/visits/progress-reports/${reportId}`, data).then((r) => r.data),
 
-  /** Delete a progress report */
-  delete: (reportId: string) =>
-    api.delete<void>(`/visits/progress-reports/${reportId}`).then((r) => r.data),
+  /** Soft-delete a progress report (reason required — audit trail) */
+  delete: (reportId: string, reason: string) =>
+    api
+      .delete<void>(`/visits/progress-reports/${reportId}`, { data: { reason } })
+      .then((r) => r.data),
 
   /** Get treatment plans for a patient */
   getPatientTreatmentPlans: (patientId: string) =>

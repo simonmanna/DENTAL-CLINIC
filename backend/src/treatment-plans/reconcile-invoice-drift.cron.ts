@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { TreatmentPlansService } from './treatment-plans.service';
+import { PrismaService } from '../prisma/prisma.service';
+
+/** Advisory-lock key for this job (any stable 64-bit number). */
+const DRIFT_LOCK_KEY = 7_301_006_120_000;
 
 /**
  * Periodic safety net for the billing-drift window between
@@ -18,6 +22,11 @@ import { TreatmentPlansService } from './treatment-plans.service';
  *   • repaired: how many were recovered this run
  *   • stillFailing: ids the auto-repair could not fix (logged at ERROR)
  *
+ * Since addProcedure bills inside its own transaction this is a pure safety
+ * net. Every app instance schedules it, so the run is guarded by a
+ * transaction-scoped Postgres advisory lock: one instance sweeps, the others
+ * skip (two concurrent sweeps could otherwise race to bill the same line).
+ *
  * The same endpoint is also exposed to admins as
  *   POST /treatment-plans/:id/procedures/reconcile-invoices
  * for on-demand recovery.
@@ -26,11 +35,32 @@ import { TreatmentPlansService } from './treatment-plans.service';
 export class ReconcileInvoiceDriftCron {
   private readonly logger = new Logger(ReconcileInvoiceDriftCron.name);
 
-  constructor(private readonly plans: TreatmentPlansService) {}
+  constructor(
+    private readonly plans: TreatmentPlansService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Cron('*/15 * * * *')
   async run() {
     try {
+      // The lock lives as long as this transaction; the sweep itself runs on
+      // other pooled connections.
+      await this.prisma.$transaction(
+        async (tx) => {
+          const rows = await tx.$queryRaw<Array<{ locked: boolean }>>`
+            SELECT pg_try_advisory_xact_lock(${DRIFT_LOCK_KEY}::bigint) AS locked`;
+          if (!rows?.[0]?.locked) return;
+          await this.sweep();
+        },
+        { maxWait: 5000, timeout: 10 * 60 * 1000 },
+      );
+    } catch (err) {
+      this.logger.error(`[invoice-drift] cron error: ${err}`);
+    }
+  }
+
+  private async sweep() {
+    {
       const result = await this.plans.reconcileMissingInvoiceItems();
       if (result.scanned > 0 || result.repaired > 0) {
         this.logger.log(
@@ -44,8 +74,6 @@ export class ReconcileInvoiceDriftCron {
           `[invoice-drift] still failing after retry: ${result.stillFailing.join(', ')}`,
         );
       }
-    } catch (err) {
-      this.logger.error(`[invoice-drift] cron error: ${err}`);
     }
   }
 }

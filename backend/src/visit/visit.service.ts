@@ -29,9 +29,11 @@
 import {
   Injectable,
   Logger,
+  Optional,
   ForbiddenException,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -47,6 +49,11 @@ import { M } from '../common/money/money';
 import { PricingEngine } from '../common/pricing/pricing.engine';
 import { dayRange } from '../common/time/clinic-day';
 import { assertVisitTransition, isVisitOpen } from './visit-status';
+import { assertVisitWritableTx, checkClinicalWrite } from './visit-guard';
+import { InvoiceLifecycleService } from '../billing/invoice-lifecycle.service';
+import { StockMovementService } from '../common/inventory/stock-movement.service';
+import { assertFdiTooth, assertSurfaces } from '../common/dental/dental-validation';
+import { assertToothPresence } from '../common/dental/tooth-presence';
 
 import {
   IsString,
@@ -136,6 +143,28 @@ export class AddProcedureDto {
   @IsOptional() @IsNumber() @Min(0) cost?: number;
   @IsOptional() @IsBoolean() isPriceOverridden?: boolean;
   @IsOptional() @IsString() @MaxLength(1000) overrideReason?: string;
+
+  /** Consumables drawn from stock for this procedure. */
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => VisitProcedureStockUseDto)
+  inventoryUsages?: VisitProcedureStockUseDto[];
+
+  /** Required when the visit is already COMPLETED (amendment). */
+  @IsOptional() @IsString() @MaxLength(1000) amendmentReason?: string;
+}
+
+export class VisitProcedureStockUseDto {
+  @IsString() @IsNotEmpty() inventoryItemId: string;
+  @IsString() @IsNotEmpty() locationId: string;
+  @IsNumber() @Min(0.0001) quantityUsed: number;
+  @IsOptional() @IsString() @MaxLength(100) batchNumber?: string;
+  @IsOptional() @IsString() @MaxLength(1000) notes?: string;
+}
+
+export class RemoveVisitProcedureDto {
+  @IsString() @IsNotEmpty() @MaxLength(1000) reason: string;
 }
 
 export class PrescriptionItemDto {
@@ -177,6 +206,8 @@ export class VisitsService {
   constructor(
     private prisma: PrismaService,
     private docNum: DocumentNumberService,
+    @Optional() private invoiceLifecycle?: InvoiceLifecycleService,
+    @Optional() private stock?: StockMovementService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -206,32 +237,8 @@ export class VisitsService {
     amendmentReason: string | undefined,
     what: string,
   ): { isAmendment: boolean } {
-    if (isVisitOpen(visit.status)) return { isAmendment: false };
-
-    if (visit.status === VisitStatus.CANCELLED) {
-      throw new BadRequestException(
-        `Cannot change ${what} on a cancelled visit. Record a new visit instead.`,
-      );
-    }
-
-    // COMPLETED from here on.
-    const isAdmin =
-      actor?.role === UserRole.SUPER_ADMIN || actor?.role === UserRole.ADMIN;
-    const isTreatingDentist =
-      !!actor?.staffId && actor.staffId === visit.dentistId;
-
-    if (!isAdmin && !isTreatingDentist) {
-      throw new ForbiddenException(
-        `This visit is completed. Only the treating dentist or an administrator may amend ${what}.`,
-      );
-    }
-    if (!amendmentReason?.trim()) {
-      throw new BadRequestException(
-        `This visit is completed. Provide amendmentReason to amend ${what} — ` +
-          'the original values and the reason are kept in the audit trail.',
-      );
-    }
-    return { isAmendment: true };
+    // Shared with every other clinical write that names a visit.
+    return checkClinicalWrite(visit, actor, amendmentReason, what);
   }
 
   private async writeAudit(
@@ -246,25 +253,22 @@ export class VisitsService {
       reason?: string;
     },
   ): Promise<void> {
-    try {
-      await client.auditLog.create({
-        data: {
-          userId: entry.actorId ?? null,
-          action: entry.action,
-          module: 'VISITS',
-          entityType: entry.entityType ?? 'Visit',
-          recordId: entry.recordId,
-          oldData: (entry.oldData ?? undefined) as Prisma.InputJsonValue,
-          newData: (entry.newData ?? undefined) as Prisma.InputJsonValue,
-          reason: entry.reason,
-        },
-      });
-    } catch (err) {
-      this.logger.error(
-        `Audit write failed for visit ${entry.recordId} (${entry.action})`,
-        err as Error,
-      );
-    }
+    // Every caller passes its transaction client. A failed INSERT aborts the
+    // Postgres transaction anyway, so swallowing the error here only turned
+    // it into a confusing "current transaction is aborted" further on (or a
+    // committed change with no audit row). Let it fail the transaction.
+    await client.auditLog.create({
+      data: {
+        userId: entry.actorId ?? null,
+        action: entry.action,
+        module: 'VISITS',
+        entityType: entry.entityType ?? 'Visit',
+        recordId: entry.recordId,
+        oldData: (entry.oldData ?? undefined) as Prisma.InputJsonValue,
+        newData: (entry.newData ?? undefined) as Prisma.InputJsonValue,
+        reason: entry.reason,
+      },
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -381,13 +385,17 @@ export class VisitsService {
     assertVisitTransition(visit.status, VisitStatus.IN_PROGRESS);
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      const row = await tx.visit.update({
-        where: { id: visitId },
+      // Conditional on the status we validated, so two racing requests (or a
+      // racing cancel) cannot both apply.
+      const res = await tx.visit.updateMany({
+        where: { id: visitId, status: visit.status },
         data: {
           status: VisitStatus.IN_PROGRESS,
           startedAt: visit.startedAt ?? new Date(),
         },
       });
+      if (res.count === 0) throw this.concurrentChange();
+      const row = (await tx.visit.findUnique({ where: { id: visitId } }))!;
       await this.writeAudit(tx, {
         action: 'START_EXAMINATION',
         recordId: visitId,
@@ -420,32 +428,25 @@ export class VisitsService {
       throw new BadRequestException('Invalid followUpDate');
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      // Heal any drift between the visit total and its procedure lines before
-      // the record closes — this is the figure billing reads afterwards.
-      const procedures = await tx.visitProcedure.findMany({
-        where: { visitId },
-        select: { cost: true },
-      });
-      const totalCost = procedures.reduce(
-        (sum, p) => M.add(sum, p.cost),
-        M.zero(),
-      );
-      const amountPaid = M.of(visit.amountPaid);
-      const paymentStatus = this.derivePaymentStatus(totalCost, amountPaid);
-
-      const completedVisit = await tx.visit.update({
-        where: { id: visitId },
+    const completed = await this.prisma.$transaction(async (tx) => {
+      // Money for a visit lives on its invoices (treatment procedures and
+      // visit procedures both bill there). The visit's own totalCost column
+      // is no longer overwritten here — it used to be reset to the sum of the
+      // legacy VisitProcedure lines, i.e. to 0 for every modern visit.
+      const res = await tx.visit.updateMany({
+        where: { id: visitId, status: visit.status },
         data: {
           status: VisitStatus.COMPLETED,
           completedAt: new Date(),
-          totalCost,
-          paymentStatus,
           followUpDate,
           followUpNotes: dto.followUpNotes,
           recommendations: dto.recommendations,
         },
       });
+      if (res.count === 0) throw this.concurrentChange();
+      const completedVisit = (await tx.visit.findUnique({
+        where: { id: visitId },
+      }))!;
 
       if (visit.appointmentId) {
         await tx.appointment.update({
@@ -462,16 +463,75 @@ export class VisitsService {
         action: 'COMPLETE',
         recordId: visitId,
         actorId: actor?.id,
-        oldData: { status: visit.status, totalCost: M.str(visit.totalCost) },
-        newData: {
-          status: VisitStatus.COMPLETED,
-          totalCost: M.str(totalCost),
-          paymentStatus,
-        },
+        oldData: { status: visit.status },
+        newData: { status: VisitStatus.COMPLETED, followUpDate },
       });
 
       return completedVisit;
     });
+
+    // Non-blocking hand-off checks for the front desk.
+    const [openSessions, draftInvoices] = await Promise.all([
+      this.prisma.procedureSession.count({
+        where: {
+          visitId,
+          deletedAt: null,
+          status: { in: ['PENDING', 'IN_PROGRESS'] },
+        },
+      }),
+      this.prisma.invoice.count({
+        where: { visitId, status: 'DRAFT', deletedAt: null },
+      }),
+    ]);
+    return { ...completed, warnings: { openSessions, draftInvoices } };
+  }
+
+  /**
+   * What a visit already holds. Used to refuse cancelling an encounter that
+   * has clinical or billing records — those visits are completed (and
+   * credited / corrected) instead, so nothing is orphaned.
+   */
+  async getVisitRecordCounts(visitId: string) {
+    const [
+      procedures,
+      sessions,
+      chartEntries,
+      conditions,
+      progressReports,
+      prescriptions,
+      invoices,
+    ] = await Promise.all([
+      this.prisma.visitProcedure.count({ where: { visitId, deletedAt: null } }),
+      this.prisma.procedureSession.count({
+        where: {
+          visitId,
+          deletedAt: null,
+          status: { notIn: ['VOIDED', 'CANCELLED'] },
+        },
+      }),
+      this.prisma.chartEntry.count({ where: { visitId, status: 'ACTIVE' } }),
+      this.prisma.patientCondition.count({ where: { visitId, deletedAt: null } }),
+      this.prisma.progressReport.count({ where: { visitId, deletedAt: null } }),
+      this.prisma.prescription.count({ where: { visitId } }),
+      this.prisma.invoice.count({
+        where: { visitId, status: { not: 'VOID' }, deletedAt: null, items: { some: { status: 'ACTIVE' } } },
+      }),
+    ]);
+    return {
+      procedures,
+      sessions,
+      chartEntries,
+      conditions,
+      progressReports,
+      prescriptions,
+      invoices,
+    };
+  }
+
+  private concurrentChange() {
+    return new ConflictException(
+      'This visit was changed by another request. Reload and try again.',
+    );
   }
 
   /**
@@ -486,28 +546,33 @@ export class VisitsService {
 
     const visit = await this.prisma.visit.findUnique({
       where: { id: visitId },
-      include: {
-        appointment: { select: { id: true, status: true } },
-        _count: { select: { procedures: true, prescriptions: true } },
-      },
+      include: { appointment: { select: { id: true, status: true } } },
     });
     if (!visit) throw new NotFoundException('Visit not found');
     assertVisitTransition(visit.status, VisitStatus.CANCELLED);
 
-    // Cancelling an encounter that already has billable work on it would
-    // orphan those lines. Those visits are completed, then credited.
-    if (visit._count.procedures > 0) {
+    // Cancelling an encounter that already holds clinical or billing records
+    // would orphan them (this used to look only at legacy VisitProcedure
+    // lines, so a visit with executed sessions and an invoice could be
+    // cancelled). Those visits are completed and corrected instead.
+    const counts = await this.getVisitRecordCounts(visitId);
+    const held = Object.entries(counts)
+      .filter(([, n]) => n > 0)
+      .map(([k, n]) => `${n} ${k}`);
+    if (held.length > 0) {
       throw new BadRequestException(
-        `Cannot cancel a visit with ${visit._count.procedures} recorded procedure(s). ` +
-          'Complete the visit and credit the invoice instead.',
+        `Cannot cancel a visit that already holds records (${held.join(', ')}). ` +
+          'Complete the visit and correct or credit the records instead.',
       );
     }
 
     return this.prisma.$transaction(async (tx) => {
-      const row = await tx.visit.update({
-        where: { id: visitId },
+      const res = await tx.visit.updateMany({
+        where: { id: visitId, status: visit.status },
         data: { status: VisitStatus.CANCELLED, completedAt: new Date() },
       });
+      if (res.count === 0) throw this.concurrentChange();
+      const row = (await tx.visit.findUnique({ where: { id: visitId } }))!;
 
       // The chair is free again; an appointment left IN_PROGRESS would sit on
       // the active board forever.
@@ -696,11 +761,6 @@ export class VisitsService {
     actor?: ActingUser,
   ) {
     const visit = await this.loadVisit(visitId);
-    if (!isVisitOpen(visit.status)) {
-      throw new BadRequestException(
-        `Cannot add a procedure to a ${visit.status.toLowerCase()} visit.`,
-      );
-    }
 
     const procedure = await this.prisma.procedure.findUnique({
       where: { id: dto.procedureId },
@@ -712,7 +772,26 @@ export class VisitsService {
       );
     }
 
-    const toothNumbers = dto.toothNumbers ?? [];
+    // FDI teeth, canonical surfaces per tooth, and no surface work on a tooth
+    // the chart records as absent — the same rules as treatment procedures.
+    const toothNumbers = [...new Set(dto.toothNumbers ?? [])].map(
+      (t) => assertFdiTooth(t) as number,
+    );
+    let surfaces: string[] = [];
+    if (dto.surfaces?.length) {
+      if (toothNumbers.length === 0) {
+        throw new BadRequestException('Surfaces need at least one tooth.');
+      }
+      surfaces = [
+        ...new Set(toothNumbers.flatMap((t) => assertSurfaces(dto.surfaces, t))),
+      ];
+    }
+    await assertToothPresence(this.prisma as any, {
+      patientId: visit.patientId,
+      toothNumbers,
+      surfaces,
+    });
+
     const exchangeRate = await this.getClinicExchangeRate(procedure.currency);
 
     const pricing = PricingEngine.calculate(
@@ -760,65 +839,209 @@ export class VisitsService {
       );
     }
 
-    const created = await this.prisma.$transaction(async (tx) => {
-      const row = await tx.visitProcedure.create({
-        data: {
+    const created = await this.prisma.$transaction(
+      async (tx) => {
+        // Re-checked inside the transaction: open visit (or a stated
+        // amendment by the treating dentist / an admin).
+        const { isAmendment } = await assertVisitWritableTx(tx, {
           visitId,
-          procedureId: dto.procedureId,
-          toothNumbers,
-          surfaces: (dto.surfaces as any) ?? [],
-          notes: dto.notes,
-          cost: finalCost,
-          unitPrice: M.money(pricing.pricePerUnit),
-          currency: 'UGX',
-          exchangeRate: M.of(pricing.exchangeRate ?? 1),
-          originalPrice: M.money(pricing.totalPrice),
-          originalCurrency: procedure.currency,
-          finalCurrency: 'UGX',
-        },
-        include: { procedure: true },
-      });
+          actor,
+          amendmentReason: dto.amendmentReason,
+          what: 'record a procedure on',
+        });
 
-      // Same transaction as the insert: a failure here used to leave the
-      // visit total out of step with its own lines.
-      const updatedVisit = await tx.visit.update({
-        where: { id: visitId },
-        data: { totalCost: { increment: finalCost } },
-        select: { totalCost: true, amountPaid: true },
-      });
+        const row = await tx.visitProcedure.create({
+          data: {
+            visitId,
+            procedureId: dto.procedureId,
+            toothNumbers,
+            surfaces: surfaces as any,
+            notes: dto.notes,
+            cost: finalCost,
+            unitPrice: M.money(pricing.pricePerUnit),
+            currency: 'UGX',
+            exchangeRate: M.of(pricing.exchangeRate ?? 1),
+            originalPrice: M.money(pricing.totalPrice),
+            originalCurrency: procedure.currency,
+            finalCurrency: 'UGX',
+            createdById: actor?.id ?? null,
+          },
+          include: { procedure: true },
+        });
 
-      await tx.visit.update({
-        where: { id: visitId },
-        data: {
-          paymentStatus: this.derivePaymentStatus(
-            M.of(updatedVisit.totalCost),
-            M.of(updatedVisit.amountPaid),
-          ),
-        },
-      });
+        // Consumables: one stock path (batch draw, availability check,
+        // replayable ledger) — the old copy decremented location stock with
+        // no availability check and violated the non-negative CHECK as a 500.
+        const stockUsed: Array<{ itemId: string; quantity: number; cost: number }> = [];
+        if (dto.inventoryUsages?.length) {
+          if (!this.stock) throw new Error('StockMovementService not wired');
+          for (const u of dto.inventoryUsages) {
+            const res = await this.stock.issue(tx, {
+              itemId: u.inventoryItemId,
+              locationId: u.locationId,
+              quantity: u.quantityUsed,
+              strategy: u.batchNumber ? 'MANUAL' : 'FEFO',
+              selectedBatchNumber: u.batchNumber ?? null,
+              referenceType: 'VISIT_PROCEDURE',
+              referenceId: row.id,
+              notes: `Used in procedure: ${procedure.name}${u.notes ? ` — ${u.notes}` : ''}`,
+              performedById: actor?.id ?? null,
+            });
+            await tx.visitProcedureInventoryUsage.create({
+              data: {
+                visitProcedureId: row.id,
+                inventoryItemId: u.inventoryItemId,
+                locationId: u.locationId,
+                quantityUsed: u.quantityUsed,
+                unitCost: u.quantityUsed > 0 ? res.totalCost / u.quantityUsed : 0,
+                totalCost: res.totalCost,
+                batchNumber: u.batchNumber ?? res.draws[0]?.batchNumber ?? null,
+                notes: u.notes,
+              },
+            });
+            stockUsed.push({
+              itemId: u.inventoryItemId,
+              quantity: u.quantityUsed,
+              cost: res.totalCost,
+            });
+          }
+        }
 
-      await this.writeAudit(tx, {
-        action: overrideApplied ? 'ADD_PROCEDURE_OVERRIDE' : 'ADD_PROCEDURE',
-        entityType: 'VisitProcedure',
-        recordId: row.id,
-        actorId: actor?.id,
-        newData: {
-          visitId,
-          procedureId: dto.procedureId,
-          procedureName: procedure.name,
-          toothNumbers,
-          quantity: pricing.quantity,
-          cataloguePrice: M.str(enginePrice),
-          chargedCost: M.str(finalCost),
-          pricingBreakdown: pricing.breakdown,
-        },
-        reason: dto.overrideReason,
-      });
+        // Bill on the visit's invoice in the same transaction. Visit money
+        // lives on invoices; the visit's own total column is no longer fed.
+        const billing = this.invoiceLifecycle
+          ? await this.invoiceLifecycle.addVisitProcedureItemTx(tx, {
+              patientId: visit.patientId,
+              visitId,
+              visitProcedureId: row.id,
+              procedureId: procedure.id,
+              description: procedure.name,
+              quantity: pricing.quantity,
+              unitPrice: M.money(pricing.pricePerUnit),
+              total: finalCost,
+              toothNumbers,
+              actorUserId: actor?.id ?? null,
+            })
+          : null;
 
-      return row;
-    });
+        await this.writeAudit(tx, {
+          action: overrideApplied ? 'ADD_PROCEDURE_OVERRIDE' : 'ADD_PROCEDURE',
+          entityType: 'VisitProcedure',
+          recordId: row.id,
+          actorId: actor?.id,
+          newData: {
+            visitId,
+            procedureId: dto.procedureId,
+            procedureName: procedure.name,
+            toothNumbers,
+            surfaces,
+            quantity: pricing.quantity,
+            cataloguePrice: M.str(enginePrice),
+            chargedCost: M.str(finalCost),
+            pricingBreakdown: pricing.breakdown,
+            invoiceId: billing?.invoiceId ?? null,
+            stockUsed,
+            amendment: isAmendment,
+          },
+          reason: dto.overrideReason ?? dto.amendmentReason,
+        });
+
+        return { ...row, billing };
+      },
+      { maxWait: 5000, timeout: 20000 },
+    );
 
     return created;
+  }
+
+  /**
+   * Remove a procedure recorded on the visit. Soft delete: the row stays,
+   * its consumables go back to stock (compensating ledger rows) and its
+   * invoice line is voided — with the GL reconciled when the invoice was
+   * already posted.
+   */
+  async removeProcedure(
+    visitProcedureId: string,
+    dto: RemoveVisitProcedureDto,
+    actor?: ActingUser,
+  ) {
+    const vp = await this.prisma.visitProcedure.findUnique({
+      where: { id: visitProcedureId },
+      include: { procedure: { select: { name: true } } },
+    });
+    if (!vp || vp.deletedAt) {
+      throw new NotFoundException('Visit procedure not found');
+    }
+    if (!dto.reason?.trim()) {
+      throw new BadRequestException('A reason is required to remove a procedure.');
+    }
+
+    return this.prisma.$transaction(
+      async (tx) => {
+        await assertVisitWritableTx(tx, {
+          visitId: vp.visitId,
+          actor,
+          amendmentReason: dto.reason,
+          what: 'remove a procedure from',
+        });
+
+        const res = await tx.visitProcedure.updateMany({
+          where: { id: visitProcedureId, deletedAt: null },
+          data: {
+            deletedAt: new Date(),
+            deletedById: actor?.id ?? null,
+            deletedReason: dto.reason.trim(),
+          },
+        });
+        if (res.count === 0) throw this.concurrentChange();
+
+        let stockReversed = 0;
+        const moved = await tx.inventoryLedger.count({
+          where: {
+            referenceType: 'VISIT_PROCEDURE',
+            referenceId: visitProcedureId,
+            reversalOfId: null,
+          },
+        });
+        if (moved > 0) {
+          if (!this.stock) throw new Error('StockMovementService not wired');
+          const r = await this.stock.reverseDocument(tx, {
+            referenceType: 'VISIT_PROCEDURE',
+            referenceId: visitProcedureId,
+            reversalReferenceType: 'VISIT_PROCEDURE_REVERSAL',
+            reason: dto.reason.trim(),
+            performedById: actor?.id ?? null,
+          });
+          stockReversed = r.reversed;
+        }
+
+        const billing = this.invoiceLifecycle
+          ? await this.invoiceLifecycle.reverseVisitProcedureBillingTx(
+              tx,
+              visitProcedureId,
+              dto.reason.trim(),
+              actor?.id ?? null,
+            )
+          : null;
+
+        await this.writeAudit(tx, {
+          action: 'REMOVE_PROCEDURE',
+          entityType: 'VisitProcedure',
+          recordId: visitProcedureId,
+          actorId: actor?.id,
+          oldData: {
+            visitId: vp.visitId,
+            procedureName: vp.procedure?.name,
+            cost: M.str(M.of(vp.cost)),
+          },
+          newData: { stockReversed, billing },
+          reason: dto.reason.trim(),
+        });
+
+        return { success: true, stockReversed, billing };
+      },
+      { maxWait: 5000, timeout: 20000 },
+    );
   }
 
   async writePrescription(
@@ -919,6 +1142,7 @@ export class VisitsService {
         dentist: true,
         appointment: true,
         procedures: {
+          where: { deletedAt: null },
           include: { procedure: true },
           orderBy: { performedAt: 'desc' },
         },
@@ -949,29 +1173,57 @@ export class VisitsService {
       take: 3,
     });
 
-    // Figures come from the stored columns (and the procedure lines), not from
-    // the hardcoded zeros this used to return.
-    const proceduresTotal = visit.procedures.reduce(
-      (sum, p) => M.add(sum, p.cost),
+    // Money for a visit lives on its invoices — treatment procedures billed
+    // at planning and visit procedures both land there. The visit's own
+    // totalCost/amountPaid columns were only ever fed by legacy lines.
+    const invoices =
+      (await this.prisma.invoice.findMany({
+        where: { visitId, deletedAt: null, status: { not: 'VOID' } },
+        select: {
+          id: true,
+          invoiceNumber: true,
+          status: true,
+          currency: true,
+          total: true,
+          amountPaid: true,
+          baseTotal: true,
+          baseAmountPaid: true,
+        },
+      })) ?? [];
+    const proceduresTotal = visit.procedures
+      .filter((p) => !p.deletedAt)
+      .reduce((sum, p) => M.add(sum, p.cost), M.zero());
+    const totalCost = invoices.reduce(
+      (sum, i) => M.add(sum, i.baseTotal),
       M.zero(),
     );
-    const totalCost = M.of(visit.totalCost);
-    const amountPaid = M.of(visit.amountPaid);
-    const balance = M.sub(totalCost, amountPaid);
+    const amountPaid = invoices.reduce(
+      (sum, i) => M.add(sum, i.baseAmountPaid),
+      M.zero(),
+    );
+    const balance = M.max(M.sub(totalCost, amountPaid), 0);
+    const refundDue = M.max(M.sub(amountPaid, totalCost), 0);
 
     return {
       visit,
       previousVisits,
       financials: {
         // Strings, so a Decimal never round-trips through a float on the way
-        // to the browser. The UI formats them.
+        // to the browser. The UI formats them. Clinic base currency.
         proceduresTotal: M.str(proceduresTotal),
         totalCost: M.str(totalCost),
         amountPaid: M.str(amountPaid),
         balance: M.str(balance),
-        paymentStatus: visit.paymentStatus,
-        /** True when the visit total has drifted from its procedure lines. */
-        totalsInSync: M.eq(totalCost, proceduresTotal),
+        refundDue: M.str(refundDue),
+        paymentStatus: this.derivePaymentStatus(totalCost, amountPaid),
+        invoices: invoices.map((i) => ({
+          id: i.id,
+          invoiceNumber: i.invoiceNumber,
+          status: i.status,
+          currency: i.currency,
+          total: M.str(M.of(i.total)),
+          amountPaid: M.str(M.of(i.amountPaid)),
+        })),
       },
       progress: this.calculateProgress(visit),
     };
@@ -1138,7 +1390,7 @@ export class VisitsService {
 
   async getProgressReportsByPatient(patientId: string) {
     return this.prisma.progressReport.findMany({
-      where: { patientId },
+      where: { patientId, deletedAt: null },
       include: {
         dentist: { select: { id: true, firstName: true, lastName: true } },
         visit: { select: { id: true, visitCode: true, startedAt: true } },

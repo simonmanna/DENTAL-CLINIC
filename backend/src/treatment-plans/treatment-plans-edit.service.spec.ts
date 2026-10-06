@@ -21,6 +21,32 @@ describe('TreatmentPlansEditService', () => {
     plans = createAutoMock();
     invoiceLifecycle = createAutoMock();
     service = new TreatmentPlansEditService(prisma, plans, invoiceLifecycle);
+    // Re-pricing goes through the engine (server-authoritative).
+    prisma.procedure.findUnique.mockResolvedValue({
+      id: 'cat1',
+      basePrice: 100,
+      baseCost: 10,
+      pricingModel: 'FIXED',
+      priceRangeMin: null,
+      priceRangeMax: null,
+      currency: 'UGX',
+    });
+    plans.priceProcedure.mockResolvedValue({
+      totalPrice: 100,
+      pricePerUnit: 100,
+      quantity: 1,
+      subtotalPrice: 100,
+      discountAmount: 0,
+      taxAmount: 0,
+      subtotalCost: 10,
+      costPerUnit: 10,
+      exchangeRate: 1,
+    });
+    invoiceLifecycle.updateProcedureItemPricingTx.mockResolvedValue({
+      invoiceId: 'inv1',
+      invoiceStatus: 'DRAFT',
+      created: false,
+    });
   });
 
   // ── checkProcedureDeleteEligibility ──────────────────────────────────────────
@@ -188,6 +214,7 @@ describe('TreatmentPlansEditService', () => {
       await expect(
         service.updateProcedureWithGuards('pl1', 'pr1', {
           totalPrice: 999,
+          isPriceOverridden: true,
         } as any),
       ).rejects.toBeInstanceOf(BadRequestException);
       // billingType: substantive clinical field, requires editReason
@@ -198,14 +225,18 @@ describe('TreatmentPlansEditService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
-    it('blocks any edit on a fully-paid procedure', async () => {
+    it('no longer blocks a clinical note on a procedure whose stale paymentStatus column says PAID', async () => {
+      // Payments live on invoices; TreatmentProcedure.paymentStatus is never
+      // written, so the old block on it was dead (or wrong on legacy rows).
       prisma.treatmentProcedure.findFirst.mockResolvedValue({
         ...baseTp,
         paymentStatus: 'PAID',
       });
-      await expect(
-        service.updateProcedureWithGuards('pl1', 'pr1', { notes: 'x' } as any),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      prisma.treatmentProcedure.update.mockResolvedValue({
+        id: 'pr1', notes: 'x', targets: [], sessions: [],
+      });
+      const r = await service.updateProcedureWithGuards('pl1', 'pr1', { notes: 'x' } as any);
+      expect(r.audited).toBe(true);
     });
 
     it('updates notes and writes an audit row on a clean procedure', async () => {
@@ -263,44 +294,49 @@ describe('TreatmentPlansEditService', () => {
     it('allows a routine status flip (no editReason) even with sessions and audits it', async () => {
       prisma.treatmentProcedure.findFirst.mockResolvedValue({
         ...baseTp,
+        status: 'IN_PROGRESS',
         _count: { sessions: 1 },
       });
       prisma.treatmentProcedure.update.mockResolvedValue({
         id: 'pr1',
-        status: 'IN_PROGRESS',
+        status: 'ON_HOLD',
         targets: [],
         sessions: [],
       });
       const r = await service.updateProcedureWithGuards(
         'pl1',
         'pr1',
-        { status: 'IN_PROGRESS' } as any,
+        { status: 'ON_HOLD' } as any,
         'user-1',
       );
       expect(r.audited).toBe(true);
       expect(prisma.auditLog.create).toHaveBeenCalledTimes(1);
       const auditCall = prisma.auditLog.create.mock.calls[0][0];
-      expect(auditCall.data.newData.status).toBe('IN_PROGRESS');
+      expect(auditCall.data.newData.status).toBe('ON_HOLD');
     });
 
-    it('recalculates the plan when status changes', async () => {
-      // Walk the legal PLANNED → IN_PROGRESS → COMPLETED path.
+    it('re-syncs linked conditions and recalculates the plan when status changes', async () => {
       prisma.treatmentProcedure.findFirst.mockResolvedValue({ ...baseTp, status: 'IN_PROGRESS' });
       prisma.treatmentProcedure.update.mockResolvedValue({
         id: 'pr1',
-        status: 'COMPLETED',
+        status: 'ON_HOLD',
         targets: [],
         sessions: [],
       });
       plans.recalculatePlanTx.mockResolvedValue({
-        status: 'COMPLETED',
+        status: 'IN_PROGRESS',
         estimatedCost: 0,
-        completionPercentage: 100,
+        completionPercentage: 0,
       });
       await service.updateProcedureWithGuards(
         'pl1',
         'pr1',
-        { status: 'COMPLETED', performedDate: '2026-06-19T10:00:00Z' } as any,
+        { status: 'ON_HOLD', performedDate: '2026-06-19T10:00:00Z' } as any,
+        'user-1',
+      );
+      expect(plans.syncConditionsForProcedureTx).toHaveBeenCalledWith(
+        prisma,
+        'pr1',
         'user-1',
       );
       expect(plans.recalculatePlanTx).toHaveBeenCalledTimes(1);
@@ -369,43 +405,60 @@ describe('TreatmentPlansEditService', () => {
     });
 
     // ── E5 — totalPrice editing ────────────────────────────────────────────
-    it('persists totalPrice and syncs the linked invoice item (E5 fix)', async () => {
+    it('persists an override total as a discount and syncs the invoice line in the same tx', async () => {
       prisma.treatmentProcedure.findFirst.mockResolvedValue(baseTp);
       prisma.treatmentProcedure.update.mockResolvedValue({
         id: 'pr1',
         targets: [],
         sessions: [],
         procedure: { id: 'cat1', name: 'Composite Filling', code: 'D2391' },
-        totalPrice: 250,
+        totalPrice: 80,
         currency: 'UGX',
         quantity: 1,
-        pricePerUnit: 250,
-        discountAmount: 0,
+        pricePerUnit: 100,
+        discountAmount: 20,
         taxAmount: 0,
-      });
-      invoiceLifecycle.updateProcedureItemPricing.mockResolvedValue({
-        invoiceId: 'inv1',
-        invoiceStatus: 'DRAFT',
-        created: false,
+        baseAmount: 80,
       });
 
       const r = await service.updateProcedureWithGuards(
         'pl1',
         'pr1',
-        { totalPrice: 250 } as any,
+        { totalPrice: 80, isPriceOverridden: true, discountAmount: 999, baseAmount: 1 } as any,
         'user-1',
       );
 
-      // Field was persisted
-      const updateCall = prisma.treatmentProcedure.update.mock.calls[0][0];
-      expect(updateCall.data.totalPrice).toBe(250);
-
-      // Invoice was synced
-      expect(invoiceLifecycle.updateProcedureItemPricing).toHaveBeenCalledTimes(
-        1,
-      );
+      const data = prisma.treatmentProcedure.update.mock.calls[0][0].data;
+      expect(data.totalPrice).toBe(80);
+      // Discount is engine total − override; client figures are ignored.
+      expect(data.discountAmount).toBe(20);
+      expect(data.baseAmount).toBe(80);
+      expect(invoiceLifecycle.updateProcedureItemPricingTx).toHaveBeenCalledTimes(1);
       expect(r.invoiceSync?.invoiceId).toBe('inv1');
       expect(r.audited).toBe(true);
+    });
+
+    it('ignores a bare totalPrice and an unchanged currency (no pricing edit)', async () => {
+      prisma.treatmentProcedure.findFirst.mockResolvedValue(baseTp);
+      prisma.treatmentProcedure.update.mockResolvedValue({
+        id: 'pr1', notes: 'n', targets: [], sessions: [],
+      });
+      await service.updateProcedureWithGuards(
+        'pl1',
+        'pr1',
+        { notes: 'n', totalPrice: 5, currency: 'UGX', exchangeRate: 3700 } as any,
+        'user-1',
+      );
+      // No invoice lookup → the paid/POSTED pricing guard never fires.
+      expect(prisma.invoiceItem.findFirst).not.toHaveBeenCalled();
+      expect(invoiceLifecycle.updateProcedureItemPricingTx).not.toHaveBeenCalled();
+    });
+
+    it('rejects a currency change', async () => {
+      prisma.treatmentProcedure.findFirst.mockResolvedValue(baseTp);
+      await expect(
+        service.updateProcedureWithGuards('pl1', 'pr1', { currency: 'USD' } as any, 'user-1'),
+      ).rejects.toThrow(/catalogue currency/);
     });
 
     // ── Pre-TX invoice guard — blocks the whole edit when pricing changes
@@ -424,7 +477,7 @@ describe('TreatmentPlansEditService', () => {
       await expect(
         service.updateProcedureWithGuards(
           'pl1', 'pr1',
-          { totalPrice: 999 } as any, 'user-1',
+          { totalPrice: 999, isPriceOverridden: true } as any, 'user-1',
         ),
       ).rejects.toBeInstanceOf(ConflictException);
       expect(prisma.treatmentProcedure.update).not.toHaveBeenCalled();
@@ -444,7 +497,7 @@ describe('TreatmentPlansEditService', () => {
       await expect(
         service.updateProcedureWithGuards(
           'pl1', 'pr1',
-          { totalPrice: 999 } as any, 'user-1',
+          { totalPrice: 999, isPriceOverridden: true } as any, 'user-1',
         ),
       ).rejects.toBeInstanceOf(ConflictException);
       expect(prisma.treatmentProcedure.update).not.toHaveBeenCalled();
@@ -464,14 +517,11 @@ describe('TreatmentPlansEditService', () => {
       prisma.treatmentProcedure.update.mockResolvedValue({
         id: 'pr1', targets: [], sessions: [],
       });
-      invoiceLifecycle.updateProcedureItemPricing.mockResolvedValue({
-        invoiceId: 'inv1', invoiceStatus: 'DRAFT', created: false,
-      });
       const r = await service.updateProcedureWithGuards(
-        'pl1', 'pr1', { totalPrice: 250 } as any, 'user-1',
+        'pl1', 'pr1', { totalPrice: 250, isPriceOverridden: true } as any, 'user-1',
       );
       expect(r.audited).toBe(true);
-      expect(invoiceLifecycle.updateProcedureItemPricing).toHaveBeenCalled();
+      expect(invoiceLifecycle.updateProcedureItemPricingTx).toHaveBeenCalled();
     });
 
     it('allows non-pricing edits even when invoice is POSTED (only pricing fields are guarded)', async () => {
@@ -492,7 +542,7 @@ describe('TreatmentPlansEditService', () => {
         'pl1', 'pr1', { notes: 'tweak' } as any, 'user-1',
       );
       expect(r.audited).toBe(true);
-      expect(invoiceLifecycle.updateProcedureItemPricing).not.toHaveBeenCalled();
+      expect(invoiceLifecycle.updateProcedureItemPricingTx).not.toHaveBeenCalled();
     });
 
     // ── E7 — billingType is now persisted ──────────────────────────────────
@@ -578,21 +628,21 @@ describe('TreatmentPlansEditService', () => {
       });
       prisma.treatmentProcedure.update.mockResolvedValue({
         id: 'pr1',
-        status: 'IN_PROGRESS',
+        status: 'ON_HOLD',
         targets: [],
         sessions: [],
       });
       const r = await service.updateProcedureWithGuards(
         'pl1',
         'pr1',
-        { status: 'IN_PROGRESS' } as any,
+        { status: 'ON_HOLD' } as any,
         'user-1',
       );
       expect(r.audited).toBe(true);
       const auditCall = prisma.auditLog.create.mock.calls[0][0];
-      expect(auditCall.data.newData.status).toBe('IN_PROGRESS');
+      expect(auditCall.data.newData.status).toBe('ON_HOLD');
       expect(auditCall.data.reason).toMatch(
-        /Routine status flip: PLANNED → IN_PROGRESS/,
+        /Routine status flip: PLANNED → ON_HOLD/,
       );
     });
 
@@ -641,17 +691,46 @@ describe('TreatmentPlansEditService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
-    // ── Status transition validation (PLANNED → IN_PROGRESS → COMPLETED) ──
-    it('allows PLANNED → IN_PROGRESS', async () => {
+    // ── Status transition validation — clinical statuses follow sessions ──
+    it('blocks a manual PLANNED → IN_PROGRESS (derived from recorded sessions)', async () => {
       prisma.treatmentProcedure.findFirst.mockResolvedValue({ ...baseTp, status: 'PLANNED' });
+      await expect(
+        service.updateProcedureWithGuards(
+          'pl1', 'pr1', { status: 'IN_PROGRESS' } as any, 'user-1',
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.treatmentProcedure.update).not.toHaveBeenCalled();
+    });
+
+    it('blocks a manual IN_PROGRESS → COMPLETED (completion goes through the final session)', async () => {
+      prisma.treatmentProcedure.findFirst.mockResolvedValue({ ...baseTp, status: 'IN_PROGRESS' });
+      await expect(
+        service.updateProcedureWithGuards(
+          'pl1', 'pr1', { status: 'COMPLETED' } as any, 'user-1',
+        ),
+      ).rejects.toThrow(/final session/);
+      expect(prisma.treatmentProcedure.update).not.toHaveBeenCalled();
+    });
+
+    it('resuming from ON_HOLD derives the status from the sessions', async () => {
+      prisma.treatmentProcedure.findFirst.mockResolvedValue({
+        ...baseTp,
+        status: 'ON_HOLD',
+        _count: { sessions: 1 },
+        sessions: [
+          { id: 's1', status: 'COMPLETED', isFinal: false, deletedAt: null, sessionNumber: 1, performedDate: null },
+        ],
+      });
       prisma.treatmentProcedure.update.mockResolvedValue({
         id: 'pr1', status: 'IN_PROGRESS', targets: [], sessions: [],
       });
-      plans.recalculatePlanTx.mockResolvedValue({ status: 'IN_PROGRESS', estimatedCost: 0, completionPercentage: 0 });
-      const r = await service.updateProcedureWithGuards(
-        'pl1', 'pr1', { status: 'IN_PROGRESS' } as any, 'user-1',
+      // The client asks for PLANNED; one session is already done, so the
+      // procedure is really IN_PROGRESS.
+      await service.updateProcedureWithGuards(
+        'pl1', 'pr1', { status: 'PLANNED' } as any, 'user-1',
       );
-      expect(r.audited).toBe(true);
+      const updateCall = prisma.treatmentProcedure.update.mock.calls[0][0];
+      expect(updateCall.data.status).toBe('IN_PROGRESS');
     });
 
     it('blocks PLANNED → COMPLETED (must go through IN_PROGRESS)', async () => {
@@ -760,48 +839,121 @@ describe('TreatmentPlansEditService', () => {
 
     it('refuses to restore a non-CANCELLED procedure', async () => {
       prisma.treatmentProcedure.findFirst.mockResolvedValue({
-        status: 'PLANNED', chartEntries: [], sessions: [],
+        status: 'PLANNED', targets: [], sessions: [],
       });
       await expect(
         service.restoreCancelledProcedure('pl1', 'pr1', 'mistake'),
       ).rejects.toBeInstanceOf(ConflictException);
     });
 
-    it('restores: status → PLANNED, chart entries re-activated, audited', async () => {
-      prisma.treatmentProcedure.findFirst.mockResolvedValue({
-        id: 'pr1', status: 'CANCELLED',
-        chartEntries: [{ id: 'ce1' }, { id: 'ce2' }],
-        sessions: [], cancellationReason: 'patient declined',
-      });
-      prisma.chartEntry.updateMany.mockResolvedValue({ count: 2 });
-      prisma.treatmentProcedure.aggregate.mockResolvedValue({ _sum: { totalPrice: 100 } });
+    const cancelledTp = (over: Record<string, unknown> = {}) => ({
+      id: 'pr1',
+      status: 'CANCELLED',
+      cancellationReason: 'patient declined',
+      targets: [{ toothNumber: 16 }, { toothNumber: 26 }],
+      sessions: [],
+      ...over,
+    });
+
+    it('restores PLANNED markers the cancel superseded (one per current tooth), re-bills and audits', async () => {
+      prisma.treatmentProcedure.findFirst.mockResolvedValue(cancelledTp());
+      prisma.chartEntry.findMany
+        // candidates superseded by the cancel (newest first)
+        .mockResolvedValueOnce([
+          { id: 'ce16-new', toothNumber: 16 },
+          { id: 'ce26', toothNumber: 26 },
+          { id: 'ce16-old', toothNumber: 16 }, // older duplicate → skipped
+          { id: 'ce11', toothNumber: 11 }, // tooth no longer targeted → skipped
+        ])
+        // live COMPLETED rows
+        .mockResolvedValueOnce([]);
+      prisma.conditionProcedureLink.findMany
+        .mockResolvedValueOnce([{ id: 'l1', patientConditionId: 'pc1' }])
+        .mockResolvedValueOnce([]);
       prisma.treatmentProcedure.update.mockResolvedValue({
         id: 'pr1', status: 'PLANNED', targets: [], sessions: [],
+      });
+      invoiceLifecycle.reinstateProcedureBillingTx.mockResolvedValue({
+        invoiceId: 'inv1', reinstated: true, needsNewItem: false,
       });
 
       const r = await service.restoreCancelledProcedure(
         'pl1', 'pr1', 'patient changed mind', 'user-1',
       );
+
+      expect(prisma.chartEntry.findMany.mock.calls[0][0].where).toMatchObject({
+        treatmentProcedureId: 'pr1',
+        type: 'PLANNED',
+        status: 'SUPERSEDED',
+        notes: { startsWith: 'Cancelled:' },
+      });
       expect(prisma.chartEntry.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ status: 'SUPERSEDED' }),
+          where: { id: { in: ['ce16-new', 'ce26'] }, status: 'SUPERSEDED' },
         }),
       );
+      expect(prisma.conditionProcedureLink.update).toHaveBeenCalledWith({
+        where: { id: 'l1' },
+        data: { deletedAt: null, unlinkedById: null, deletedReason: null },
+      });
       expect(prisma.treatmentProcedure.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'pr1' },
-          data: expect.objectContaining({
-            status: 'PLANNED',
-            cancellationReason: null,
-          }),
+          data: expect.objectContaining({ status: 'PLANNED', cancellationReason: null }),
         }),
       );
-      // Audit row written as RESTORE
+      expect(invoiceLifecycle.reinstateProcedureBillingTx).toHaveBeenCalledWith(prisma, 'pr1', 'user-1');
+      expect(plans.syncConditionsForProcedureTx).toHaveBeenCalledWith(prisma, 'pr1', 'user-1');
+      expect(plans.recalculatePlanTx).toHaveBeenCalledWith(prisma, 'pl1');
+      expect(plans.billProcedureSafe).not.toHaveBeenCalled();
+
       const auditCall = prisma.auditLog.create.mock.calls[0][0];
       expect(auditCall.data.action).toBe('RESTORE');
       expect(auditCall.data.oldData.status).toBe('CANCELLED');
       expect(auditCall.data.newData.status).toBe('PLANNED');
       expect(r.chartEntriesRestored).toBe(2);
+    });
+
+    it('resumes IN_PROGRESS when sessions were completed and skips teeth already treated', async () => {
+      prisma.treatmentProcedure.findFirst.mockResolvedValue(
+        cancelledTp({
+          sessions: [{ id: 's1', status: 'COMPLETED', isFinal: false, deletedAt: null }],
+        }),
+      );
+      prisma.chartEntry.findMany
+        .mockResolvedValueOnce([
+          { id: 'ce16', toothNumber: 16 },
+          { id: 'ce26', toothNumber: 26 },
+        ])
+        .mockResolvedValueOnce([{ toothNumber: 16 }]); // 16 already done
+      prisma.conditionProcedureLink.findMany.mockResolvedValue([]);
+      prisma.treatmentProcedure.update.mockResolvedValue({ id: 'pr1', status: 'IN_PROGRESS' });
+      invoiceLifecycle.reinstateProcedureBillingTx.mockResolvedValue({
+        invoiceId: 'inv1', reinstated: true, needsNewItem: false,
+      });
+
+      await service.restoreCancelledProcedure('pl1', 'pr1', 'resume', 'user-1');
+
+      expect(prisma.chartEntry.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: { in: ['ce26'] }, status: 'SUPERSEDED' } }),
+      );
+      expect(prisma.treatmentProcedure.update.mock.calls[0][0].data.status).toBe('IN_PROGRESS');
+    });
+
+    it('bills afresh after commit when no invoice line can be reinstated', async () => {
+      prisma.treatmentProcedure.findFirst.mockResolvedValue(cancelledTp());
+      prisma.chartEntry.findMany.mockResolvedValue([]);
+      prisma.conditionProcedureLink.findMany.mockResolvedValue([]);
+      prisma.treatmentProcedure.update.mockResolvedValue({ id: 'pr1', status: 'PLANNED' });
+      invoiceLifecycle.reinstateProcedureBillingTx.mockResolvedValue({
+        invoiceId: null, reinstated: false, needsNewItem: true,
+      });
+      plans.billProcedureSafe.mockResolvedValue(true);
+
+      const r = await service.restoreCancelledProcedure('pl1', 'pr1', 'resume', 'user-1');
+
+      expect(plans.billProcedureSafe).toHaveBeenCalledWith('pr1');
+      expect(r.billing.billedNow).toBe(true);
     });
   });
 });

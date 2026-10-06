@@ -34,10 +34,13 @@ import {
   TreatmentPlansService,
   ReportFilters,
 } from './treatment-plans.service';
-import { ExecuteSessionDto } from './dto/execute-session.dto';
+import { ExecuteSessionDto, AddExtraSessionDto } from './dto/execute-session.dto';
 import { EditSessionDto, DeleteSessionDto } from './dto/edit-session.dto';
 
-import type { UpdateSessionDto } from './dto/treatment-plan.dto';
+// Value import (not `import type`): a type-only import erases the class, so
+// emitDecoratorMetadata reports `Object` and the ValidationPipe skipped this
+// body entirely.
+import { UpdateSessionDto } from './dto/treatment-plan.dto';
 
 import { PricingCalculationDto } from './dto/pricing-calculation.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -130,15 +133,22 @@ export class TreatmentPlansController {
   @ApiOperation({ summary: 'Create new treatment plan' })
   @Roles(UserRole.DENTIST, UserRole.NURSE, UserRole.ADMIN)
   @Post()
-  create(@Body() dto: CreateTreatmentPlanDto) {
-    return this.svc.createTreatmentPlan(dto);
+  create(
+    @Body() dto: CreateTreatmentPlanDto,
+    @CurrentUser('id') currentUserId: string | undefined,
+  ) {
+    return this.svc.createTreatmentPlan(dto, currentUserId);
   }
 
   @ApiOperation({ summary: 'Update treatment plan header' })
   @Roles(UserRole.DENTIST, UserRole.ADMIN)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateTreatmentPlanDto) {
-    return this.svc.updateTreatmentPlan(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateTreatmentPlanDto,
+    @CurrentUser('id') currentUserId: string | undefined,
+  ) {
+    return this.svc.updateTreatmentPlan(id, dto, currentUserId);
   }
 
   @ApiOperation({
@@ -162,8 +172,9 @@ export class TreatmentPlansController {
   reorderProcedures(
     @Param('id') id: string,
     @Body() dto: ReorderProceduresDto,
+    @CurrentUser('id') currentUserId: string | undefined,
   ) {
-    return this.svc.reorderProcedures(id, dto);
+    return this.svc.reorderProcedures(id, dto, currentUserId);
   }
 
   @ApiOperation({ summary: 'Add procedure to treatment plan' })
@@ -224,9 +235,14 @@ export class TreatmentPlansController {
     @Param('id') id: string,
     @Param('procedureId') procedureId: string,
     @Body('visitId') visitId: string | undefined,
+    @Body('finalOverrideReason') finalOverrideReason: string | undefined,
     @CurrentUser('id') currentUserId: string | undefined,
+    @CurrentUser('staffId') staffId: string | undefined,
   ) {
-    return this.svc.markProcedureComplete(id, procedureId, visitId, currentUserId);
+    return this.svc.markProcedureComplete(id, procedureId, visitId, currentUserId, {
+      finalOverrideReason,
+      providerId: staffId,
+    });
   }
 
   @ApiOperation({ summary: 'Cancel a procedure' })
@@ -264,8 +280,9 @@ export class TreatmentPlansController {
     @Param('id') planId: string,
     @Param('procedureId') procedureId: string,
     @Body() dto: CreateSessionDto,
+    @CurrentUser('id') currentUserId: string | undefined,
   ) {
-    return this.svc.createSession(planId, procedureId, dto);
+    return this.svc.createSession(planId, procedureId, dto, currentUserId);
   }
 
   @ApiOperation({
@@ -278,8 +295,15 @@ export class TreatmentPlansController {
     @Param('procedureId') procedureId: string,
     @Param('sessionId') sessionId: string,
     @Body() dto: UpdateSessionDto,
+    @CurrentUser('id') currentUserId: string | undefined,
   ) {
-    return this.svc.updateSession(planId, procedureId, sessionId, dto);
+    return this.svc.updateSession(
+      planId,
+      procedureId,
+      sessionId,
+      dto,
+      currentUserId,
+    );
   }
 
   @ApiOperation({ summary: 'Manually add a session to the ledger' })
@@ -301,17 +325,10 @@ export class TreatmentPlansController {
   addExtraSession(
     @Param('id') planId: string,
     @Param('procedureId') procedureId: string,
-    @Body()
-    dto: {
-      visitGroup: number;
-      sessionCost: number;
-      notes?: string;
-      autoBill?: boolean;
-      visitId?: string;
-      providerId?: string;
-    },
+    @Body() dto: AddExtraSessionDto,
+    @CurrentUser('id') currentUserId: string | undefined,
   ) {
-    return this.svc.addExtraSession(planId, procedureId, dto);
+    return this.svc.addExtraSession(planId, procedureId, dto, currentUserId);
   }
 
   // @ApiOperation({
@@ -407,9 +424,10 @@ export class TreatmentPlansController {
   @Post(':id/duplicate')
   duplicatePlan(
     @Param('id') planId: string,
-    @Body('newPatientId') newPatientId?: string,
+    @Body('newPatientId') newPatientId: string | undefined,
+    @CurrentUser('id') currentUserId: string | undefined,
   ) {
-    return this.svc.duplicatePlan(planId, newPatientId);
+    return this.svc.duplicatePlan(planId, newPatientId, currentUserId);
   }
 
   @ApiOperation({ summary: 'Get all treatment procedures for a patient' })
@@ -485,8 +503,16 @@ export class TreatmentPlansController {
     @Param('procedureId') procedureId: string,
     @Param('sessionId') sessionId: string,
     @Body() dto: EditSessionDto,
+    @CurrentUser('id') currentUserId: string | undefined,
   ) {
-    return this.svc.editSession(planId, procedureId, sessionId, dto);
+    // Audit actor comes from the JWT — never from the request body.
+    return this.svc.editSession(
+      planId,
+      procedureId,
+      sessionId,
+      dto,
+      currentUserId,
+    );
   }
 
   @ApiOperation({
@@ -500,8 +526,15 @@ export class TreatmentPlansController {
     @Param('procedureId') procedureId: string,
     @Param('sessionId') sessionId: string,
     @Body() dto: DeleteSessionDto,
+    @CurrentUser('id') currentUserId: string | undefined,
   ) {
-    return this.svc.deleteSession(planId, procedureId, sessionId, dto);
+    return this.svc.deleteSession(
+      planId,
+      procedureId,
+      sessionId,
+      dto,
+      currentUserId,
+    );
   }
 
   // Backwards-compatible alias for the old `POST .../void` route.
@@ -513,8 +546,15 @@ export class TreatmentPlansController {
     @Param('procedureId') procedureId: string,
     @Param('sessionId') sessionId: string,
     @Body() dto: DeleteSessionDto,
+    @CurrentUser('id') currentUserId: string | undefined,
   ) {
-    return this.svc.deleteSession(planId, procedureId, sessionId, dto);
+    return this.svc.deleteSession(
+      planId,
+      procedureId,
+      sessionId,
+      dto,
+      currentUserId,
+    );
   }
 
   @ApiOperation({ summary: 'Get audit history for a session' })

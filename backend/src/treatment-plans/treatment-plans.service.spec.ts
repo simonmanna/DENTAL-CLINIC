@@ -206,7 +206,7 @@ describe('TreatmentPlansService.removeProcedure', () => {
       paymentStatus: 'PAID',
     });
     prisma.treatmentProcedure.aggregate.mockResolvedValue({ _sum: { totalPrice: 0 } });
-    invoiceLifecycle.voidProcedureBillingTx.mockResolvedValue({ invoiceId: null });
+    invoiceLifecycle.reverseProcedureBillingTx.mockResolvedValue({ invoiceId: null });
 
     await (service as any).removeProcedure('pl1', 'tp1', 'duplicate', 'user-1');
 
@@ -260,8 +260,7 @@ describe('TreatmentPlansService.removeProcedure', () => {
       ],
     });
     prisma.treatmentProcedure.aggregate.mockResolvedValue({ _sum: { totalPrice: 0 } });
-    invoiceLifecycle.voidProcedureBillingTx.mockResolvedValue({ invoiceId: 'inv1' });
-    invoiceLifecycle.recalcInvoice.mockResolvedValue(undefined);
+    invoiceLifecycle.reverseProcedureBillingTx.mockResolvedValue({ invoiceId: 'inv1' });
 
     await (service as any).removeProcedure('pl1', 'tp1', 'duplicate', 'user-1');
 
@@ -271,7 +270,8 @@ describe('TreatmentPlansService.removeProcedure', () => {
         data: expect.objectContaining({ status: 'DELETED', deletedReason: 'duplicate' }),
       }),
     );
-    expect(invoiceLifecycle.recalcInvoice).toHaveBeenCalledWith('inv1');
+    // Billing reversal (incl. invoice re-total) now runs inside the tx.
+    expect(invoiceLifecycle.reverseProcedureBillingTx).toHaveBeenCalledWith(prisma, 'tp1', 'duplicate', 'user-1');
     expect(prisma.treatmentProcedure.delete).not.toHaveBeenCalled();
   });
 
@@ -285,8 +285,7 @@ describe('TreatmentPlansService.removeProcedure', () => {
       id: 'user-1',
       staff: { firstName: 'Dr', lastName: 'Smith' },
     });
-    invoiceLifecycle.voidProcedureBillingTx.mockResolvedValue({ invoiceId: null });
-    invoiceLifecycle.recalcInvoice.mockResolvedValue(undefined);
+    invoiceLifecycle.reverseProcedureBillingTx.mockResolvedValue({ invoiceId: null });
 
     const r = await (service as any).removeProcedure('pl1', 'tp1', 'duplicate', 'user-1');
 
@@ -322,7 +321,7 @@ describe('TreatmentPlansService.removeProcedure', () => {
     expect(auditCall.data.oldData.procedureCode).toBe('D3330');
     expect(auditCall.data.oldData.sessionsCount).toBe(0);
     expect(auditCall.data.oldData.status).toBe('PLANNED');
-    expect(r).toEqual({ success: true });
+    expect(r).toEqual({ success: true, billing: { invoiceId: null } });
   });
 
   it('allows delete when invoice is DRAFT with no payments', async () => {
@@ -341,8 +340,7 @@ describe('TreatmentPlansService.removeProcedure', () => {
       ],
     });
     prisma.treatmentProcedure.aggregate.mockResolvedValue({ _sum: { totalPrice: 0 } });
-    invoiceLifecycle.voidProcedureBillingTx.mockResolvedValue({ invoiceId: 'inv1' });
-    invoiceLifecycle.recalcInvoice.mockResolvedValue(undefined);
+    invoiceLifecycle.reverseProcedureBillingTx.mockResolvedValue({ invoiceId: 'inv1' });
 
     await (service as any).removeProcedure('pl1', 'tp1', 'duplicate', 'user-1');
     expect(prisma.treatmentProcedure.update).toHaveBeenCalledWith(
@@ -351,7 +349,8 @@ describe('TreatmentPlansService.removeProcedure', () => {
         data: expect.objectContaining({ status: 'DELETED', deletedReason: 'duplicate' }),
       }),
     );
-    expect(invoiceLifecycle.recalcInvoice).toHaveBeenCalledWith('inv1');
+    // Billing reversal (incl. invoice re-total) now runs inside the tx.
+    expect(invoiceLifecycle.reverseProcedureBillingTx).toHaveBeenCalledWith(prisma, 'tp1', 'duplicate', 'user-1');
   });
 
   it('allows delete when linked invoice is VOID (already voided)', async () => {
@@ -370,7 +369,7 @@ describe('TreatmentPlansService.removeProcedure', () => {
       ],
     });
     prisma.treatmentProcedure.aggregate.mockResolvedValue({ _sum: { totalPrice: 0 } });
-    invoiceLifecycle.voidProcedureBillingTx.mockResolvedValue({ invoiceId: null });
+    invoiceLifecycle.reverseProcedureBillingTx.mockResolvedValue({ invoiceId: null });
 
     await (service as any).removeProcedure('pl1', 'tp1', 'voided', 'user-1');
     expect(prisma.treatmentProcedure.update).toHaveBeenCalledWith(
@@ -460,7 +459,7 @@ describe('TreatmentPlansService.cancelProcedure', () => {
       paymentStatus: 'PAID',
     });
     prisma.treatmentProcedure.aggregate.mockResolvedValue({ _sum: { totalPrice: 0 } });
-    invoiceLifecycle.voidProcedureBillingTx.mockResolvedValue({ invoiceId: null });
+    invoiceLifecycle.reverseProcedureBillingTx.mockResolvedValue({ invoiceId: null });
 
     await (service as any).cancelProcedure(
       'pl1', 'tp1', 'patient declined', 'user-1',
@@ -489,7 +488,7 @@ describe('TreatmentPlansService.cancelProcedure', () => {
       ],
     });
     prisma.treatmentProcedure.aggregate.mockResolvedValue({ _sum: { totalPrice: 0 } });
-    invoiceLifecycle.voidProcedureBillingTx.mockResolvedValue({ invoiceId: null });
+    invoiceLifecycle.reverseProcedureBillingTx.mockResolvedValue({ invoiceId: null });
 
     await (service as any).cancelProcedure('pl1', 'tp1', 'duplicate', 'user-1');
 
@@ -514,7 +513,7 @@ describe('TreatmentPlansService.cancelProcedure', () => {
       ],
     });
     prisma.treatmentProcedure.aggregate.mockResolvedValue({ _sum: { totalPrice: 0 } });
-    invoiceLifecycle.voidProcedureBillingTx.mockResolvedValue({ invoiceId: null });
+    invoiceLifecycle.reverseProcedureBillingTx.mockResolvedValue({ invoiceId: null });
 
     await (service as any).cancelProcedure('pl1', 'tp1', 'patient declined', 'user-1');
 
@@ -558,7 +557,7 @@ describe('TreatmentPlansService.cancelProcedure', () => {
       staff: { firstName: 'Dr', lastName: 'Smith' },
     });
     prisma.treatmentProcedure.aggregate.mockResolvedValue({ _sum: { totalPrice: 0 } });
-    invoiceLifecycle.voidProcedureBillingTx.mockResolvedValue({ invoiceId: 'inv1' });
+    invoiceLifecycle.reverseProcedureBillingTx.mockResolvedValue({ invoiceId: 'inv1' });
 
     await (service as any).cancelProcedure('pl1', 'tp1', 'patient declined', 'user-1');
 
@@ -567,7 +566,10 @@ describe('TreatmentPlansService.cancelProcedure', () => {
     expect(auditCall.data.userId).toBe('user-1');
     expect(auditCall.data.userName).toBe('Dr Smith');
     expect(auditCall.data.reason).toBe('patient declined');
-    expect(auditCall.data.newData).toEqual({ status: 'CANCELLED' });
+    expect(auditCall.data.newData).toMatchObject({
+      status: 'CANCELLED',
+      billing: { invoiceId: 'inv1' },
+    });
     // Full snapshot per spec
     expect(auditCall.data.oldData.procedureName).toBe('Root Canal');
     expect(auditCall.data.oldData.procedureCode).toBe('D3330');
@@ -587,7 +589,7 @@ describe('TreatmentPlansService.cancelProcedure', () => {
     const { prisma, service, invoiceLifecycle } = buildService();
     prisma.treatmentProcedure.findFirst.mockResolvedValue(buildTp('PLANNED'));
     prisma.treatmentProcedure.aggregate.mockResolvedValue({ _sum: { totalPrice: 0 } });
-    invoiceLifecycle.voidProcedureBillingTx.mockResolvedValue({ invoiceId: null });
+    invoiceLifecycle.reverseProcedureBillingTx.mockResolvedValue({ invoiceId: null });
 
     await (service as any).cancelProcedure('pl1', 'tp1', 'patient declined', 'user-1');
     expect(prisma.treatmentProcedure.delete).not.toHaveBeenCalled();
@@ -607,7 +609,7 @@ describe('TreatmentPlansService.cancelProcedure', () => {
     prisma.treatmentProcedure.findMany.mockResolvedValue([]);          // no other active procedures
     prisma.treatmentPlan.findUnique.mockResolvedValue({ status: 'PLANNED' }); // plan exists
     prisma.treatmentProcedure.aggregate.mockResolvedValue({ _sum: { totalPrice: 0 } });
-    invoiceLifecycle.voidProcedureBillingTx.mockResolvedValue({ invoiceId: null });
+    invoiceLifecycle.reverseProcedureBillingTx.mockResolvedValue({ invoiceId: null });
 
     await (service as any).cancelProcedure('pl1', 'tp1', 'duplicate', 'user-1');
     expect(prisma.treatmentPlan.update).toHaveBeenCalledWith(
@@ -616,5 +618,147 @@ describe('TreatmentPlansService.cancelProcedure', () => {
         data: expect.objectContaining({ estimatedCost: 0 }),
       }),
     );
+  });
+});
+
+// ── A9: the extraction "tooth absent" marker belongs to the work that made it ──
+describe('TreatmentPlansService — extraction absence marker', () => {
+  const build = () => {
+    const prisma = createPrismaMock();
+    const docNum = createAutoMock();
+    (docNum.next as jest.Mock).mockResolvedValue('SE-26-0001');
+    const service = new TreatmentPlansService(
+      prisma,
+      createAutoMock() as any,
+      docNum as any,
+      mockConditionsService(),
+    );
+    return { prisma, service };
+  };
+
+  it('links the marker to its session and procedure so a void reverses it', async () => {
+    const { prisma, service } = build();
+    prisma.condition.findFirst.mockResolvedValue({ id: 'cond-k081' });
+    prisma.chartEntry.findFirst.mockResolvedValue(null);
+
+    await (service as any).markTeethAbsentIfExtractionTx(prisma, {
+      patientId: 'p1',
+      procedure: { name: 'Simple extraction', code: 'D7140' },
+      toothNumbers: [16],
+      procedureSessionId: 's1',
+      treatmentProcedureId: 'tp1',
+    });
+
+    expect(prisma.chartEntry.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        toothNumber: 16,
+        type: 'CONDITION',
+        conditionCode: 'K08.1',
+        procedureSessionId: 's1',
+        treatmentProcedureId: 'tp1',
+      }),
+    });
+  });
+
+  it('editSession: reverting an extracted tooth voids its absence marker and audits the JWT actor', async () => {
+    const { prisma, service } = build();
+    prisma.procedureSession.findFirst.mockResolvedValue({
+      id: 's1',
+      status: 'COMPLETED',
+      version: 0,
+      visitId: 'v1',
+      providerId: 'staff-1',
+      performedNotes: null,
+      performedDate: null,
+      isFinal: false,
+      outcome: 'COMPLETED',
+      phase: null,
+      ledgerEntryId: null,
+      ledgerEntry: null,
+      targets: [{ toothNumber: 16, surfaces: [] }],
+      treatmentProcedure: {
+        treatmentPlanId: 'pl1',
+        status: 'COMPLETED',
+        deletedAt: null,
+        treatmentPlan: { patientId: 'p1' },
+        procedure: { name: 'Simple extraction', code: 'D7140' },
+      },
+    });
+    prisma.chartEntry.findFirst
+      .mockResolvedValueOnce({ id: 'ce-done', status: 'ACTIVE', notes: null }) // COMPLETED row
+      .mockResolvedValueOnce(null); // superseded PLANNED row
+    prisma.procedureSession.update.mockResolvedValue({ id: 's1' });
+    prisma.procedureSessionEdit.create.mockResolvedValue({ id: 'edit1' });
+    prisma.chartEntry.updateMany.mockResolvedValue({ count: 1 });
+    prisma.user.findUnique.mockResolvedValue({ id: 'user-1', staff: null });
+    prisma.visit.findUnique.mockResolvedValue({
+      id: 'v1', patientId: 'p1', dentistId: 'staff-1', status: 'IN_PROGRESS',
+    });
+
+    await service.editSession(
+      'pl1',
+      'tp1',
+      's1',
+      { reason: 'charted on the wrong tooth', toothStatuses: [{ toothNumber: 16, status: 'pending' }] } as any,
+      'user-1',
+    );
+
+    expect(prisma.chartEntry.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          procedureSessionId: 's1',
+          toothNumber: { in: [16] },
+          type: 'CONDITION',
+          status: 'ACTIVE',
+          conditionCode: 'K08.1',
+        },
+        data: expect.objectContaining({ status: 'VOIDED' }),
+      }),
+    );
+    expect(prisma.procedureSessionEdit.create.mock.calls[0][0].data.editedById).toBe('user-1');
+    const audit = prisma.auditLog.create.mock.calls[0][0];
+    expect(audit.data.userId).toBe('user-1');
+  });
+
+  it('deleteSession: the void actor comes from the caller, not the body', async () => {
+    const { prisma, service } = build();
+    prisma.procedureSession.findFirst.mockResolvedValue({
+      id: 's1',
+      status: 'COMPLETED',
+      version: 0,
+      sessionNumber: 1,
+      performedNotes: null,
+      performedDate: null,
+      providerId: null,
+      ledgerEntryId: null,
+      ledgerEntry: null,
+      targets: [],
+      treatmentProcedure: {
+        treatmentPlan: { patientId: 'p1' },
+        procedure: { name: 'Simple extraction', code: 'D7140' },
+      },
+    });
+    prisma.chartEntry.updateMany.mockResolvedValue({ count: 2 });
+    prisma.imagingRecord.updateMany.mockResolvedValue({ count: 0 });
+    prisma.progressReportProcedure.deleteMany.mockResolvedValue({ count: 0 });
+    prisma.procedureSession.findMany.mockResolvedValue([]);
+    prisma.treatmentPlan.findUnique.mockResolvedValue({ status: 'IN_PROGRESS' });
+    prisma.treatmentProcedure.findMany.mockResolvedValue([]);
+    prisma.treatmentProcedure.findUnique.mockResolvedValue({ status: 'PLANNED' });
+    prisma.conditionProcedureLink.findMany.mockResolvedValue([]);
+    prisma.user.findUnique.mockResolvedValue({ id: 'user-9', staff: null });
+
+    await service.deleteSession(
+      'pl1',
+      'tp1',
+      's1',
+      { reason: 'entered twice', deletedById: 'spoofed' } as any,
+      'user-9',
+    );
+
+    const upd = prisma.procedureSession.update.mock.calls[0][0];
+    expect(upd.data.deletedById).toBe('user-9');
+    const audit = prisma.auditLog.create.mock.calls[0][0];
+    expect(audit.data.userId).toBe('user-9');
   });
 });

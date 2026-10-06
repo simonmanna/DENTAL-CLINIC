@@ -75,10 +75,16 @@ export class ChartEntryController {
   @Roles(UserRole.DENTIST, UserRole.NURSE)
   createEntry(@Body() dto: CreateChartEntryDto, @Request() req) {
     // Prefer explicit providerId from body; fall back to JWT staff
-    return this.chartEntryService.createEntry({
-      ...dto,
-      providerId: dto.providerId ?? req.user?.staffId,
-    });
+    const ctx = extractClientContext(req);
+    return this.chartEntryService.createEntry(
+      {
+        ...dto,
+        providerId: dto.providerId ?? req.user?.staffId,
+      },
+      req.user?.id ?? null,
+      ctx.ipAddress,
+      ctx.userAgent,
+    );
   }
 
   @Post('quick-action')
@@ -141,10 +147,13 @@ export class ChartEntryController {
   @Post('existing')
   @Roles(UserRole.DENTIST, UserRole.NURSE)
   addExistingProcedure(@Body() dto: AddExistingProcedureDto, @Request() req) {
-    return this.chartEntryService.addExistingProcedure({
-      ...dto,
-      providerId: dto.providerId ?? req.user?.staffId,
-    });
+    return this.chartEntryService.addExistingProcedure(
+      {
+        ...dto,
+        providerId: dto.providerId ?? req.user?.staffId,
+      },
+      req.user?.id ?? null,
+    );
   }
 
   @Patch(':id/condition')

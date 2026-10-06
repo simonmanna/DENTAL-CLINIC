@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { patientsApi, emrApi } from "../../lib/api";
+import { usePermissions } from "@/hooks/usePermissions";
+import { UserRole } from "@/types/shared";
 import {
   formatDate,
   formatDateTime,
@@ -158,14 +160,22 @@ const TABS = [
   { id: "overview", label: "Overview", icon: User },
   { id: "appointments", label: "Appointments", icon: CalendarDays },
   { id: 'visits', label: 'Visits', icon: Calendar },
-  { id: "dental-chart", label: "Dental Chart", icon: Stethoscope },
-  { id: "treatment", label: "Treatment Plans", icon: ClipboardList },
+  { id: "dental-chart", label: "Dental Chart", icon: Stethoscope, clinical: true },
+  { id: "treatment", label: "Treatment Plans", icon: ClipboardList, clinical: true },
   { id: "prescriptions", label: "Prescriptions", icon: Pill },
   { id: "billing", label: "Billing / Ledger", icon: Receipt },
-  { id: "progress", label: "Progress Report", icon: ShieldCheck },
+  { id: "progress", label: "Progress Report", icon: ShieldCheck, clinical: true },
   { id: "timeline", label: "Timeline", icon: Activity },
-  { id: 'procedures', label: 'Procedures', icon: Activity },
-  { id: 'patient-report', label: 'Patient Report', icon: FileText },
+  { id: 'procedures', label: 'Procedures', icon: Activity, clinical: true },
+  { id: 'patient-report', label: 'Patient Report', icon: FileText, clinical: true },
+] as Array<{ id: string; label: string; icon: any; clinical?: boolean }>;
+
+/** The clinical record is readable by clinicians only (same roles as the API). */
+const CLINICAL_ROLES = [
+  UserRole.SUPER_ADMIN,
+  UserRole.ADMIN,
+  UserRole.DENTIST,
+  UserRole.NURSE,
 ];
 
 // ─── Sub-tabs/content ─────────────────────────────────────────────────────────
@@ -671,6 +681,11 @@ export function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
+  const { hasRole } = usePermissions();
+  const canSeeClinical = hasRole(CLINICAL_ROLES);
+  // Front desk, pharmacy and lab users would only get "Failed to load" from
+  // the clinical endpoints (403), so those tabs are not offered to them.
+  const visibleTabs = TABS.filter((t) => !t.clinical || canSeeClinical);
 
   const {
     data: patient,
@@ -821,7 +836,7 @@ export function PatientDetailPage() {
         {/* ── Tabs ────────────────────────────────────────────────────── */}
         <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
           <div className="flex border-b border-border bg-muted/50 overflow-x-auto">
-            {TABS.map((tab) => {
+            {visibleTabs.map((tab) => {
               const Icon = tab.icon;
               const active = activeTab === tab.id;
               return (
@@ -855,11 +870,11 @@ export function PatientDetailPage() {
                 patientId={patient.id} />
             )}
             {activeTab === 'visits' && <PatientVisitsTab patientId={patient.id} />}
-            {activeTab === "dental-chart" && (
+            {canSeeClinical && activeTab === "dental-chart" && (
               <DentalChart patientId={patient.id} readOnly />
             )}
-            {activeTab === 'procedures' && <PatientProceduresTab patientId={patient.id} />}
-            {activeTab === "treatment" && (
+            {canSeeClinical && activeTab === 'procedures' && <PatientProceduresTab patientId={patient.id} />}
+            {canSeeClinical && activeTab === "treatment" && (
               <TreatmentPlanTab patientId={patient.id} />
             )}
             {activeTab === "prescriptions" && (
@@ -875,14 +890,14 @@ export function PatientDetailPage() {
                 navigate={navigate}
               />
             )}
-            {activeTab === "progress" && (
+            {canSeeClinical && activeTab === "progress" && (
               <ProgressReportsTab
                 patient={patient}
                 patientId={patient.id}
               />
             )}
             {activeTab === "timeline" && <TimelineTab patientId={patient.id} />}
-            {activeTab === "patient-report" && <PatientReportTab patientId={patient.id} />}
+            {canSeeClinical && activeTab === "patient-report" && <PatientReportTab patientId={patient.id} />}
           </div>
         </div>
       </div>

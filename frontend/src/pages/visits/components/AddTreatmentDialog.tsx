@@ -187,7 +187,7 @@ export function AddTreatmentDialog({
     enabled: isOpen,
     staleTime: 60 * 60 * 1000,
   });
-  const exchangeRate =
+  const liveExchangeRate =
     typeof liveRateData?.rate === "number" && liveRateData.rate > 0
       ? liveRateData.rate
       : DEFAULT_EXCHANGE_RATE;
@@ -204,6 +204,37 @@ export function AddTreatmentDialog({
   const [selectedProviderId, setSelectedProviderId] = useState<string>(dentistId ?? "");
 
   // ════════════════ PRICING ════════════════
+  // The preview comes from the server — the same engine, clinic rate and
+  // session shape that addProcedure uses — so the price shown is the price
+  // saved. The local estimate only fills the gap while it loads.
+  const { data: serverPricing } = useQuery({
+    queryKey: [
+      "pricing-preview",
+      selectedProc?.id,
+      [...selectedTeeth].sort().join(","),
+      sessionType,
+      sessionType === "MULTI" ? sessionCount : 1,
+      quantityOverride,
+    ],
+    queryFn: () =>
+      api
+        .post("/treatment-plans/pricing/calculate", {
+          procedureId: selectedProc!.id,
+          toothNumbers: selectedTeeth,
+          sessionType,
+          sessionCount: sessionType === "MULTI" ? sessionCount : 1,
+          ...(quantityOverride != null ? { quantityBasis: quantityOverride } : {}),
+        })
+        .then((r) => r.data as Record<string, any>),
+    enabled: isOpen && !!selectedProc,
+    staleTime: 30 * 1000,
+    placeholderData: (prev) => prev,
+  });
+  const exchangeRate =
+    typeof serverPricing?.exchangeRate === "number" && serverPricing.exchangeRate > 0
+      ? serverPricing.exchangeRate
+      : liveExchangeRate;
+
   const pricingUnit: PricingUnit = (selectedProc?.pricingModel ?? "FIXED") as PricingUnit;
   const currency = (selectedProc?.currency ?? "UGX") as Currency;
   const isUSD = currency === "USD";
@@ -211,8 +242,11 @@ export function AddTreatmentDialog({
   const autoQty = selectedProc ? deriveQuantity(pricingUnit, selectedTeeth) : 1;
   const quantity = quantityOverride ?? autoQty;
   const pricingModel = (selectedProc?.pricingModel ?? "FIXED") as PricingUnit;
-  const pricing = selectedProc
+  const localPricing = selectedProc
     ? estimateProcedureCost(basePrice, pricingModel, currency, quantity, exchangeRate)
+    : null;
+  const pricing = localPricing
+    ? ({ ...localPricing, ...(serverPricing ?? {}) } as typeof localPricing)
     : null;
 
   const finalPrice = useMemo(() => {
@@ -234,7 +268,9 @@ export function AddTreatmentDialog({
     sessionType === "MULTI" && sessionCount > 0
       ? Math.ceil(finalPrice / sessionCount)
       : finalPrice;
-  const needsTeeth = ["PER_TOOTH", "PER_ARCH"].includes(pricingUnit);
+  // Mouth-level procedures (FIXED / PER_SESSION / PER_UNIT) may be planned
+  // without teeth; tooth-priced ones may not (same rule as the server).
+  const needsTeeth = ["PER_TOOTH", "PER_ARCH", "PER_BRACKET"].includes(pricingUnit);
 
   const depositInProcCurrency = useMemo((): number | null => {
     if (partialAmount == null || partialAmount <= 0) return null;
@@ -394,7 +430,7 @@ export function AddTreatmentDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tx-plan", selectedPlanId] });
       queryClient.invalidateQueries({ queryKey: ["tx-plans", patientId] });
-      queryClient.invalidateQueries({ queryKey: ["chart-entries", patientId, visitId] });
+      queryClient.invalidateQueries({ queryKey: ["chart-entries", patientId] });
       onSuccess();
       resetNewForm();
       onClose();
@@ -434,7 +470,7 @@ export function AddTreatmentDialog({
       return Promise.all(promises);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["chart-entries", patientId, visitId] });
+      queryClient.invalidateQueries({ queryKey: ["chart-entries", patientId] });
       queryClient.invalidateQueries({ queryKey: ["tx-plans", patientId] });
       onSuccess();
       resetExistingForm();

@@ -114,6 +114,8 @@ async create(createImagingRecordDto: any) {
     if (type) where.type = type;
     if (stage) where.stage = stage;
     if (groupId) where.groupId = groupId;
+    if (query.procedureSessionId) where.procedureSessionId = query.procedureSessionId;
+    else if (query.unlinked === 'true') where.procedureSessionId = null;
 
     if (fromDate || toDate) {
       where.takenAt = {};

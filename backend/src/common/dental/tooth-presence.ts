@@ -71,9 +71,21 @@ export async function findAbsentTeeth(
         toothNumber: { in: teeth },
         type: 'CONDITION',
         status: 'ACTIVE',
-        OR: [
-          { conditionCode: { in: ['K08.1', 'K00.0'] } },
-          { condition: { chartPresenceEffect: { in: ['EXTRACTED', 'CONGENITAL'] } } },
+        AND: [
+          {
+            OR: [
+              { conditionCode: { in: ['K08.1', 'K00.0'] } },
+              { condition: { chartPresenceEffect: { in: ['EXTRACTED', 'CONGENITAL'] } } },
+            ],
+          },
+          // A row whose diagnosis was resolved / ruled out (or that predates
+          // conditionStatus) must not keep the tooth "absent".
+          {
+            OR: [
+              { conditionStatus: null },
+              { conditionStatus: { in: ['ACTIVE', 'MONITORED', 'IN_TREATMENT'] } },
+            ],
+          },
         ],
       },
       select: { toothNumber: true },

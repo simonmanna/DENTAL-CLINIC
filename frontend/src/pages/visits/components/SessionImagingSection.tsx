@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 
 // ── Adjust these imports to your project paths ───────────────────────────────
 import imagingService from '@/services/imaging.service';
+import api from '@/lib/api/client';
 import { ImagingRecord, ImagingType, ImagingStage, ImagingSource } from '@/types/imaging';
 
 import { resolveUpload as resolveUrl, useFileToken } from '@/lib/uploads';
@@ -406,10 +407,12 @@ export const SessionImagingSection: React.FC<Props> = ({
   const loadLinked = async () => {
     setLoadingLinked(true);
     try {
-      const data = await fetch(
-        `/api/treatment-plans/${planId}/procedures/${procedureId}/sessions/${sessionId}/imaging`,
-        { credentials: 'include' }
-      ).then(r => r.json());
+      // Authenticated API client (the raw fetch to a non-existent route sent
+      // no Bearer token and always fell into the catch).
+      const res = await api.get('/imaging', {
+        params: { patientId, procedureSessionId: sessionId, limit: '100' },
+      });
+      const data = res.data?.data ?? res.data;
       setLinked(Array.isArray(data) ? data : []);
     } catch {
       // Silently fall back — session may not exist yet (pre-execution)
@@ -425,10 +428,15 @@ export const SessionImagingSection: React.FC<Props> = ({
     try {
       // This endpoint should return recent ImagingRecords for the patient/visit
       // filtered to those where procedureSessionId is null
-      const data = await fetch(
-        `/api/imaging/patient/${patientId}?visitId=${visitId ?? ''}&unlinked=true`,
-        { credentials: 'include' }
-      ).then(r => r.json());
+      const res = await api.get('/imaging', {
+        params: {
+          patientId,
+          ...(visitId ? { visitId } : {}),
+          unlinked: 'true',
+          limit: '50',
+        },
+      });
+      const data = res.data?.data ?? res.data;
       setAvailable(Array.isArray(data) ? data : []);
     } catch {
       setAvailable([]);

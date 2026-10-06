@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import {
+  Optional,
   Injectable,
   NotFoundException,
   BadRequestException,
@@ -29,6 +30,8 @@ import {
   assertSurfaces,
 } from '../common/dental/dental-validation';
 import { assertToothPresence } from '../common/dental/tooth-presence';
+import { assertVisitWritableTx } from '../visit/visit-guard';
+import { TreatmentPlansService } from '../treatment-plans/treatment-plans.service';
 
 // Structured codes that mean "this tooth is gone" — used instead of
 // `label.includes('extract')` string matching anywhere.
@@ -38,7 +41,13 @@ const ABSENT_CONDITION_CODES = new Set(['K08.1', 'K00.0']);
 export class ChartEntryService {
   private readonly logger = new Logger(ChartEntryService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    // Quick actions that plan or perform treatment go through the one
+    // treatment-plan implementation (catalogue pricing, duplicate / presence
+    // guards, chart rows, billing, visit guard, audit).
+    @Optional() private readonly plans?: TreatmentPlansService,
+  ) {}
 
   // ─────────────────────────────────────────────────────────────────────
   // AUDIT HELPER — same shape as the conditions / treatment-plan services so
@@ -323,57 +332,149 @@ export class ChartEntryService {
 
   // ── CREATE ─────────────────────────────────────────────────────────────────
 
-  async createEntry(dto: CreateChartEntryDto) {
+  async createEntry(
+    dto: CreateChartEntryDto,
+    actorUserId?: string | null,
+    ipAddress?: string | null,
+    userAgent?: string | null,
+  ) {
     const fdi = assertFdiTooth(dto.toothNumber, { optional: true });
     const surfaces = fdi ? assertSurfaces(dto.surfaces, fdi) : [];
 
-    if (dto.providerId) {
+    // An unknown provider is stored as NULL (the old code logged "saving
+    // NULL" and then saved the bad id anyway, failing on the FK).
+    let providerId: string | null = dto.providerId ?? null;
+    if (providerId) {
       const staff = await this.prisma.staff.findUnique({
-        where: { id: dto.providerId },
+        where: { id: providerId },
+        select: { id: true },
       });
       if (!staff) {
         this.logger.warn(
-          `[createEntry] providerId=${dto.providerId} not in Staff — saving NULL`,
+          `[createEntry] providerId=${providerId} not in Staff — saving NULL`,
         );
+        providerId = null;
       }
     }
 
-    const entry = await this.prisma.chartEntry.create({
-      data: {
-        patientId: dto.patientId,
-        visitId: dto.visitId,
-        toothNumber: fdi,
-        surfaces,
-        type: dto.type,
-        label: dto.label,
-        conditionCode: dto.conditionCode,
-        procedureCode: dto.procedureCode,
+    const entry = await this.prisma.$transaction(async (tx) => {
+      if (dto.visitId) {
+        await assertVisitWritableTx(tx, {
+          visitId: dto.visitId,
+          patientId: dto.patientId,
+          actorUserId: actorUserId ?? null,
+          what: 'the dental chart',
+        });
+      }
+      await this.assertLinksBelongToPatientTx(tx, dto.patientId, {
         treatmentProcedureId: dto.treatmentProcedureId,
         procedureSessionId: dto.procedureSessionId,
-        conditionId: dto.conditionId,
         patientConditionId: dto.patientConditionId,
-        providerId: dto.providerId ?? null,
-        notes: dto.notes,
-        diagnosedAt: dto.diagnosedAt ? new Date(dto.diagnosedAt) : null,
-      },
-      include: {
-        provider: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            specialization: true,
+      });
+
+      const row = await tx.chartEntry.create({
+        data: {
+          patientId: dto.patientId,
+          visitId: dto.visitId,
+          toothNumber: fdi,
+          surfaces,
+          type: dto.type,
+          label: dto.label,
+          conditionCode: dto.conditionCode,
+          procedureCode: dto.procedureCode,
+          treatmentProcedureId: dto.treatmentProcedureId,
+          procedureSessionId: dto.procedureSessionId,
+          conditionId: dto.conditionId,
+          patientConditionId: dto.patientConditionId,
+          providerId,
+          notes: dto.notes,
+          diagnosedAt: dto.diagnosedAt ? new Date(dto.diagnosedAt) : null,
+        },
+        include: {
+          provider: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              specialization: true,
+            },
+          },
+          patientCondition: {
+            include: {
+              provider: { select: { id: true, firstName: true, lastName: true } },
+            },
           },
         },
-        patientCondition: {
-          include: {
-            provider: { select: { id: true, firstName: true, lastName: true } },
-          },
+      });
+
+      await this.writeAuditTx(tx, {
+        action: 'CREATE',
+        entityId: row.id,
+        userId: actorUserId ?? null,
+        ipAddress: ipAddress ?? null,
+        userAgent: userAgent ?? null,
+        newData: {
+          patientId: row.patientId,
+          visitId: row.visitId,
+          type: row.type,
+          toothNumber: row.toothNumber,
+          surfaces: row.surfaces,
+          label: row.label,
+          treatmentProcedureId: row.treatmentProcedureId,
+          patientConditionId: row.patientConditionId,
         },
-      },
+      });
+      return row;
     });
 
     return this.formatEntry(entry);
+  }
+
+  /**
+   * A chart row may only point at records of its own patient — the ids come
+   * from the client, and a foreign id would put another patient's procedure
+   * or diagnosis on this chart.
+   */
+  private async assertLinksBelongToPatientTx(
+    tx: Prisma.TransactionClient,
+    patientId: string,
+    links: {
+      treatmentProcedureId?: string | null;
+      procedureSessionId?: string | null;
+      patientConditionId?: string | null;
+    },
+  ) {
+    const foreign = () =>
+      new BadRequestException(
+        'A linked record belongs to a different patient (or does not exist).',
+      );
+    if (links.treatmentProcedureId) {
+      const tp = await tx.treatmentProcedure.findUnique({
+        where: { id: links.treatmentProcedureId },
+        select: { treatmentPlan: { select: { patientId: true } } },
+      });
+      if (tp?.treatmentPlan?.patientId !== patientId) throw foreign();
+    }
+    if (links.procedureSessionId) {
+      const ps = await tx.procedureSession.findUnique({
+        where: { id: links.procedureSessionId },
+        select: {
+          treatmentProcedure: {
+            select: { treatmentPlan: { select: { patientId: true } } },
+          },
+        },
+      });
+      if (ps?.treatmentProcedure?.treatmentPlan?.patientId !== patientId) {
+        throw foreign();
+      }
+    }
+    if (links.patientConditionId) {
+      const pc = await tx.patientCondition.findUnique({
+        where: { id: links.patientConditionId },
+        select: { patientId: true, deletedAt: true },
+      });
+      if (!pc || pc.deletedAt || pc.patientId !== patientId) throw foreign();
+    }
   }
 
   // ── UPDATE CONDITION ───────────────────────────────────────────────────────
@@ -390,6 +491,19 @@ export class ChartEntryService {
     });
     if (!existing)
       throw new NotFoundException(`ChartEntry ${chartEntryId} not found`);
+
+    // The PatientCondition edited here is the one this row is linked to.
+    // It used to be taken from the request body, so any condition id —
+    // including another patient's — could be rewritten through this route.
+    if (
+      dto.patientConditionId &&
+      dto.patientConditionId !== existing.patientConditionId
+    ) {
+      throw new BadRequestException(
+        'patientConditionId does not match this chart entry.',
+      );
+    }
+    const linkedPcId = existing.patientConditionId ?? null;
 
     const fdi = existing.toothNumber;
     const surfaces =
@@ -455,13 +569,13 @@ export class ChartEntryService {
       if (!updatedEntry)
         throw new NotFoundException(`ChartEntry ${chartEntryId} not found`);
 
-      if (dto.patientConditionId) {
+      if (linkedPcId) {
         const existingPc = await tx.patientCondition.findUnique({
-          where: { id: dto.patientConditionId },
+          where: { id: linkedPcId },
           select: { status: true, resolvedAt: true },
         });
         const updatedPc = await tx.patientCondition.update({
-          where: { id: dto.patientConditionId },
+          where: { id: linkedPcId },
           data: {
             // E1: keep the optimistic-lock token moving even on this path so a
             // concurrent edit elsewhere is detectable.
@@ -503,7 +617,7 @@ export class ChartEntryService {
           action: 'UPDATE',
           module: 'CONDITIONS',
           entityType: 'PatientCondition',
-          entityId: dto.patientConditionId,
+          entityId: linkedPcId,
           userId: actorUserId ?? null,
           ipAddress: ipAddress ?? null,
           userAgent: userAgent ?? null,
@@ -519,7 +633,7 @@ export class ChartEntryService {
           });
           if (staff) {
             await tx.patientCondition.update({
-              where: { id: dto.patientConditionId },
+              where: { id: linkedPcId },
               data: {
                 diagnosedBy: `Dr. ${staff.firstName} ${staff.lastName}`,
               },
@@ -660,6 +774,15 @@ export class ChartEntryService {
     const entry = await this.prisma.chartEntry.findUnique({ where: { id } });
     if (!entry) throw new NotFoundException(`ChartEntry ${id} not found`);
     return this.prisma.$transaction(async (tx) => {
+      if (entry.visitId) {
+        await assertVisitWritableTx(tx, {
+          visitId: entry.visitId,
+          patientId: entry.patientId,
+          actorUserId: actorUserId ?? null,
+          amendmentReason: reason,
+          what: 'the dental chart',
+        });
+      }
       // M-2: version-gated void so a stale tab can't void a row another
       // clinician already changed.
       await this.versionedChartEntryUpdate(
@@ -711,9 +834,9 @@ export class ChartEntryService {
       case 'ADD_CONDITION':
         return this.handleAddCondition(dto, actorUserId, ipAddress, userAgent);
       case 'PLAN_TREATMENT':
-        return this.handlePlanTreatment(dto, actorUserId, ipAddress, userAgent);
+        return this.handlePlanTreatment(dto, actorUserId);
       case 'PERFORM_NOW':
-        return this.handlePerformNow(dto, actorUserId, ipAddress, userAgent);
+        return this.handlePerformNow(dto, actorUserId);
       default:
         throw new BadRequestException(
           `Unknown action: ${(dto as any).action}`,
@@ -745,6 +868,12 @@ export class ChartEntryService {
     });
 
     const result = await this.prisma.$transaction(async (tx) => {
+      await assertVisitWritableTx(tx, {
+        visitId: dto.visitId,
+        patientId: dto.patientId,
+        actorUserId: actorUserId ?? null,
+        what: 'diagnoses',
+      });
       if (dto.conditionCode) {
         await tx.chartEntry.updateMany({
           where: {
@@ -918,527 +1047,196 @@ export class ChartEntryService {
   }
 
   // ── PLAN_TREATMENT ─────────────────────────────────────────────────────────
+  //
+  // Delegates to TreatmentPlansService.addProcedure. The old handler wrote
+  // its own procedure rows: client-supplied price, free-text catalogue rows,
+  // count-based plan codes, no billing, no duplicate / extraction / presence
+  // guards — and could bill a tooth twice next to an existing planned
+  // procedure. Price now comes from the catalogue; a client cost is ignored.
 
   private async handlePlanTreatment(
     dto: QuickActionDto,
     actorUserId?: string | null,
-    ipAddress?: string | null,
-    userAgent?: string | null,
   ): Promise<QuickActionResponse> {
-    if (!dto.procedureCatalogId && !dto.procedureLabel)
-      throw new BadRequestException(
-        'Either procedureCatalogId or procedureLabel is required',
-      );
-
-    const fdi = dto.toothNumber;
-    const surfaces = assertSurfaces(dto.surfaces, fdi);
-
-    // Guard: don't plan surface work on an absent tooth (shared, dual-source).
-    await assertToothPresence(this.prisma, {
-      patientId: dto.patientId,
-      toothNumbers: [fdi],
-      surfaces,
-    });
-
-    const result = await this.prisma.$transaction(async (tx) => {
-      const { plan, wasCreated } = await this.resolveOrCreatePlan(
-        dto,
-        tx,
-        actorUserId,
-      );
-
-      let procedureName = dto.procedureLabel ?? 'Procedure';
-      let procedureCode = dto.procedureCode;
-      let defaultCost = dto.procedureCost ?? 0;
-      // Multi-currency: the procedure's pricing currency comes from the catalog
-      // row, NOT a hard-coded literal. Free-text quick actions (no catalogId)
-      // fall back to the system base currency.
-      let procedureCurrency = 'UGX';
-
-      if (dto.procedureCatalogId) {
-        const catalogItem = await tx.procedure.findUnique({
-          where: { id: dto.procedureCatalogId },
-        });
-        if (!catalogItem)
-          throw new NotFoundException('Procedure not found in catalog');
-        procedureName = catalogItem.name;
-        procedureCode = catalogItem.code ?? procedureCode;
-        defaultCost =
-          dto.procedureCost ?? Number(catalogItem.basePrice) ?? 0;
-        procedureCurrency = catalogItem.currency ?? 'UGX';
-      }
-
-      const last = await tx.treatmentProcedure.findFirst({
-        where: { treatmentPlanId: plan.id },
-        orderBy: { sequence: 'desc' },
-      });
-      const nextSequence = last ? last.sequence + 1 : 100;
-      const visitGroup = last ? last.visitGroup : 1;
-
-      const procedure = await tx.treatmentProcedure.create({
-        data: {
-          treatmentPlanId: plan.id,
-          procedureId:
-            dto.procedureCatalogId ??
-            (await this.getOrCreateGenericProcedureId(
-              procedureName,
-              procedureCode,
-              defaultCost,
-              tx,
-            )),
-          totalPrice: defaultCost,
-          currency: procedureCurrency,
-          status: 'PLANNED',
-          visitGroup,
-          sequence: nextSequence,
-          notes: dto.notes,
-          providerId: dto.providerId ?? null,
-        },
-      });
-
-      await tx.procedureTarget.create({
-        data: {
-          treatmentProcedureId: procedure.id,
-          toothNumber: fdi,
-          surfaces,
-        },
-      });
-
-      const chartEntry = await tx.chartEntry.create({
-        data: {
-          patientId: dto.patientId,
-          visitId: dto.visitId,
-          toothNumber: fdi,
-          surfaces,
-          type: ChartEntryType.PLANNED,
-          label: procedureName,
-          procedureCode,
-          treatmentProcedureId: procedure.id,
-          providerId: dto.providerId ?? null,
-          notes: dto.notes,
-        },
-        include: {
-          provider: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              specialization: true,
-            },
-          },
-        },
-      });
-
-      // ── AUDIT ───────────────────────────────────────────────────────────
-      // Audit every record this quick action created, all inside the same
-      // transaction so a rollback unwinds both the records and the audit
-      // rows together (audit never describes a state that didn't happen).
-      //
-      // TreatmentPlan is only audited when this action CREATED it; reusing
-      // an existing active plan is not an audit-worthy state change for the
-      // plan itself (only the new procedure appended to it is).
-      if (wasCreated) {
-        await this.writeAuditTx(tx, {
-          action: 'CREATE',
-          module: 'TREATMENT_PLANS',
-          entityType: 'TreatmentPlan',
-          entityId: plan.id,
-          userId: actorUserId,
-          ipAddress: ipAddress ?? null,
-          userAgent: userAgent ?? null,
-          newData: {
-            patientId: plan.patientId,
-            title: plan.title,
-            status: plan.status,
-            estimatedCost: plan.estimatedCost,
-            via: 'quick-action:PLAN_TREATMENT',
-          },
-        });
-      }
-
-      await this.writeAuditTx(tx, {
-        action: 'CREATE',
-        module: 'TREATMENT_PLANS',
-        entityType: 'TreatmentProcedure',
-        entityId: procedure.id,
-        userId: actorUserId,
-        ipAddress: ipAddress ?? null,
-        userAgent: userAgent ?? null,
-        newData: {
-          treatmentPlanId: plan.id,
-          procedureName,
-          procedureCode: procedureCode ?? null,
-          totalPrice: defaultCost,
-          currency: procedureCurrency,
-          status: 'PLANNED',
-          toothNumber: fdi,
-          surfaces,
-          providerId: dto.providerId ?? null,
-          via: 'quick-action:PLAN_TREATMENT',
-        },
-      });
-
-      await this.writeAuditTx(tx, {
-        action: 'CREATE',
-        module: 'CHART_ENTRY',
-        entityType: 'ChartEntry',
-        entityId: chartEntry.id,
-        userId: actorUserId,
-        ipAddress: ipAddress ?? null,
-        userAgent: userAgent ?? null,
-        newData: {
-          patientId: chartEntry.patientId,
-          visitId: chartEntry.visitId ?? null,
-          toothNumber: chartEntry.toothNumber,
-          surfaces: chartEntry.surfaces,
-          type: chartEntry.type,
-          label: chartEntry.label,
-          procedureCode: chartEntry.procedureCode ?? null,
-          treatmentProcedureId: procedure.id,
-          providerId: chartEntry.providerId ?? null,
-          via: 'quick-action:PLAN_TREATMENT',
-        },
-      });
-
-      return {
-        chartEntry,
-        plan,
-        wasCreated,
-        procedureId: procedure.id,
-        procedureName,
-      };
-    });
-
+    const { plan, wasCreated, tp } = await this.planViaService(dto, actorUserId);
+    const planned =
+      (tp.chartEntries ?? []).find((c: any) => c.toothNumber === dto.toothNumber) ??
+      (tp.chartEntries ?? [])[0];
+    const chartEntry = planned
+      ? await this.prisma.chartEntry.findUnique({
+          where: { id: planned.id },
+          include: this.entryInclude(),
+        })
+      : null;
     return {
-      chartEntry: this.formatEntry(result.chartEntry),
-      treatmentPlan: { id: result.plan.id, title: result.plan.title, wasCreated: result.wasCreated },
-      treatmentProcedure: { id: result.procedureId, procedureName: result.procedureName },
+      chartEntry: this.formatEntry(chartEntry ?? planned),
+      treatmentPlan: { id: plan.id, title: plan.title, wasCreated },
+      treatmentProcedure: { id: tp.id, procedureName: tp.procedureName },
     };
   }
 
   // ── PERFORM_NOW ────────────────────────────────────────────────────────────
+  //
+  // Plan it (as above), then create-and-execute its FINAL session through
+  // executeSession — the one completion path (chart supersede/complete,
+  // extraction absence, condition resolution, consumables, audit).
 
   private async handlePerformNow(
     dto: QuickActionDto,
     actorUserId?: string | null,
-    ipAddress?: string | null,
-    userAgent?: string | null,
   ): Promise<QuickActionResponse> {
-    if (!dto.procedureCatalogId && !dto.procedureLabel)
-      throw new BadRequestException(
-        'Either procedureCatalogId or procedureLabel is required',
-      );
+    const plans = this.requirePlans();
+    const { plan, wasCreated, tp } = await this.planViaService(dto, actorUserId);
+    const surfaces = assertSurfaces(dto.surfaces, dto.toothNumber);
 
-    const fdi = dto.toothNumber;
-    const surfaces = assertSurfaces(dto.surfaces, fdi);
-    const performedAt = dto.performedDate
-      ? new Date(dto.performedDate)
-      : new Date();
-
-    // Guard: don't perform surface work on an absent tooth (shared, dual-source).
-    await assertToothPresence(this.prisma, {
-      patientId: dto.patientId,
-      toothNumbers: [fdi],
-      surfaces,
-    });
-
-    const result = await this.prisma.$transaction(async (tx) => {
-      const { plan, wasCreated } = await this.resolveOrCreatePlan(
-        dto,
-        tx,
-        actorUserId,
-      );
-
-      let procedureName = dto.procedureLabel ?? 'Procedure';
-      let procedureCode = dto.procedureCode;
-      let defaultCost = dto.procedureCost ?? 0;
-      // Multi-currency: the procedure's pricing currency comes from the catalog
-      // row, NOT a hard-coded literal. Free-text quick actions (no catalogId)
-      // fall back to the system base currency.
-      let procedureCurrency = 'UGX';
-
-      if (dto.procedureCatalogId) {
-        const catalogItem = await tx.procedure.findUnique({
-          where: { id: dto.procedureCatalogId },
-        });
-        if (!catalogItem)
-          throw new NotFoundException('Procedure not found in catalog');
-        procedureName = catalogItem.name;
-        procedureCode = catalogItem.code ?? procedureCode;
-        defaultCost =
-          dto.procedureCost ?? Number(catalogItem.basePrice) ?? 0;
-        procedureCurrency = catalogItem.currency ?? 'UGX';
-      }
-
-      const last = await tx.treatmentProcedure.findFirst({
-        where: { treatmentPlanId: plan.id },
-        orderBy: { sequence: 'desc' },
-      });
-      const nextSequence = last ? last.sequence + 1 : 100;
-
-      const procedure = await tx.treatmentProcedure.create({
-        data: {
-          treatmentPlanId: plan.id,
-          procedureId:
-            dto.procedureCatalogId ??
-            (await this.getOrCreateGenericProcedureId(
-              procedureName,
-              procedureCode,
-              defaultCost,
-              tx,
-            )),
-          currency: procedureCurrency,
-          totalPrice: defaultCost,
-          status: 'COMPLETED',
-          visitGroup: 1,
-          sequence: nextSequence,
-          notes: dto.notes,
-          completedAt: performedAt,
-          performedDate: performedAt,
-          providerId: dto.providerId ?? null,
-        },
-      });
-
-      await tx.procedureTarget.create({
-        data: {
-          treatmentProcedureId: procedure.id,
-          toothNumber: fdi,
-          surfaces,
-        },
-      });
-
-      const session = await tx.procedureSession.create({
-        data: {
-          treatmentProcedureId: procedure.id,
-          visitId: dto.visitId,
-          sessionNumber: 1,
-          status: 'COMPLETED',
-          performedDate: performedAt,
-          performedNotes: dto.notes,
-          sessionPrice: dto.sessionCost ?? defaultCost,
-          surfaces, // ← now the ToothSurface[] enum, DB-validated
-          actualInputsUsed: dto.actualInputsUsed
-            ? (dto.actualInputsUsed as any)
-            : undefined,
-          ledgerStatus: 'PENDING',
-          providerId: dto.providerId ?? null,
-          isFinal: true,
-        },
-      });
-
-      await tx.procedureTarget.create({
-        data: {
-          procedureSessionId: session.id,
-          toothNumber: fdi,
-          surfaces,
-        },
-      });
-
-      // Structured supersede: close out matching PLANNED entries by
-      // procedure linkage, not by label substring.
-      await tx.chartEntry.updateMany({
-        where: {
-          patientId: dto.patientId,
-          toothNumber: fdi,
-          type: 'PLANNED',
-          status: 'ACTIVE',
-          ...(dto.procedureCatalogId
-            ? { treatmentProcedure: { procedureId: dto.procedureCatalogId } }
-            : {}),
-        },
-        data: { status: 'SUPERSEDED' },
-      });
-
-      const chartEntry = await tx.chartEntry.create({
-        data: {
-          patientId: dto.patientId,
-          visitId: dto.visitId,
-          toothNumber: fdi,
-          surfaces,
-          type: ChartEntryType.COMPLETED,
-          label: procedureName,
-          procedureCode,
-          treatmentProcedureId: procedure.id,
-          procedureSessionId: session.id,
-          providerId: dto.providerId ?? null,
-          notes: dto.notes,
-        },
-        include: {
-          provider: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              specialization: true,
-            },
-          },
-        },
-      });
-
-      // ── AUDIT ───────────────────────────────────────────────────────────
-      // All four records (optionally 3 if plan was pre-existing) land inside
-      // the same transaction so a rollback unwinds both data and audit
-      // together. Actor resolution happens inside writeAuditTx (defensive
-      // null-user handling), so an unauthenticated / clock-skewed request
-      // can never block the write.
-      if (wasCreated) {
-        await this.writeAuditTx(tx, {
-          action: 'CREATE',
-          module: 'TREATMENT_PLANS',
-          entityType: 'TreatmentPlan',
-          entityId: plan.id,
-          userId: actorUserId,
-          ipAddress: ipAddress ?? null,
-          userAgent: userAgent ?? null,
-          newData: {
-            patientId: plan.patientId,
-            title: plan.title,
-            status: plan.status,
-            estimatedCost: plan.estimatedCost,
-            via: 'quick-action:PERFORM_NOW',
-          },
-        });
-      }
-
-      await this.writeAuditTx(tx, {
-        action: 'CREATE',
-        module: 'TREATMENT_PLANS',
-        entityType: 'TreatmentProcedure',
-        entityId: procedure.id,
-        userId: actorUserId,
-        ipAddress: ipAddress ?? null,
-        userAgent: userAgent ?? null,
-        newData: {
-          treatmentPlanId: plan.id,
-          procedureName,
-          procedureCode: procedureCode ?? null,
-          totalPrice: defaultCost,
-          currency: procedureCurrency,
-          status: 'COMPLETED',
-          toothNumber: fdi,
-          surfaces,
-          providerId: dto.providerId ?? null,
-          performedDate: performedAt.toISOString(),
-          via: 'quick-action:PERFORM_NOW',
-        },
-      });
-
-      await this.writeAuditTx(tx, {
-        action: 'CREATE',
-        module: 'TREATMENT_PLANS',
-        entityType: 'ProcedureSession',
-        entityId: session.id,
-        userId: actorUserId,
-        ipAddress: ipAddress ?? null,
-        userAgent: userAgent ?? null,
-        newData: {
-          treatmentProcedureId: procedure.id,
-          visitId: dto.visitId ?? null,
-          sessionNumber: session.sessionNumber,
-          status: 'COMPLETED',
-          performedDate: performedAt.toISOString(),
-          isFinal: true,
-          providerId: dto.providerId ?? null,
-          via: 'quick-action:PERFORM_NOW',
-        },
-      });
-
-      await this.writeAuditTx(tx, {
-        action: 'CREATE',
-        module: 'CHART_ENTRY',
-        entityType: 'ChartEntry',
-        entityId: chartEntry.id,
-        userId: actorUserId,
-        ipAddress: ipAddress ?? null,
-        userAgent: userAgent ?? null,
-        newData: {
-          patientId: chartEntry.patientId,
-          visitId: chartEntry.visitId ?? null,
-          toothNumber: chartEntry.toothNumber,
-          surfaces: chartEntry.surfaces,
-          type: chartEntry.type,
-          label: chartEntry.label,
-          procedureCode: chartEntry.procedureCode ?? null,
-          treatmentProcedureId: procedure.id,
-          procedureSessionId: session.id,
-          providerId: chartEntry.providerId ?? null,
-          via: 'quick-action:PERFORM_NOW',
-        },
-      });
-
-      return {
-        chartEntry,
-        plan,
-        wasCreated,
-        procedureId: procedure.id,
-        procedureName,
-        sessionId: session.id,
-        sessionNumber: session.sessionNumber,
-      };
-    });
-
-    return {
-      chartEntry: this.formatEntry(result.chartEntry),
-      treatmentPlan: { id: result.plan.id, title: result.plan.title, wasCreated: result.wasCreated },
-      treatmentProcedure: { id: result.procedureId, procedureName: result.procedureName },
-      procedureSession: { id: result.sessionId, sessionNumber: result.sessionNumber },
-    };
-  }
-
-  // ── Helpers ────────────────────────────────────────────────────────────────
-  // NOTE: helpers accept a `tx` so they run inside the caller's transaction.
-
-  private async resolveOrCreatePlan(
-    dto: QuickActionDto,
-    tx: any,
-    actorUserId?: string | null,
-  ) {
-    const activePlan = await tx.treatmentPlan.findFirst({
-      where: {
-        patientId: dto.patientId,
-        status: { in: ['PLANNED', 'IN_PROGRESS'] },
+    const executed: any = await plans.executeSession(
+      plan.id,
+      tp.id,
+      {
+        visitId: dto.visitId,
+        isFinal: true,
+        outcome: 'COMPLETED',
+        providerId: dto.providerId,
+        performedDate: dto.performedDate,
+        performedNotes: dto.notes,
+        actualInputsUsed: dto.actualInputsUsed,
+        toothStatuses: [
+          { toothNumber: dto.toothNumber, surfaces, status: 'COMPLETED' },
+        ],
       },
-      orderBy: { createdAt: 'desc' },
-    });
-    if (activePlan) return { plan: activePlan, wasCreated: false };
-
-    const title =
-      dto.planName ??
-      `Treatment Plan — ${new Date().toLocaleDateString('en-UG', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      })}`;
-
-    const visit = dto.visitId
-      ? await tx.visit.findUnique({
-          where: { id: dto.visitId },
-          include: { dentist: true },
+      actorUserId ?? undefined,
+    );
+    const session = executed?.data;
+    const completed = session
+      ? await this.prisma.chartEntry.findFirst({
+          where: {
+            procedureSessionId: session.id,
+            type: ChartEntryType.COMPLETED,
+            status: 'ACTIVE',
+          },
+          include: this.entryInclude(),
         })
       : null;
 
-    const planData: any = {
-      patientId: dto.patientId,
-      title,
-      status: 'PLANNED',
-      priority: 'ROUTINE',
-      estimatedCost: 0,
-      actualCost: 0,
-      consentSigned: false,
-      planCode: await this.generatePlanCode(tx),
+    return {
+      chartEntry: this.formatEntry(completed ?? {}),
+      treatmentPlan: { id: plan.id, title: plan.title, wasCreated },
+      treatmentProcedure: { id: tp.id, procedureName: tp.procedureName },
+      procedureSession: session
+        ? { id: session.id, sessionNumber: session.sessionNumber }
+        : undefined,
     };
-    planData.dentistId = await this.resolveDentistId(tx, visit, actorUserId);
+  }
 
-    const newPlan = await tx.treatmentPlan.create({ data: planData });
-    return { plan: newPlan, wasCreated: true };
+  private requirePlans(): TreatmentPlansService {
+    if (!this.plans) throw new Error('TreatmentPlansService not wired');
+    return this.plans;
+  }
+
+  private entryInclude() {
+    return {
+      provider: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          specialization: true,
+        },
+      },
+    } as const;
+  }
+
+  /**
+   * The patient's open plan (most recent PLANNED / IN_PROGRESS), or a new one
+   * created through TreatmentPlansService (document-numbered code, audit);
+   * then the catalogue procedure added to it.
+   */
+  private async planViaService(
+    dto: QuickActionDto,
+    actorUserId?: string | null,
+  ) {
+    const plans = this.requirePlans();
+    if (!dto.procedureCatalogId) {
+      throw new BadRequestException(
+        'procedureCatalogId is required — choose the procedure from the catalogue.',
+      );
+    }
+    const catalog = await this.prisma.procedure.findFirst({
+      where: { id: dto.procedureCatalogId, isActive: true },
+      select: { id: true, name: true, currency: true },
+    });
+    if (!catalog) {
+      throw new BadRequestException(
+        'Unknown or inactive procedure — choose one from the catalogue.',
+      );
+    }
+
+    const visit = dto.visitId
+      ? await this.prisma.visit.findUnique({
+          where: { id: dto.visitId },
+          select: { id: true, patientId: true, dentistId: true },
+        })
+      : null;
+    if (dto.visitId && (!visit || visit.patientId !== dto.patientId)) {
+      throw new BadRequestException('This visit belongs to a different patient.');
+    }
+
+    let wasCreated = false;
+    let plan: { id: string; title: string } | null =
+      await this.prisma.treatmentPlan.findFirst({
+        where: {
+          patientId: dto.patientId,
+          status: { in: ['PLANNED', 'IN_PROGRESS'] },
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, title: true },
+      });
+    if (!plan) {
+      const dentistId = await this.resolveDentistId(this.prisma, visit, actorUserId);
+      const title =
+        dto.planName ??
+        `Treatment Plan — ${new Date().toLocaleDateString('en-UG', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        })}`;
+      plan = await plans.createTreatmentPlan(
+        { patientId: dto.patientId, dentistId, title, priority: 'NORMAL' } as any,
+        actorUserId ?? undefined,
+      );
+      wasCreated = true;
+    }
+
+    const added: any = await plans.addProcedure(
+      plan!.id,
+      {
+        procedureId: catalog.id,
+        toothNumbers: [dto.toothNumber],
+        surfaces: assertSurfaces(dto.surfaces, dto.toothNumber) as any,
+        // Ignored unless overridden — the catalogue price is authoritative.
+        totalPrice: 0,
+        currency: catalog.currency,
+        sessionType: 'SINGLE',
+        visitId: dto.visitId,
+        providerId: dto.providerId,
+        notes: dto.notes,
+      } as any,
+      actorUserId ?? undefined,
+    );
+    return {
+      plan: plan!,
+      wasCreated,
+      tp: {
+        id: added.id as string,
+        procedureName: catalog.name,
+        chartEntries: added.chartEntries as any[],
+      },
+    };
   }
 
   // ── Resolve the REQUIRED dentist FK for a new treatment plan ───────────────
   // Order: visit's assigned dentist → acting user's own staff record (the
-  // clinician charting from the drawer) → hard 400. Previously the id was set
-  // only when the visit carried a dentist, so a quick action fired without a
-  // dentist-linked visit hit Prisma's raw missing-required-FK error. This
-  // returns a clean, actionable message instead.
+  // clinician charting from the drawer) → hard 400.
   private async resolveDentistId(
     tx: any,
     visit: { dentistId?: string | null; dentist?: { id: string } | null } | null,
@@ -1462,56 +1260,6 @@ export class ChartEntryService {
     return dentistId;
   }
 
-  private async generatePlanCode(tx: any): Promise<string> {
-    const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const count = await tx.treatmentPlan.count();
-    return `TP-${date}-${String(count + 1).padStart(3, '0')}`;
-  }
-
-  private async getOrCreateGenericProcedureId(
-    name: string,
-    code: string | undefined,
-    cost: number | undefined,
-    tx: any,
-  ): Promise<string> {
-    // Dedup governance: match on code, else on a trimmed, case-insensitive
-    // name so "Root Canal", "root canal " and "ROOT CANAL" collapse to ONE
-    // clinic-created catalog row instead of three near-duplicates.
-    const trimmedName = name.trim();
-    const existing = await tx.procedure.findFirst({
-      where: code
-        ? { code }
-        : { name: { equals: trimmedName, mode: 'insensitive' } },
-    });
-    if (existing) return existing.id;
-    const created = await tx.procedure.create({
-      data: {
-        name: trimmedName,
-        code: code ?? undefined,
-        categoryId: await this.getOrCreateGeneralCategoryId(tx),
-        basePrice: cost ?? 0,
-      } as any,
-    });
-    return created.id;
-  }
-
-  private async getOrCreateGeneralCategoryId(tx: any): Promise<string> {
-    const cat = await tx.procedureCategory.findFirst({
-      where: { name: 'General' },
-    });
-    if (cat) return cat.id;
-    const created = await tx.procedureCategory.create({
-      data: { name: 'General', code: 'GEN', isActive: true },
-    });
-    return created.id;
-  }
-
-  // A1: resolve a catalog Condition for a quick-action diagnosis. Prefer an
-  // exact ICD-10 code match (hits the seeded catalog, including the
-  // presence-affecting rows like K08.1 extracted so tooth-presence detection
-  // works through the structured record too), then an exact name match, else
-  // create a clinic-defined (isSystem:false) catalog row. Mirrors the
-  // getOrCreateGenericProcedureId pattern already used for procedures.
   private async getOrCreateConditionId(
     label: string,
     code: string | undefined,
@@ -1554,25 +1302,49 @@ export class ChartEntryService {
     };
   }
 
-  async addExistingProcedure(dto: AddExistingProcedureDto) {
+  async addExistingProcedure(
+    dto: AddExistingProcedureDto,
+    actorUserId?: string | null,
+  ) {
     const fdi = assertFdiTooth(dto.toothNumber);
     const surfaces = assertSurfaces(dto.surfaces, fdi);
 
-    return this.prisma.chartEntry.create({
-      data: {
-        patientId: dto.patientId,
+    return this.prisma.$transaction(async (tx) => {
+      await assertVisitWritableTx(tx, {
         visitId: dto.visitId,
-        toothNumber: fdi,
-        surfaces,
-        type: ChartEntryType.EXISTING,
-        label: dto.procedureName,
-        procedureCode: dto.procedureCode,
-        providerId: dto.providerId ?? null,
-        notes: dto.notes,
-      },
-      include: {
-        provider: { select: { id: true, firstName: true, lastName: true } },
-      },
+        patientId: dto.patientId,
+        actorUserId: actorUserId ?? null,
+        what: 'the dental chart',
+      });
+      const row = await tx.chartEntry.create({
+        data: {
+          patientId: dto.patientId,
+          visitId: dto.visitId,
+          toothNumber: fdi,
+          surfaces,
+          type: ChartEntryType.EXISTING,
+          label: dto.procedureName,
+          procedureCode: dto.procedureCode,
+          providerId: dto.providerId ?? null,
+          notes: dto.notes,
+        },
+        include: {
+          provider: { select: { id: true, firstName: true, lastName: true } },
+        },
+      });
+      await this.writeAuditTx(tx, {
+        action: 'CREATE',
+        entityId: row.id,
+        userId: actorUserId ?? null,
+        newData: {
+          patientId: row.patientId,
+          visitId: row.visitId,
+          type: row.type,
+          toothNumber: row.toothNumber,
+          label: row.label,
+        },
+      });
+      return row;
     });
   }
 

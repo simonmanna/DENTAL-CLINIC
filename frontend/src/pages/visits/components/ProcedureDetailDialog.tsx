@@ -292,6 +292,11 @@ export function ProcedureDetailDialog({
       api.patch(`/treatment-plans/${activePlanId!}/procedures/${proc!.id}/sessions/${editTarget!.id}/edit`, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['tx-plan', activePlanId] });
+      // Session edits / voids change the chart (completed / planned
+      // markers, extraction absence) and the procedure lists too.
+      qc.invalidateQueries({ queryKey: ['chart-entries'] });
+      qc.invalidateQueries({ queryKey: ['treatment-procedures'] });
+      qc.invalidateQueries({ queryKey: ['patient-conditions'] });
       setEditTarget(null);
       if (onRefresh) onRefresh();
     },
@@ -302,6 +307,11 @@ export function ProcedureDetailDialog({
       api.delete(`/treatment-plans/${activePlanId!}/procedures/${proc!.id}/sessions/${voidTarget!.id}`, { data: { reason } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['tx-plan', activePlanId] });
+      // Session edits / voids change the chart (completed / planned
+      // markers, extraction absence) and the procedure lists too.
+      qc.invalidateQueries({ queryKey: ['chart-entries'] });
+      qc.invalidateQueries({ queryKey: ['treatment-procedures'] });
+      qc.invalidateQueries({ queryKey: ['patient-conditions'] });
       setVoidTarget(null);
       if (onRefresh) onRefresh();
     },
@@ -370,6 +380,11 @@ export function ProcedureDetailDialog({
       if (onProcedureUpdate) onProcedureUpdate(updatedProc);
       if (onRefresh) onRefresh();
       qc.invalidateQueries({ queryKey: ["tx-plan", activePlanId] });
+      // Session edits / voids change the chart (completed / planned
+      // markers, extraction absence) and the procedure lists too.
+      qc.invalidateQueries({ queryKey: ["chart-entries"] });
+      qc.invalidateQueries({ queryKey: ["treatment-procedures"] });
+      qc.invalidateQueries({ queryKey: ["patient-conditions"] });
       setEditMode(false);
     } catch (err) {
       console.error('Failed to update dental chart:', err);
@@ -389,6 +404,11 @@ export function ProcedureDetailDialog({
       if (onProcedureUpdate) onProcedureUpdate(updatedProc);
       if (onRefresh) onRefresh();
       qc.invalidateQueries({ queryKey: ["tx-plan", activePlanId] });
+      // Session edits / voids change the chart (completed / planned
+      // markers, extraction absence) and the procedure lists too.
+      qc.invalidateQueries({ queryKey: ["chart-entries"] });
+      qc.invalidateQueries({ queryKey: ["treatment-procedures"] });
+      qc.invalidateQueries({ queryKey: ["patient-conditions"] });
     } catch (err) {
       console.error('Failed to update status:', err);
       alert('Failed to update status. Please try again.');
@@ -424,6 +444,11 @@ export function ProcedureDetailDialog({
       if (onProcedureUpdate) onProcedureUpdate(updatedProc);
       if (onRefresh) onRefresh();
       qc.invalidateQueries({ queryKey: ["tx-plan", activePlanId] });
+      // Session edits / voids change the chart (completed / planned
+      // markers, extraction absence) and the procedure lists too.
+      qc.invalidateQueries({ queryKey: ["chart-entries"] });
+      qc.invalidateQueries({ queryKey: ["treatment-procedures"] });
+      qc.invalidateQueries({ queryKey: ["patient-conditions"] });
       setEditingSession(null);
     } catch (err) {
       console.error('Failed to update session:', err);
@@ -686,10 +711,13 @@ export function ProcedureDetailDialog({
                                           onChange={(e) => setSessionFormData({ ...sessionFormData, status: e.target.value })}
                                           className="w-full mt-1 text-sm rounded-lg border border-input px-3 py-2"
                                         >
+                                          {/* Real SessionStatus values only. Completing a session
+                                              goes through "Record session" so the chart and
+                                              linked conditions update with it. */}
                                           <option value="PENDING">Pending</option>
                                           <option value="IN_PROGRESS">In Progress</option>
-                                          <option value="COMPLETED">Completed</option>
-                                          <option value="ON_HOLD">On Hold</option>
+                                          <option value="SKIPPED">Skipped</option>
+                                          <option value="CANCELLED">Cancelled</option>
                                         </select>
                                       </div>
                                       <div>

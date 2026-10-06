@@ -22,6 +22,7 @@ import { DeleteProcedureDialog } from './DeleteProcedureDialog';
 import {
   treatmentProceduresEditApi,
   type ProcedureDeleteEligibility,
+  describeBillingReversal,
 } from '../../../lib/api/treatment-procedures-edit';
 import { toothName, uiToCanonical, sortUiSurfaces } from '../../../lib/dental/notation';
 
@@ -603,7 +604,7 @@ export function ToothDetailDrawer({
   );
 
   // ── Invalidate relevant query caches ──────────────────────────────────────
-  // Prefix-matched against the chart's ["chart-entries", patientId, visitId]
+  // Prefix-matched against the chart's ["chart-entries", patientId]
   // key. No patientId means demo mode — nothing is cached under real keys.
   const invalidate = () => {
     if (!patientId) return;
@@ -621,7 +622,9 @@ export function ToothDetailDrawer({
         cancellingProcedure.treatmentProcedureId,
         { reason },
       );
-      toast.success(result.message);
+      const outcome = describeBillingReversal(result.billing);
+      toast.success(outcome.message);
+      if (outcome.warning) toast.warning(outcome.warning, { duration: 12000 });
       invalidate();
       setCancellingProcedure(null);
     } catch (err: any) {
