@@ -44,7 +44,7 @@ import {
 } from "lucide-react";
 
 import TreatmentPlanTab from "./components/TreatmentPlanTab";
-// import { DentalChart } from "./components/DentalChart";
+import { DentalChart } from "../visits/components/DentalChart";
 import PrescriptionsTab from "./components/PrescriptionsTab";
 import { BillingTab } from "./components/BillingTab";
 // import { ExaminationTab } from "./components/ExaminationTab";
@@ -158,6 +158,7 @@ const TABS = [
   { id: "overview", label: "Overview", icon: User },
   { id: "appointments", label: "Appointments", icon: CalendarDays },
   { id: 'visits', label: 'Visits', icon: Calendar },
+  { id: "dental-chart", label: "Dental Chart", icon: Stethoscope },
   { id: "treatment", label: "Treatment Plans", icon: ClipboardList },
   { id: "prescriptions", label: "Prescriptions", icon: Pill },
   { id: "billing", label: "Billing / Ledger", icon: Receipt },
@@ -854,6 +855,9 @@ export function PatientDetailPage() {
                 patientId={patient.id} />
             )}
             {activeTab === 'visits' && <PatientVisitsTab patientId={patient.id} />}
+            {activeTab === "dental-chart" && (
+              <DentalChart patientId={patient.id} readOnly />
+            )}
             {activeTab === 'procedures' && <PatientProceduresTab patientId={patient.id} />}
             {activeTab === "treatment" && (
               <TreatmentPlanTab patientId={patient.id} />

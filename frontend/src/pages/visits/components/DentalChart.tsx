@@ -2909,12 +2909,12 @@ function DentalChartInner({
                   <div className="dc-finding" key={e.id}><i style={{ background: LAYER_COLOR[layerForEntry(e)].c }} />
                     <div><strong>{e.label}</strong><span>{LAYER_COLOR[layerForEntry(e)].label}{e.surfaces.length ? ` · ${sortUiSurfaces(e.surfaces).join("")}` : ""}</span></div></div>)}
             </div>
-            {currentTooth && <button className="dc-button dc-details-button" onClick={() => setDrawerTooth(currentTooth)}><Eye size={14} /> View tooth history</button>}
+            {currentTooth && !readOnly && <button className="dc-button dc-details-button" onClick={() => setDrawerTooth(currentTooth)}><Eye size={14} /> View tooth history</button>}
           </> : <div className="dc-empty-selection">
             <span><MousePointer2 size={24} aria-hidden="true" /></span>
             <h3>Select a tooth</h3>
-            <p>Choose a tooth to review findings, select surfaces, or chart treatment.</p>
-            <div className="dc-empty-tip">Use the quadrant controls to chart several teeth together.</div>
+            <p>{readOnly ? "Choose a tooth to review its recorded findings." : "Choose a tooth to review findings, select surfaces, or chart treatment."}</p>
+            {!readOnly && <div className="dc-empty-tip">Use the quadrant controls to chart several teeth together.</div>}
           </div>}
           <div className="dc-inspector-footer"><span className="dc-status-dot" />{numbering} notation · Patient-facing view</div>
         </aside>
@@ -3086,6 +3086,9 @@ function DentalChartInner({
       />
 
       {/* ── Dialogs & drawers ── */}
+      {/* The drawer carries edit / cancel / delete actions, so a read-only chart
+          never mounts it (or any dialog below). */}
+      {!readOnly && <>
       <ToothDetailDrawer
         toothNumber={drawerTooth}
         entries={entries}
@@ -3161,6 +3164,7 @@ function DentalChartInner({
           onSuccess={handleViewProcedureSuccess}
         />
       )}
+      </>}
 
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
     </div>
