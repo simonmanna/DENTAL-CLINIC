@@ -70,20 +70,20 @@ export function LoginPage() {
         {/* top sheen */}
         <div aria-hidden="true" className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/50 to-transparent" />
 
-        <div className="mb-7 flex items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-sky-300 shadow-inner">
-            <ToothMark className="h-7 w-7" />
+        <div className="mb-7 flex flex-col items-center gap-3 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-sky-300 shadow-inner">
+            <ToothMark className="h-8 w-8" />
           </div>
           <div className="leading-tight">
-            <p className="text-[15px] font-bold tracking-wide text-white">Fshikta Dental</p>
-            <p className="text-[12px] font-medium text-sky-100/55">Clinic Management</p>
+            <p className="text-[26px] font-bold tracking-wide text-white">Fshikta Dental</p>
+            <p className="mt-1 text-[17px] font-medium text-sky-100/60">Clinic Management</p>
           </div>
         </div>
 
-        <h1 className="text-[30px] font-extrabold leading-tight tracking-[-0.02em] text-white">
+        <h1 className="text-center text-[38px] font-extrabold leading-tight tracking-[-0.02em] text-white">
           Welcome back
         </h1>
-        <p className="mt-1.5 text-[15px] text-sky-100/65">Sign in to your clinic to continue.</p>
+        <p className="mt-2 text-center text-[17px] text-sky-100/65">Sign in to your clinic to continue.</p>
 
         <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
           <div>
