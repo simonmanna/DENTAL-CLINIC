@@ -259,7 +259,8 @@ export class AppointmentsService {
     tx: Prisma.TransactionClient,
     dentistId: string,
   ): Promise<void> {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${BOOKING_LOCK_CLASS}, hashtext(${dentistId}))`;
+    // Prisma binds JS numbers as bigint; the two-key overload is (int4, int4).
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${BOOKING_LOCK_CLASS}::int, hashtext(${dentistId}::text))`;
   }
 
   /**
