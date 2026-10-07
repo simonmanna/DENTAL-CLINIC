@@ -390,6 +390,12 @@ export const visitsApi = {
   getOne: (id: string) => api.get(`/visits/${id}`).then((r) => r.data),
   create: (data: { appointmentId: string; dentistId?: string }) =>
     api.post("/visits", data).then((r) => r.data),
+  /** Walk-in: creates the appointment and an in-progress visit in one go. */
+  createWalkIn: (data: {
+    patientId: string;
+    dentistId: string;
+    chiefComplaint?: string;
+  }) => api.post("/visits/walk-in", data).then((r) => r.data),
   startExamination: (id: string) =>
     api.post(`/visits/${id}/start`).then((r) => r.data),
   complete: (id: string, data: any) =>

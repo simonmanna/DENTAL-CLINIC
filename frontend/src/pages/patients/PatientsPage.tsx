@@ -3,7 +3,11 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { patientsApi } from "../../lib/api/patients";
+import { visitsApi } from "../../lib/api";
+import { staffApi } from "../../lib/api/staff-api";
+import { useAuthStore } from "../../store/auth.store";
 import type { Patient } from "@/types/patients";
+import type { Dentist } from "@/types/staff";
 
 import { formatDate, getAge, getInitials, cn } from "../../lib/utils";
 import {
@@ -489,6 +493,7 @@ const STYLES = `
     border-top: 1px solid var(--clr-border);
     display: flex;
     justify-content: flex-end;
+    flex-wrap: wrap;
     gap: 8px;
     flex-shrink: 0;
     background: var(--clr-subtle);
@@ -679,6 +684,8 @@ function PtsPageinator({
 }
 
 /* ─── Form Modal (shared for Add + Edit) ───────────────────────────────────── */
+type WalkInVisit = { dentistId: string; chiefComplaint: string };
+
 const EMPTY_FORM = {
   firstName: "",
   lastName: "",
@@ -725,14 +732,26 @@ function PatientFormModal({
   loading,
   initial,
   mode,
+  dentists = [],
+  defaultDentistId,
 }: {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: any, visit?: WalkInVisit) => void;
   loading: boolean;
   initial?: any;
   mode: "add" | "edit";
+  dentists?: Dentist[];
+  defaultDentistId?: string;
 }) {
+  // Add mode only: who sees the patient if they go straight to a visit.
+  const [visit, setVisit] = useState<WalkInVisit>({
+    dentistId: "",
+    chiefComplaint: "",
+  });
+  const [dentistError, setDentistError] = useState<string>();
+  const [submitted, setSubmitted] = useState<"patient" | "visit">("patient");
+
   const [form, setForm] = useState<any>(() =>
     initial
       ? {
@@ -797,8 +816,10 @@ function PatientFormModal({
       // Reset to empty form for "Add" mode
       setForm(EMPTY_FORM);
       setErrors({});
+      setVisit({ dentistId: defaultDentistId ?? "", chiefComplaint: "" });
+      setDentistError(undefined);
     }
-  }, [open, initial]);
+  }, [open, initial, defaultDentistId]);
 
   // Clear errors when form field changes
   const handleFieldChange = (field: string, value: string) => {
@@ -824,7 +845,18 @@ function PatientFormModal({
 
   const handleSubmit = () => {
     if (validate()) {
+      setSubmitted("patient");
       onSubmit(form);
+    }
+  };
+
+  const handleSubmitWithVisit = () => {
+    const formOk = validate();
+    const dentistOk = !!visit.dentistId;
+    setDentistError(dentistOk ? undefined : "Choose the dentist for the visit");
+    if (formOk && dentistOk) {
+      setSubmitted("visit");
+      onSubmit(form, visit);
     }
   };
 
@@ -1064,6 +1096,46 @@ function PatientFormModal({
             </div>
           </div>
 
+          {mode === "add" && (
+            <div className="pts-form-section">
+              <div className="pts-section-label">
+                <span className="num">4</span>
+                <span>Visit Now (for Register Patient and Visit)</span>
+              </div>
+              <div className="pts-grid-2">
+                <Field label="Dentist" error={dentistError}>
+                  <select
+                    className={`pts-input-select ${dentistError ? "pts-input-error" : ""}`}
+                    value={visit.dentistId}
+                    onChange={(e) => {
+                      setVisit((v) => ({ ...v, dentistId: e.target.value }));
+                      setDentistError(undefined);
+                    }}
+                  >
+                    <option value="">Select dentist</option>
+                    {dentists.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        Dr. {d.firstName} {d.lastName}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Chief Complaint">
+                  <input
+                    className="pts-input"
+                    value={visit.chiefComplaint}
+                    onChange={(e) =>
+                      setVisit((v) => ({
+                        ...v,
+                        chiefComplaint: e.target.value,
+                      }))
+                    }
+                    placeholder="e.g. Toothache, lower left"
+                  />
+                </Field>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="pts-modal-footer">
@@ -1074,12 +1146,31 @@ function PatientFormModal({
           >
             Cancel
           </button>
+          {mode === "add" && (
+            <button
+              className="pts-btn pts-btn-outline"
+              onClick={handleSubmitWithVisit}
+              disabled={loading}
+            >
+              {loading && submitted === "visit" ? (
+                <>
+                  <span className="pts-spinner" />
+                  Opening visit…
+                </>
+              ) : (
+                <>
+                  <Stethoscope size={15} />
+                  Register Patient and Visit
+                </>
+              )}
+            </button>
+          )}
           <button
             className="pts-btn pts-btn-primary"
             onClick={handleSubmit}
             disabled={loading}
           >
-            {loading ? (
+            {loading && submitted === "patient" ? (
               <>
                 <span className="pts-spinner" />
                 Saving…
@@ -1168,6 +1259,17 @@ export function PatientsPage() {
     queryFn: patientsApi.getStats,
   });
 
+  const { user } = useAuthStore();
+  const { data: dentists = [] } = useQuery({
+    queryKey: ["dentists"],
+    queryFn: staffApi.getDentists,
+  });
+  // A dentist registering a walk-in is usually the one seeing them; with a
+  // single dentist on staff there is nothing to choose.
+  const defaultDentistId =
+    dentists.find((d) => d.id === user?.staff?.id)?.id ??
+    (dentists.length === 1 ? dentists[0].id : undefined);
+
   const preparePayload = (d: any, originalDateOfBirth?: string | Date) => {
     const cleaned: any = {};
 
@@ -1218,11 +1320,38 @@ export function PatientsPage() {
   };
 
   const addMutation = useMutation({
-    mutationFn: (d: any) => patientsApi.create(preparePayload(d)),
-    onSuccess: () => {
+    mutationFn: async ({ d, visit }: { d: any; visit?: WalkInVisit }) => {
+      const patient = await patientsApi.create(preparePayload(d));
+      if (!visit) return { patient };
+      try {
+        const created = await visitsApi.createWalkIn({
+          patientId: patient.id,
+          dentistId: visit.dentistId,
+          chiefComplaint: visit.chiefComplaint.trim() || undefined,
+        });
+        return { patient, visit: created };
+      } catch (e: any) {
+        // The patient is saved; only the visit failed. Say so and fall back
+        // to the patient's page rather than leaving the dialog half-done.
+        const msg = e?.response?.data?.message;
+        alert(
+          "Patient registered, but the visit could not be opened" +
+            (msg ? `:\n${Array.isArray(msg) ? msg.join("\n") : msg}` : "."),
+        );
+        return { patient, visitFailed: true };
+      }
+    },
+    onSuccess: ({ patient, visit, visitFailed }: any) => {
       refetch();
       qc.invalidateQueries({ queryKey: ["patient-stats"] });
       setShowAdd(false);
+      if (visit) {
+        qc.invalidateQueries({ queryKey: ["appointments"] });
+        qc.invalidateQueries({ queryKey: ["visits"] });
+        navigate(`/visits/${visit.id}`);
+      } else if (visitFailed) {
+        navigate(`/patients/${patient.id}`);
+      }
     },
     onError: (error: any) => {
       if (error.response?.status === 400 && error.response?.data?.message) {
@@ -1658,9 +1787,11 @@ export function PatientsPage() {
       <PatientFormModal
         open={showAdd}
         onClose={() => setShowAdd(false)}
-        onSubmit={(d) => addMutation.mutate(d)}
+        onSubmit={(d, visit) => addMutation.mutate({ d, visit })}
         loading={addMutation.isPending}
         mode="add"
+        dentists={dentists}
+        defaultDentistId={defaultDentistId}
       />
 
       {/* ── Edit Modal ── */}

@@ -38,6 +38,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import {
   AppointmentStatus,
+  AppointmentType,
   BalanceStatus,
   Prisma,
   UserRole,
@@ -96,6 +97,16 @@ export class CreateVisitDto {
    * dentist is used when omitted. Supplied when cover changes at the chair.
    */
   @IsOptional() @IsString() dentistId?: string;
+}
+
+/**
+ * Walk-in: the patient is at the chair now, with no booking. The service
+ * creates the appointment (already in progress) and the visit together.
+ */
+export class CreateWalkInVisitDto {
+  @IsString() @IsNotEmpty() patientId: string;
+  @IsString() @IsNotEmpty() dentistId: string;
+  @IsOptional() @IsString() @MaxLength(2000) chiefComplaint?: string;
 }
 
 /** Fields carried by every clinical write, for the amendment path. */
@@ -373,6 +384,81 @@ export class VisitsService {
     });
 
     return visit;
+  }
+
+  /**
+   * STEP 1 (walk-in) — open a visit for a patient with no booking.
+   *
+   * Creates a walk-in appointment and its IN_PROGRESS visit in one
+   * transaction, so the front desk never has to book → check in → start by
+   * hand, and a failure leaves no half-made appointment behind. The overlap
+   * check is deliberately skipped: the patient is being seen now, whatever
+   * the dentist's calendar says.
+   */
+  async createWalkInVisit(dto: CreateWalkInVisitDto, actor?: ActingUser) {
+    const [patient, dentist] = await Promise.all([
+      this.prisma.patient.findUnique({
+        where: { id: dto.patientId },
+        select: { id: true },
+      }),
+      this.prisma.staff.findUnique({
+        where: { id: dto.dentistId },
+        select: { id: true },
+      }),
+    ]);
+    if (!patient) throw new NotFoundException('Patient not found');
+    if (!dentist) {
+      throw new BadRequestException(
+        `Dentist with ID ${dto.dentistId} not found`,
+      );
+    }
+
+    const now = new Date();
+    return this.prisma.$transaction(async (tx) => {
+      const appointmentCode = await this.docNum.next('APT', tx);
+      const appointment = await tx.appointment.create({
+        data: {
+          appointmentCode,
+          patientId: dto.patientId,
+          dentistId: dto.dentistId,
+          type: AppointmentType.CONSULTATION,
+          scheduledAt: now,
+          duration: 30,
+          chiefComplaint: dto.chiefComplaint,
+          isWalkIn: true,
+          status: AppointmentStatus.IN_PROGRESS,
+        },
+      });
+
+      const visitCode = await this.docNum.next('VIS', tx);
+      const visit = await tx.visit.create({
+        data: {
+          visitCode,
+          appointmentId: appointment.id,
+          patientId: dto.patientId,
+          dentistId: dto.dentistId,
+          status: VisitStatus.IN_PROGRESS,
+          checkedInAt: now,
+          startedAt: now,
+        },
+      });
+
+      await this.writeAudit(tx, {
+        action: 'CREATE_WALK_IN',
+        recordId: visit.id,
+        actorId: actor?.id,
+        newData: {
+          visitCode,
+          appointmentId: appointment.id,
+          appointmentCode,
+          patientId: dto.patientId,
+          dentistId: dto.dentistId,
+          status: VisitStatus.IN_PROGRESS,
+        },
+      });
+
+      return visit;
+    });
   }
 
   /**

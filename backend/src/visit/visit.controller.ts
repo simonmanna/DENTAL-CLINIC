@@ -30,6 +30,7 @@ import { VisitsService } from './visit.service';
 import type { ActingUser } from './visit.service';
 import {
   CreateVisitDto,
+  CreateWalkInVisitDto,
   UpdateClinicalNotesDto,
   UpdateVitalsDto,
   AddProcedureDto,
@@ -158,6 +159,18 @@ export class VisitsController {
   })
   checkIn(@Body() dto: CreateVisitDto, @CurrentUser() user: ActingUser) {
     return this.svc.createVisit(dto, user);
+  }
+
+  @Post('walk-in')
+  @Roles(...CAN_MANAGE_VISIT)
+  @ApiOperation({
+    summary: 'Open a visit for a walk-in patient (creates the appointment too)',
+  })
+  createWalkIn(
+    @Body() dto: CreateWalkInVisitDto,
+    @CurrentUser() user: ActingUser,
+  ) {
+    return this.svc.createWalkInVisit(dto, user);
   }
 
   @Post(':id/start')
