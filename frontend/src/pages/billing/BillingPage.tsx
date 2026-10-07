@@ -28,7 +28,10 @@ import {
   DollarSign,
   ArrowUpDown,
 } from "lucide-react";
-import { BASE_CURRENCY } from "@/constants/currency";
+import {
+  BASE_CURRENCY,
+  formatCurrency as formatMoneyCodeFirst,
+} from "@/constants/currency";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -364,34 +367,27 @@ function Dialog({
 
 // ─── Stats Row ────────────────────────────────────────────────────────────────
 
+type CurrencySummary = Record<
+  string,
+  { total: number; paid: number; outstanding: number; count: number }
+>;
+
+/** "UGX 1,250,000" / "USD 1,250.00" — currency code first, like Receipts. */
+function money(amount: number, currency: string) {
+  return formatMoneyCodeFirst(amount || 0, currency);
+}
+
 function StatsRow({
-  invoices,
+  summary,
+  invoiceCount,
   isLoading = false,
 }: {
-  invoices: Invoice[];
+  // Totals for the whole filtered set, computed server-side (voids excluded).
+  summary: CurrencySummary;
+  invoiceCount: number;
   isLoading?: boolean;
 }) {
-  const stats = useMemo(() => {
-    const liveInvoices = invoices.filter(
-      (i) => normalizeStatus(i.status) !== "VOID"
-    );
-
-    const currencyTotals = liveInvoices.reduce(
-      (acc, inv) => {
-        const currency = inv.currency || "UGX";
-        if (!acc[currency]) {
-          acc[currency] = { total: 0, paid: 0, outstanding: 0 };
-        }
-        acc[currency].total += Number(inv.total || 0);
-        acc[currency].paid += Number(inv.amountPaid || 0);
-        acc[currency].outstanding += Number(inv.balance || 0);
-        return acc;
-      },
-      {} as Record<string, { total: number; paid: number; outstanding: number }>
-    );
-
-    return { invoiceCount: liveInvoices.length, currencyTotals };
-  }, [invoices]);
+  const stats = { invoiceCount, currencyTotals: summary };
 
   const cards: {
     label: string;
@@ -403,30 +399,24 @@ function StatsRow({
   }[] = [
     {
       label: "Total",
-      primary: formatCurrency(stats.currencyTotals.UGX?.total || 0, "UGX"),
-      secondary: formatCurrency(stats.currencyTotals.USD?.total || 0, "USD"),
+      primary: money(stats.currencyTotals.UGX?.total || 0, "UGX"),
+      secondary: money(stats.currencyTotals.USD?.total || 0, "USD"),
       icon: <Receipt className="w-5 h-5" />,
       color: "text-primary",
       bg: "bg-primary-muted/60 border-primary/25",
     },
     {
       label: "Paid",
-      primary: formatCurrency(stats.currencyTotals.UGX?.paid || 0, "UGX"),
-      secondary: formatCurrency(stats.currencyTotals.USD?.paid || 0, "USD"),
+      primary: money(stats.currencyTotals.UGX?.paid || 0, "UGX"),
+      secondary: money(stats.currencyTotals.USD?.paid || 0, "USD"),
       icon: <CheckCircle className="w-5 h-5" />,
       color: "text-success",
       bg: "bg-success-muted/60 border-success/25",
     },
     {
       label: "Outstanding",
-      primary: formatCurrency(
-        stats.currencyTotals.UGX?.outstanding || 0,
-        "UGX"
-      ),
-      secondary: formatCurrency(
-        stats.currencyTotals.USD?.outstanding || 0,
-        "USD"
-      ),
+      primary: money(stats.currencyTotals.UGX?.outstanding || 0, "UGX"),
+      secondary: money(stats.currencyTotals.USD?.outstanding || 0, "USD"),
       icon: <AlertTriangle className="w-5 h-5" />,
       color: "text-warning",
       bg: "bg-warning-muted/60 border-warning/25",
@@ -1495,17 +1485,13 @@ export function BillingPage() {
   // never renders a blank page.
   const safePage = Math.min(page, meta.totalPages || 1);
 
-  // Available currencies, derived from the first page so the dropdown stays
-  // in sync with what's actually in the DB. Cheap — one extra query with
-  // limit=1 just for the union, or we infer from the loaded set.
+  // Every currency in use (server-side, unfiltered) plus the active choice,
+  // so picking USD doesn't make UGX vanish from the dropdown.
   const availableCurrencies = useMemo(() => {
-    const set = new Set<string>();
-    for (const inv of invoices) {
-      if (inv.currency) set.add(inv.currency);
-      if (inv.baseCurrency) set.add(inv.baseCurrency);
-    }
+    const set = new Set<string>([BASE_CURRENCY, ...(listData?.meta?.currencies ?? [])]);
+    if (currencyFilter !== "ALL") set.add(currencyFilter);
     return Array.from(set).sort();
-  }, [invoices]);
+  }, [listData?.meta?.currencies, currencyFilter]);
 
   // ── Query: invoice detail (lazy, only when a row drawer is opened) ───
   const { data: detailData } = useQuery({
@@ -1580,7 +1566,11 @@ export function BillingPage() {
       </div>
 
       {/* ── Stats Cards ─────────────────────────────────────────────────── */}
-      <StatsRow invoices={invoices} isLoading={isLoading} />
+      <StatsRow
+        summary={listData?.meta?.summary ?? {}}
+        invoiceCount={meta.total}
+        isLoading={isLoading}
+      />
 
       {/* ── Main Table Card ──────────────────────────────────────────────── */}
       <div className="flex flex-col flex-1 min-h-0 border border-border rounded-2xl bg-white overflow-hidden">
@@ -1896,7 +1886,7 @@ export function BillingPage() {
             </p>
             <div className="flex items-center gap-1">
               <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => setPage(Math.max(1, safePage - 1))}
                 disabled={safePage === 1}
                 className="p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-30 transition-colors"
               >
@@ -1907,7 +1897,7 @@ export function BillingPage() {
               </span>
               <button
                 onClick={() =>
-                  setPage((p) => Math.min(meta.totalPages, p + 1))
+                  setPage(Math.min(meta.totalPages, safePage + 1))
                 }
                 disabled={safePage === meta.totalPages}
                 className="p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-30 transition-colors"

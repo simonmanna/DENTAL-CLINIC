@@ -1975,10 +1975,22 @@ export class InvoicesService {
 
     // Parse date bounds (optional). Invalid date strings throw — controller
     // should forward ISO strings; we surface a clear 400 for anything else.
+    // A bare YYYY-MM-DD (what <input type="date"> sends) is a whole local
+    // day: `new Date('2026-10-07')` would be UTC midnight, which silently
+    // dropped every invoice created on the chosen "to" day.
+    const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+    const localDay = (ymd: string, endOfDay: boolean) => {
+      const [y, m, d] = ymd.split('-').map(Number);
+      return endOfDay
+        ? new Date(y, m - 1, d, 23, 59, 59, 999)
+        : new Date(y, m - 1, d);
+    };
     let dateGte: Date | undefined;
     let dateLte: Date | undefined;
     if (params.dateFrom) {
-      const d = new Date(params.dateFrom);
+      const d = DATE_ONLY.test(params.dateFrom)
+        ? localDay(params.dateFrom, false)
+        : new Date(params.dateFrom);
       if (isNaN(d.getTime())) {
         throw new BadRequestException(
           `Invalid dateFrom "${params.dateFrom}" (expected ISO 8601)`,
@@ -1987,7 +1999,9 @@ export class InvoicesService {
       dateGte = d;
     }
     if (params.dateTo) {
-      const d = new Date(params.dateTo);
+      const d = DATE_ONLY.test(params.dateTo)
+        ? localDay(params.dateTo, true)
+        : new Date(params.dateTo);
       if (isNaN(d.getTime())) {
         throw new BadRequestException(
           `Invalid dateTo "${params.dateTo}" (expected ISO 8601)`,
@@ -2036,7 +2050,7 @@ export class InvoicesService {
       | 'invoiceNumber';
     const sortDir = (params.sortDir ?? 'desc') as 'asc' | 'desc';
 
-    const [data, total] = await Promise.all([
+    const [data, total, sums, currencyRows] = await Promise.all([
       this.prisma.invoice.findMany({
         where,
         skip: (page - 1) * limit,
@@ -2045,7 +2059,36 @@ export class InvoicesService {
         select: INVOICE_SELECT,
       }),
       this.prisma.invoice.count({ where }),
+      // Per-currency totals over the WHOLE filtered set (not just this
+      // page) so the stat cards match the table. Voided invoices never
+      // count towards money totals.
+      this.prisma.invoice.groupBy({
+        by: ['currency'],
+        where: { AND: [where, { status: { not: 'VOID' } }] },
+        _sum: { total: true, amountPaid: true, balance: true },
+        _count: { _all: true },
+      }),
+      // Every currency in use, unfiltered, so the currency dropdown doesn't
+      // lose options once a filter narrows the result set.
+      this.prisma.invoice.groupBy({ by: ['currency'] }),
     ]);
+
+    const summary: Record<
+      string,
+      { total: number; paid: number; outstanding: number; count: number }
+    > = {};
+    for (const row of (sums ?? []) as any[]) {
+      summary[row.currency] = {
+        total: toNum(row._sum?.total),
+        paid: toNum(row._sum?.amountPaid),
+        outstanding: toNum(row._sum?.balance),
+        count: row._count?._all ?? 0,
+      };
+    }
+    const currencies = ((currencyRows ?? []) as any[])
+      .map((r) => r.currency as string)
+      .filter(Boolean)
+      .sort();
 
     return {
       data,
@@ -2054,6 +2097,8 @@ export class InvoicesService {
         page,
         limit,
         totalPages: Math.max(1, Math.ceil(total / limit)),
+        summary,
+        currencies,
         // Echo the applied filter set so the frontend can show "X of Y
         // matching <filters>" without re-deriving the query state.
         appliedFilters: {

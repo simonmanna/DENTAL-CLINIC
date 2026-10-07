@@ -177,6 +177,34 @@ describe('InvoicesService.getPatientInvoices', () => {
     });
   });
 
+  // ── Date-only bounds cover the whole local day ─────────────────────
+  it('treats YYYY-MM-DD dateFrom/dateTo as inclusive local days', async () => {
+    await svc.getPatientInvoices({ dateFrom: '2026-10-01', dateTo: '2026-10-07' });
+    const { gte, lte } = prisma.invoice.count.mock.calls[0][0].where.createdAt;
+    expect(gte).toEqual(new Date(2026, 9, 1, 0, 0, 0, 0));
+    expect(lte).toEqual(new Date(2026, 9, 7, 23, 59, 59, 999));
+  });
+
+  // ── Stat-card summary over the whole filtered set ──────────────────
+  it('returns per-currency totals (voids excluded) and all currencies', async () => {
+    prisma.invoice.groupBy
+      .mockResolvedValueOnce([
+        {
+          currency: 'UGX',
+          _sum: { total: 300, amountPaid: 100, balance: 200 },
+          _count: { _all: 2 },
+        },
+      ])
+      .mockResolvedValueOnce([{ currency: 'USD' }, { currency: 'UGX' }]);
+    const out = await svc.getPatientInvoices({ status: 'POSTED' });
+    const sumArgs = prisma.invoice.groupBy.mock.calls[0][0];
+    expect(sumArgs.where.AND[1]).toEqual({ status: { not: 'VOID' } });
+    expect(out.meta.summary).toEqual({
+      UGX: { total: 300, paid: 100, outstanding: 200, count: 2 },
+    });
+    expect(out.meta.currencies).toEqual(['UGX', 'USD']);
+  });
+
   // ── Where-clause compilation ───────────────────────────────────────
   describe('where compilation', () => {
     it('compiles patientId / visitId / status / paymentStatus', async () => {
