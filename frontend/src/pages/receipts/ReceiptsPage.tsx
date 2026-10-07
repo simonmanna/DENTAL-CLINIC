@@ -768,6 +768,59 @@ function compactParams(
   return out;
 }
 
+/* Period presets drive the table's date range. "custom" means the user typed
+   their own dates; "all" means no date bound. */
+type Period = "all" | "day" | "week" | "month" | "year" | "custom";
+
+const PERIOD_LABELS: Record<Period, string> = {
+  all: "All time",
+  day: "Today",
+  week: "This week",
+  month: "This month",
+  year: "This year",
+  custom: "Custom range",
+};
+
+/** Local YYYY-MM-DD (toISOString would shift the day across timezones). */
+function toYmd(d: Date): string {
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+/** Calendar range for a preset, ending today. Weeks start on Monday. */
+function periodRange(period: Period): { from: string; to: string } {
+  if (period === "all" || period === "custom") return { from: "", to: "" };
+  const today = new Date();
+  const start = new Date(today);
+  if (period === "week") {
+    start.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  } else if (period === "month") {
+    start.setDate(1);
+  } else if (period === "year") {
+    start.setMonth(0, 1);
+  }
+  return { from: toYmd(start), to: toYmd(today) };
+}
+
+/** Human label for the active range, e.g. "1 Oct – 7 Oct 2026". */
+function formatRange(from: string, to: string): string {
+  const fmt = (ymd: string, withYear: boolean) =>
+    new Date(`${ymd}T00:00:00`).toLocaleDateString(undefined, {
+      day: "numeric",
+      month: "short",
+      ...(withYear ? { year: "numeric" } : {}),
+    });
+  if (from && to) {
+    return from === to
+      ? fmt(from, true)
+      : `${fmt(from, from.slice(0, 4) !== to.slice(0, 4))} – ${fmt(to, true)}`;
+  }
+  if (from) return `From ${fmt(from, true)}`;
+  if (to) return `Up to ${fmt(to, true)}`;
+  return "All receipts";
+}
+
 /** Visual style for active-filter chips. Kept inline so the chips match the
  * existing badge palette without adding a new CSS class. */
 const chipStyle = {
@@ -1039,9 +1092,25 @@ export function ReceiptsPage() {
   const [minAmount, setMinAmount] = useState<string>("");
   const [maxAmount, setMaxAmount] = useState<string>("");
 
-  const [period, setPeriod] = useState<"day" | "week" | "month" | "year">(
-    "month",
-  );
+  const [period, setPeriod] = useState<Period>("all");
+
+  // Picking a preset rewrites the date range; typing a date by hand flips the
+  // preset to "custom" so the two controls never disagree.
+  const applyPeriod = (next: Period) => {
+    setPeriod(next);
+    if (next === "custom") return;
+    const { from, to } = periodRange(next);
+    setDateFrom(from);
+    setDateTo(to);
+  };
+  const changeDateFrom = (value: string) => {
+    setDateFrom(value);
+    setPeriod(value || dateTo ? "custom" : "all");
+  };
+  const changeDateTo = (value: string) => {
+    setDateTo(value);
+    setPeriod(dateFrom || value ? "custom" : "all");
+  };
   const [page, setPage] = useState(1);
   const [viewReceiptId, setViewReceiptId] = useState<string | null>(null);
   const [voidTarget, setVoidTarget] = useState<Receipt | null>(null);
@@ -1095,9 +1164,11 @@ export function ReceiptsPage() {
     placeholderData: (previousData) => previousData,
   });
 
+  // Only "receipts today" comes from the stats endpoint; period totals are
+  // read from the filtered list so the cards always match the table.
   const { data: stats } = useQuery<ReceiptStats>({
-    queryKey: ["receipt-stats", period],
-    queryFn: () => receiptsApi.getStats(period).then((r) => r.data),
+    queryKey: ["receipt-stats", "day"],
+    queryFn: () => receiptsApi.getStats("day").then((r) => r.data),
   });
 
   const { data: receiptDetail, isLoading: detailLoading } = useQuery({
@@ -1123,6 +1194,7 @@ export function ReceiptsPage() {
     setStatusFilter("");
     setPaymentMethodFilter("");
     setCurrencyFilter("");
+    setPeriod("all");
     setDateFrom("");
     setDateTo("");
     setMinAmount("");
@@ -1229,8 +1301,12 @@ export function ReceiptsPage() {
           </div>
           <div className="pur-stat-body">
             <div className="pur-stat-label">Total Receipts</div>
-            <div className="pur-stat-value">{stats?.totalReceipts ?? 0}</div>
-            <div className="pur-stat-sub">This {period}</div>
+            <div className="pur-stat-value">{meta.total ?? 0}</div>
+            <div className="pur-stat-sub">
+              {period === "all" && !hasActiveFilters
+                ? "All time"
+                : "Matching filters"}
+            </div>
           </div>
         </div>
 
@@ -1293,14 +1369,21 @@ export function ReceiptsPage() {
             <select
               className="pur-select"
               value={period}
-              onChange={(e) => setPeriod(e.target.value as any)}
+              onChange={(e) => applyPeriod(e.target.value as Period)}
+              aria-label="Filter receipts by period"
               style={{ marginTop: 4, width: "100%" }}
             >
-              <option value="day">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="year">This Year</option>
+              {(Object.keys(PERIOD_LABELS) as Period[])
+                .filter((p) => p !== "custom" || period === "custom")
+                .map((p) => (
+                  <option key={p} value={p}>
+                    {PERIOD_LABELS[p]}
+                  </option>
+                ))}
             </select>
+            <div className="pur-stat-sub" style={{ marginTop: 4 }}>
+              {formatRange(dateFrom, dateTo)}
+            </div>
           </div>
         </div>
       </div>
@@ -1414,7 +1497,7 @@ export function ReceiptsPage() {
               aria-label="Date from"
               value={dateFrom}
               max={dateTo || undefined}
-              onChange={(e) => setDateFrom(e.target.value)}
+              onChange={(e) => changeDateFrom(e.target.value)}
               style={{
                 border: "none",
                 outline: "none",
@@ -1434,7 +1517,7 @@ export function ReceiptsPage() {
               aria-label="Date to"
               value={dateTo}
               min={dateFrom || undefined}
-              onChange={(e) => setDateTo(e.target.value)}
+              onChange={(e) => changeDateTo(e.target.value)}
               style={{
                 border: "none",
                 outline: "none",
