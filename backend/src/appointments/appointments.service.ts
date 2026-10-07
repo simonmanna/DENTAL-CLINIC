@@ -117,7 +117,25 @@ export class AppointmentQueryDto {
   page?: string;
   limit?: string;
   view?: 'day' | 'week';
+  sortBy?: string;
+  sortDir?: string;
 }
+
+/** Sortable list columns. Anything else falls back to `scheduledAt`. */
+const APPOINTMENT_SORTS: Record<
+  string,
+  (dir: Prisma.SortOrder) => Prisma.AppointmentOrderByWithRelationInput[]
+> = {
+  scheduledAt: (dir) => [{ scheduledAt: dir }],
+  createdAt: (dir) => [{ createdAt: dir }],
+  status: (dir) => [{ status: dir }, { scheduledAt: 'asc' }],
+  type: (dir) => [{ type: dir }, { scheduledAt: 'asc' }],
+  patient: (dir) => [
+    { patient: { lastName: dir } },
+    { patient: { firstName: dir } },
+  ],
+  dentist: (dir) => [{ dentist: { lastName: dir } }, { scheduledAt: 'asc' }],
+};
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -750,6 +768,10 @@ export class AppointmentsService {
       Math.max(1, parseInt(query.limit as string, 10) || 20),
     );
     const skip = (page - 1) * limit;
+    const sortDir: Prisma.SortOrder = query.sortDir === 'desc' ? 'desc' : 'asc';
+    const orderBy = (
+      APPOINTMENT_SORTS[query.sortBy ?? ''] ?? APPOINTMENT_SORTS.scheduledAt
+    )(sortDir);
 
     const where: Prisma.AppointmentWhereInput = {
       ...(dentistId && { dentistId }),
@@ -786,7 +808,7 @@ export class AppointmentsService {
         where,
         skip,
         take: limit,
-        orderBy: { scheduledAt: 'asc' },
+        orderBy,
         include: this.appointmentIncludes(),
       }),
     ]);

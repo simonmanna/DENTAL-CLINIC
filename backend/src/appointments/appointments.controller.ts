@@ -72,6 +72,14 @@ export class AppointmentsController {
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'patientId', required: false })
+  @ApiQuery({ name: 'startDate', required: false, example: '2024-01-01' })
+  @ApiQuery({ name: 'endDate', required: false, example: '2024-01-31' })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    enum: ['scheduledAt', 'createdAt', 'status', 'type', 'patient', 'dentist'],
+  })
+  @ApiQuery({ name: 'sortDir', required: false, enum: ['asc', 'desc'] })
   findAll(@Query() query: any) {
     return this.svc.findAll(query);
   }
