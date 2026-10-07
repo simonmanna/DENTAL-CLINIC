@@ -96,18 +96,17 @@ describe('VisitsService', () => {
       ...over,
     });
 
-    it('opens the visit as ARRIVED so the examination can be started', async () => {
-      // The old code wrote IN_PROGRESS here, which made ARRIVED unreachable
-      // and left startExamination permanently returning 400.
+    it('opens the visit IN_PROGRESS with the examination already started', async () => {
+      // "Start visit" means the patient is in the chair; no second click.
       const { svc, prisma } = build();
       prisma.appointment.findUnique.mockResolvedValue(arrivedAppointment());
       prisma.staff.findUnique.mockResolvedValue({ id: 'd1' });
 
       await svc.createVisit({ appointmentId: 'apt-1' } as any, DENTIST);
 
-      expect(prisma.visit.create.mock.calls[0][0].data.status).toBe(
-        VisitStatus.ARRIVED,
-      );
+      const data = prisma.visit.create.mock.calls[0][0].data;
+      expect(data.status).toBe(VisitStatus.IN_PROGRESS);
+      expect(data.startedAt).toBeInstanceOf(Date);
     });
 
     it('moves the appointment to IN_PROGRESS in the same transaction', async () => {

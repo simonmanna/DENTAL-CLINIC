@@ -367,7 +367,7 @@ export function VisitPage() {
         <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
           {/* White text only on this bar: the brand teal (text-primary) has
               almost no contrast against the blue background. */}
-          <div className="px-5 py-2.5 bg-[#0369a1] text-white flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+          <div className="px-5 py-2.5 bg-[#0369a1] text-white flex flex-wrap xl:flex-nowrap items-center justify-between gap-x-6 gap-y-3">
             <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
               {/* Left Side: Patient Identity */}
               <div className="flex items-center gap-3 shrink-0">
@@ -414,10 +414,10 @@ export function VisitPage() {
                     key={label}
                     className="flex flex-col border-l border-white/25 pl-5 first:border-0 first:pl-0"
                   >
-                    <dt className="text-[11px] font-medium uppercase tracking-wider text-white/80">
+                    <dt className="text-[11px] font-medium uppercase tracking-wider text-white/80 whitespace-nowrap">
                       {label}
                     </dt>
-                    <dd className="mt-0.5 text-sm font-semibold text-white">
+                    <dd className="mt-0.5 text-sm font-semibold text-white whitespace-nowrap">
                       {value}
                     </dd>
                   </div>
@@ -433,61 +433,71 @@ export function VisitPage() {
               </dl>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="text-sm font-medium text-white/90 flex items-center gap-1.5 tabular-nums" title="Checked in">
-                <Clock className="w-3.5 h-3.5" />
-                {visit.checkedInAt
-                  ? new Date(visit.checkedInAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : "—"}
+            <div className="flex shrink-0 items-center gap-2">
+              {/* Time over status — same two-line rhythm as the metadata. */}
+              <div className="flex flex-col items-end border-r border-white/25 pr-4 mr-1">
+                <span
+                  className="flex items-center gap-1 text-sm font-semibold text-white tabular-nums whitespace-nowrap"
+                  title="Checked in"
+                >
+                  <Clock className="w-3.5 h-3.5 text-white/80" />
+                  {visit.checkedInAt
+                    ? new Date(visit.checkedInAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "—"}
+                </span>
+                <span
+                  className={cn(
+                    "mt-0.5 px-2 py-px rounded-full text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap",
+                    STATUS_PILL[status],
+                  )}
+                >
+                  {status.replace("_", " ")}
+                </span>
               </div>
-              <span
-                className={cn(
-                  "px-2.5 py-0.5 rounded-full text-xs font-medium",
-                  STATUS_PILL[status],
-                )}
-              >
-                {status.replace("_", " ")}
-              </span>
               {isArrived && (
-                <button
+                <HeaderAction
                   onClick={() => startMutation.mutate()}
                   disabled={startMutation.isPending}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-[#1e3a5f] rounded text-xs font-semibold hover:bg-primary-muted/60 transition-colors disabled:opacity-60"
-                >
-                  {startMutation.isPending ? (
-                    <Spinner size="sm" />
-                  ) : (
-                    <Stethoscope className="w-3.5 h-3.5" />
-                  )}
-                  Start Examination
-                </button>
+                  className="bg-white text-[#1e3a5f] hover:bg-primary-muted/60"
+                  icon={
+                    startMutation.isPending ? (
+                      <Spinner size="sm" />
+                    ) : (
+                      <Stethoscope className="w-4 h-4" />
+                    )
+                  }
+                  top="Start"
+                  bottom="Exam"
+                />
               )}
               {(isArrived || isInProgress) && canManageVisit && (
-                <button
+                <HeaderAction
                   onClick={() => setConfirmCancel(true)}
                   disabled={cancelMutation.isPending}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 border border-white/40 text-white rounded text-xs font-semibold hover:bg-white/20 transition-colors disabled:opacity-60"
-                >
-                  <XCircle className="w-3.5 h-3.5" />
-                  Cancel Visit
-                </button>
+                  className="bg-white/10 border border-white/40 text-white hover:bg-white/20"
+                  icon={<XCircle className="w-4 h-4" />}
+                  top="Cancel"
+                  bottom="Visit"
+                />
               )}
               {isInProgress && (
-                <button
+                <HeaderAction
                   onClick={() => setConfirmComplete(true)}
                   disabled={completeMutation.isPending}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-success text-white rounded text-xs font-semibold hover:bg-success transition-colors disabled:opacity-60"
-                >
-                  {completeMutation.isPending ? (
-                    <Spinner size="sm" />
-                  ) : (
-                    <CheckCircle className="w-3.5 h-3.5" />
-                  )}
-                  Complete Visit
-                </button>
+                  className="bg-success text-white hover:brightness-110"
+                  icon={
+                    completeMutation.isPending ? (
+                      <Spinner size="sm" />
+                    ) : (
+                      <CheckCircle className="w-4 h-4" />
+                    )
+                  }
+                  top="Complete"
+                  bottom="Visit"
+                />
               )}
             </div>
           </div>
@@ -597,5 +607,43 @@ export function VisitPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/** Compact header button: icon beside a two-line label, so the header row
+ *  keeps the same label-over-value rhythm as the visit metadata. */
+function HeaderAction({
+  onClick,
+  disabled,
+  className,
+  icon,
+  top,
+  bottom,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  className?: string;
+  icon: React.ReactNode;
+  top: string;
+  bottom: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "flex items-center gap-1.5 rounded px-2.5 py-1 text-left transition-colors disabled:opacity-60",
+        className,
+      )}
+    >
+      {icon}
+      <span className="flex flex-col leading-tight">
+        <span className="text-[10px] font-medium uppercase tracking-wider opacity-80">
+          {top}
+        </span>
+        <span className="text-xs font-semibold">{bottom}</span>
+      </span>
+    </button>
   );
 }

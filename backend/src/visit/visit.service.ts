@@ -4,10 +4,10 @@
 //
 // What changed when this was hardened for production:
 //
-//  • A visit is created ARRIVED, not IN_PROGRESS. The old code wrote
-//    IN_PROGRESS, which made ARRIVED unreachable and `startExamination` —
-//    which requires ARRIVED — fail with 400 for every caller, including the
-//    "Start examination" button in VisitPage.
+//  • A visit is created IN_PROGRESS with `startedAt` stamped: "Start visit"
+//    means the patient is in the chair, so a separate "Start examination"
+//    click was pure friction. `startExamination` stays for visits still
+//    sitting in ARRIVED (opened before this change) and is idempotent.
 //  • Clinical writes (SOAP, vitals, procedures, prescriptions) now load the
 //    visit first, so a missing id is a 404 and not a Prisma P2025, and they
 //    refuse to write to a COMPLETED or CANCELLED visit. Editing a completed
@@ -277,7 +277,7 @@ export class VisitsService {
 
   /**
    * STEP 1 — open a visit for a checked-in appointment.
-   * The visit starts ARRIVED; `startExamination` moves it to IN_PROGRESS.
+   * The visit opens IN_PROGRESS — the examination starts with the visit.
    */
   async createVisit(dto: CreateVisitDto, actor?: ActingUser) {
     if (!dto.appointmentId) {
@@ -314,6 +314,7 @@ export class VisitsService {
       throw new BadRequestException(`Dentist with ID ${dentistId} not found`);
     }
 
+    const now = new Date();
     const visit = await this.prisma.$transaction(async (tx) => {
       const visitCode = await this.docNum.next('VIS', tx);
       const newVisit = await tx.visit.create({
@@ -322,8 +323,9 @@ export class VisitsService {
           appointmentId: dto.appointmentId,
           patientId: appointment.patientId,
           dentistId,
-          status: VisitStatus.ARRIVED,
-          checkedInAt: new Date(),
+          status: VisitStatus.IN_PROGRESS,
+          checkedInAt: now,
+          startedAt: now,
         },
         include: {
           patient: {
@@ -363,7 +365,7 @@ export class VisitsService {
           appointmentId: dto.appointmentId,
           patientId: appointment.patientId,
           dentistId,
-          status: VisitStatus.ARRIVED,
+          status: VisitStatus.IN_PROGRESS,
         },
       });
 
