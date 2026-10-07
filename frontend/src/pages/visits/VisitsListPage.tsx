@@ -25,6 +25,7 @@ import {
   X,
   RefreshCw,
 } from "lucide-react";
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 
 import { formatDate, cn } from "../../lib/utils";
 
@@ -432,29 +433,10 @@ export function VisitsListPage() {
                       </td>
 
                       <td className="px-4 py-3">
-                        <div
-                          onClick={(e) => e.stopPropagation()}
-                          className="flex items-center justify-end gap-1.5"
-                        >
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 rounded-md px-2 bg-primary text-white hover:bg-primary shadow-sm"
-                            onClick={() => navigate(`/visits/${visit.id}`)}
-                          >
-                            <Eye size={14} strokeWidth={2.5} />
-                            <span className="ml-1 pr-1">Open</span>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 rounded-md px-2 bg-success text-white hover:bg-success shadow-sm"
-                            onClick={() => handleCheckOut(visit)}
-                          >
-                            <CheckCircle size={14} strokeWidth={2.5} />
-                            <span className="ml-1 pr-1">Bills</span>
-                          </Button>
-                        </div>
+                        <RowActions>
+                          <ActionButton tone="view" label="Open" onClick={() => navigate(`/visits/${visit.id}`)} />
+                          <ActionButton tone="success" label="Bills" icon={CheckCircle} onClick={() => handleCheckOut(visit)} />
+                        </RowActions>
                       </td>
                     </tr>
                   ))}

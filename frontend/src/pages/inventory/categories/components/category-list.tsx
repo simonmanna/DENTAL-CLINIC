@@ -24,6 +24,7 @@ import {
   CheckCircle,
   Box,
 } from "lucide-react"; // Added icons
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { useCategories } from "../../../../hooks/use-categories";
 import { CategoryForm } from "./category-form";
 import {
@@ -128,9 +129,9 @@ export function CategoryList() {
         <div className="relative overflow-hidden rounded-lg bg-primary p-4 text-white shadow-md">
           <div className="z-10 relative">
             <h3 className="text-2xl font-bold">{stats.total}</h3>
-            <p className="text-primary/40">Total Categories</p>
+            <p className="text-white/80">Total Categories</p>
           </div>
-          <Tag className="absolute right-[-10px] bottom-[-10px] h-20 w-20 text-primary/50 rotate-12" />
+          <Tag className="absolute right-[-10px] bottom-[-10px] h-20 w-20 text-white/20 rotate-12" />
         </div>
 
         <div className="relative overflow-hidden rounded-lg bg-success p-4 text-white shadow-md">
@@ -277,59 +278,14 @@ export function CategoryList() {
                     </TableCell>
 
                     <TableCell className="py-1 text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          title="Edit Details"
-                          className="h-6 w-8 rounded-md bg-warning/80 p-0 text-white hover:bg-warning shadow-sm"
-                          onClick={() => handleEdit(category)}
-                        >
-                          <Pencil size={16} strokeWidth={3} />
-                        </Button>
-
-                        {/* <Button
-                          title="Edit Details"
-                          className="h-6 w-8 rounded-md bg-warning p-0 text-white hover:bg-warning shadow-sm"
-                          onClick={() => handleEdit(category)}
-                        >
-                          <MinusCircle size={16} strokeWidth={3} />
-                        </Button> */}
-
-
-{/* MinusCircle, XCircle, Ban */}
-                        {/* <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 px-2 border-primary/25 text-primary hover:bg-primary hover:text-white transition-all"
-                          onClick={() => handleEdit(category)}
-                        >
-                          <Edit2 className="h-3.5 w-3.5 mr-1" />
-                          Edit
-                        </Button> */}
-
+                      <RowActions>
+                        <ActionButton iconOnly tone="edit" label={`Edit ${category.name}`} onClick={() => handleEdit(category)} />
                         {category.isActive ? (
-                          <Button
-                          title="Deactivate"
-                            variant="outline"
-                            size="sm"
-                            className="h-7 px-2 border-danger/25 bg-danger-muted text-danger hover:bg-danger hover:text-white transition-all"
-                            onClick={() => handleDelete(category.id)}
-                          >
-                            <MinusCircle className="h-3.5 w-3.5 mr-1" />
-                            
-                          </Button>
+                          <ActionButton iconOnly tone="delete" label={`Deactivate ${category.name}`} icon={MinusCircle} onClick={() => handleDelete(category.id)} />
                         ) : (
-                          <Button
-                          title="Activate"
-                            variant="outline"
-                            size="sm"
-                            className="h-7 px-2 border-success/25 bg-success-muted text-success hover:bg-success hover:text-white transition-all"
-                            onClick={() => handleRestore(category.id)}
-                          >
-                            <RefreshCw className="h-3.5 w-3.5 mr-1" />
-                            
-                          </Button>
+                          <ActionButton iconOnly tone="success" label={`Activate ${category.name}`} icon={RefreshCw} onClick={() => handleRestore(category.id)} />
                         )}
-                      </div>
+                      </RowActions>
                     </TableCell>
                   </TableRow>
                 ))

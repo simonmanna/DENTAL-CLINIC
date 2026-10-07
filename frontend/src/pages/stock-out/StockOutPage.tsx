@@ -7,6 +7,7 @@ import {
     AlertCircle, Loader2, RefreshCw, Eye,
     Trash2, ClipboardList, MapPin,
 } from 'lucide-react';
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -402,19 +403,9 @@ export default function StockOutPage() {
                                             </span>
                                         </TableCell>
                                         <TableCell>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-7 w-7"
-                                                        onClick={(e) => { e.stopPropagation(); setDetailRecord(rec); }}
-                                                    >
-                                                        <Eye className="h-3.5 w-3.5 text-muted-foreground/70" />
-                                                    </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent>View details</TooltipContent>
-                                            </Tooltip>
+                                            <RowActions className="justify-start">
+                                                <ActionButton tone="view" label="View" onClick={() => setDetailRecord(rec)} />
+                                            </RowActions>
                                         </TableCell>
                                     </TableRow>
                                 ))

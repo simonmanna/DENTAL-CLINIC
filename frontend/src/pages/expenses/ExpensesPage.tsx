@@ -54,6 +54,7 @@ import {
   ChevronRight,
   Ban,
 } from "lucide-react";
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { useForm } from "react-hook-form";
 
 import {
@@ -278,7 +279,7 @@ function StatCard({
     blue: {
       grad: "from-primary to-primary",
       iconBg: "bg-primary/30",
-      sub: "text-primary/40",
+      sub: "text-white/80",
     },
     amber: {
       grad: "from-warning to-warning",
@@ -993,7 +994,7 @@ function ExpenseDetailDialog({
               <Receipt className="h-5 w-5" />
               Expense Details
             </DialogTitle>
-            <DialogDescription className="text-primary/40 opacity-90">
+            <DialogDescription className="text-white/80">
               View complete information about this expense record
             </DialogDescription>
           </DialogHeader>
@@ -1002,14 +1003,14 @@ function ExpenseDetailDialog({
         <div className="bg-[#f4f6f9]">
           <div className="p-4 max-h-[70vh] overflow-y-auto space-y-6">
             {/* Hero Summary */}
-            <div className="rounded-xl bg-[#0369a1] from-foreground to-foreground p-5 text-white">
-              <p className="text-xs text-muted-foreground/70 uppercase tracking-wider font-medium">
+            <div className="rounded-xl bg-[#0369a1] p-5 text-white">
+              <p className="text-xs text-white/80 uppercase tracking-wider font-medium">
                 {categoryDisplay(expense)}
               </p>
               <p className="text-3xl font-bold mt-2">
                 {formatCurrency(expense.amount)}
               </p>
-              <p className="text-sm text-muted-foreground/50 mt-1">{expense.title}</p>
+              <p className="text-sm text-white/85 mt-1">{expense.title}</p>
               <div className="flex items-center gap-2 mt-3">
                 <StatusBadge status={expense.status} />
                 <PaymentTypeBadge type={(expense as any).paymentType} />
@@ -1257,7 +1258,7 @@ function PayExpenseDialog({
               <Banknote className="h-5 w-5" />
               Process Payment
             </DialogTitle>
-            <DialogDescription className="text-primary/40 opacity-90">
+            <DialogDescription className="text-white/80">
               Record cash-out and mark expense as paid
             </DialogDescription>
           </DialogHeader>
@@ -1465,7 +1466,7 @@ function ApproveDialog({
               <CheckCircle className="h-5 w-5" />
               Approve Expense
             </DialogTitle>
-            <DialogDescription className="text-primary/40 opacity-90">
+            <DialogDescription className="text-white/80">
               Confirm approval for this expense request
             </DialogDescription>
           </DialogHeader>
@@ -2154,85 +2155,34 @@ export function ExpensesPage() {
                           })()}
                         </td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center justify-center gap-1">
-                            <button
-                              onClick={() => setDetailDialog(exp)}
-                              className="p-1.5 text-muted-foreground/70 hover:text-[#3c8dbc] hover:bg-primary-muted/60 rounded-lg transition-colors"
-                              title="View Details"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            {(exp.status === "DRAFT" ||
-                              exp.status === "APPROVED") &&
-                              ((exp as any).paymentStatus ?? "UNPAID") ===
-                                "UNPAID" && (
-                                <button
-                                  onClick={() =>
-                                    setExpenseDialog({
-                                      open: true,
-                                      expense: exp,
-                                    })
-                                  }
-                                  className="p-1.5 text-muted-foreground/70 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                                  title="Edit"
-                                >
-                                  <Edit3 className="w-4 h-4" />
-                                </button>
-                              )}
-                            {exp.status === "DRAFT" && (
-                              <>
-                                <button
-                                  onClick={() =>
-                                    setApproveDialog({
-                                      open: true,
-                                      expense: exp,
-                                    })
-                                  }
-                                  className="p-1.5 text-success hover:text-success hover:bg-success-muted/60 rounded-lg transition-colors"
-                                  title="Approve"
-                                >
-                                  <CheckCircle className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    setRejectDialog({
-                                      open: true,
-                                      expense: exp,
-                                    })
-                                  }
-                                  className="p-1.5 text-danger/70 hover:text-danger hover:bg-danger-muted/60 rounded-lg transition-colors"
-                                  title="Reject"
-                                >
-                                  <XCircle className="w-4 h-4" />
-                                </button>
-                              </>
-                            )}
+                          <RowActions className="justify-center">
                             {(exp.status === "APPROVED" ||
                               exp.status === "POSTED") &&
                               ((exp as any).paymentStatus ?? "UNPAID") !==
                                 "PAID" && (
-                                <button
-                                  onClick={() =>
-                                    setPayDialog({ open: true, expense: exp })
-                                  }
-                                  className="flex items-center gap-1 px-2.5 py-1.5 bg-success text-white text-xs font-semibold rounded-lg hover:bg-success transition-colors"
-                                >
-                                  <Banknote className="w-3.5 h-3.5" />{" "}
-                                  {((exp as any).paymentStatus ?? "UNPAID") ===
-                                  "PARTIALLY_PAID"
-                                    ? "Pay Bal."
-                                    : "Pay"}
-                                </button>
+                                <ActionButton
+                                  tone="success"
+                                  icon={Banknote}
+                                  label={((exp as any).paymentStatus ?? "UNPAID") === "PARTIALLY_PAID" ? "Pay Bal." : "Pay"}
+                                  onClick={() => setPayDialog({ open: true, expense: exp })}
+                                />
                               )}
+                            <ActionButton iconOnly tone="view" label="View details" onClick={() => setDetailDialog(exp)} />
+                            {(exp.status === "DRAFT" ||
+                              exp.status === "APPROVED") &&
+                              ((exp as any).paymentStatus ?? "UNPAID") ===
+                                "UNPAID" && (
+                                <ActionButton iconOnly tone="edit" label="Edit" onClick={() => setExpenseDialog({ open: true, expense: exp })} />
+                              )}
+                            {exp.status === "DRAFT" && (
+                              <>
+                                <ActionButton iconOnly tone="success" label="Approve" icon={CheckCircle} onClick={() => setApproveDialog({ open: true, expense: exp })} />
+                                <ActionButton iconOnly tone="delete" label="Reject" icon={XCircle} onClick={() => setRejectDialog({ open: true, expense: exp })} />
+                              </>
+                            )}
                             {exp.status !== "VOID" &&
                               exp.status !== "CANCELLED" && (
-                                <button
-                                  onClick={() => handleVoid(exp)}
-                                  className="p-1.5 text-danger/70 hover:text-danger hover:bg-danger-muted/60 rounded-lg transition-colors"
-                                  title="Void (reverse payments)"
-                                >
-                                  <Ban className="w-4 h-4" />
-                                </button>
+                                <ActionButton iconOnly tone="neutral" label="Void (reverse payments)" icon={Ban} onClick={() => handleVoid(exp)} />
                               )}
                             {(exp.status === "DRAFT" ||
                               exp.status === "APPROVED" ||
@@ -2242,15 +2192,9 @@ export function ExpensesPage() {
                               (((exp as any).paymentStatus ?? "UNPAID") ===
                                 "UNPAID" ||
                                 exp.status === "VOID") && (
-                                <button
-                                  onClick={() => handleDelete(exp)}
-                                  className="p-1.5 text-danger/70 hover:text-danger hover:bg-danger-muted/60 rounded-lg transition-colors"
-                                  title="Delete"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                                <ActionButton iconOnly tone="delete" label="Delete" onClick={() => handleDelete(exp)} />
                               )}
-                          </div>
+                          </RowActions>
                         </td>
                       </tr>
                     );

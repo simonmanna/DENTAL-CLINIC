@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { 
   useReactTable, 
   getCoreRowModel, 
@@ -125,39 +126,16 @@ export default function SuppliersPage() {
       cell: (info) => {
         const supplier = info.row.original;
         return (
-          <div className="flex items-center justify-center gap-1">
-            {/* <Button 
-              size="icon" variant="outline" title="View Details"
-              className="h-7 w-7 text-primary border-primary/25 hover:bg-primary-muted/60" 
-              onClick={() => {  }}
-            >
-              <Eye className="h-3.5 w-3.5" />
-            </Button> */}
-            <Button 
-              size="icon" variant="outline" title="Edit Supplier"
-              className="h-7 w-7 text-warning border-warning/25 hover:bg-warning-muted/60"
+          <RowActions className="justify-center">
+            <ActionButton
+              tone="edit"
+              label="Edit"
               onClick={() => {
                 setEditingSupplier(supplier);
                 setIsFormOpen(true);
               }}
-            >
-              <Edit className="h-3.5 w-3.5" />
-            </Button>
-            {/* <Button 
-              size="icon" variant="outline" title={supplier.isActive ? "Deactivate" : "Activate"}
-              className={cn("h-7 w-7", supplier.isActive ? "text-muted-foreground border-border" : "text-success border-success/25")}
-              onClick={() => {  }}
-            >
-              {supplier.isActive ? <PowerOff className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
-            </Button> */}
-            {/* <Button 
-              size="icon" variant="outline" title="Delete"
-              className="h-7 w-7 text-danger border-danger/25 hover:bg-danger-muted/60"
-              onClick={() => { }}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button> */}
-          </div>
+            />
+          </RowActions>
         );
       },
     }),

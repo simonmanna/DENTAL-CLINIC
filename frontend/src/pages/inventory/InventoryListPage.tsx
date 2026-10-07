@@ -15,6 +15,7 @@ import {
   Layers,
   PlusCircle
 } from "lucide-react";
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -508,24 +509,10 @@ export default function InventoryListPage() {
                           )}
                         </TableCell>
                         <TableCell className="py-2">
-                          <div className="flex items-center justify-center gap-1">
-                            <Button
-                              size="icon"
-                              className="h-7 w-7 bg-primary hover:bg-primary text-white shadow-sm"
-                              onClick={() => navigate(`/inventory/${item.id}`)}
-                            >
-                              <Eye className="h-3.5 w-3.5 stroke-[3px]" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              className="h-7 w-7 bg-success hover:bg-success text-white shadow-sm"
-                              onClick={() =>
-                                navigate(`/inventory/${item.id}/edit`)
-                              }
-                            >
-                              <Edit className="h-3.5 w-3.5 stroke-[3px]" />
-                            </Button>
-                          </div>
+                          <RowActions className="justify-center">
+                            <ActionButton iconOnly tone="view" label={`View ${item.name}`} onClick={() => navigate(`/inventory/${item.id}`)} />
+                            <ActionButton iconOnly tone="edit" label={`Edit ${item.name}`} onClick={() => navigate(`/inventory/${item.id}/edit`)} />
+                          </RowActions>
                         </TableCell>
                       </TableRow>
                     );

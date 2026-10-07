@@ -33,6 +33,7 @@ import {
   ClipboardList,
   Trash2,
 } from "lucide-react";
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import {
   Button,
   Modal,
@@ -411,34 +412,11 @@ function AptRow({
         className="px-4 py-3.5 whitespace-nowrap"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-1 opacity-100 transition-opacity">
-          <button
-            onClick={onView}
-            className="p-1.5 rounded-lg hover:bg-indigo-100 text-muted-foreground/70 hover:text-indigo-700 transition-colors"
-            title="View details"
-          >
-            <Eye className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={onEdit}
-            className="p-1.5 rounded-lg hover:bg-indigo-100 text-muted-foreground/70 hover:text-indigo-700 transition-colors"
-            title="Edit appointment"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-          </button>
-          {/* ── Delete ── */}
-          {/* ── Delete ── */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation(); // ← Prevent event bubbling to <tr>
-              onDelete();
-            }}
-            className="p-1.5 rounded-lg hover:bg-danger-muted text-muted-foreground/70 hover:text-danger transition-colors"
-            title="Delete draft"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        <RowActions className="justify-start">
+          <ActionButton iconOnly tone="view" label="View details" onClick={onView} />
+          <ActionButton iconOnly tone="edit" label="Edit appointment" onClick={onEdit} />
+          <ActionButton iconOnly tone="delete" label="Delete draft" onClick={onDelete} />
+        </RowActions>
       </td>
     </tr>
   );

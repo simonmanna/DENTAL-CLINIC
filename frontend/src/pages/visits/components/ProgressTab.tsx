@@ -10,6 +10,7 @@ import {
   Target, Layers, Link2, Activity, AlertCircle, Unlink,
   Microscope, Tag,
 } from "lucide-react";
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api/client";
 import { toast } from "sonner";
@@ -416,7 +417,7 @@ function ProgressReportForm({
           </div>
           <div>
             <h3 className="text-sm font-bold text-white leading-tight">Add Progress Report</h3>
-            <p className="text-[10px] text-primary/50">All fields optional — fill what's clinically relevant</p>
+            <p className="text-[10px] text-white/80">All fields optional — fill what's clinically relevant</p>
           </div>
         </div>
         <button onClick={onCancel} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
@@ -660,14 +661,8 @@ function ProgressReportCard({
               </div>
             ) : (
               <>
-                <button onClick={onEdit} title="Edit"
-                  className="p-1.5 rounded-lg hover:bg-primary-muted/60 text-muted-foreground/70 hover:text-primary transition-colors">
-                  <Edit3 className="w-3.5 h-3.5" />
-                </button>
-                <button onClick={() => setConfirm(true)} title="Delete"
-                  className="p-1.5 rounded-lg hover:bg-danger-muted/60 text-muted-foreground/70 hover:text-danger transition-colors">
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                <ActionButton iconOnly tone="edit" label="Edit" onClick={onEdit} />
+                <ActionButton iconOnly tone="delete" label="Delete" onClick={() => setConfirm(true)} />
               </>
             )
           )}

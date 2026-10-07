@@ -28,6 +28,7 @@ import {
   DollarSign,
   ArrowUpDown,
 } from "lucide-react";
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import {
   BASE_CURRENCY,
   formatCurrency as formatMoneyCodeFirst,
@@ -1301,21 +1302,15 @@ function InvoiceRow({
       </td>
 
       <td className="px-1 py-3">
-        <div className="flex items-center gap-1 justify-center">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              primaryClick();
-            }}
-            title={
-              hasVisit ? "Open billing workspace" : "View invoice detail"
-            }
-            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary-muted/60 hover:bg-primary-muted text-primary text-[11px] font-medium border border-primary/25 transition-colors"
-          >
-            <ExternalLink className="w-3 h-3" />
-            Open
-          </button>
-        </div>
+        <RowActions className="justify-center">
+          <ActionButton
+            tone="view"
+            label="Open"
+            icon={ExternalLink}
+            title={hasVisit ? "Open billing workspace" : "View invoice detail"}
+            onClick={primaryClick}
+          />
+        </RowActions>
       </td>
     </tr>
   );

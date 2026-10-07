@@ -17,6 +17,7 @@ import {
   Loader2,
   AlertTriangle,
 } from "lucide-react";
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -423,24 +424,10 @@ export default function StockTransfersPage() {
                       onClick={(e) => e.stopPropagation()}
                     >
                       {t.status === "DRAFT" && (
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 text-xs"
-                            onClick={() => handleComplete(t.id)}
-                          >
-                            Complete
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="h-8 text-xs"
-                            onClick={() => handleCancel(t.id)}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
+                        <RowActions>
+                          <ActionButton tone="success" label="Complete" onClick={() => handleComplete(t.id)} />
+                          <ActionButton tone="delete" label="Cancel" icon={XCircle} onClick={() => handleCancel(t.id)} />
+                        </RowActions>
                       )}
                     </TableCell>
                   </TableRow>

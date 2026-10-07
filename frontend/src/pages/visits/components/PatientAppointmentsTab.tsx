@@ -278,7 +278,7 @@ function BookAppointmentForm({
           </div>
           <div>
             <h3 className="text-sm font-bold text-white">New Appointment</h3>
-            <p className="text-xs text-primary/50 mt-0.5">
+            <p className="text-xs text-white/80 mt-0.5">
               Schedule a follow-up or next visit
             </p>
           </div>

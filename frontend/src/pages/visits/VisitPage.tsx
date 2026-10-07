@@ -365,26 +365,28 @@ export function VisitPage() {
       <div className="max-w-screen-2xl mx-auto px-0.5 py-0.5 space-y-1">
         {/* ── Visit Header Card ─────────────────────────────────────────── */}
         <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
-          <div className="px-5 py-1 bg-[#0369a1] text-white flex items-center justify-between">
-            <div className="flex flex-wrap items-center justify-between gap-4 px-1 py-1 text-white border-b border-foreground">
+          {/* White text only on this bar: the brand teal (text-primary) has
+              almost no contrast against the blue background. */}
+          <div className="px-5 py-2.5 bg-[#0369a1] text-white flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
               {/* Left Side: Patient Identity */}
               <div className="flex items-center gap-3 shrink-0">
-                <div className=" w-9 h-9 bg-white/20 rounded-full flex items-center justify-center text-sm font-bold">
+                <div className="w-10 h-10 bg-white/20 ring-1 ring-white/30 rounded-full flex items-center justify-center text-sm font-bold uppercase">
                   {visit.patient?.firstName?.[0]}
                   {visit.patient?.lastName?.[0]}
                 </div>
                 <div>
-                  <p className="font-semibold text-base text-white">
+                  <p className="font-semibold text-base leading-tight text-white">
                     {visit.patient?.firstName} {visit.patient?.lastName}
                   </p>
-                  <p className="text-primary/50 text-xs">
+                  <p className="mt-0.5 font-mono text-xs text-white/85">
                     {visit.patient?.patientCode}
                   </p>
                 </div>
               </div>
 
               {/* Right Side: Condensed Visit Metadata */}
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-base ml-7">
+              <dl className="flex flex-wrap items-center gap-x-5 gap-y-2">
                 {[
                   { label: "Visit Code", value: visit.visitCode },
                   {
@@ -401,18 +403,23 @@ export function VisitPage() {
                       ? new Date(visit.patient.dateOfBirth).toLocaleDateString()
                       : "—",
                   },
-                  { label: "Gender", value: visit.patient?.gender || "—" },
+                  {
+                    label: "Gender",
+                    value: visit.patient?.gender
+                      ? visit.patient.gender.charAt(0) + visit.patient.gender.slice(1).toLowerCase()
+                      : "—",
+                  },
                 ].map(({ label, value }) => (
                   <div
                     key={label}
-                    className="flex flex-col border-l border-white/10 pl-4 first:border-0 first:pl-0"
+                    className="flex flex-col border-l border-white/25 pl-5 first:border-0 first:pl-0"
                   >
-                    <span className="text-[14px] text-primary/95 uppercase tracking-wide">
+                    <dt className="text-[11px] font-medium uppercase tracking-wider text-white/80">
                       {label}
-                    </span>
-                    <span className="font-medium text-white text-xs mt-0.5">
+                    </dt>
+                    <dd className="mt-0.5 text-sm font-semibold text-white">
                       {value}
-                    </span>
+                    </dd>
                   </div>
                 ))}
 
@@ -423,11 +430,11 @@ export function VisitPage() {
         <span>Allergies: {visit.patient.allergies.join(", ")}</span>
       </div>
     )} */}
-              </div>
+              </dl>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="text-xs text-primary/50 flex items-center gap-1.5">
+              <div className="text-sm font-medium text-white/90 flex items-center gap-1.5 tabular-nums" title="Checked in">
                 <Clock className="w-3.5 h-3.5" />
                 {visit.checkedInAt
                   ? new Date(visit.checkedInAt).toLocaleTimeString([], {

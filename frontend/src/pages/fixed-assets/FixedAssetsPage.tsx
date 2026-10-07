@@ -35,6 +35,7 @@ import {
   Clock, XCircle, TrendingUp, DollarSign, BarChart3, Calendar,
   FileText, RefreshCw, Filter,
 } from 'lucide-react';
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import {
   FixedAsset, AssetSummary, AssetMaintenance,
   CATEGORY_LABELS, STATUS_CONFIG, CONDITION_CONFIG,
@@ -42,7 +43,7 @@ import {
   DepreciationMethod, MaintenanceType, DisposalMethod,
 } from './types';
 
-// â”€â”€ API layer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── API layer ─────────────────────────────────────────────────────────────────
 // ── API layer ─────────────────────────────────────────────────────────────────
 import { api as sharedApi } from '@/lib/api/client';
 
@@ -79,14 +80,14 @@ const api = {
     sharedApi.post('/fixed-assets/depreciation/post', data).then(r => r.data),
 };
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 const fmt = (n: string | number | undefined, currency = 'UGX') => {
-  if (n === undefined || n === null) return 'â€”';
+  if (n === undefined || n === null) return '—';
   return new Intl.NumberFormat('en-UG', { style: 'currency', currency, maximumFractionDigits: 0 }).format(Number(n));
 };
 
-const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'â€”';
+const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
 const CATEGORY_ICONS: Record<AssetCategory, React.ReactNode> = {
   DENTAL_EQUIPMENT: <Syringe className="w-4 h-4" />,
@@ -102,7 +103,7 @@ const CATEGORY_ICONS: Record<AssetCategory, React.ReactNode> = {
   OTHER: <HelpCircle className="w-4 h-4" />,
 };
 
-// â”€â”€ Stat Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Stat Card ─────────────────────────────────────────────────────────────────
 
 function StatCard({ label, value, sub, icon, accent = false, alert = false }: {
   label: string; value: string | number; sub?: string;
@@ -126,7 +127,7 @@ function StatCard({ label, value, sub, icon, accent = false, alert = false }: {
   );
 }
 
-// â”€â”€ Asset Form Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Asset Form Dialog ─────────────────────────────────────────────────────────
 
 function AssetFormDialog({
   open, onClose, asset, onSaved,
@@ -323,7 +324,7 @@ function AssetFormDialog({
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={handleSave} disabled={saving || !form.name || !form.purchaseCost || !form.purchaseDate}>
-            {saving ? 'Savingâ€¦' : isEdit ? 'Save Changes' : 'Register Asset'}
+            {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Register Asset'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -331,7 +332,7 @@ function AssetFormDialog({
   );
 }
 
-// â”€â”€ Maintenance Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Maintenance Dialog ────────────────────────────────────────────────────────
 
 function MaintenanceDialog({
   open, onClose, assetId, onSaved,
@@ -410,7 +411,7 @@ function MaintenanceDialog({
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={handleSave} disabled={saving || !form.title}>
-            {saving ? 'Schedulingâ€¦' : 'Schedule'}
+            {saving ? 'Scheduling…' : 'Schedule'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -418,7 +419,7 @@ function MaintenanceDialog({
   );
 }
 
-// â”€â”€ Dispose Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Dispose Dialog ─────────────────────────────────────────────────────────────
 
 function DisposeDialog({
   open, onClose, asset, onDisposed,
@@ -489,7 +490,7 @@ function DisposeDialog({
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={handleDispose} disabled={saving} className="bg-destructive hover:bg-destructive/90">
-            {saving ? 'Disposingâ€¦' : 'Confirm Disposal'}
+            {saving ? 'Disposing…' : 'Confirm Disposal'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -497,7 +498,7 @@ function DisposeDialog({
   );
 }
 
-// â”€â”€ Asset Detail Drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Asset Detail Drawer ────────────────────────────────────────────────────────
 
 function AssetDetailDialog({
   open, onClose, assetId, onScheduleMaintenance, onEdit, onDispose,
@@ -529,14 +530,14 @@ function AssetDetailDialog({
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
       <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
         {loading || !asset ? (
-          <div className="flex items-center justify-center h-48 text-muted-foreground">Loadingâ€¦</div>
+          <div className="flex items-center justify-center h-48 text-muted-foreground">Loading…</div>
         ) : (
           <>
             <DialogHeader>
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <DialogTitle className="text-xl">{asset.name}</DialogTitle>
-                  <p className="text-sm text-muted-foreground mt-0.5">{asset.assetCode} Â· {CATEGORY_LABELS[asset.category]}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">{asset.assetCode} · {CATEGORY_LABELS[asset.category]}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <Badge variant="outline" className={`${statusCfg?.bg} ${statusCfg?.color} border font-medium`}>
@@ -561,10 +562,10 @@ function AssetDetailDialog({
                     { label: 'Purchase Cost', value: fmt(asset.purchaseCost) },
                     { label: 'Current Book Value', value: fmt(asset.currentBookValue) },
                     { label: 'Warranty Expiry', value: fmtDate(asset.warrantyExpiry) },
-                    { label: 'Serial Number', value: asset.serialNumber || 'â€”' },
-                    { label: 'Manufacturer', value: asset.manufacturer || 'â€”' },
-                    { label: 'Location', value: asset.location?.name || 'â€”' },
-                    { label: 'Assigned To', value: asset.assignedToStaff ? `${asset.assignedToStaff.firstName} ${asset.assignedToStaff.lastName}` : 'â€”' },
+                    { label: 'Serial Number', value: asset.serialNumber || '—' },
+                    { label: 'Manufacturer', value: asset.manufacturer || '—' },
+                    { label: 'Location', value: asset.location?.name || '—' },
+                    { label: 'Assigned To', value: asset.assignedToStaff ? `${asset.assignedToStaff.firstName} ${asset.assignedToStaff.lastName}` : '—' },
                   ].map(({ label, value }) => (
                     <div key={label} className="bg-muted/40 rounded-lg p-3">
                       <p className="text-xs text-muted-foreground">{label}</p>
@@ -629,11 +630,11 @@ function AssetDetailDialog({
                   </div>
                   <div className="bg-muted/40 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground">Useful Life</p>
-                    <p className="font-medium mt-0.5">{asset.usefulLifeYears ? `${asset.usefulLifeYears} years` : 'â€”'}</p>
+                    <p className="font-medium mt-0.5">{asset.usefulLifeYears ? `${asset.usefulLifeYears} years` : '—'}</p>
                   </div>
                   <div className="bg-muted/40 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground">Salvage Value</p>
-                    <p className="font-medium mt-0.5">{asset.salvageValue ? fmt(asset.salvageValue) : 'â€”'}</p>
+                    <p className="font-medium mt-0.5">{asset.salvageValue ? fmt(asset.salvageValue) : '—'}</p>
                   </div>
                   <div className="bg-muted/40 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground">Last Depreciation</p>
@@ -658,8 +659,8 @@ function AssetDetailDialog({
                             <Badge variant="outline" className="text-xs shrink-0">{m.type}</Badge>
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {fmtDate(m.scheduledDate)} Â· {m.serviceProvider ?? 'Internal'}
-                            {m.actualCost && ` Â· ${fmt(m.actualCost)}`}
+                            {fmtDate(m.scheduledDate)} · {m.serviceProvider ?? 'Internal'}
+                            {m.actualCost && ` · ${fmt(m.actualCost)}`}
                           </p>
                         </div>
                         <Badge variant="outline" className={`text-xs ${m.status === 'COMPLETED' ? 'text-success' : m.status === 'OVERDUE' ? 'text-danger' : 'text-warning'}`}>
@@ -678,7 +679,7 @@ function AssetDetailDialog({
   );
 }
 
-// â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function FixedAssetsPage() {
   const [summary, setSummary] = useState<AssetSummary | null>(null);
@@ -728,7 +729,7 @@ export default function FixedAssetsPage() {
         assetIds: [],
         periodStart: firstOfMonth.toISOString(),
         periodEnd: lastOfMonth.toISOString(),
-        notes: `Monthly depreciation run â€” ${now.toLocaleDateString()}`,
+        notes: `Monthly depreciation run — ${now.toLocaleDateString()}`,
       });
       await loadAll();
     } finally {
@@ -745,7 +746,7 @@ export default function FixedAssetsPage() {
           <div>
             <h1 className="text-xl font-bold tracking-tight">Fixed Assets</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {summary ? `${summary.counts.total} assets Â· Book value ${fmt(summary.financials.totalBookValue)}` : 'Asset register'}
+              {summary ? `${summary.counts.total} assets · Book value ${fmt(summary.financials.totalBookValue)}` : 'Asset register'}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -775,7 +776,7 @@ export default function FixedAssetsPage() {
           <div className="relative flex-1 min-w-48">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name, code, serialâ€¦"
+              placeholder="Search by name, code, serial…"
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
               className="pl-9"
@@ -874,40 +875,24 @@ export default function FixedAssetsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {asset.location?.name ?? (asset.assignedToStaff ? `${asset.assignedToStaff.firstName} ${asset.assignedToStaff.lastName}` : 'â€”')}
+                        {asset.location?.name ?? (asset.assignedToStaff ? `${asset.assignedToStaff.firstName} ${asset.assignedToStaff.lastName}` : '—')}
                       </TableCell>
                       <TableCell>
                         {warrantyDate ? (
                           <span className={`text-xs ${warrantyExpiringSoon ? 'text-warning font-medium' : 'text-muted-foreground'}`}>
-                            {warrantyExpiringSoon && 'âš  '}{fmtDate(asset.warrantyExpiry)}
+                            {warrantyExpiringSoon && '⚠ '}{fmtDate(asset.warrantyExpiry)}
                           </span>
-                        ) : <span className="text-xs text-muted-foreground">â€”</span>}
+                        ) : <span className="text-xs text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell onClick={e => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setDetailId(asset.id)}>
-                              <Eye className="w-4 h-4 mr-2" /> View Details
-                            </DropdownMenuItem>
-                            {asset.status !== 'DISPOSED' && <>
-                              <DropdownMenuItem onClick={() => { setEditingAsset(asset); setFormOpen(true); }}>
-                                <Edit className="w-4 h-4 mr-2" /> Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setMaintenanceForAsset(asset.id)}>
-                                <Wrench className="w-4 h-4 mr-2" /> Schedule Maintenance
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive" onClick={() => setDisposeAsset(asset)}>
-                                <Trash2 className="w-4 h-4 mr-2" /> Dispose Asset
-                              </DropdownMenuItem>
-                            </>}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <RowActions>
+                          <ActionButton iconOnly tone="view" label="View details" onClick={() => setDetailId(asset.id)} />
+                          {asset.status !== 'DISPOSED' && <>
+                            <ActionButton iconOnly tone="edit" label="Edit" onClick={() => { setEditingAsset(asset); setFormOpen(true); }} />
+                            <ActionButton iconOnly tone="info" label="Schedule maintenance" icon={Wrench} onClick={() => setMaintenanceForAsset(asset.id)} />
+                            <ActionButton iconOnly tone="delete" label="Dispose asset" onClick={() => setDisposeAsset(asset)} />
+                          </>}
+                        </RowActions>
                       </TableCell>
                     </TableRow>
                   );
@@ -920,7 +905,7 @@ export default function FixedAssetsPage() {
           {meta.totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t">
               <p className="text-sm text-muted-foreground">
-                {meta.total} assets Â· Page {meta.page} of {meta.totalPages}
+                {meta.total} assets · Page {meta.page} of {meta.totalPages}
               </p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
@@ -948,7 +933,7 @@ export default function FixedAssetsPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleRunDepreciation} disabled={depreciationRunning}>
-              {depreciationRunning ? 'Runningâ€¦' : 'Run Depreciation'}
+              {depreciationRunning ? 'Running…' : 'Run Depreciation'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

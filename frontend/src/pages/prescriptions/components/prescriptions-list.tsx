@@ -31,6 +31,7 @@ import {
   Search, RefreshCw, Eye, ClipboardCheck, Trash2, AlertCircle, Loader2,
   ClipboardList, X, ArrowUpDown, Ban, MoreHorizontal,
 } from "lucide-react";
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
@@ -536,53 +537,37 @@ export function PrescriptionsList() {
                       {formatDate(rx.createdAt)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            aria-label="Open actions"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44">
-                          <DropdownMenuItem onClick={() => handleView(rx)}>
-                            <Eye className="mr-2 h-4 w-4" /> View details
-                          </DropdownMenuItem>
-                          {rx.status === PRESCRIPTION_STATUS.ACTIVE && (
-                            <>
-                              <DropdownMenuItem
-                                onClick={() => handleDispense(rx)}
-                                disabled={dispenseMutation.isPending}
-                              >
-                                <ClipboardCheck className="mr-2 h-4 w-4" /> Dispense
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                variant="destructive"
-                                onClick={() => handleCancel(rx)}
-                                disabled={updateMutation.isPending}
-                              >
-                                <Ban className="mr-2 h-4 w-4" /> Cancel prescription
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                          {rx.status !== PRESCRIPTION_STATUS.DISPENSED && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                variant="destructive"
-                                onClick={() => handleDelete(rx)}
-                                disabled={deleteMutation.isPending}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <RowActions>
+                        {rx.status === PRESCRIPTION_STATUS.ACTIVE && (
+                          <ActionButton
+                            tone="success"
+                            label="Dispense"
+                            icon={ClipboardCheck}
+                            disabled={dispenseMutation.isPending}
+                            onClick={() => handleDispense(rx)}
+                          />
+                        )}
+                        <ActionButton iconOnly tone="view" label="View details" onClick={() => handleView(rx)} />
+                        {rx.status === PRESCRIPTION_STATUS.ACTIVE && (
+                          <ActionButton
+                            iconOnly
+                            tone="neutral"
+                            label="Cancel prescription"
+                            icon={Ban}
+                            disabled={updateMutation.isPending}
+                            onClick={() => handleCancel(rx)}
+                          />
+                        )}
+                        {rx.status !== PRESCRIPTION_STATUS.DISPENSED && (
+                          <ActionButton
+                            iconOnly
+                            tone="delete"
+                            label="Delete"
+                            disabled={deleteMutation.isPending}
+                            onClick={() => handleDelete(rx)}
+                          />
+                        )}
+                      </RowActions>
                     </TableCell>
                   </TableRow>
                 ))

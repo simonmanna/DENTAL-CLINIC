@@ -19,6 +19,7 @@ import {
   RefreshCw,
   X,
 } from 'lucide-react';
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { useNotifications, Notification, NotificationQueryParams } from '@/hooks/useNotifications';
 import { cn } from '@/lib/utils';
 
@@ -195,30 +196,12 @@ function NotificationRow({
             >
               {time.relative}
             </span>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <RowActions>
               {!notification.isRead && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRead(notification.id);
-                  }}
-                  className="p-1 rounded-md hover:bg-primary-muted/60 transition-colors"
-                  title="Mark as read"
-                >
-                  <Check style={{ width: 13, height: 13, color: '#3b82f6' }} />
-                </button>
+                <ActionButton iconOnly tone="view" label="Mark as read" icon={Check} onClick={() => onRead(notification.id)} />
               )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(notification.id);
-                }}
-                className="p-1 rounded-md hover:bg-danger-muted/60 transition-colors"
-                title="Delete"
-              >
-                <Trash2 style={{ width: 13, height: 13, color: '#ef4444' }} />
-              </button>
-            </div>
+              <ActionButton iconOnly tone="delete" label="Delete" onClick={() => onDelete(notification.id)} />
+            </RowActions>
           </div>
         </div>
 
@@ -581,22 +564,8 @@ export default function NotificationsPage() {
             {selectedIds.size} selected
           </span>
           <div className="flex items-center gap-2">
-            <button
-              onClick={bulkMarkRead}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md text-[12px] font-semibold transition-colors hover:bg-primary-muted"
-              style={{ color: '#2563eb' }}
-            >
-              <Check style={{ width: 12, height: 12 }} />
-              Mark read
-            </button>
-            <button
-              onClick={bulkDelete}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md text-[12px] font-semibold transition-colors hover:bg-danger-muted"
-              style={{ color: '#ef4444' }}
-            >
-              <Trash2 style={{ width: 12, height: 12 }} />
-              Delete
-            </button>
+            <ActionButton tone="view" label="Mark read" icon={Check} onClick={bulkMarkRead} />
+            <ActionButton tone="delete" label="Delete" onClick={bulkDelete} />
             <button
               onClick={() => setSelectedIds(new Set())}
               className="px-2 py-1 rounded-md text-[12px] font-semibold text-muted-foreground hover:bg-primary-muted transition-colors"

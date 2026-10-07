@@ -39,6 +39,7 @@ import {
   Filter,
   ArrowUpDown
 } from 'lucide-react';
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { formatCurrency } from '@/lib/utils';
 
 interface BillingServicesTableProps {
@@ -223,31 +224,11 @@ export function BillingServicesTable({
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => onEdit(service)} className="cursor-pointer">
-                          <Pencil className="mr-2 h-4 w-4 text-primary" />
-                          Edit Service
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onDuplicate(service.id)} className="cursor-pointer">
-                          <Copy className="mr-2 h-4 w-4 text-muted-foreground" />
-                          Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => onDelete(service.id)} 
-                          className="cursor-pointer text-danger focus:text-danger focus:bg-danger-muted/60"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <RowActions>
+                      <ActionButton iconOnly tone="edit" label="Edit service" onClick={() => onEdit(service)} />
+                      <ActionButton iconOnly tone="info" label="Duplicate" icon={Copy} onClick={() => onDuplicate(service.id)} />
+                      <ActionButton iconOnly tone="delete" label="Delete" onClick={() => onDelete(service.id)} />
+                    </RowActions>
                   </TableCell>
                 </TableRow>
               ))

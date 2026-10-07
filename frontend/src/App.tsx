@@ -85,6 +85,7 @@ import TreatmentReports from "./pages/treatmentplans/TreatmentReports";
 import InventoryReports from "./pages/inventory/InventoryReport";
 import { SalesReports, ExpensePaymentsReports } from "./pages/finance/FinancialReports";
 import { DraftAppointmentsPage } from "./pages/appointments/AppointmentsDraftPage";
+import { AppointmentsListPage } from "./pages/appointments/AppointmentsListPage";
 import NotificationsPage from "./pages/notifications/NotificationsPage";
 import ClinicSettingsPage from "./pages/clinic-settings/ClinicSettingsPage";
 import AuditLogPage from "./pages/audit-log/AuditLogPage";
@@ -424,6 +425,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <AppointmentsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/appointments/list"
+            element={
+              <ProtectedRoute>
+                <AppointmentsListPage />
               </ProtectedRoute>
             }
           />

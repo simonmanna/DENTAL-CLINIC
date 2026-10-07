@@ -47,7 +47,7 @@ export function GLDialogContent({
             {title}
           </DialogTitle>
           {subtitle && (
-            <DialogDescription className="text-primary/40 text-sm">
+            <DialogDescription className="text-white/80 text-sm">
               {subtitle}
             </DialogDescription>
           )}

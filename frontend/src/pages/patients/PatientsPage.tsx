@@ -48,6 +48,7 @@ import {
   CheckCircle,
   Clock,
 } from "lucide-react";
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 
 interface PaginatedResponse<T> {
   data: T[];
@@ -61,107 +62,61 @@ interface PaginatedResponse<T> {
 
 /* ─── Inline styles injected once ─────────────────────────────────────────── */
 const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
-
+  /* Fonts come from the app shell (self-hosted Geist). A runtime @import of a
+     web font here was discovered only after the route rendered, so cold loads
+     painted with a fallback face and then reflowed the whole table. */
   .pts-root {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    --clr-bg:        #f0f4ff;
-    --clr-surface:   #ffffff;
-    --clr-primary:   #2563eb;
-    --clr-primary-d: #1d4ed8;
-    --clr-primary-l: #eff6ff;
-    --clr-accent:    #06b6d4;
-    --clr-success:   #10b981;
-    --clr-danger:    #ef4444;
-    --clr-warning:   #f59e0b;
-    --clr-text:      #0f172a;
-    --clr-muted:     #64748b;
-    --clr-border:    #e2e8f0;
-    --clr-row-hover: #f8faff;
-    --radius:        4px;
-    --shadow-sm:     0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
-    --shadow-md:     0 4px 16px rgba(37,99,235,.10), 0 1px 4px rgba(0,0,0,.06);
-    --shadow-lg:     0 20px 60px rgba(37,99,235,.15), 0 8px 24px rgba(0,0,0,.08);
-    min-height: 100vh;
-    padding: 8px 4px;
-    background: var(--clr-bg);
+    --clr-bg:        hsl(var(--background));
+    --clr-surface:   hsl(var(--card));
+    --clr-subtle:    hsl(var(--muted) / .55);
+    --clr-primary:   hsl(var(--primary));
+    --clr-primary-fg:hsl(var(--primary-foreground));
+    --clr-primary-l: hsl(var(--primary-muted));
+    --clr-success:   hsl(var(--success));
+    --clr-danger:    hsl(var(--danger));
+    --clr-text:      hsl(var(--foreground));
+    --clr-muted:     hsl(var(--muted-foreground));
+    --clr-faint:     hsl(var(--muted-foreground) / .55);
+    --clr-border:    hsl(var(--border));
+    --clr-input:     hsl(var(--input));
+    --clr-row-hover: hsl(var(--primary-muted) / .45);
+    --pts-radius:    10px;
+    --shadow-sm:     0 1px 2px hsl(215 28% 17% / .05);
+    --shadow-lg:     0 24px 64px hsl(215 28% 10% / .22), 0 8px 24px hsl(215 28% 10% / .10);
+    min-height: 100%;
+    padding: 12px 8px 24px;
+    color: var(--clr-text);
   }
+  @media (min-width: 768px) { .pts-root { padding: 16px 16px 32px; } }
 
   /* ── Header ── */
   .pts-header {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: space-between;
-    margin-bottom: 10px;
+    margin-bottom: 14px;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 12px;
   }
   .pts-header-left h1 {
-    font-size: 1.75rem;
-    font-weight: 800;
+    font-size: 1.5rem;
+    font-weight: 700;
     color: var(--clr-text);
-    letter-spacing: -.5px;
-    line-height: 1;
+    letter-spacing: -.02em;
+    line-height: 1.15;
   }
   .pts-header-left p {
-    margin-top: 4px;
-    font-size: .875rem;
+    margin-top: 2px;
+    font-size: .85rem;
     color: var(--clr-muted);
+    min-height: 1.25em;
   }
-  .pts-header-left h1 span { color: var(--clr-primary); }
-
-  /* ── Stat cards ── */
-  .pts-stats {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-  @media (max-width: 900px) { .pts-stats { grid-template-columns: repeat(2,1fr); } }
-  .pts-stat {
-    background: var(--clr-surface);
-    border-radius: var(--radius);
-    padding: 20px;
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--clr-border);
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    position: relative;
-    overflow: hidden;
-    transition: transform .18s, box-shadow .18s;
-  }
-  .pts-stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-  .pts-stat::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    border-radius: 12px 12px 0 0;
-  }
-  .pts-stat.blue::before   { background: linear-gradient(90deg, #2563eb, #06b6d4); }
-  .pts-stat.green::before  { background: linear-gradient(90deg, #10b981, #34d399); }
-  .pts-stat.indigo::before { background: linear-gradient(90deg, #6366f1, #818cf8); }
-  .pts-stat.amber::before  { background: linear-gradient(90deg, #f59e0b, #fcd34d); }
-  .pts-stat-icon {
-    width: 48px; height: 48px;
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .pts-stat.blue   .pts-stat-icon { background: #eff6ff; color: #2563eb; }
-  .pts-stat.green  .pts-stat-icon { background: #ecfdf5; color: #10b981; }
-  .pts-stat.indigo .pts-stat-icon { background: #eef2ff; color: #6366f1; }
-  .pts-stat.amber  .pts-stat-icon { background: #fffbeb; color: #f59e0b; }
-  .pts-stat-body { flex: 1; }
-  .pts-stat-label { font-size: .75rem; font-weight: 600; color: var(--clr-muted); text-transform: uppercase; letter-spacing: .5px; }
-  .pts-stat-value { font-size: 1.75rem; font-weight: 800; color: var(--clr-text); line-height: 1.1; margin-top: 2px; }
-  .pts-stat-sub   { font-size: .75rem; color: var(--clr-muted); margin-top: 2px; }
+  .pts-header-actions { display: flex; gap: 8px; }
 
   /* ── Card / table wrapper ── */
   .pts-card {
     background: var(--clr-surface);
-    border-radius: var(--radius);
+    border-radius: var(--pts-radius);
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--clr-border);
     overflow: hidden;
@@ -169,333 +124,402 @@ const STYLES = `
 
   /* ── Toolbar ── */
   .pts-toolbar {
-    padding: 6px 20px;
+    padding: 10px 14px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     border-bottom: 1px solid var(--clr-border);
     flex-wrap: wrap;
-    background: #fafbff;
   }
   .pts-search-wrap {
     position: relative;
-    flex: 1;
-    min-width: 200px;
-    max-width: 340px;
+    flex: 1 1 240px;
+    max-width: 360px;
   }
-  .pts-search-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--clr-muted); pointer-events: none; }
+  .pts-search-wrap > svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--clr-muted); pointer-events: none; }
   .pts-search-wrap input {
     width: 100%;
-    padding: 9px 14px 9px 38px;
-    border: 1.5px solid var(--clr-border);
+    height: 36px;
+    padding: 0 32px 0 34px;
+    border: 1px solid var(--clr-input);
     border-radius: 8px;
     font-size: .875rem;
     font-family: inherit;
     color: var(--clr-text);
-    background: white;
+    background: var(--clr-surface);
     outline: none;
     transition: border-color .15s, box-shadow .15s;
   }
-  .pts-search-wrap input:focus { border-color: var(--clr-primary); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
-  .pts-search-wrap input::placeholder { color: #94a3b8; }
+  .pts-search-wrap input::-webkit-search-cancel-button { display: none; }
+  .pts-search-clear {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; background: transparent; border-radius: 6px;
+    color: var(--clr-muted); cursor: pointer;
+  }
+  .pts-search-clear:hover { background: var(--clr-subtle); color: var(--clr-text); }
 
   .pts-select {
-    padding: 9px 32px 9px 12px;
-    border: 1.5px solid var(--clr-border);
+    height: 36px;
+    padding: 0 30px 0 12px;
+    border: 1px solid var(--clr-input);
     border-radius: 8px;
     font-size: .875rem;
     font-family: inherit;
     color: var(--clr-text);
-    background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 10px center;
+    background: var(--clr-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 10px center;
     appearance: none;
     outline: none;
     cursor: pointer;
-    transition: border-color .15s;
+    transition: border-color .15s, box-shadow .15s;
   }
-  .pts-select:focus { border-color: var(--clr-primary); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+
+  .pts-daterange {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 8px 0 10px;
+    border: 1px solid var(--clr-input);
+    border-radius: 8px;
+    background: var(--clr-surface);
+    color: var(--clr-muted);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .pts-daterange input {
+    border: none;
+    outline: none;
+    font-size: .8rem;
+    font-family: inherit;
+    color: var(--clr-text);
+    background: transparent;
+    width: 118px;
+    color-scheme: light dark;
+  }
+  .pts-daterange-clear {
+    border: none; background: transparent; cursor: pointer;
+    color: var(--clr-muted); display: flex; align-items: center;
+    padding: 3px; border-radius: 5px;
+  }
+  .pts-daterange-clear:hover { background: var(--clr-subtle); color: var(--clr-text); }
+
+  .pts-search-wrap input:focus-visible,
+  .pts-select:focus-visible,
+  .pts-daterange:focus-within,
+  .pts-input:focus-visible,
+  .pts-input-select:focus-visible {
+    border-color: var(--clr-primary);
+    box-shadow: 0 0 0 3px hsl(var(--ring) / .18);
+  }
+  .pts-search-wrap input::placeholder, .pts-input::placeholder { color: var(--clr-faint); }
 
   .pts-btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 7px;
-    padding: 9px 18px;
+    height: 36px;
+    padding: 0 14px;
     border-radius: 8px;
     font-size: .875rem;
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
-    border: none;
-    transition: all .15s;
+    border: 1px solid transparent;
+    transition: background-color .15s, border-color .15s, color .15s, box-shadow .15s;
     white-space: nowrap;
   }
-  .pts-btn-primary {
-    background: var(--clr-primary);
-    color: white;
-    box-shadow: 0 2px 8px rgba(37,99,235,.30);
-  }
-  .pts-btn-primary:hover { background: var(--clr-primary-d); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,.35); }
-  .pts-btn-outline {
-    background: white;
-    color: var(--clr-text);
-    border: 1.5px solid var(--clr-border);
-  }
-  .pts-btn-outline:hover { border-color: var(--clr-primary); color: var(--clr-primary); background: var(--clr-primary-l); }
-  .pts-btn-sm { padding: 6px 12px; font-size: .8rem; }
-  .pts-btn-icon { padding: 7px; border-radius: 7px; }
-  .pts-btn-danger { background: #fef2f2; color: var(--clr-danger); border: 1.5px solid #fecaca; }
-  .pts-btn-danger:hover { background: var(--clr-danger); color: white; }
+  .pts-btn:focus-visible { outline: 2px solid var(--clr-primary); outline-offset: 2px; }
+  .pts-btn:disabled { opacity: .6; cursor: not-allowed; }
+  .pts-btn-primary { background: var(--clr-primary); color: var(--clr-primary-fg); box-shadow: var(--shadow-sm); }
+  .pts-btn-primary:hover:not(:disabled) { background: hsl(var(--primary) / .9); }
+  .pts-btn-outline { background: var(--clr-surface); color: var(--clr-text); border-color: var(--clr-input); }
+  .pts-btn-outline:hover:not(:disabled) { border-color: var(--clr-primary); color: var(--clr-primary); background: var(--clr-primary-l); }
+  .pts-btn .pts-spin-icon { animation: pts-spin .8s linear infinite; }
 
   .pts-toolbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
   .pts-count-badge {
-    background: var(--clr-primary-l);
-    color: var(--clr-primary);
-    font-size: .75rem;
-    font-weight: 700;
-    padding: 3px 10px;
-    border-radius: 99px;
-    border: 1px solid #bfdbfe;
+    color: var(--clr-muted);
+    font-size: .8rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
+  .pts-count-badge strong { color: var(--clr-text); font-weight: 600; }
 
-  /* ── Data table ── */
-  .pts-table-wrap { overflow-x: auto; }
+  /* ── Data table ──
+     Fixed layout + <colgroup> widths: columns never resize as rows, fonts or
+     pages change, so first paint, skeleton and data all share one geometry. */
+  .pts-table-wrap { overflow-x: auto; position: relative; }
   .pts-table {
     width: 100%;
+    min-width: 1090px;
+    table-layout: fixed;
     border-collapse: collapse;
     font-size: .875rem;
   }
-  .pts-table thead tr {
-    background: #f8faff;
-    border-bottom: 2px solid var(--clr-border);
-  }
   .pts-table thead th {
-    padding: 11px 16px;
+    position: sticky; top: 0;
+    background: var(--clr-subtle);
+    border-bottom: 1px solid var(--clr-border);
+    padding: 10px 14px;
     text-align: left;
     font-size: .7rem;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: .7px;
+    letter-spacing: .06em;
     color: var(--clr-muted);
     white-space: nowrap;
-    cursor: pointer;
-    user-select: none;
-    transition: color .12s;
   }
-  .pts-table thead th:hover { color: var(--clr-primary); }
-  .pts-table thead th.sort-asc::after  { content: ' ↑'; color: var(--clr-primary); }
-  .pts-table thead th.sort-desc::after { content: ' ↓'; color: var(--clr-primary); }
-
+  .pts-table tbody { transition: opacity .15s; }
+  .pts-table tbody.is-fetching { opacity: .55; }
   .pts-table tbody tr {
-    border-bottom: 1px solid #f1f5f9;
-    transition: background .12s;
+    border-bottom: 1px solid var(--clr-border);
+    transition: background-color .12s;
     cursor: pointer;
   }
   .pts-table tbody tr:last-child { border-bottom: none; }
   .pts-table tbody tr:hover { background: var(--clr-row-hover); }
-  .pts-table tbody tr:hover .pts-row-actions { opacity: 1; }
-  .pts-table td { padding: 12px 16px; vertical-align: middle; }
+  .pts-table tbody tr:focus-visible { outline: 2px solid var(--clr-primary); outline-offset: -2px; background: var(--clr-row-hover); }
+  .pts-table td {
+    padding: 10px 14px;
+    height: 58px;
+    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pts-cell-index { color: var(--clr-faint); font-size: .78rem; font-weight: 500; }
+  .pts-cell-stack { display: flex; flex-direction: column; gap: 1px; min-width: 0; line-height: 1.3; }
+  .pts-cell-primary { font-size: .82rem; font-weight: 500; color: var(--clr-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pts-cell-secondary { font-size: .72rem; color: var(--clr-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pts-dash { color: var(--clr-faint); }
 
   /* ── Avatar ── */
+  .pts-patient { display: flex; align-items: center; gap: 10px; min-width: 0; }
   .pts-avatar {
-    width: 38px; height: 38px;
-    border-radius: 10px;
+    width: 36px; height: 36px;
+    border-radius: 9px;
     display: flex; align-items: center; justify-content: center;
-    font-size: .8rem;
-    font-weight: 700;
+    font-size: .78rem;
+    font-weight: 600;
     flex-shrink: 0;
+    text-transform: uppercase;
   }
-  .pts-avatar-blue   { background: #dbeafe; color: #1d4ed8; }
-  .pts-avatar-pink   { background: #fce7f3; color: #be185d; }
-  .pts-avatar-green  { background: #d1fae5; color: #065f46; }
-  .pts-avatar-purple { background: #ede9fe; color: #6d28d9; }
-  .pts-avatar-amber  { background: #fef3c7; color: #92400e; }
+  .pts-avatar-blue   { background: hsl(var(--info-muted));    color: hsl(var(--info)); }
+  .pts-avatar-pink   { background: hsl(330 80% 95%);          color: hsl(330 60% 42%); }
+  .pts-avatar-green  { background: hsl(var(--success-muted)); color: hsl(var(--success)); }
+  .pts-avatar-purple { background: hsl(265 80% 96%);          color: hsl(265 50% 50%); }
+  .pts-avatar-amber  { background: hsl(var(--warning-muted)); color: hsl(var(--warning)); }
+  .dark .pts-avatar-pink   { background: hsl(330 40% 18%); color: hsl(330 80% 76%); }
+  .dark .pts-avatar-purple { background: hsl(265 35% 20%); color: hsl(265 80% 80%); }
 
-  .pts-patient-name { font-weight: 700; color: var(--clr-text); line-height: 1.2; }
-  .pts-patient-code { font-family: 'JetBrains Mono', monospace; font-size: .7rem; color: var(--clr-muted); margin-top: 2px; }
+  .pts-patient-name { font-weight: 600; color: var(--clr-text); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pts-patient-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .7rem; color: var(--clr-muted); margin-top: 1px; }
 
   /* ── Badges ── */
   .pts-badge {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 3px 9px;
-    border-radius: 6px;
+    padding: 2px 8px;
+    border-radius: 999px;
     font-size: .72rem;
-    font-weight: 700;
+    font-weight: 600;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
-  .pts-badge-active   { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-  .pts-badge-inactive { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
-  .pts-badge-male     { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
-  .pts-badge-female   { background: #fce7f3; color: #be185d; border: 1px solid #fbcfe8; }
-  .pts-badge-other    { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
-  .pts-badge-appt     { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; }
+  .pts-badge-male   { background: hsl(var(--info-muted)); color: hsl(var(--info)); }
+  .pts-badge-female { background: hsl(330 80% 95%); color: hsl(330 60% 42%); }
+  .dark .pts-badge-female { background: hsl(330 40% 18%); color: hsl(330 80% 76%); }
+  .pts-badge-other  { background: hsl(var(--muted)); color: var(--clr-muted); }
+  .pts-badge-appt   { background: var(--clr-primary-l); color: hsl(var(--accent-foreground)); }
+  .pts-badge-zero   { background: transparent; color: var(--clr-faint); padding-left: 0; }
+  .pts-card-no {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .75rem;
+    color: var(--clr-text);
+    background: hsl(var(--muted));
+    padding: 2px 7px;
+    border-radius: 5px;
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
 
   /* ── Row actions ── */
-  .pts-row-actions { opacity: 1; display: flex; gap: 4px; transition: opacity .15s; }
+  .pts-row-actions { display: flex; gap: 4px; justify-content: flex-end; }
   .pts-action-btn {
-  width: 30px; height: 30px;
-  border-radius: 7px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  border: none;
-  transition: all .12s;
-  flex-shrink: 0;
-}
-  .pts-action-btn.view  { background: var(--clr-primary-l); color: var(--clr-primary); }
-  .pts-action-btn.view:hover  { background: var(--clr-primary); color: white; }
-  .pts-action-btn.edit  { background: #f0fdf4; color: #16a34a; }
-  .pts-action-btn.edit:hover  { background: #16a34a; color: white; }
+    width: 30px; height: 30px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--clr-muted);
+    transition: background-color .12s, color .12s, border-color .12s;
+    flex-shrink: 0;
+  }
+  .pts-action-btn:hover { background: var(--clr-surface); border-color: var(--clr-border); color: var(--clr-primary); }
+  .pts-action-btn:focus-visible { outline: 2px solid var(--clr-primary); outline-offset: 1px; }
+
+  /* ── Skeleton ── */
+  .pts-skel {
+    display: block;
+    height: 10px;
+    border-radius: 5px;
+    background: linear-gradient(90deg, hsl(var(--muted)) 0%, hsl(var(--muted) / .45) 50%, hsl(var(--muted)) 100%);
+    background-size: 200% 100%;
+    animation: pts-shimmer 1.2s ease-in-out infinite;
+  }
+  .pts-skel-avatar { width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0; }
+  @keyframes pts-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+  .pts-table tbody tr.pts-skel-row { cursor: default; }
+  .pts-table tbody tr.pts-skel-row:hover { background: transparent; }
 
   /* ── Pagination ── */
   .pts-pager {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 20px;
+    padding: 10px 14px;
     border-top: 1px solid var(--clr-border);
-    background: #fafbff;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 10px;
   }
-  .pts-pager-info { font-size: .82rem; color: var(--clr-muted); }
-  .pts-pager-info strong { color: var(--clr-text); }
+  .pts-pager-info { font-size: .8rem; color: var(--clr-muted); font-variant-numeric: tabular-nums; }
+  .pts-pager-info strong { color: var(--clr-text); font-weight: 600; }
   .pts-pager-btns { display: flex; gap: 4px; }
   .pts-page-btn {
-    min-width: 34px; height: 34px;
+    min-width: 32px; height: 32px;
     padding: 0 6px;
     border-radius: 7px;
-    border: 1.5px solid var(--clr-border);
-    background: white;
+    border: 1px solid var(--clr-border);
+    background: var(--clr-surface);
     color: var(--clr-text);
-    font-size: .82rem;
-    font-weight: 600;
+    font-size: .8rem;
+    font-weight: 500;
     font-family: inherit;
+    font-variant-numeric: tabular-nums;
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    transition: all .12s;
+    transition: background-color .12s, border-color .12s, color .12s;
   }
-  .pts-page-btn:hover:not(:disabled) { border-color: var(--clr-primary); color: var(--clr-primary); background: var(--clr-primary-l); }
-  .pts-page-btn.active { background: var(--clr-primary); color: white; border-color: var(--clr-primary); }
+  .pts-page-btn:hover:not(:disabled):not(.active) { border-color: var(--clr-primary); color: var(--clr-primary); background: var(--clr-primary-l); }
+  .pts-page-btn:focus-visible { outline: 2px solid var(--clr-primary); outline-offset: 1px; }
+  .pts-page-btn.active { background: var(--clr-primary); color: var(--clr-primary-fg); border-color: var(--clr-primary); }
   .pts-page-btn:disabled { opacity: .4; cursor: default; }
+  .pts-page-gap { min-width: 24px; height: 32px; display: flex; align-items: center; justify-content: center; color: var(--clr-muted); }
 
   /* ── Modal overlay ── */
   .pts-overlay {
     position: fixed; inset: 0;
-    background: rgba(15,23,42,.5);
-    backdrop-filter: blur(4px);
+    background: hsl(215 30% 8% / .5);
+    backdrop-filter: blur(3px);
     z-index: 50;
     display: flex; align-items: center; justify-content: center;
-    padding: 24px;
-    animation: fadeIn .15s ease;
+    padding: 16px;
+    animation: pts-fade-in .15s ease-out;
   }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes pts-fade-in { from { opacity: 0; } to { opacity: 1; } }
 
   .pts-modal {
-    background: white;
-    border-radius: 16px;
+    background: var(--clr-surface);
+    color: var(--clr-text);
+    border: 1px solid var(--clr-border);
+    border-radius: 14px;
     box-shadow: var(--shadow-lg);
     width: 100%;
     max-width: 760px;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
-    animation: slideUp .2s ease;
+    overflow: hidden;
+    animation: pts-rise .2s cubic-bezier(.2,.8,.2,1);
   }
-  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes pts-rise { from { transform: translateY(12px) scale(.985); opacity: 0; } to { transform: none; opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    .pts-overlay, .pts-modal, .pts-skel, .pts-btn .pts-spin-icon { animation: none; }
+  }
 
-.pts-modal-header {
-  padding: 10px 24px 6px;
-  border-bottom: 1px solid rgba(255,255,255,0.2);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-  background: #376dec; /* ← Your requested color */
-}
-.pts-modal-header h2 {
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: white; /* ← White text */
-  display: flex; align-items: center; gap: 10px;
-}
-.pts-modal-header h2 .icon-wrap {
-  width: 36px; height: 36px;
-  background: rgba(255,255,255,0.2); /* ← Subtle white overlay for icon bg */
-  border-radius: 9px;
-  display: flex; align-items: center; justify-content: center;
-  color: white; /* ← White icon */
-}
-.pts-modal-close {
-  width: 34px; height: 34px;
-  border-radius: 8px;
-  border: 1.5px solid rgba(255,255,255,0.3); /* ← Visible border on blue */
-  background: rgba(255,255,255,0.15);
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  color: white; /* ← White close icon */
-  transition: all .12s;
-}
-.pts-modal-close:hover { 
-  background: rgba(255,255,255,0.3); 
-  border-color: white; 
-}
-
-  .pts-modal-close {
+  .pts-modal-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--clr-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .pts-modal-header h2 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--clr-text);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .pts-modal-header h2 .icon-wrap {
     width: 34px; height: 34px;
+    background: var(--clr-primary-l);
+    color: var(--clr-primary);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pts-modal-close {
+    width: 32px; height: 32px;
     border-radius: 8px;
-    border: 1.5px solid var(--clr-border);
-    background: white;
+    border: 1px solid transparent;
+    background: transparent;
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     color: var(--clr-muted);
-    transition: all .12s;
+    transition: background-color .12s, color .12s;
   }
-  .pts-modal-close:hover { background: #fee2e2; color: var(--clr-danger); border-color: #fecaca; }
+  .pts-modal-close:hover { background: var(--clr-subtle); color: var(--clr-text); }
+  .pts-modal-close:focus-visible { outline: 2px solid var(--clr-primary); outline-offset: 1px; }
 
   .pts-modal-body {
     overflow-y: auto;
-    padding: 24px;
+    padding: 20px;
     flex: 1;
   }
   .pts-modal-footer {
-    padding: 16px 24px;
+    padding: 12px 20px;
     border-top: 1px solid var(--clr-border);
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
+    gap: 8px;
     flex-shrink: 0;
-    background: #fafbff;
+    background: var(--clr-subtle);
   }
 
   /* ── Form sections ── */
-  .pts-form-section {
-    margin-bottom: 8px;
-  }
+  .pts-form-section { margin-bottom: 20px; }
   .pts-form-section:last-child { margin-bottom: 0; }
   .pts-section-label {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 8px;
-    padding-bottom: 5px;
-    border-bottom: 2px solid var(--clr-border);
+    gap: 8px;
+    margin-bottom: 12px;
   }
   .pts-section-label .num {
-    width: 22px; height: 22px;
-    background: var(--clr-primary);
-    color: white;
+    width: 20px; height: 20px;
+    background: var(--clr-primary-l);
+    color: var(--clr-primary);
     border-radius: 6px;
-    font-size: .72rem;
-    font-weight: 800;
+    font-size: .7rem;
+    font-weight: 700;
     display: flex; align-items: center; justify-content: center;
   }
-  .pts-section-label span {
-    font-size: .82rem;
-    font-weight: 700;
-    color: var(--clr-text);
+  .pts-section-label span:not(.num) {
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--clr-muted);
     text-transform: uppercase;
-    letter-spacing: .5px;
+    letter-spacing: .06em;
   }
+  .pts-section-label::after { content: ''; flex: 1; height: 1px; background: var(--clr-border); }
 
   .pts-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
   .pts-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
@@ -503,87 +527,67 @@ const STYLES = `
 
   .pts-field { display: flex; flex-direction: column; gap: 5px; }
   .pts-field label {
-    font-size: .77rem;
-    font-weight: 700;
+    font-size: .78rem;
+    font-weight: 600;
     color: var(--clr-text);
-    letter-spacing: .2px;
   }
   .pts-field label .req { color: var(--clr-danger); margin-left: 2px; }
-  .pts-field .hint { font-size: .72rem; color: var(--clr-muted); margin-top: 3px; }
-  .pts-field .error { font-size: .7rem; color: var(--clr-danger); margin-top: 2px; }
+  .pts-field .hint { font-size: .72rem; color: var(--clr-muted); }
+  .pts-field .error { font-size: .72rem; color: var(--clr-danger); }
 
-  .pts-input {
-    padding: 9px 12px;
-    border: 1.5px solid var(--clr-border);
+  .pts-input, .pts-input-select {
+    height: 38px;
+    padding: 0 12px;
+    border: 1px solid var(--clr-input);
     border-radius: 8px;
     font-size: .875rem;
     font-family: inherit;
     color: var(--clr-text);
-    background: white;
+    background-color: var(--clr-surface);
     outline: none;
     transition: border-color .15s, box-shadow .15s;
     width: 100%;
     box-sizing: border-box;
   }
-  .pts-input:focus { border-color: var(--clr-primary); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
-  .pts-input::placeholder { color: #94a3b8; }
-  .pts-input-error { border-color: var(--clr-danger) !important; }
   .pts-input-select {
-    padding: 9px 32px 9px 12px;
-    border: 1.5px solid var(--clr-border);
-    border-radius: 8px;
-    font-size: .875rem;
-    font-family: inherit;
-    color: var(--clr-text);
-    background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 10px center;
+    padding-right: 32px;
+    background: var(--clr-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 10px center;
     appearance: none;
-    outline: none;
     cursor: pointer;
-    width: 100%;
-    box-sizing: border-box;
-    transition: border-color .15s;
   }
-  .pts-input-select:focus { border-color: var(--clr-primary); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+  .pts-input-error, .pts-input-error:focus-visible { border-color: var(--clr-danger) !important; box-shadow: 0 0 0 3px hsl(var(--danger) / .12) !important; }
 
   /* ── Empty state ── */
   .pts-empty {
-    padding: 64px 24px;
+    padding: 56px 24px;
     text-align: center;
   }
   .pts-empty .icon-ring {
-    width: 72px; height: 72px;
+    width: 56px; height: 56px;
     background: var(--clr-primary-l);
-    border-radius: 50%;
+    border-radius: 14px;
     display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 16px;
+    margin: 0 auto 14px;
     color: var(--clr-primary);
   }
-  .pts-empty h3 { font-size: 1rem; font-weight: 700; color: var(--clr-text); }
+  .pts-empty h3 { font-size: 1rem; font-weight: 600; color: var(--clr-text); }
   .pts-empty p  { font-size: .875rem; color: var(--clr-muted); margin-top: 4px; }
+  .pts-empty-actions { display: flex; justify-content: center; gap: 8px; margin-top: 16px; }
 
-  /* ── Loading ── */
-  .pts-loading {
-    padding: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    color: var(--clr-muted);
-    font-size: .875rem;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pts-spin { to { transform: rotate(360deg); } }
   .pts-spinner {
-    width: 22px; height: 22px;
-    border: 2.5px solid var(--clr-border);
-    border-top-color: var(--clr-primary);
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
     border-radius: 50%;
-    animation: spin .7s linear infinite;
+    animation: pts-spin .7s linear infinite;
   }
 
   /* ── misc ── */
-  .pts-mono { font-family: 'JetBrains Mono', monospace; }
-  .pts-contact-line { display: flex; align-items: center; gap: 5px; color: #475569; font-size: .8rem; }
-  .pts-contact-line svg { opacity: .5; flex-shrink: 0; }
+  .pts-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .pts-contact-line { display: flex; align-items: center; gap: 6px; color: var(--clr-text); font-size: .82rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .pts-contact-line svg { color: var(--clr-faint); flex-shrink: 0; }
 `;
 
 /* ─── Avatar color helper ───────────────────────────────────────────────────── */
@@ -639,23 +643,22 @@ function PtsPageinator({
         <button
           className="pts-page-btn"
           disabled={page === 1}
+          aria-label="Previous page"
           onClick={() => onChange(page - 1)}
         >
           ‹
         </button>
         {pages.map((p, i) =>
           p === "..." ? (
-            <span
-              key={i}
-              className="pts-page-btn"
-              style={{ border: "none", cursor: "default" }}
-            >
+            <span key={i} className="pts-page-gap" aria-hidden="true">
               …
             </span>
           ) : (
             <button
               key={i}
               className={`pts-page-btn${page === p ? " active" : ""}`}
+              aria-current={page === p ? "page" : undefined}
+              aria-label={`Page ${p}`}
               onClick={() => onChange(p as number)}
             >
               {p}
@@ -665,6 +668,7 @@ function PtsPageinator({
         <button
           className="pts-page-btn"
           disabled={page === totalPages}
+          aria-label="Next page"
           onClick={() => onChange(page + 1)}
         >
           ›
@@ -824,6 +828,15 @@ function PatientFormModal({
     }
   };
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (
@@ -833,15 +846,24 @@ function PatientFormModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="pts-modal">
+      <div
+        className="pts-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pts-modal-title"
+      >
         <div className="pts-modal-header">
-          <h2>
+          <h2 id="pts-modal-title">
             <span className="icon-wrap">
               {mode === "add" ? <UserPlus size={16} /> : <Edit2 size={16} />}
             </span>
             {mode === "add" ? "Register New Patient" : "Edit Patient Record"}
           </h2>
-          <button className="pts-modal-close" onClick={onClose}>
+          <button
+            className="pts-modal-close"
+            onClick={onClose}
+            aria-label="Close"
+          >
             <X size={16} />
           </button>
         </div>
@@ -1059,10 +1081,7 @@ function PatientFormModal({
           >
             {loading ? (
               <>
-                <span
-                  className="pts-spinner"
-                  style={{ width: 14, height: 14, borderWidth: 2 }}
-                />
+                <span className="pts-spinner" />
                 Saving…
               </>
             ) : mode === "add" ? (
@@ -1103,6 +1122,7 @@ export function PatientsPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
 
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [genderFilter, setGender] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -1111,9 +1131,21 @@ export function PatientsPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [editPatient, setEditPatient] = useState<any>(null);
 
+  // Debounce the search box so each keystroke doesn't fire a request (and
+  // re-render the table mid-typing).
+  useEffect(() => {
+    if (searchInput === search) return;
+    const t = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput, search]);
+
   const {
     data: patientsResp,
     isLoading,
+    isFetching,
     refetch,
   } = useQuery<{ data: Patient[]; meta: any | null }>({
     queryKey: ["patients", { page, search, genderFilter, dateFrom, dateTo }],
@@ -1234,6 +1266,16 @@ export function PatientsPage() {
     limit: 15,
   };
 
+  const hasFilters = !!(search || genderFilter || dateFrom || dateTo);
+  const clearFilters = () => {
+    setSearchInput("");
+    setSearch("");
+    setGender("");
+    setDateFrom("");
+    setDateTo("");
+    setPage(1);
+  };
+
   return (
     <div className="pts-root">
       <style>{STYLES}</style>
@@ -1241,16 +1283,24 @@ export function PatientsPage() {
       {/* ── Header ── */}
       <div className="pts-header">
         <div className="pts-header-left">
-          <h1>
-            <span>Patient</span> Records
-          </h1>
+          <h1>Patients</h1>
+          <p>
+            {isLoading
+              ? " "
+              : `${meta.total.toLocaleString()} ${hasFilters ? "matching" : "registered"} patient${meta.total === 1 ? "" : "s"}`}
+          </p>
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div className="pts-header-actions">
           <button
             className="pts-btn pts-btn-outline"
             onClick={() => qc.invalidateQueries({ queryKey: ["patients"] })}
+            disabled={isFetching}
           >
-            <RefreshCw size={14} /> Refresh
+            <RefreshCw
+              size={14}
+              className={isFetching ? "pts-spin-icon" : undefined}
+            />
+            Refresh
           </button>
           <button
             className="pts-btn pts-btn-primary"
@@ -1266,45 +1316,44 @@ export function PatientsPage() {
         {/* Toolbar */}
         <div className="pts-toolbar">
           <div className="pts-search-wrap">
-            <Search size={14} />
+            <Search size={15} />
             <input
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
+              type="search"
+              aria-label="Search patients"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search name, code, phone…"
             />
+            {searchInput && (
+              <button
+                type="button"
+                className="pts-search-clear"
+                aria-label="Clear search"
+                onClick={() => setSearchInput("")}
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
 
           <select
             className="pts-select"
+            aria-label="Filter by gender"
             value={genderFilter}
             onChange={(e) => {
               setGender(e.target.value);
               setPage(1);
             }}
           >
-            <option value="">All Genders</option>
+            <option value="">All genders</option>
             <option value="MALE">Male</option>
             <option value="FEMALE">Female</option>
             <option value="OTHER">Other</option>
           </select>
 
           {/* ── Registered date range filter ─────────────────────────────── */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "4px 10px",
-              border: "1.5px solid var(--clr-border)",
-              borderRadius: 8,
-              background: "white",
-            }}
-            title="Filter by registration date"
-          >
-            <Calendar size={13} style={{ color: "var(--clr-muted)" }} />
+          <div className="pts-daterange" title="Filter by registration date">
+            <Calendar size={14} />
             <input
               type="date"
               aria-label="Registered from"
@@ -1314,20 +1363,8 @@ export function PatientsPage() {
                 setDateFrom(e.target.value);
                 setPage(1);
               }}
-              style={{
-                border: "none",
-                outline: "none",
-                fontSize: ".8rem",
-                fontFamily: "inherit",
-                color: "var(--clr-text)",
-                background: "transparent",
-                padding: "2px 0",
-                width: 110,
-              }}
             />
-            <span style={{ color: "var(--clr-muted)", fontSize: ".75rem" }}>
-              →
-            </span>
+            <span aria-hidden="true">→</span>
             <input
               type="date"
               aria-label="Registered to"
@@ -1337,34 +1374,16 @@ export function PatientsPage() {
                 setDateTo(e.target.value);
                 setPage(1);
               }}
-              style={{
-                border: "none",
-                outline: "none",
-                fontSize: ".8rem",
-                fontFamily: "inherit",
-                color: "var(--clr-text)",
-                background: "transparent",
-                padding: "2px 0",
-                width: 110,
-              }}
             />
             {(dateFrom || dateTo) && (
               <button
                 type="button"
+                className="pts-daterange-clear"
                 aria-label="Clear date filter"
                 onClick={() => {
                   setDateFrom("");
                   setDateTo("");
                   setPage(1);
-                }}
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  cursor: "pointer",
-                  color: "var(--clr-muted)",
-                  display: "flex",
-                  alignItems: "center",
-                  padding: 2,
                 }}
               >
                 <X size={13} />
@@ -1372,265 +1391,265 @@ export function PatientsPage() {
             )}
           </div>
 
-          {/* <select className="pts-select">
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select> */}
-
           <div className="pts-toolbar-right">
-            {meta.total > 0 && (
-              <span className="pts-count-badge">{meta.total} patients</span>
+            {hasFilters && (
+              <button
+                type="button"
+                className="pts-btn pts-btn-outline"
+                onClick={clearFilters}
+              >
+                <X size={14} /> Clear filters
+              </button>
             )}
           </div>
         </div>
 
-        {/* Table */}
-        {isLoading ? (
-          <div className="pts-loading">
-            <div className="pts-spinner" /> Loading patients…
-          </div>
-        ) : patients.length === 0 ? (
+        {/* Table — the skeleton reuses the real <colgroup>, so swapping
+            loading → data never shifts a column. */}
+        {!isLoading && patients.length === 0 ? (
           <div className="pts-empty">
             <div className="icon-ring">
-              <Users size={28} />
+              <Users size={26} />
             </div>
-            <h3>No patients found</h3>
+            <h3>{hasFilters ? "No matching patients" : "No patients yet"}</h3>
             <p>
               {search
-                ? `No results for "${search}"`
-                : "Register your first patient to get started."}
+                ? `Nothing matches "${search}". Check the spelling or try a phone number.`
+                : hasFilters
+                  ? "No patients match the current filters."
+                  : "Register your first patient to get started."}
             </p>
-            {!search && (
-              <button
-                className="pts-btn pts-btn-primary"
-                style={{ marginTop: 16 }}
-                onClick={() => setShowAdd(true)}
-              >
-                <Plus size={14} /> Add Patient
-              </button>
-            )}
+            <div className="pts-empty-actions">
+              {hasFilters ? (
+                <button
+                  className="pts-btn pts-btn-outline"
+                  onClick={clearFilters}
+                >
+                  <X size={14} /> Clear filters
+                </button>
+              ) : (
+                <button
+                  className="pts-btn pts-btn-primary"
+                  onClick={() => setShowAdd(true)}
+                >
+                  <Plus size={14} /> Add Patient
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <>
-            <div className="pts-table-wrap">
-              <table className="pts-table">
+            <div className="pts-table-wrap scrollbar-slim">
+              <table className="pts-table" aria-busy={isFetching}>
+                <colgroup>
+                  <col style={{ width: 52 }} />
+                  <col />
+                  <col style={{ width: 140 }} />
+                  <col style={{ width: 100 }} />
+                  <col style={{ width: 116 }} />
+                  <col style={{ width: 112 }} />
+                  <col style={{ width: 120 }} />
+                  <col style={{ width: 88 }} />
+                  <col style={{ width: 80 }} />
+                </colgroup>
                 <thead>
                   <tr>
-                    <th>#</th>
-                    <th>Patient</th>
-                    <th>Contact</th>
-                    <th>Gender</th>
-                    <th>D.O.B / Age</th>
-                    <th>Registered</th>
-                    <th>Card No.</th>
-                    <th>Visits</th>
-                    {/* <th>Status</th> */}
-                    <th>Actions</th>
+                    <th scope="col">#</th>
+                    <th scope="col">Patient</th>
+                    <th scope="col">Phone</th>
+                    <th scope="col">Gender</th>
+                    <th scope="col">Age</th>
+                    <th scope="col">Registered</th>
+                    <th scope="col">Card No.</th>
+                    <th scope="col">Visits</th>
+                    <th scope="col" style={{ textAlign: "right" }}>
+                      <span className="sr-only">Actions</span>
+                    </th>
                   </tr>
                 </thead>
 
-                <tbody>
-                  {patients.map((p: any, i: number) => {
-                    const color = avatarColor(`${p.firstName}${p.lastName}`);
-                    const genderLabel =
-                      p.gender === "MALE"
-                        ? "Male"
-                        : p.gender === "FEMALE"
-                          ? "Female"
-                          : p.gender
-                            ? "Other"
-                            : "—";
-                    const genderClass =
-                      p.gender === "MALE"
-                        ? "pts-badge-male"
-                        : p.gender === "FEMALE"
-                          ? "pts-badge-female"
-                          : "pts-badge-other";
-                    const fullName = [p.firstName, p.lastName]
-                      .filter(Boolean)
-                      .join(" ");
-                    return (
-                      <tr
-                        key={p.id}
-                        onClick={() => navigate(`/patients/${p.id}`)}
-                      >
-                        <td
-                          style={{
-                            color: "#94a3b8",
-                            fontSize: ".78rem",
-                            fontWeight: 600,
-                            width: 40,
-                          }}
-                        >
-                          {(page - 1) * 15 + i + 1}
+                {isLoading ? (
+                  <tbody aria-hidden="true">
+                    {Array.from({ length: 8 }, (_, i) => (
+                      <tr key={i} className="pts-skel-row">
+                        <td>
+                          <span className="pts-skel" style={{ width: 16 }} />
                         </td>
                         <td>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 10,
-                            }}
-                          >
-                            <div className={`pts-avatar pts-avatar-${color}`}>
-                              {p.firstName?.[0]}
-                              {p.lastName?.[0]}
-                            </div>
-                            <div>
-                              <div className="pts-patient-name">{fullName}</div>
-                              <div className="pts-patient-code">
-                                {p.patientCode}
-                              </div>
+                          <div className="pts-patient">
+                            <span className="pts-skel pts-skel-avatar" />
+                            <div className="pts-cell-stack" style={{ gap: 6, flex: 1 }}>
+                              <span className="pts-skel" style={{ width: `${55 + ((i * 17) % 30)}%` }} />
+                              <span className="pts-skel" style={{ width: 70, height: 8 }} />
                             </div>
                           </div>
                         </td>
                         <td>
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: 2,
-                            }}
-                          >
-                            {p.phone && (
+                          <span className="pts-skel" style={{ width: 96 }} />
+                        </td>
+                        <td>
+                          <span className="pts-skel" style={{ width: 48, height: 18, borderRadius: 999 }} />
+                        </td>
+                        <td>
+                          <span className="pts-skel" style={{ width: 52 }} />
+                        </td>
+                        <td>
+                          <span className="pts-skel" style={{ width: 72 }} />
+                        </td>
+                        <td>
+                          <span className="pts-skel" style={{ width: 80 }} />
+                        </td>
+                        <td>
+                          <span className="pts-skel" style={{ width: 56, height: 18, borderRadius: 999 }} />
+                        </td>
+                        <td />
+                      </tr>
+                    ))}
+                  </tbody>
+                ) : (
+                  <tbody className={isFetching ? "is-fetching" : undefined}>
+                    {patients.map((p: any, i: number) => {
+                      const color = avatarColor(`${p.firstName}${p.lastName}`);
+                      const genderLabel =
+                        p.gender === "MALE"
+                          ? "Male"
+                          : p.gender === "FEMALE"
+                            ? "Female"
+                            : "Other";
+                      const genderClass =
+                        p.gender === "MALE"
+                          ? "pts-badge-male"
+                          : p.gender === "FEMALE"
+                            ? "pts-badge-female"
+                            : "pts-badge-other";
+                      const fullName = [p.firstName, p.lastName]
+                        .filter(Boolean)
+                        .join(" ");
+                      const registered = p.registeredAt || p.createdAt;
+                      const visits = p._count?.appointments || 0;
+                      const open = () => navigate(`/patients/${p.id}`);
+                      return (
+                        <tr
+                          key={p.id}
+                          tabIndex={0}
+                          aria-label={`Open ${fullName}`}
+                          onClick={open}
+                          onKeyDown={(e) => {
+                            if (e.target !== e.currentTarget) return;
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              open();
+                            }
+                          }}
+                        >
+                          <td className="pts-cell-index">
+                            {(page - 1) * 15 + i + 1}
+                          </td>
+                          <td>
+                            <div className="pts-patient">
+                              <div className={`pts-avatar pts-avatar-${color}`}>
+                                {p.firstName?.[0]}
+                                {p.lastName?.[0]}
+                              </div>
+                              <div style={{ minWidth: 0 }}>
+                                <div className="pts-patient-name" title={fullName}>
+                                  {fullName}
+                                </div>
+                                <div className="pts-patient-code">
+                                  {p.patientCode}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            {p.phone ? (
                               <div className="pts-contact-line">
-                                <Phone size={11} />
+                                <Phone size={12} />
                                 {p.phone}
                               </div>
+                            ) : (
+                              <span className="pts-dash">—</span>
                             )}
-                            {/* {p.email && (
-                              <div className="pts-contact-line">
-                                <Mail size={11} />
-                                {p.email}
+                          </td>
+                          <td>
+                            {p.gender ? (
+                              <span className={`pts-badge ${genderClass}`}>
+                                {genderLabel}
+                              </span>
+                            ) : (
+                              <span className="pts-dash">—</span>
+                            )}
+                          </td>
+                          <td>
+                            {p.dateOfBirth ? (
+                              <div className="pts-cell-stack">
+                                <span className="pts-cell-primary">
+                                  {getAge(p.dateOfBirth)} yrs
+                                </span>
+                                <span className="pts-cell-secondary">
+                                  Born {formatDate(p.dateOfBirth)}
+                                </span>
                               </div>
-                            )} */}
-                          </div>
-                        </td>
-                        <td>
-                          {p.gender ? (
-                            <span className={`pts-badge ${genderClass}`}>
-                              {genderLabel}
-                            </span>
-                          ) : (
-                            <span style={{ color: "#cbd5e1" }}>—</span>
-                          )}
-                        </td>
-                        {/* In the table's D.O.B / Age column */}
-                        <td style={{ color: "#475569", fontSize: ".82rem" }}>
-                          {p.dateOfBirth ? (
-                            <>
-                              <span style={{ fontWeight: 600 }}>
-                                {getAge(p.dateOfBirth)} yrs
+                            ) : (
+                              <span className="pts-dash">—</span>
+                            )}
+                          </td>
+                          <td title={registered ? new Date(registered).toLocaleString() : ""}>
+                            {registered ? (
+                              <div className="pts-cell-stack">
+                                <span className="pts-cell-primary">
+                                  {formatDate(registered)}
+                                </span>
+                                <span className="pts-cell-secondary">
+                                  {new Date(registered).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="pts-dash">—</span>
+                            )}
+                          </td>
+                          <td>
+                            {p.previousCardNumber ? (
+                              <span className="pts-card-no" title={p.previousCardNumber}>
+                                {p.previousCardNumber}
                               </span>
-                              <br />
-                              <span
-                                style={{ color: "#94a3b8", fontSize: ".7rem" }}
-                              >
-                                Born: {formatDate(p.dateOfBirth)}
-                              </span>
-                            </>
-                          ) : (
-                            <span style={{ color: "#cbd5e1" }}>—</span>
-                          )}
-                        </td>
-                        {/* Registered (createdAt/registeredAt) column */}
-                        <td
-                          style={{
-                            color: "#475569",
-                            fontSize: ".82rem",
-                            whiteSpace: "nowrap",
-                          }}
-                          title={
-                            p.registeredAt
-                              ? new Date(p.registeredAt).toLocaleString()
-                              : p.createdAt
-                                ? new Date(p.createdAt).toLocaleString()
-                                : ""
-                          }
-                        >
-                          {p.registeredAt || p.createdAt ? (
-                            <>
-                              <span style={{ fontWeight: 600 }}>
-                                {formatDate(p.registeredAt || p.createdAt)}
-                              </span>
-                              <br />
-                              <span
-                                style={{ color: "#94a3b8", fontSize: ".7rem" }}
-                              >
-                                {new Date(
-                                  p.registeredAt || p.createdAt,
-                                ).toLocaleTimeString([], {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </span>
-                            </>
-                          ) : (
-                            <span style={{ color: "#cbd5e1" }}>—</span>
-                          )}
-                        </td>
-                        <td>
-                          {p.previousCardNumber ? (
+                            ) : (
+                              <span className="pts-dash">—</span>
+                            )}
+                          </td>
+                          <td>
                             <span
-                              className="pts-mono"
-                              style={{
-                                fontSize: ".78rem",
-                                color: "#475569",
-                                background: "#f1f5f9",
-                                padding: "2px 7px",
-                                borderRadius: 5,
-                              }}
+                              className={`pts-badge ${visits ? "pts-badge-appt" : "pts-badge-zero"}`}
                             >
-                              {p.previousCardNumber}
+                              {visits} {visits === 1 ? "visit" : "visits"}
                             </span>
-                          ) : (
-                            <span style={{ color: "#cbd5e1" }}>—</span>
-                          )}
-                        </td>
-                        <td>
-                          <span className="pts-badge pts-badge-appt">
-                            {p._count?.appointments || 0} visits
-                          </span>
-                        </td>
-                        <td>
-                          <div className="pts-row-actions">
-                            <button
-                              className="pts-action-btn view"
-                              title="View"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/patients/${p.id}`);
-                              }}
-                            >
-                              <Eye size={13} />
-                            </button>
-                            <button
-                              className="pts-action-btn edit"
-                              title="Edit"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditPatient(p);
-                              }}
-                            >
-                              <Edit2 size={13} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
+                          </td>
+                          <td>
+                            <RowActions>
+                              <ActionButton iconOnly tone="view" label={`View ${fullName}`} onClick={open} />
+                              <ActionButton iconOnly tone="edit" label={`Edit ${fullName}`} onClick={() => setEditPatient(p)} />
+                            </RowActions>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                )}
               </table>
             </div>
 
-            <PtsPageinator
-              page={page}
-              totalPages={meta.totalPages || 1}
-              total={meta.total || 0}
-              limit={15}
-              onChange={setPage}
-            />
+            {!isLoading && (
+              <PtsPageinator
+                page={page}
+                totalPages={meta.totalPages || 1}
+                total={meta.total || 0}
+                limit={15}
+                onChange={setPage}
+              />
+            )}
           </>
         )}
       </div>

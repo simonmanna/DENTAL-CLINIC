@@ -5,6 +5,7 @@ import { LocationTreeNode, LocationType } from '@/types/location';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronRight, ChevronDown, MoreVertical, Plus } from 'lucide-react';
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { Eye, Pencil, Check, Trash2, PlusCircle } from "lucide-react";
@@ -85,52 +86,17 @@ export function LocationTreeView({
                 {location.isDefault && <Badge variant="outline" className="h-5 text-[10px] px-1 bg-primary-muted/60">Default</Badge>}
               </div>
 
-              <div className="flex items-center gap-1 opacity-100 group-hover:opacity-100 transition-opacity">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-primary"
-                  onClick={(e) => { e.stopPropagation(); onAddChild(location.id); }}
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </Button>
-
-                 <Button
-                    title="Edit Details"
-                    className="mx-1 h-6 w-8 rounded-md bg-warning p-0 text-white hover:bg-warning shadow-sm"
-                    onClick={() => onEdit(location)}
-                  >
-                    <Pencil size={16} strokeWidth={3} />
-                  </Button>
-
-                  <Button
-                    title="Delete Location"
-                    className="h-6 w-8 rounded-md bg-danger p-0 text-white hover:bg-danger shadow-sm"
-                    onClick={() => onDelete(location)}
-                    disabled={location._count?.children > 0}
-                  >
-                    <Trash2 size={16} strokeWidth={3} />
-                  </Button>
-
-
-                
-                {/* <DropdownMenu>
-                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="icon" className="h-7 w-7"><MoreVertical className="h-3.5 w-3.5" /></Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-32">
-                    <DropdownMenuItem onClick={() => onEdit(location)}>Edit</DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => onDelete(location)}
-                      className="text-destructive focus:bg-destructive/10"
-                      disabled={location._count?.children > 0}
-                    >
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                 */}
-              </div>
+              <RowActions>
+                <ActionButton iconOnly tone="success" label="Add sub-location" icon={Plus} onClick={() => onAddChild(location.id)} />
+                <ActionButton iconOnly tone="edit" label={`Edit ${location.name}`} onClick={() => onEdit(location)} />
+                <ActionButton
+                  iconOnly
+                  tone="delete"
+                  label={location._count?.children > 0 ? "Has sub-locations — can't delete" : `Delete ${location.name}`}
+                  onClick={() => onDelete(location)}
+                  disabled={location._count?.children > 0}
+                />
+              </RowActions>
             </div>
 
             {hasChildren && isExpanded && (

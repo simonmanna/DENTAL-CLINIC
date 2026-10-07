@@ -22,15 +22,17 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 
 /* ═════════════════════════════════════════════════════════════════
    STYLES  (same design system as PurchasesPage)
    ═════════════════════════════════════════════════════════════════ */
 const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+  /* Font comes from the app shell (self-hosted Geist). A runtime web-font
+     @import here loaded late on cold visits and reflowed the whole table. */
 
   .pur-root {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: inherit;
     --clr-bg:        #f0f4ff;
     --clr-surface:   #ffffff;
     --clr-primary:   #2563eb;
@@ -44,7 +46,7 @@ const STYLES = `
     --clr-muted:     #64748b;
     --clr-border:    #e2e8f0;
     --clr-row-hover: #f8faff;
-    --radius:        4px;
+    --pur-radius:        4px;
     --shadow-sm:     0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
     --shadow-md:     0 4px 16px rgba(37,99,235,.10), 0 1px 4px rgba(0,0,0,.06);
     --shadow-lg:     0 20px 60px rgba(37,99,235,.15), 0 8px 24px rgba(0,0,0,.08);
@@ -86,7 +88,7 @@ const STYLES = `
   @media (max-width: 900px) { .pur-stats { grid-template-columns: repeat(2,1fr); } }
   .pur-stat {
     background: var(--clr-surface);
-    border-radius: var(--radius);
+    border-radius: var(--pur-radius);
     padding: 10px;
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--clr-border);
@@ -127,7 +129,7 @@ const STYLES = `
   /* Card / table wrapper */
   .pur-card {
     background: var(--clr-surface);
-    border-radius: var(--radius);
+    border-radius: var(--pur-radius);
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--clr-border);
     overflow: hidden;
@@ -347,7 +349,7 @@ const STYLES = `
   }
 
   /* Misc */
-  .pur-mono { font-family: 'JetBrains Mono', monospace; }
+  .pur-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   .pur-text-right { text-align: right; }
   .pur-text-center { text-align: center; }
 `;
@@ -685,15 +687,9 @@ export default function PaymentsPage() {
                         className="pur-text-right"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <div className="pur-row-actions">
-                          <button
-                            className="pur-action-btn view"
-                            title="View Details"
-                            onClick={() => openDetails(payment)}
-                          >
-                            <Eye size={13} />
-                          </button>
-                        </div>
+                        <RowActions>
+                          <ActionButton tone="view" label="View" onClick={() => openDetails(payment)} />
+                        </RowActions>
                       </td>
                     </tr>
                   ))}

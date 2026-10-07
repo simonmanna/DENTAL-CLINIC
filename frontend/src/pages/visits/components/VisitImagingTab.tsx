@@ -710,7 +710,7 @@ export const VisitImagingTab: React.FC<VisitImagingTabProps> = ({ visitId, patie
           </div>
           <div>
             <h3 className="text-sm font-semibold text-white">Imaging Records</h3>
-            <p className="text-xs text-primary/40">{stats.total} image{stats.total !== 1 ? 's' : ''} · this visit</p>
+            <p className="text-xs text-white/80">{stats.total} image{stats.total !== 1 ? 's' : ''} · this visit</p>
           </div>
         </div>
 
@@ -729,7 +729,7 @@ export const VisitImagingTab: React.FC<VisitImagingTabProps> = ({ visitId, patie
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all
                   ${viewMode === key
                     ? 'bg-white text-primary shadow-sm'
-                    : 'text-primary/40 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed'
+                    : 'text-white/80 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed'
                   }`}
               >
                 <Icon className="h-3.5 w-3.5" />{label}

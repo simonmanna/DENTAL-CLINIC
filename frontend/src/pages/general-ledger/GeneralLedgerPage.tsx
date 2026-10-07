@@ -54,7 +54,7 @@ function AutoPostingToggle() {
     <div className="ml-auto flex items-center gap-3 rounded-xl bg-white/10 px-4 py-2">
       <div className="text-right">
         <p className="text-sm font-semibold leading-tight">Auto-posting</p>
-        <p className="text-[11px] text-primary/40 leading-tight">
+        <p className="text-[11px] text-white/80 leading-tight">
           {enabled === null
             ? 'Loading…'
             : enabled
@@ -87,7 +87,7 @@ export default function GeneralLedgerPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">General Ledger</h1>
-            <p className="text-sm text-primary/40">
+            <p className="text-sm text-white/80">
               Double-entry accounting — chart of accounts, journal, and financial
               statements.
             </p>

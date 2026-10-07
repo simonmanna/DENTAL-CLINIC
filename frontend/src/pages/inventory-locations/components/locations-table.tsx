@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Edit, Trash2, MapPin } from "lucide-react";
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { Eye, Pencil, Check, PlusCircle } from "lucide-react";
 
 
@@ -138,55 +139,12 @@ export function LocationsTable({
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="flex items-center gap-2">
-                  <Button
-                    title="Edit Details"
-                    className="mx-1 h-6 w-8 rounded-md bg-warning p-0 text-white hover:bg-warning shadow-sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEdit(location);
-                    }}
-                  >
-                    <Pencil size={16} strokeWidth={3} />
-                  </Button>
-
-                  <Button
-                    title="Delete"
-                    className="h-6 w-8 rounded-md bg-danger p-0 text-white hover:bg-danger shadow-sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(location);
-                    }}
-                  >
-                    <Trash2 size={16} strokeWidth={3} />
-                  </Button>
+                <TableCell>
+                  <RowActions className="justify-start">
+                    <ActionButton iconOnly tone="edit" label={`Edit ${location.name}`} onClick={() => onEdit(location)} />
+                    <ActionButton iconOnly tone="delete" label={`Delete ${location.name}`} onClick={() => onDelete(location)} />
+                  </RowActions>
                 </TableCell>
-
-                {/* <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      asChild
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onEdit(location)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => onDelete(location)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell> */}
               </TableRow>
             ))
           )}

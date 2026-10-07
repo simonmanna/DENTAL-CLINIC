@@ -12,6 +12,7 @@ import {
   UserCheck,
   MoreVertical
 } from 'lucide-react';
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { useAuthStore } from '../../store/auth.store';
 import { staffApi } from '../../services/staffApi';
 import { formatDistanceToNow } from '../../utils/date';
@@ -222,42 +223,25 @@ export function StaffListPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button 
-                        onClick={() => navigate(`/staff/${member.id}/edit`)}
-                        className="p-2 text-muted-foreground/70 hover:text-primary hover:bg-primary-muted/60 rounded-lg transition-colors"
-                        title="Edit Profile"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => navigate(`/staff/${member.id}/schedule`)}
-                        className="p-2 text-muted-foreground/70 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                        title="View Schedule"
-                      >
-                        <Calendar className="w-4 h-4" />
-                      </button>
-                      <button
+                    <RowActions>
+                      <ActionButton iconOnly tone="edit" label="Edit profile" onClick={() => navigate(`/staff/${member.id}/edit`)} />
+                      <ActionButton iconOnly tone="info" label="View schedule" icon={Calendar} onClick={() => navigate(`/staff/${member.id}/schedule`)} />
+                      <ActionButton
+                        iconOnly
+                        tone={member.user?.isActive ? "neutral" : "success"}
+                        label={member.user?.isActive ? "Deactivate" : "Activate"}
+                        icon={Power}
                         onClick={() => handleToggleActive(member.id)}
-                        className={`p-2 rounded-lg transition-colors ${
-                          member.user?.isActive 
-                            ? 'text-success hover:bg-success-muted/60' 
-                            : 'text-muted-foreground/50 hover:bg-muted'
-                        }`}
-                        title={member.user?.isActive ? 'Deactivate' : 'Activate'}
-                      >
-                        <Power className="w-4 h-4" />
-                      </button>
+                      />
                       {currentUser?.role === 'SUPER_ADMIN' && (
-                        <button 
+                        <ActionButton
+                          iconOnly
+                          tone="delete"
+                          label="Delete"
                           onClick={() => handleDelete(member.id, `${member.firstName} ${member.lastName}`)}
-                          className="p-2 text-muted-foreground/70 hover:text-danger hover:bg-danger-muted/60 rounded-lg transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        />
                       )}
-                    </div>
+                    </RowActions>
                   </td>
                 </tr>
               ))}

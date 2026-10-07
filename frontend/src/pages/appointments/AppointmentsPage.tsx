@@ -81,7 +81,7 @@ function Badge({
   );
 }
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface Appointment {
+export interface Appointment {
   id: string;
   appointmentCode: string;
   type: string;
@@ -115,9 +115,11 @@ interface Appointment {
     totalCost: number;
     amountPaid: number;
   } | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-interface Dentist {
+export interface Dentist {
   id: string;
   firstName: string;
   lastName: string;
@@ -136,7 +138,7 @@ const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8am–8pm
 const HOUR_H = 72; // Slightly taller for better readability
 
 // AdminLTE-inspired Status Configuration
-const STATUS_CFG: Record<
+export const STATUS_CFG: Record<
   string,
   {
     label: string;
@@ -221,7 +223,7 @@ const STATUS_CFG: Record<
   },
 };
 
-const initials = (f: string, l: string) =>
+export const initials = (f: string, l: string) =>
   `${f?.[0] ?? ""}${l?.[0] ?? ""}`.toUpperCase();
 const aptTop = (dt: string) => {
   const d = new Date(dt);
@@ -230,7 +232,7 @@ const aptTop = (dt: string) => {
 const aptH = (dur: number) => Math.max((dur / 60) * HOUR_H, 48); // Minimum height for visibility
 
 // ─── StatusBadge ──────────────────────────────────────────────────────────────
-function StatusBadge({ status, small }: { status: string; small?: boolean }) {
+export function StatusBadge({ status, small }: { status: string; small?: boolean }) {
   const c = STATUS_CFG[status] ?? STATUS_CFG.SCHEDULED;
   return (
     <span
@@ -255,7 +257,7 @@ function StatusBadge({ status, small }: { status: string; small?: boolean }) {
 }
 
 // Professional Medical Color Palette - ADD THIS if not already defined
-const TYPE_COLOR: Record<string, { bg: string; border: string; text: string }> =
+export const TYPE_COLOR: Record<string, { bg: string; border: string; text: string }> =
   {
     CONSULTATION: { bg: "#EFF6FF", border: "#3B82F6", text: "#1E40AF" },
     CLEANING: { bg: "#ECFDF5", border: "#10B981", text: "#065F46" },
@@ -423,7 +425,7 @@ function NowLine() {
 
 // ─── Appointment Drawer ────────────────────────────────────────────────────────
 // Replace the AptDrawer signature
-function AptDrawer({
+export function AptDrawer({
   apt,
   onClose,
   onArrive,
@@ -812,7 +814,7 @@ const EMPTY_FORM = {
   isWalkIn: false,
 };
 
-function BookModal({
+export function BookModal({
   open,
   onClose,
   onBook,
@@ -1177,7 +1179,7 @@ const EDITABLE_STATUSES = [
   "NO_SHOW",
 ] as const;
 
-function EditModal({
+export function EditModal({
   open,
   apt,
   onClose,
@@ -1484,7 +1486,7 @@ function EditModal({
 }
 
 
-function RoleWarningDialog({
+export function RoleWarningDialog({
   open,
   onClose,
   userRole,

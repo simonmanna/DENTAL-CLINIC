@@ -1,7 +1,8 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpDown, Eye, Pencil, Trash2, Power } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import type { Drug } from "../../types/drug.types";
 import { formatPrice } from "../../types/drug.types";
 
@@ -143,44 +144,10 @@ export function getDrugColumns({
       cell: ({ row }) => {
         const drug = row.original;
         return (
-          <div className="flex items-center gap-1">
-            <Button
-            title="View Details"
-              className="h-6 w-8 rounded-md bg-primary p-0 text-white hover:bg-primary shadow-sm"
-              onClick={() => onView(drug)}
-            >
-              <Eye size={16} strokeWidth={3} />
-            </Button>
-
-            {/* Edit */}
-            <Button
-            title="Edit Details"
-              className="h-6 w-8 rounded-md bg-warning p-0 text-white hover:bg-warning shadow-sm"
-              onClick={() => onEdit(drug)}
-            >
-              <Pencil size={16} strokeWidth={3} />
-            </Button>
-            {/* <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => onToggleActive(drug)}
-            >
-              <Power
-                className={`h-4 w-4 ${
-                  drug.isActive ? "text-warning" : "text-success"
-                }`}
-              />
-            </Button> */}
-            {/* <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => onDelete(drug)}
-            >
-              <Trash2 className="h-4 w-4 text-danger" />
-            </Button> */}
-          </div>
+          <RowActions className="justify-start">
+            <ActionButton iconOnly tone="view" label={`View ${drug.name}`} onClick={() => onView(drug)} />
+            <ActionButton iconOnly tone="edit" label={`Edit ${drug.name}`} onClick={() => onEdit(drug)} />
+          </RowActions>
         );
       },
     },

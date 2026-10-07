@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Pencil, Trash2, BookOpen, Lock, Info } from 'lucide-react';
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { DataTable, type DataTableColumn } from './components/DataTable';
 import { GLDialogContent } from './components/GLDialog';
 import { fmtMoney, fmtDate, TYPE_BADGE, ACCOUNT_TYPES } from './format';
@@ -159,45 +160,26 @@ export function ChartOfAccountsTab() {
       align: 'right',
       width: 'w-32',
       cell: (a) => (
-        <div className="flex justify-end gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-[#0369a1] hover:bg-primary-muted/60"
-            title="View ledger"
-            onClick={() => setLedgerCode(a.code)}
-          >
-            <BookOpen className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 hover:bg-primary-muted/60"
-            title="Edit"
-            onClick={() => openEdit(a)}
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 hover:bg-danger-muted/60"
-            title={
+        <RowActions>
+          <ActionButton iconOnly tone="view" label="View ledger" icon={BookOpen} onClick={() => setLedgerCode(a.code)} />
+          <ActionButton iconOnly tone="edit" label="Edit" onClick={() => openEdit(a)} />
+          <ActionButton
+            iconOnly
+            tone="delete"
+            label={
               a.isSystem
-                ? 'System account — cannot delete'
+                ? "System account — cannot delete"
                 : a.hasPostings || (a.lineCount ?? 0) > 0
-                  ? 'Has postings — deactivate instead'
-                  : 'Delete'
+                  ? "Has postings — deactivate instead"
+                  : "Delete"
             }
             disabled={a.isSystem || a.hasPostings || (a.lineCount ?? 0) > 0}
             onClick={() => {
               if (confirm(`Delete account ${a.code} — ${a.name}?`))
                 del.mutate(a.id);
             }}
-          >
-            <Trash2 className="h-4 w-4 text-danger" />
-          </Button>
-        </div>
+          />
+        </RowActions>
       ),
     },
   ];

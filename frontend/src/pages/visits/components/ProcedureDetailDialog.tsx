@@ -468,19 +468,19 @@ export function ProcedureDetailDialog({
         <div className="flex items-center justify-between px-6 py-4 bg-[#0369a1] text-white">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center border border-white/20">
-              <Stethoscope className="w-6 h-6 text-white-400" />
+              <Stethoscope className="w-6 h-6 text-white" />
             </div>
             <div>
               <h3 className="text-xl font-semibold">{proc.procedure.name}</h3>
-              <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground/50">
+              <div className="flex items-center gap-3 mt-1 text-sm text-white/85">
                 <span className="flex items-center gap-1">
                   <Grid3X3 className="w-3 h-3" />
                   {getCategoryName(proc.procedure.category)}
                 </span>
                 {proc.procedure.code && (
                   <>
-                    <span className="text-muted-foreground">|</span>
-                    <span className="font-mono text-primary/60">{proc.procedure.code}</span>
+                    <span className="text-white/40">|</span>
+                    <span className="font-mono text-white/85">{proc.procedure.code}</span>
                   </>
                 )}
               </div>
@@ -489,9 +489,9 @@ export function ProcedureDetailDialog({
           <div className="flex items-center gap-3">
             <div className="text-right mr-4">
               <p className="text-2xl font-bold text-white">{currency} {fmt(totalCost)}</p>
-              <p className="text-xs text-muted-foreground/70 uppercase tracking-wide">Total Cost</p>
+              <p className="text-xs text-white/80 uppercase tracking-wide">Total Cost</p>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg text-muted-foreground/70 hover:text-white transition-colors">
+            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg text-white/80 hover:text-white transition-colors" aria-label="Close">
               <X className="w-6 h-6" />
             </button>
           </div>

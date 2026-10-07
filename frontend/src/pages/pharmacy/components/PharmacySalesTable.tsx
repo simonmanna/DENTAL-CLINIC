@@ -14,6 +14,7 @@ import {
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { PharmacySale, PharmacySaleStatus } from '@/types/pharmacy-sales';
 import { MoreHorizontal, Eye, Receipt, RefreshCw, CreditCard, Undo2, User } from 'lucide-react';
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { PharmacySaleDetailDialog } from './PharmacySaleDetailDialog';
 import { cn } from '@/lib/utils';
 
@@ -154,13 +155,7 @@ export function PharmacySalesTable({ sales, isLoading, onRefresh, onAddPayment, 
 
                 {/* Actions */}
                 <TableCell className="py-3">
-                  <Button
-                    title="View Details"
-                    className="h-6 rounded-md bg-primary px-3 py-1 text-white hover:bg-primary shadow-sm"
-                    onClick={() => setSelectedSale(sale)}>
-                    <Eye size={16} strokeWidth={3} />
-                    View
-                  </Button>
+                  <ActionButton tone="view" label="View" onClick={() => setSelectedSale(sale)} />
                 </TableCell>
               </TableRow>
             ))}

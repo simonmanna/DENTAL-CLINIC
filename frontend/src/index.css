@@ -48,15 +48,18 @@
   --input: 214 25% 86%;
   --ring: 187 85% 31%;
 
-  /* Sidebar — flat, near-black teal. Replaces the gradient. */
-  --sidebar: 200 30% 11%;
-  --sidebar-foreground: 210 30% 88%;
-  --sidebar-muted: 210 14% 56%;
-  --sidebar-border: 200 20% 20%;
-  --sidebar-hover: 200 24% 17%;
+  /* Sidebar — deep ocean-blue gradient (see .sidebar-surface). --sidebar is the
+     solid fallback / mid-stop; the others are tuned for contrast on it. */
+  --sidebar: 205 72% 19%;
+  --sidebar-foreground: 205 45% 93%;
+  --sidebar-muted: 203 32% 72%;
+  --sidebar-border: 204 50% 27%;
+  --sidebar-hover: 203 55% 26%;
   --sidebar-active: 0 0% 100%;
-  --sidebar-active-bg: 187 70% 20%;
-  --sidebar-accent: 187 80% 55%;
+  --sidebar-active-bg: 202 58% 33%;
+  --sidebar-accent: 199 92% 68%;
+  --sidebar-top: 202 74% 25%;
+  --sidebar-bottom: 208 76% 14%;
 
   /* Charts — ordered for categorical use, distinguishable in both themes */
   --chart-1: 187 85% 36%;
@@ -106,14 +109,16 @@
   --input: 215 20% 24%;
   --ring: 187 72% 48%;
 
-  --sidebar: 215 32% 6%;
-  --sidebar-foreground: 210 28% 86%;
-  --sidebar-muted: 215 14% 52%;
-  --sidebar-border: 215 22% 16%;
-  --sidebar-hover: 215 24% 13%;
+  --sidebar: 207 70% 13%;
+  --sidebar-foreground: 205 40% 90%;
+  --sidebar-muted: 205 26% 64%;
+  --sidebar-border: 206 45% 20%;
+  --sidebar-hover: 205 50% 19%;
   --sidebar-active: 0 0% 100%;
-  --sidebar-active-bg: 187 60% 18%;
-  --sidebar-accent: 187 72% 55%;
+  --sidebar-active-bg: 202 55% 26%;
+  --sidebar-accent: 199 88% 64%;
+  --sidebar-top: 204 70% 18%;
+  --sidebar-bottom: 210 72% 9%;
 
   --chart-1: 187 72% 52%;
   --chart-2: 205 80% 60%;
@@ -164,6 +169,28 @@
   .scrollbar-slim::-webkit-scrollbar-track {
     background: transparent;
   }
+}
+
+/* ─── Sidebar surface ──────────────────────────────────────────────────────── */
+.sidebar-surface {
+  background-color: hsl(var(--sidebar));
+  background-image: linear-gradient(
+    180deg,
+    hsl(var(--sidebar-top)) 0%,
+    hsl(var(--sidebar)) 45%,
+    hsl(var(--sidebar-bottom)) 100%
+  );
+}
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--sidebar-active) / 0.25) transparent;
+}
+.sidebar-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: hsl(var(--sidebar-active) / 0.25);
 }
 
 /* ─── Print foundation: invoices & receipts ───────────────────────────────────

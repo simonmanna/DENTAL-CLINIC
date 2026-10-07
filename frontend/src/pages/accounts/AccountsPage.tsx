@@ -14,6 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Pencil, Wallet } from 'lucide-react';
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { cn } from '@/lib/utils';
 
 type AccountType = 'CASH' | 'BANK' | 'MOBILE_MONEY' | 'PETTY_CASH';
@@ -182,14 +183,7 @@ export default function AccountsPage() {
                             </p>
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEdit(acc)}
-                          className="h-8 w-8 text-muted-foreground/70 hover:bg-muted/50"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
+                        <ActionButton iconOnly tone="edit" label={`Edit ${acc.name}`} onClick={() => openEdit(acc)} />
                       </div>
                     </div>
 

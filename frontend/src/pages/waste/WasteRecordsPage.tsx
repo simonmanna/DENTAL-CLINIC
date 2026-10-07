@@ -19,6 +19,7 @@ import {
   Calendar,
   FileWarning,
 } from "lucide-react";
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -459,26 +460,12 @@ export default function WasteRecordsPage() {
                             <StatusBadge approved={!!record.approvedById} />
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                size="icon"
-                                onClick={() => handleView(record)}
-                                className="h-7 w-8 bg-primary hover:bg-primary text-white"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Button>
+                            <RowActions>
                               {!record.approvedById && (
-                                <Button
-                                  size="icon"
-                                  onClick={() =>
-                                    setApproveDialog({ open: true, record })
-                                  }
-                                  className="h-7 w-8 bg-success hover:bg-success text-white"
-                                >
-                                  <BadgeCheck className="w-4 h-4" />
-                                </Button>
+                                <ActionButton tone="success" label="Approve" icon={BadgeCheck} onClick={() => setApproveDialog({ open: true, record })} />
                               )}
-                            </div>
+                              <ActionButton tone="view" label="View" onClick={() => handleView(record)} />
+                            </RowActions>
                           </td>
                         </tr>
                       ))}

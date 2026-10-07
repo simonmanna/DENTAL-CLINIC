@@ -15,6 +15,7 @@ import {
   FolderTree,
   Eye,
 } from 'lucide-react';
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -613,44 +614,17 @@ export default function ProcedureCategoriesPage() {
                         {getRevenueAccountName(category.revenueAccountId)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-100 transition-opacity">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 px-3 text-primary bg-primary-muted/60"
-                                  onClick={() => {
-                                    setEditingCategory(category);
-                                    setFormOpen(true);
-                                  }}
-                                >
-                                  <Edit2 size={14} className="mr-1" />
-                                  Edit
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Edit category</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 px-3 text-danger bg-danger-muted/60"
-                                  onClick={() => handleDelete(category)}
-                                >
-                                  <Trash2 size={14} className="mr-1" />
-                                  Delete
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Delete category</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
+                        <RowActions>
+                          <ActionButton
+                            tone="edit"
+                            label="Edit"
+                            onClick={() => {
+                              setEditingCategory(category);
+                              setFormOpen(true);
+                            }}
+                          />
+                          <ActionButton tone="delete" label="Delete" onClick={() => handleDelete(category)} />
+                        </RowActions>
                       </TableCell>
                     </TableRow>
                   ))

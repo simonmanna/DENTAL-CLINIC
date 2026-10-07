@@ -122,7 +122,7 @@ function DrugDetailSheet({
               {drug.name}
             </DialogTitle>
             {drug.genericName && (
-              <DialogDescription className="text-primary/40 italic">
+              <DialogDescription className="text-white/80 italic">
                 {drug.genericName}
               </DialogDescription>
             )}

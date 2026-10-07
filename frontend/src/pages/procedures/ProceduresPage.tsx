@@ -8,6 +8,7 @@ import {
   Activity,
   Layers,
 } from "lucide-react";
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -496,24 +497,10 @@ export default function ProceduresPage() {
                     </TableCell>
                     <TableCell className="text-center">{statusBadge(proc.isActive)}</TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 text-muted-foreground hover:bg-muted"
-                          onClick={() => openEdit(proc)}
-                        >
-                          <Edit2 size={13} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 text-danger/70 hover:bg-danger-muted/60"
-                          onClick={() => handleDelete(proc)}
-                        >
-                          <Trash2 size={13} />
-                        </Button>
-                      </div>
+                      <RowActions>
+                        <ActionButton tone="edit" label="Edit" onClick={() => openEdit(proc)} />
+                        <ActionButton tone="delete" label="Delete" onClick={() => handleDelete(proc)} />
+                      </RowActions>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -124,7 +124,7 @@ function KpiCard({
           </div>
 
           <div>
-            <p className={cn('text-xs font-medium', accent ? 'text-primary/40' : 'text-muted-foreground')}>
+            <p className={cn('text-xs font-medium', accent ? 'text-white/80' : 'text-muted-foreground')}>
               {title}: <span className={accent ? 'text-white' : 'text-foreground'}>{value}</span>
             </p>
             {sub && (

@@ -30,7 +30,7 @@ function StatCard({
     blue: {
       bg: 'from-primary to-primary',
       icon: 'bg-primary/30',
-      text: 'text-primary/40',
+      text: 'text-white/80',
     },
     amber: {
       bg: 'from-warning to-warning',

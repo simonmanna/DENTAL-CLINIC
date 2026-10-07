@@ -16,6 +16,7 @@ import {
   X,
   AlertCircle,
 } from "lucide-react";
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import toast from "react-hot-toast";
 
 export default function ClinicSettingsPage() {
@@ -252,22 +253,10 @@ export default function ClinicSettingsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => openEditModal(setting)}
-                          className="p-2 text-muted-foreground hover:text-primary hover:bg-primary-muted/60 rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <Pencil size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(setting.id)}
-                          className="p-2 text-muted-foreground hover:text-danger hover:bg-danger-muted/60 rounded-lg transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
+                      <RowActions>
+                        <ActionButton tone="edit" label="Edit" onClick={() => openEditModal(setting)} />
+                        <ActionButton tone="delete" label="Delete" onClick={() => handleDelete(setting.id)} />
+                      </RowActions>
                     </td>
                   </tr>
                 ))}

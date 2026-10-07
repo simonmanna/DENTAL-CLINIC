@@ -11,6 +11,7 @@ import {
 } from "../../../utils/procedurePricing";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   Plus,
@@ -672,7 +673,7 @@ export function AddTreatmentDialog({
   });
 
   // ════════════════ RENDER ════════════════
-  return (
+  return createPortal(
     <div
       style={{
         position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
@@ -685,8 +686,8 @@ export function AddTreatmentDialog({
     >
       <div
         style={{
-          width: 1240, // slightly wider
-          maxWidth: "100vw", height: "88vh",
+          width: 1080,
+          maxWidth: "calc(100vw - 32px)", height: "88vh",
           backgroundColor: "#fff", borderRadius: 12,
           boxShadow: "0 10px 15px -5px rgba(0,0,0,0.1)",
           display: "flex", flexDirection: "column", overflow: "hidden",
@@ -1407,6 +1408,7 @@ export function AddTreatmentDialog({
         </div>
       </div>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
-    </div>
+    </div>,
+    document.body,
   );
 }

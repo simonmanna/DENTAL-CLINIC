@@ -5,6 +5,7 @@ import {
   RefreshCw, Package, BarChart3, TrendingDown, X, ChevronRight,
   CheckCircle, Clock, Filter, Download,
 } from 'lucide-react';
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -542,24 +543,10 @@ export function DrugsPage() {
                     </TableCell>
                     <TableCell><StockStatusBadge drug={drug} /></TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost" size="icon"
-                          className="h-7 w-7"
-                          title="Adjust Stock"
-                          onClick={() => setStockDialog({ open: true, drug })}
-                        >
-                          <ArrowUpDown className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost" size="icon"
-                          className="h-7 w-7"
-                          title="Edit Drug"
-                          onClick={() => setDrugDialog({ open: true, drug })}
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
+                      <RowActions className="justify-start">
+                        <ActionButton tone="info" label="Stock" icon={ArrowUpDown} title="Adjust stock" onClick={() => setStockDialog({ open: true, drug })} />
+                        <ActionButton tone="edit" label="Edit" onClick={() => setDrugDialog({ open: true, drug })} />
+                      </RowActions>
                     </TableCell>
                   </TableRow>
                 );

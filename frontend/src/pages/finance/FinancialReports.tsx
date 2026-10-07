@@ -27,6 +27,7 @@ import {
 import {
   Eye,
 } from "lucide-react";
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import {
   financialReportingApi,
   FinancialReportFilters,
@@ -673,17 +674,7 @@ const INVOICE_COLUMNS = (navigate: (to: string) => void): ColDef<InvoiceRow>[] =
     label: "Actions",
     sortable: false,
     render: (r) => (
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          navigate(`/billing?invoiceId=${r.id}`);
-        }}
-        title="View invoice detail"
-        className="p-1.5 rounded-lg hover:bg-primary-muted/60 text-muted-foreground/70 hover:text-primary transition-colors"
-      >
-        <Eye className="w-4 h-4" />
-      </button>
+      <ActionButton iconOnly tone="view" label="View invoice" onClick={() => navigate(`/billing?invoiceId=${r.id}`)} />
     ),
     csv: () => "",
   },
@@ -857,17 +848,7 @@ const RECEIPT_COLUMNS = (navigate: (to: string) => void): ColDef<ReceiptRow>[] =
     label: "Actions",
     sortable: false,
     render: (r) => (
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          navigate(`/receipts/${r.id}`);
-        }}
-        title="View receipt detail"
-        className="p-1.5 rounded-lg hover:bg-primary-muted/60 text-muted-foreground/70 hover:text-primary transition-colors"
-      >
-        <Eye className="w-4 h-4" />
-      </button>
+      <ActionButton iconOnly tone="view" label="View receipt" onClick={() => navigate(`/receipts/${r.id}`)} />
     ),
     csv: () => "",
   },

@@ -147,7 +147,7 @@ if (transactionType) {
 
   useEffect(() => {
   if (logs.length > 0) {
-    console.log('ðŸ“‹ First log entry:', {
+    console.log('📋 First log entry:', {
       hasType: 'type' in logs[0],
       hasTransactionType: 'transactionType' in logs[0],
       type: logs[0].type,
@@ -227,18 +227,18 @@ if (transactionType) {
       ),
     },
     {
-      accessorKey: "type", // âœ… Changed from "transactionType"
+      accessorKey: "type", // ✅ Changed from "transactionType"
       header: "Type",
       cell: ({ row }) => {
         const log = row.original;
-        const type = log.type; // âœ… Use 'type' instead of 'transactionType'
+        const type = log.type; // ✅ Use 'type' instead of 'transactionType'
 
-        // âœ… Safe fallback if type is undefined
+        // ✅ Safe fallback if type is undefined
         if (!type) {
-          return <span className="text-muted-foreground/70 italic">â€”</span>;
+          return <span className="text-muted-foreground/70 italic">—</span>;
         }
 
-        // âœ… Format for display: "PURCHASE_RECEIPT" â†’ "Purchase Receipt"
+        // ✅ Format for display: "PURCHASE_RECEIPT" → "Purchase Receipt"
         const displayType = type
           .split("_")
           .map((word, i) =>
@@ -427,7 +427,7 @@ if (transactionType) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">All Transactions</SelectItem>
-                  {/* âœ… Updated options to match StockLedgerType enum */}
+                  {/* ✅ Updated options to match StockLedgerType enum */}
                   {[
                     "PURCHASE_RECEIPT",
                     "USAGE",

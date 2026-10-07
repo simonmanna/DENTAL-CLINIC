@@ -53,6 +53,7 @@ import {
   Home,
   ChevronRightIcon,
 } from 'lucide-react';
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { Supplier } from '@/types/supplier';
 import { useDeleteSupplier, useRestoreSupplier } from '@/hooks/useSuppliers';
 import { toast } from 'sonner';
@@ -287,31 +288,14 @@ export function SuppliersTable({
                       </TableCell>
 
                       <TableCell className="py-4 text-right px-5">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded hover:bg-primary-muted">
-                              <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48 shadow-xl border-border">
-                            <DropdownMenuItem onClick={() => onEdit(supplier)} className="cursor-pointer font-medium py-2">
-                              <Pencil className="mr-2 h-4 w-4 text-primary" /> Edit Details
-                            </DropdownMenuItem>
-
-                            {!supplier.isActive ? (
-                              <DropdownMenuItem onClick={() => handleRestore(supplier.id)} className="cursor-pointer text-success font-medium py-2">
-                                <RotateCcw className="mr-2 h-4 w-4 text-success" /> Restore Supplier
-                              </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem
-                                onClick={() => setDeleteId(supplier.id)}
-                                className="cursor-pointer text-danger font-medium py-2 focus:bg-danger-muted/60 focus:text-danger"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4 text-danger/70" /> Delete Supplier
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <RowActions>
+                          <ActionButton tone="edit" label="Edit" onClick={() => onEdit(supplier)} />
+                          {!supplier.isActive ? (
+                            <ActionButton tone="success" label="Restore" icon={RotateCcw} onClick={() => handleRestore(supplier.id)} />
+                          ) : (
+                            <ActionButton tone="delete" label="Delete" onClick={() => setDeleteId(supplier.id)} />
+                          )}
+                        </RowActions>
                       </TableCell>
                     </TableRow>
                   ))

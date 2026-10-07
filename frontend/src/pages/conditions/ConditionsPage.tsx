@@ -12,6 +12,7 @@ import {
   Grid3X3,
   List,
 } from "lucide-react";
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -420,37 +421,16 @@ const { data: conditions = [], isLoading } = useQuery({
                       </Tooltip>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => handleEdit(condition)}
-                            >
-                              <Edit className="h-3.5 w-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Edit</TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-destructive hover:text-destructive"
-                              onClick={() => handleDelete(condition)}
-                              disabled={condition.isSystem}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {condition.isSystem ? "Cannot delete system condition" : "Delete"}
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
+                      <RowActions className="justify-start">
+                        <ActionButton iconOnly tone="edit" label="Edit" onClick={() => handleEdit(condition)} />
+                        <ActionButton
+                          iconOnly
+                          tone="delete"
+                          label={condition.isSystem ? "System conditions can't be deleted" : "Delete"}
+                          onClick={() => handleDelete(condition)}
+                          disabled={condition.isSystem}
+                        />
+                      </RowActions>
                     </TableCell>
                   </TableRow>
                 ))

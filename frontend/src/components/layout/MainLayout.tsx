@@ -18,7 +18,8 @@ import {
   X,
   Activity,
   ChevronRight,
-  Palette,
+  PanelLeftClose,
+  PanelLeftOpen,
   TrendingUp,
   DollarSign,
   HeartPulse,
@@ -34,6 +35,7 @@ import {
   FolderTree,
   BarChart3,
   ClipboardList,
+  ListChecks,
   MapPin,
   BookOpen,
   Boxes,
@@ -53,223 +55,9 @@ import { NotificationDropdown } from "../components/notifications/NotificationDr
  
 import { Toaster } from 'react-hot-toast';
 
-// ─── THEME DEFINITIONS ────────────────────────────────────────────────────────
-export type ThemeKey =
-  | "skyBlue"
-  | "oceanTeal"
-  | "slateNavy"
-  | "sageGreen"
-  | "warmIndigo";
-
-interface Theme {
-  key: ThemeKey;
-  label: string;
-  swatch: string;
-  sidebar: string;
-  sidebarBorder: string;
-  sidebarText: string;
-  sidebarMuted: string;
-  sidebarHover: string;
-  sidebarActive: string;
-  sidebarActiveBg: string;
-  sidebarActiveBar: string;
-  brandBg: string;
-  accent: string;
-  accentHover: string;
-  accentText: string;
-  badgeBg: string;
-}
-
-const THEMES: Record<ThemeKey, Theme> = {
-  skyBlue: {
-    key: "skyBlue",
-    label: "Sky Blue",
-    swatch: "#38bdf8",
-    // A more vibrant, luminous gradient that feels "airy"
-    sidebar:
-      "linear-gradient(180deg, #0369a1 100%, #0369a1 100%, #0369a1 100%)",
-    sidebarBorder: "rgba(255, 255, 255, 0.12)",
-    sidebarText: "#f0f9ff",
-    sidebarMuted: "rgba(186, 230, 255, 0.65)",
-    sidebarHover: "rgba(255, 255, 255, 0.12)",
-    sidebarActive: "#ffffff",
-    sidebarActiveBg: "rgba(255, 255, 255, 0.22)",
-    sidebarActiveBar: "#ffffff", // Pure white bar for high-end feel
-    brandBg: "rgba(255, 255, 255, 0.2)",
-    accent: "#0ea5e9",
-    accentHover: "#0284c7",
-    accentText: "#0369a1",
-    badgeBg: "#7dd3fc",
-  },
-  oceanTeal: {
-    key: "oceanTeal",
-    label: "Ocean Teal",
-    swatch: "#14b8a6",
-    // Shifted from muddy teal to a "Borealis" deep sea vibe
-    sidebar: "linear-gradient(180deg, #14b8a6 0%, #0d9488 45%, #064e3b 100%)",
-    sidebarBorder: "rgba(255, 255, 255, 0.10)",
-    sidebarText: "#f0fdfa",
-    sidebarMuted: "rgba(153, 246, 228, 0.60)",
-    sidebarHover: "rgba(255, 255, 255, 0.08)",
-    sidebarActive: "#ffffff",
-    sidebarActiveBg: "rgba(255, 255, 255, 0.18)",
-    sidebarActiveBar: "#5eead4",
-    brandBg: "rgba(255, 255, 255, 0.15)",
-    accent: "#0d9488",
-    accentHover: "#0f766e",
-    accentText: "#134e4a",
-    badgeBg: "#2dd4bf",
-  },
-  slateNavy: {
-    key: "slateNavy",
-    label: "Slate Navy",
-    swatch: "#475569",
-    // Deep "Midnight" aesthetic for better professional contrast
-    sidebar: "linear-gradient(180deg, #334155 0%, #1e293b 45%, #0f172a 100%)",
-    sidebarBorder: "rgba(255, 255, 255, 0.05)",
-    sidebarText: "#f8fafc",
-    sidebarMuted: "rgba(148, 163, 184, 0.70)",
-    sidebarHover: "rgba(255, 255, 255, 0.06)",
-    sidebarActive: "#ffffff",
-    sidebarActiveBg: "rgba(255, 255, 255, 0.10)",
-    sidebarActiveBar: "#38bdf8",
-    brandBg: "rgba(255, 255, 255, 0.08)",
-    accent: "#3b82f6",
-    accentHover: "#2563eb",
-    accentText: "#1d4ed8",
-    badgeBg: "#60a5fa",
-  },
-  sageGreen: {
-    key: "sageGreen",
-    label: "Sage Green",
-    swatch: "#65a30d",
-    // More "Evergreen/Forest" depth while keeping the Sage softness
-    sidebar: "linear-gradient(180deg, #65a30d 0%, #3f6212 45%, #1a2e05 100%)",
-    sidebarBorder: "rgba(255, 255, 255, 0.08)",
-    sidebarText: "#f7fee7",
-    sidebarMuted: "rgba(190, 242, 100, 0.55)",
-    sidebarHover: "rgba(255, 255, 255, 0.08)",
-    sidebarActive: "#ffffff",
-    sidebarActiveBg: "rgba(255, 255, 255, 0.15)",
-    sidebarActiveBar: "#bef264",
-    brandBg: "rgba(255, 255, 255, 0.12)",
-    accent: "#65a30d",
-    accentHover: "#4d7c0f",
-    accentText: "#365314",
-    badgeBg: "#a3e635",
-  },
-  warmIndigo: {
-    key: "warmIndigo",
-    label: "Warm Indigo",
-    swatch: "#6366f1",
-    // Premium "Cyber" Indigo with high vibrancy
-    sidebar: "linear-gradient(180deg, #818cf8 0%, #6366f1 45%, #4338ca 100%)",
-    sidebarBorder: "rgba(255, 255, 255, 0.12)",
-    sidebarText: "#eef2ff",
-    sidebarMuted: "rgba(199, 210, 254, 0.65)",
-    sidebarHover: "rgba(255, 255, 255, 0.10)",
-    sidebarActive: "#ffffff",
-    sidebarActiveBg: "rgba(255, 255, 255, 0.20)",
-    sidebarActiveBar: "#c7d2fe",
-    brandBg: "rgba(255, 255, 255, 0.18)",
-    accent: "#6366f1",
-    accentHover: "#4f46e5",
-    accentText: "#3730a3",
-    badgeBg: "#a5b4fc",
-  },
-};
-// const THEMES: Record<ThemeKey, Theme> = {
-// skyBlue: {
-//   key: 'skyBlue',
-//   label: 'Sky Blue',
-//   swatch: '#0ea5e9',
-//   sidebar: 'linear-gradient(180deg, #0c8ec9 0%, #0a7ab5 45%, #076096 100%)',
-//   sidebarBorder: 'rgba(255,255,255,0.10)',
-//   sidebarText: 'rgba(224,242,255,0.90)',
-//   sidebarMuted: 'rgba(186,230,255,0.55)',
-//   sidebarHover: 'rgba(255,255,255,0.10)',
-//   sidebarActive: '#ffffff',
-//   sidebarActiveBg: 'rgba(255,255,255,0.18)',
-//   sidebarActiveBar: '#bae6fd',
-//   brandBg: 'rgba(255,255,255,0.18)',
-//   accent: '#0ea5e9',
-//   accentHover: '#0284c7',
-//   accentText: '#0369a1',
-//   badgeBg: '#38bdf8',
-// },
-//   oceanTeal: {
-//     key: 'oceanTeal',
-//     label: 'Ocean Teal',
-//     swatch: '#0d9488',
-//     sidebar: 'linear-gradient(180deg, #0d9488 0%, #0b7a70 45%, #085f5a 100%)',
-//     sidebarBorder: 'rgba(255,255,255,0.10)',
-//     sidebarText: 'rgba(204,251,241,0.90)',
-//     sidebarMuted: 'rgba(153,246,228,0.55)',
-//     sidebarHover: 'rgba(255,255,255,0.10)',
-//     sidebarActive: '#ffffff',
-//     sidebarActiveBg: 'rgba(255,255,255,0.18)',
-//     sidebarActiveBar: '#5eead4',
-//     brandBg: 'rgba(255,255,255,0.18)',
-//     accent: '#0d9488',
-//     accentHover: '#0f766e',
-//     accentText: '#0f766e',
-//     badgeBg: '#2dd4bf',
-//   },
-//   slateNavy: {
-//     key: 'slateNavy',
-//     label: 'Slate Navy',
-//     swatch: '#334155',
-//     sidebar: 'linear-gradient(180deg, #1e293b 0%, #162032 45%, #0f1622 100%)',
-//     sidebarBorder: 'rgba(255,255,255,0.07)',
-//     sidebarText: 'rgba(226,232,240,0.88)',
-//     sidebarMuted: 'rgba(148,163,184,0.55)',
-//     sidebarHover: 'rgba(255,255,255,0.07)',
-//     sidebarActive: '#ffffff',
-//     sidebarActiveBg: 'rgba(255,255,255,0.13)',
-//     sidebarActiveBar: '#7dd3fc',
-//     brandBg: 'rgba(255,255,255,0.10)',
-//     accent: '#3b82f6',
-//     accentHover: '#2563eb',
-//     accentText: '#1d4ed8',
-//     badgeBg: '#60a5fa',
-//   },
-//   sageGreen: {
-//     key: 'sageGreen',
-//     label: 'Sage Green',
-//     swatch: '#4d7c5e',
-//     sidebar: 'linear-gradient(180deg, #3d6b4f 0%, #2f5840 45%, #1e3d2a 100%)',
-//     sidebarBorder: 'rgba(255,255,255,0.09)',
-//     sidebarText: 'rgba(220,252,231,0.90)',
-//     sidebarMuted: 'rgba(167,243,208,0.55)',
-//     sidebarHover: 'rgba(255,255,255,0.09)',
-//     sidebarActive: '#ffffff',
-//     sidebarActiveBg: 'rgba(255,255,255,0.17)',
-//     sidebarActiveBar: '#86efac',
-//     brandBg: 'rgba(255,255,255,0.15)',
-//     accent: '#16a34a',
-//     accentHover: '#15803d',
-//     accentText: '#166534',
-//     badgeBg: '#4ade80',
-//   },
-//   warmIndigo: {
-//     key: 'warmIndigo',
-//     label: 'Warm Indigo',
-//     swatch: '#4f46e5',
-//     sidebar: 'linear-gradient(180deg, #4338ca 0%, #3730a3 45%, #2e2986 100%)',
-//     sidebarBorder: 'rgba(255,255,255,0.10)',
-//     sidebarText: 'rgba(224,231,255,0.90)',
-//     sidebarMuted: 'rgba(165,180,252,0.55)',
-//     sidebarHover: 'rgba(255,255,255,0.10)',
-//     sidebarActive: '#ffffff',
-//     sidebarActiveBg: 'rgba(255,255,255,0.17)',
-//     sidebarActiveBar: '#a5b4fc',
-//     brandBg: 'rgba(255,255,255,0.15)',
-//     accent: '#4f46e5',
-//     accentHover: '#4338ca',
-//     accentText: '#3730a3',
-//     badgeBg: '#818cf8',
-//   },
-// };
+// Header accent (avatar, notifications, footer). The sidebar itself is styled
+// through the --sidebar-* tokens and `.sidebar-surface` in index.css.
+const ACCENT = { base: "#0ea5e9", hover: "#0284c7", text: "#0369a1" };
 
 // ─── NAV ITEMS ────────────────────────────────────────────────────────────────
 
@@ -287,6 +75,7 @@ const navItems = [
     path: "#",
     children: [
       { label: "Appointments Calendar", path: "/appointments", icon: FolderTree },
+      { label: "Appointments List", path: "/appointments/list", icon: ListChecks },
       { label: "Draft Appointments", path: "/DraftAppointmentsPage", icon: FlaskConical },
     ],
   },
@@ -394,6 +183,13 @@ const navItems = [
   },
 ];
 
+const ALL_NAV_PATHS: string[] = navItems
+  .flatMap((n: { path: string; children?: { path: string }[] }) => [
+    n.path,
+    ...(n.children ?? []).map((c) => c.path),
+  ])
+  .filter((p) => p !== "#");
+
 // ─── NAV ITEM ─────────────────────────────────────────────────────────────────
 interface NavItemProps {
   item: (typeof navItems)[0];
@@ -420,8 +216,14 @@ function NavItem({
     if (anyChildActive) setOpen(true);
   }, [location.pathname]);
 
-  const rowBase =
-    "relative w-full flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-sidebar-accent/70";
+  const rowBase = cn(
+    "relative flex w-full items-center gap-3 rounded-lg py-2.5 text-[14px] outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-sidebar-accent/70",
+    collapsed ? "justify-center px-0" : "px-3",
+  );
+  const rowState = (on: boolean) =>
+    on
+      ? "bg-sidebar-active-bg font-semibold text-sidebar-active shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+      : "font-medium text-sidebar-foreground hover:bg-sidebar-hover hover:text-sidebar-active";
 
   if (hasChildren) {
     return (
@@ -430,29 +232,22 @@ function NavItem({
           onClick={() => setOpen((o) => !o)}
           title={collapsed ? item.label : undefined}
           aria-expanded={open}
-          className={cn(
-            rowBase,
-            anyChildActive
-              ? "bg-sidebar-active-bg font-semibold text-sidebar-active"
-              : "font-medium text-sidebar-foreground/85 hover:bg-sidebar-hover hover:text-sidebar-active",
-          )}
+          className={cn(rowBase, rowState(anyChildActive))}
         >
-          {anyChildActive && (
-            <span className="absolute -left-2 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-sidebar-accent" />
-          )}
           <item.icon
             className={cn(
-              "h-4 w-4 shrink-0",
-              anyChildActive ? "text-sidebar-accent" : "text-sidebar-muted",
+              "h-[18px] w-[18px] shrink-0",
+              anyChildActive ? "text-sidebar-active" : "text-sidebar-muted",
             )}
+            strokeWidth={1.75}
           />
           {!collapsed && (
             <>
               <span className="flex-1 truncate text-left">{item.label}</span>
-              <ChevronDown
+              <ChevronRight
                 className={cn(
-                  "h-3.5 w-3.5 shrink-0 text-sidebar-muted transition-transform duration-200",
-                  open && "rotate-180",
+                  "h-4 w-4 shrink-0 text-sidebar-muted transition-transform duration-200",
+                  open && "rotate-90",
                 )}
               />
             </>
@@ -460,7 +255,7 @@ function NavItem({
         </button>
 
         {open && !collapsed && (
-          <div className="relative ml-[18px] mt-0.5 space-y-px border-l border-sidebar-border pl-2.5">
+          <div className="relative mb-1 ml-[21px] mt-1 space-y-0.5 border-l border-sidebar-border pl-3">
             {item.children!.map((child) => {
               const childActive = isActive(child.path);
               return (
@@ -470,18 +265,18 @@ function NavItem({
                   onClick={onNavigate}
                   aria-current={childActive ? "page" : undefined}
                   className={cn(
-                    "group flex items-center gap-2.5 rounded-md px-2.5 py-[6px] text-[12.5px] outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-sidebar-accent/70",
+                    "group flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-sidebar-accent/70",
                     childActive
                       ? "bg-sidebar-hover font-semibold text-sidebar-active"
-                      : "font-normal text-sidebar-muted hover:bg-sidebar-hover/60 hover:text-sidebar-foreground",
+                      : "font-normal text-sidebar-muted hover:bg-sidebar-hover/70 hover:text-sidebar-active",
                   )}
                 >
                   <child.icon
                     className={cn(
-                      "h-[13px] w-[13px] shrink-0 transition-colors",
+                      "h-[14px] w-[14px] shrink-0 transition-colors",
                       childActive
                         ? "text-sidebar-accent"
-                        : "text-sidebar-muted group-hover:text-sidebar-foreground",
+                        : "text-sidebar-muted group-hover:text-sidebar-active",
                     )}
                   />
                   <span className="truncate">{child.label}</span>
@@ -500,21 +295,14 @@ function NavItem({
       onClick={onNavigate}
       title={collapsed ? item.label : undefined}
       aria-current={active ? "page" : undefined}
-      className={cn(
-        rowBase,
-        active
-          ? "bg-sidebar-active-bg font-semibold text-sidebar-active"
-          : "font-medium text-sidebar-foreground/85 hover:bg-sidebar-hover hover:text-sidebar-active",
-      )}
+      className={cn(rowBase, rowState(active))}
     >
-      {active && (
-        <span className="absolute -left-2 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-sidebar-accent" />
-      )}
       <item.icon
         className={cn(
-          "h-4 w-4 shrink-0",
-          active ? "text-sidebar-accent" : "text-sidebar-muted",
+          "h-[18px] w-[18px] shrink-0",
+          active ? "text-sidebar-active" : "text-sidebar-muted",
         )}
+        strokeWidth={1.75}
       />
       {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
       {!collapsed && item.badge && (
@@ -526,96 +314,12 @@ function NavItem({
   );
 }
 
-function ThemePicker({
-  current,
-  onChange,
-  onClose,
-}: {
-  current: ThemeKey;
-  onChange: (k: ThemeKey) => void;
-  onClose: () => void;
-}) {
-  return (
-    <div
-      className="absolute right-0 top-11 z-50 p-4"
-      style={{
-        width: 256,
-        background: "#fff",
-        borderRadius: 12,
-        boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
-        border: "1px solid #e8edf2",
-      }}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <span style={{ fontWeight: 600, fontSize: 13, color: "#1e293b" }}>
-          Color Theme
-        </span>
-        <button
-          onClick={onClose}
-          className="rounded-md p-0.5 hover:bg-muted transition-colors"
-          style={{ color: "#94a3b8" }}
-        >
-          <X style={{ width: 14, height: 14 }} />
-        </button>
-      </div>
-      <div className="grid grid-cols-1 gap-2">
-        {Object.values(THEMES).map((t) => (
-          <button
-            key={t.key}
-            onClick={() => {
-              onChange(t.key);
-              onClose();
-            }}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left w-full"
-            style={{
-              background: current === t.key ? "#f0f9ff" : "transparent",
-              border:
-                current === t.key
-                  ? "1.5px solid #bae6fd"
-                  : "1px solid transparent",
-            }}
-          >
-            <span
-              className="rounded-full border-2 border-white shrink-0"
-              style={{
-                width: 18,
-                height: 18,
-                background: t.swatch,
-                boxShadow: "0 1px 4px rgba(0,0,0,0.18)",
-              }}
-            />
-            <span
-              style={{
-                fontSize: 13,
-                color: "#334155",
-                fontWeight: current === t.key ? 600 : 400,
-              }}
-            >
-              {t.label}
-            </span>
-            {current === t.key && (
-              <span
-                className="ml-auto"
-                style={{ fontSize: 11, color: "#0ea5e9", fontWeight: 600 }}
-              >
-                Active
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ─── MAIN LAYOUT ──────────────────────────────────────────────────────────────
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   // const [showNotifications, setShowNotifications] = useState(false);
-  const [showThemePicker, setShowThemePicker] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [themeKey, setThemeKey] = useState<ThemeKey>("skyBlue");
   // ─── ADD THIS with your other useState declarations ───────────────────────────
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -623,10 +327,17 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
 
-  const theme = THEMES[themeKey];
-
-  const isActive = (path: string) =>
-    path !== "#" && location.pathname.startsWith(path);
+  // Longest matching nav path wins, so /appointments/list doesn't also light
+  // up the /appointments calendar entry.
+  const isActive = (path: string) => {
+    if (path === "#" || !location.pathname.startsWith(path)) return false;
+    return !ALL_NAV_PATHS.some(
+      (p) =>
+        p.length > path.length &&
+        p.startsWith(path) &&
+        location.pathname.startsWith(p),
+    );
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -647,31 +358,50 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   };
 
   const sidebarContent = (
-    <div className="flex h-full flex-col bg-sidebar">
+    <div className="sidebar-surface flex h-full flex-col">
       {/* Brand */}
       <div
         className={cn(
-          "flex h-14 shrink-0 items-center border-b border-sidebar-border px-3",
-          collapsed ? "justify-center" : "gap-2.5",
+          "flex h-[68px] shrink-0 items-center px-4",
+          collapsed ? "justify-center" : "gap-3",
         )}
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
-          <HeartPulse className="h-[17px] w-[17px] text-primary-foreground" />
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 shadow-[0_4px_14px_rgba(14,165,233,0.45)] ring-1 ring-white/20">
+          <HeartPulse className="h-5 w-5 text-white" />
         </div>
         {!collapsed && (
-          <div className="flex min-w-0 flex-col leading-tight">
-            <span className="truncate text-[14px] font-semibold tracking-[-0.01em] text-sidebar-active">
+          <div className="flex min-w-0 flex-1 flex-col leading-tight">
+            <span className="truncate text-[16px] font-bold tracking-[-0.01em] text-sidebar-active">
               Fshikta Dental
             </span>
-            <span className="truncate text-[9.5px] font-medium uppercase tracking-[0.1em] text-sidebar-muted">
+            <span className="truncate text-[12px] font-medium text-sidebar-muted">
               Clinic Management
             </span>
           </div>
         )}
+        {!collapsed && (
+          <button
+            onClick={() => setCollapsed(true)}
+            aria-label="Collapse sidebar"
+            className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-md text-sidebar-muted outline-none transition-colors hover:bg-sidebar-hover hover:text-sidebar-active focus-visible:ring-2 focus-visible:ring-sidebar-accent/70 lg:flex"
+          >
+            <PanelLeftClose className="h-[17px] w-[17px]" />
+          </button>
+        )}
       </div>
 
+      {collapsed && (
+        <button
+          onClick={() => setCollapsed(false)}
+          aria-label="Expand sidebar"
+          className="mx-auto mb-1 hidden h-7 w-7 items-center justify-center rounded-md text-sidebar-muted outline-none transition-colors hover:bg-sidebar-hover hover:text-sidebar-active focus-visible:ring-2 focus-visible:ring-sidebar-accent/70 lg:flex"
+        >
+          <PanelLeftOpen className="h-[17px] w-[17px]" />
+        </button>
+      )}
+
       {/* Nav */}
-      <nav className="scrollbar-none flex-1 space-y-0.5 overflow-y-auto px-3 py-2.5">
+      <nav className="sidebar-scroll flex-1 space-y-1 overflow-y-auto px-3 py-2">
         {navItems.map((item) => (
           <NavItem
             key={`${item.label}-${item.path}`}
@@ -682,19 +412,27 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
       </nav>
 
       {/* Bottom actions */}
-      <div className="shrink-0 space-y-0.5 border-t border-sidebar-border px-3 py-2">
+      <div className="shrink-0 space-y-1 border-t border-sidebar-border px-3 py-2.5">
         <Link
           to="/settings"
-          className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-sidebar-muted outline-none transition-colors hover:bg-sidebar-hover hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-accent/70"
+          title={collapsed ? "Settings" : undefined}
+          className={cn(
+            "flex items-center gap-3 rounded-lg py-2.5 text-[14px] font-medium text-sidebar-foreground outline-none transition-colors hover:bg-sidebar-hover hover:text-sidebar-active focus-visible:ring-2 focus-visible:ring-sidebar-accent/70",
+            collapsed ? "justify-center" : "px-3",
+          )}
         >
-          <Settings className="h-4 w-4 shrink-0" />
+          <Settings className="h-[18px] w-[18px] shrink-0 text-sidebar-muted" strokeWidth={1.75} />
           {!collapsed && <span>Settings</span>}
         </Link>
         <button
           onClick={handleLogout}
-          className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-sidebar-muted outline-none transition-colors hover:bg-danger/15 hover:text-danger focus-visible:ring-2 focus-visible:ring-danger/70"
+          title={collapsed ? "Sign Out" : undefined}
+          className={cn(
+            "flex w-full items-center gap-3 rounded-lg py-2.5 text-[14px] font-medium text-sidebar-foreground outline-none transition-colors hover:bg-red-500/20 hover:text-red-100 focus-visible:ring-2 focus-visible:ring-danger/70",
+            collapsed ? "justify-center" : "px-3",
+          )}
         >
-          <LogOut className="h-4 w-4 shrink-0" />
+          <LogOut className="h-[18px] w-[18px] shrink-0 text-sidebar-muted" strokeWidth={1.75} />
           {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
@@ -710,7 +448,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
         <aside
           className={cn(
             "z-30 hidden shrink-0 flex-col border-r border-sidebar-border transition-[width] duration-200 ease-out lg:flex",
-            collapsed ? "w-[64px]" : "w-[236px]",
+            collapsed ? "w-[72px]" : "w-[264px]",
           )}
         >
           {sidebarContent}
@@ -723,7 +461,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
               className="absolute inset-0 bg-foreground/45 backdrop-blur-sm"
               onClick={() => setMobileOpen(false)}
             />
-            <aside className="relative flex w-[236px] flex-col border-r border-sidebar-border shadow-lg">
+            <aside className="relative flex w-[264px] flex-col border-r border-sidebar-border shadow-lg">
               {sidebarContent}
               <button
                 onClick={() => setMobileOpen(false)}
@@ -776,37 +514,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
 
             {/* Right */}
             <div className="flex items-center gap-1">
-               <NotificationDropdown accentColor={theme.accent} />
-
-              {/* Theme Picker */}
-              <div className="relative">
-                <button
-                  onClick={() => {
-                    setShowThemePicker((o) => !o);
-                  }}
-                  className="flex items-center justify-center rounded-lg transition-all"
-                  style={{ width: 36, height: 30, color: "#64748b" }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.background =
-                      "#f1f5f9";
-                    (e.currentTarget as HTMLElement).style.color = theme.accent;
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.background =
-                      "transparent";
-                    (e.currentTarget as HTMLElement).style.color = "#64748b";
-                  }}
-                >
-                  <Palette style={{ width: 16, height: 16 }} />
-                </button>
-                {showThemePicker && (
-                  <ThemePicker
-                    current={themeKey}
-                    onChange={setThemeKey}
-                    onClose={() => setShowThemePicker(false)}
-                  />
-                )}
-              </div>
+               <NotificationDropdown accentColor={ACCENT.base} />
 
               {/* Divider */}
               <div
@@ -829,7 +537,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                     style={{
                       width: 32,
                       height: 28,
-                      background: `linear-gradient(135deg, ${theme.accent}, ${theme.accentHover})`,
+                      background: `linear-gradient(135deg, ${ACCENT.base}, ${ACCENT.hover})`,
                     }}
                   >
                     {user?.staff ? getInitials(user.staff.firstName) : "AD"}
@@ -965,7 +673,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
           >
             <span style={{ fontSize: 11.5, color: "#94a3b8" }}>
               © 2024–2026{" "}
-              <span style={{ color: theme.accentText, fontWeight: 600 }}>
+              <span style={{ color: ACCENT.text, fontWeight: 600 }}>
                 Fshikta Dental
               </span>{" "}
               Dental Management System

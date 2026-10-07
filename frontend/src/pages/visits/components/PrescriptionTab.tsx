@@ -8,6 +8,7 @@ import {
   Edit3,
   Eye,
 } from "lucide-react";
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import {
   Plus,
   Pill,
@@ -2115,7 +2116,7 @@ function NewPrescriptionDialog({
               <h2 className="text-lg font-bold text-white">
                 {isEditMode ? "Edit Prescription" : "New Prescription"}
               </h2>
-              <p className="text-xs text-primary/40">
+              <p className="text-xs text-white/80">
                 {isEditMode && editTarget
                   ? `Rx: ${editTarget.prescriptionCode}`
                   : visit?.visitCode
@@ -2646,46 +2647,18 @@ function RxCard({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={onPrint}
-            title="Print prescription"
-            className="p-2 rounded-lg text-muted-foreground/70 hover:text-foreground hover:bg-muted transition-colors"
-          >
-            <Printer className="w-4 h-4" />
-          </button>
-
-          {/* Edit — only while ACTIVE & not dispensed */}
-          {!readOnly && rx.status === "ACTIVE" && (
-            <button
-              onClick={onEdit}
-              title="Edit prescription"
-              className="p-2 rounded-lg text-muted-foreground/70 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-            >
-              <Edit3 className="w-4 h-4" />
-            </button>
-          )}
-
+        <RowActions className="shrink-0">
           {rx.status === "ACTIVE" && !readOnly && (
-            <button
-              onClick={onDispense}
-              title="Mark as dispensed"
-              className="p-2 rounded-lg text-muted-foreground/70 hover:text-primary hover:bg-primary-muted/60 transition-colors"
-            >
-              <Check className="w-4 h-4" />
-            </button>
+            <ActionButton tone="success" label="Dispense" icon={Check} onClick={onDispense} />
           )}
-
+          <ActionButton iconOnly tone="info" label="Print prescription" onClick={onPrint} />
+          {!readOnly && rx.status === "ACTIVE" && (
+            <ActionButton iconOnly tone="edit" label="Edit prescription" onClick={onEdit} />
+          )}
           {!readOnly && rx.status !== "DISPENSED" && (
-            <button
-              onClick={onDelete}
-              title="Delete prescription"
-              className="p-2 rounded-lg text-muted-foreground/70 hover:text-danger hover:bg-danger-muted/60 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <ActionButton iconOnly tone="delete" label="Delete prescription" onClick={onDelete} />
           )}
-        </div>
+        </RowActions>
       </div>
 
       {/* Expanded Details */}

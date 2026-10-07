@@ -187,7 +187,7 @@ export function DrugForm({
               <Pill className="h-5 w-5" />
               {isEditing ? `Edit: ${drug?.name}` : "Add New Drug"}
             </DialogTitle>
-            <DialogDescription className="text-primary/40 opacity-90">
+            <DialogDescription className="text-white/80 opacity-90">
               {isEditing
                 ? "Modify product specifications and pricing details."
                 : "Enter the clinical and commercial details for the new medication."}

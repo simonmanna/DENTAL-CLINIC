@@ -1207,7 +1207,7 @@ function PlanSidebarItem({
       <span
         className={cn(
           "text-[11px] tabular-nums shrink-0 ml-2",
-          active ? "text-primary/40" : "text-muted-foreground/70",
+          active ? "text-white/80" : "text-muted-foreground/70",
         )}
       >
         {plan.summary?.completionPercent ?? 0}%

@@ -15,6 +15,7 @@ import {
   Link2,
   Link2Off,
 } from "lucide-react";
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import {
   Dialog,
   DialogContent,
@@ -329,27 +330,22 @@ export default function ExpenseCategoriesPage() {
                     </button>
                   </td>
                   <td className="px-4 py-2.5 text-right whitespace-nowrap">
-                    <button
-                      onClick={() => setDialog({ open: true, category: c })}
-                      className="p-1.5 text-muted-foreground hover:text-[#3c8dbc]"
-                      title="Edit"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => remove(c)}
-                      disabled={c.isSystem || (c._count?.expenses ?? 0) > 0}
-                      className="p-1.5 text-muted-foreground hover:text-danger disabled:opacity-30 disabled:cursor-not-allowed"
-                      title={
-                        c.isSystem
-                          ? "Default category — disable instead"
-                          : (c._count?.expenses ?? 0) > 0
-                            ? "In use — disable instead"
-                            : "Delete"
-                      }
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <RowActions>
+                      <ActionButton tone="edit" label="Edit" onClick={() => setDialog({ open: true, category: c })} />
+                      <ActionButton
+                        tone="delete"
+                        label="Delete"
+                        title={
+                          c.isSystem
+                            ? "Default category — disable instead"
+                            : (c._count?.expenses ?? 0) > 0
+                              ? "In use — disable instead"
+                              : "Delete"
+                        }
+                        disabled={c.isSystem || (c._count?.expenses ?? 0) > 0}
+                        onClick={() => remove(c)}
+                      />
+                    </RowActions>
                   </td>
                 </tr>
               ))}

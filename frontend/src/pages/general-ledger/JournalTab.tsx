@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Undo2, Trash2, BookOpen } from 'lucide-react';
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { DataTable, type DataTableColumn } from './components/DataTable';
 import { GLDialogContent } from './components/GLDialog';
 import { fmtMoney, fmtDate } from './format';
@@ -132,18 +133,7 @@ export function JournalTab() {
       width: 'w-12',
       cell: (e) =>
         e.status === 'POSTED' ? (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 hover:bg-warning-muted/60"
-            title="Reverse entry"
-            onClick={(ev) => {
-              ev.stopPropagation();
-              askReverse(e);
-            }}
-          >
-            <Undo2 className="h-4 w-4 text-warning" />
-          </Button>
+          <ActionButton iconOnly tone="edit" label="Reverse entry" icon={Undo2} onClick={() => askReverse(e)} />
         ) : null,
     },
   ];

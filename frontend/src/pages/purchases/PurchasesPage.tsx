@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   X,
 } from "lucide-react";
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 import {
   usePurchaseDashboard,
   usePurchaseOrders,
@@ -47,10 +48,11 @@ import CreatePurchaseOrderModal from "./components/CreatePurchaseOrderModal"; //
 
 // ... keep all your STYLES constant exactly as before ...
 const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+  /* Font comes from the app shell (self-hosted Geist). A runtime web-font
+     @import here loaded late on cold visits and reflowed the whole table. */
 
   .pur-root {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: inherit;
     --clr-bg:        #f0f4ff;
     --clr-surface:   #ffffff;
     --clr-primary:   #2563eb;
@@ -64,7 +66,7 @@ const STYLES = `
     --clr-muted:     #64748b;
     --clr-border:    #e2e8f0;
     --clr-row-hover: #f8faff;
-    --radius:        4px;
+    --pur-radius:        4px;
     --shadow-sm:     0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
     --shadow-md:     0 4px 16px rgba(37,99,235,.10), 0 1px 4px rgba(0,0,0,.06);
     --shadow-lg:     0 20px 60px rgba(37,99,235,.15), 0 8px 24px rgba(0,0,0,.08);
@@ -106,7 +108,7 @@ const STYLES = `
   @media (max-width: 900px) { .pur-stats { grid-template-columns: repeat(2,1fr); } }
   .pur-stat {
     background: var(--clr-surface);
-    border-radius: var(--radius);
+    border-radius: var(--pur-radius);
     padding: 10px;
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--clr-border);
@@ -147,7 +149,7 @@ const STYLES = `
   /* ── Card / table wrapper ── */
   .pur-card {
     background: var(--clr-surface);
-    border-radius: var(--radius);
+    border-radius: var(--pur-radius);
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--clr-border);
     overflow: hidden;
@@ -539,7 +541,7 @@ const STYLES = `
   }
 
   /* ── misc ── */
-  .pur-mono { font-family: 'JetBrains Mono', monospace; }
+  .pur-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   .pur-text-right { text-align: right; }
   .pur-text-center { text-align: center; }
   
@@ -804,7 +806,6 @@ export function PurchasesPage() {
   const [editPO, setEditPO] = useState<PurchaseOrder | null>(null);
   const [approvePO, setApprovePO] = useState<PurchaseOrder | null>(null);
   const [deliveryPO, setDeliveryPO] = useState<PurchaseOrder | null>(null); // ADD THIS
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   // React Query hooks - must be at top level
   const { data: dashboard, isLoading: dashLoading } = usePurchaseDashboard();
@@ -1127,136 +1128,33 @@ export function PurchasesPage() {
                             : "—"}
                         </td>
                         <td onClick={(e) => e.stopPropagation()}>
-                          <div className="pur-row-actions">
-                            <button
-                              className="pur-action-btn view"
-                              title="View"
-                              onClick={() => navigate(`/purchases/${po.id}`)}
-                            >
-                              <Eye size={13} />
-                            </button>
+                          <RowActions>
+                            <ActionButton iconOnly tone="view" label="View" onClick={() => navigate(`/purchases/${po.id}`)} />
                             {["DRAFT", "SUBMITTED"].includes(po.status) && (
-                              <button
-                                className="pur-action-btn edit"
-                                title="Edit"
-                                onClick={() => setEditPO(po)}
-                              >
-                                <Edit2 size={13} />
-                              </button>
+                              <ActionButton iconOnly tone="edit" label="Edit" onClick={() => setEditPO(po)} />
+                            )}
+                            {po.status === "DRAFT" && (
+                              <ActionButton iconOnly tone="info" label="Submit for approval" icon={Send} onClick={() => handleSubmit(po.id)} />
                             )}
                             {po.status === "SUBMITTED" && (
-                              <button
-                                className="pur-action-btn approve"
-                                title="Approve"
-                                onClick={() => setApprovePO(po)}
-                              >
-                                <CheckCircle2 size={13} />
-                              </button>
+                              <ActionButton iconOnly tone="success" label="Approve" icon={CheckCircle2} onClick={() => setApprovePO(po)} />
                             )}
-                            {/* ADD DELIVERY BUTTON */}
                             {["APPROVED", "PARTIALLY_RECEIVED"].includes(po.status) && (
-                              <button
-                                className="pur-action-btn"
-                                style={{ background: "#ecfdf5", color: "#059669" }}
-                                title="Record Delivery"
-                                onClick={() => setDeliveryPO(po)}
-                              >
-                                <Truck size={13} />
-                              </button>
+                              <ActionButton iconOnly tone="success" label="Record delivery" icon={Truck} onClick={() => setDeliveryPO(po)} />
                             )}
-                            <div style={{ position: "relative" }}>
-                              <button
-                                className="pur-action-btn"
-                                style={{
-                                  background: "#f3f4f6",
-                                  color: "#6b7280",
-                                }}
-                                onClick={() =>
-                                  setOpenMenu(openMenu === po.id ? null : po.id)
-                                }
-                              >
-                                <MoreHorizontal size={13} />
-                              </button>
-                              {openMenu === po.id && (
-                                <div className="pur-dropdown">
-                                  <button
-                                    className="pur-dropdown-item"
-                                    onClick={() => {
-                                      navigate(`/purchases/${po.id}`);
-                                      setOpenMenu(null);
-                                    }}
-                                  >
-                                    <Eye size={14} /> View Details
-                                  </button>
-                                  {po.status === "DRAFT" && (
-                                    <>
-                                      <button
-                                        className="pur-dropdown-item"
-                                        onClick={() => {
-                                          handleSubmit(po.id);
-                                          setOpenMenu(null);
-                                        }}
-                                      >
-                                        <Send size={14} /> Submit for Approval
-                                      </button>
-                                      <div className="pur-dropdown-separator" />
-                                      <button
-                                        className="pur-dropdown-item danger"
-                                        onClick={() => {
-                                          handleCancel(po.id);
-                                          setOpenMenu(null);
-                                        }}
-                                      >
-                                        <XCircle size={14} /> Cancel Order
-                                      </button>
-                                    </>
-                                  )}
-                                  {po.status === "SUBMITTED" && (
-                                    <button
-                                      className="pur-dropdown-item"
-                                      onClick={() => {
-                                        setApprovePO(po);
-                                        setOpenMenu(null);
-                                      }}
-                                    >
-                                      <CheckCircle2
-                                        size={14}
-                                        style={{ color: "#059669" }}
-                                      />{" "}
-                                      Approve
-                                    </button>
-                                  )}
-                                  {["APPROVED", "PARTIALLY_RECEIVED"].includes(
-                                    po.status,
-                                  ) && (
-                                    <button
-                                      className="pur-dropdown-item"
-                                      onClick={() => {
-                                        setDeliveryPO(po);
-                                        setOpenMenu(null);
-                                      }}
-                                    >
-                                      <Truck size={14} /> Record Delivery
-                                    </button>
-                                  )}
-                                  {po.paymentStatus !== "PAID" &&
-                                    po.status !== "CANCELLED" && (
-                                      <button
-                                        className="pur-dropdown-item"
-                                        onClick={() => {
-                                          navigate(
-                                            `/purchases/${po.id}?action=payment`,
-                                          );
-                                          setOpenMenu(null);
-                                        }}
-                                      >
-                                        <CreditCard size={14} /> Record Payment
-                                      </button>
-                                    )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                            {po.paymentStatus !== "PAID" && po.status !== "CANCELLED" && (
+                              <ActionButton
+                                iconOnly
+                                tone="success"
+                                label="Record payment"
+                                icon={CreditCard}
+                                onClick={() => navigate(`/purchases/${po.id}?action=payment`)}
+                              />
+                            )}
+                            {po.status === "DRAFT" && (
+                              <ActionButton iconOnly tone="delete" label="Cancel order" icon={XCircle} onClick={() => handleCancel(po.id)} />
+                            )}
+                          </RowActions>
                         </td>
                       </tr>
                     );

@@ -13,6 +13,7 @@ import {
 import { 
   MoreHorizontal, Edit, Trash2, Search, Hash, FileText
 } from 'lucide-react';
+import { ActionButton, RowActions } from '@/components/ui/action-button';
 import { DrugCategory } from '@/lib/api/drug-categories';
 import { cn } from '@/lib/utils';
 
@@ -117,25 +118,10 @@ export function DrugCategoryTable({
 
                   {/* Actions */}
                   <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onEdit(cat)}>
-                          <Edit className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          className="text-danger focus:text-danger"
-                          onClick={() => onDelete(cat.id)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <RowActions>
+                      <ActionButton tone="edit" label="Edit" onClick={() => onEdit(cat)} />
+                      <ActionButton tone="delete" label="Delete" onClick={() => onDelete(cat.id)} />
+                    </RowActions>
                   </TableCell>
                 </TableRow>
               ))

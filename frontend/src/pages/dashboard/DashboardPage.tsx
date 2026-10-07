@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Activity,
   AlertTriangle,
+  ArrowLeftRight,
   ArrowRight,
   BadgeDollarSign,
   BarChart3,
@@ -32,6 +33,7 @@ import {
   TrendingUp,
   UserCog,
   Users,
+  Zap,
 } from "lucide-react";
 import {
   Area,
@@ -46,6 +48,7 @@ import {
 } from "recharts";
 
 import { reportsApi, appointmentsApi, backupsApi } from "../../lib/api";
+import { clinicSettingsApi } from "../../lib/api/clinic-settings";
 import { cn, formatCurrency, formatTime } from "../../lib/utils";
 import { StatusBadge } from "../../components/shared";
 import { useAuthStore } from "../../store/auth.store";
@@ -205,35 +208,37 @@ function KpiCard({
 // ─── Quick actions ────────────────────────────────────────────────────────────
 // `roles: undefined` means every signed-in role sees the tile. Gating here means
 // the grid never renders a destination the user cannot open.
+// Each tile gets its own solid gradient so it reads as a button at a glance,
+// not as another stat card. White text on every gradient stays above 4.5:1.
 const QUICK_ACTIONS: {
   label: string;
   icon: React.ElementType;
   path: string;
-  tone: Tone;
+  gradient: string;
   roles?: UserRole[];
 }[] = [
-  { label: "Patients", icon: Users, path: "/patients", tone: "primary" },
-  { label: "Appointments", icon: CalendarDays, path: "/appointments", tone: "info" },
-  { label: "Visits", icon: Stethoscope, path: "/visits", tone: "primary" },
-  { label: "Treatment Plans", icon: ClipboardList, path: "/treatment-plans", tone: "info" },
-  { label: "Billing", icon: CreditCard, path: "/billing", tone: "success" },
-  { label: "Receipts", icon: Receipt, path: "/receipts", tone: "success" },
+  { label: "Patients", icon: Users, path: "/patients", gradient: "from-sky-500 to-blue-600" },
+  { label: "Appointments", icon: CalendarDays, path: "/appointments", gradient: "from-violet-500 to-purple-700" },
+  { label: "Visits", icon: Stethoscope, path: "/visits", gradient: "from-teal-500 to-emerald-700" },
+  { label: "Treatment Plans", icon: ClipboardList, path: "/treatment-plans", gradient: "from-indigo-500 to-indigo-700" },
+  { label: "Billing", icon: CreditCard, path: "/billing", gradient: "from-emerald-500 to-green-700" },
+  { label: "Receipts", icon: Receipt, path: "/receipts", gradient: "from-cyan-600 to-sky-700" },
   {
     label: "Pharmacy",
     icon: Pill,
     path: "/pharmacy",
-    tone: "info",
+    gradient: "from-pink-500 to-rose-600",
     roles: [...ADMIN_ROLES, UserRole.PHARMACIST, UserRole.DENTIST],
   },
-  { label: "Inventory", icon: Package, path: "/inventory", tone: "warning" },
-  { label: "Prescriptions", icon: FileText, path: "/prescriptions-list", tone: "primary" },
-  { label: "Staff", icon: UserCog, path: "/staff", tone: "danger", roles: ADMIN_ROLES },
-  { label: "Reports", icon: BarChart3, path: "/reports", tone: "warning", roles: ADMIN_ROLES },
+  { label: "Inventory", icon: Package, path: "/inventory", gradient: "from-amber-500 to-orange-600" },
+  { label: "Prescriptions", icon: FileText, path: "/prescriptions-list", gradient: "from-fuchsia-500 to-purple-600" },
+  { label: "Staff", icon: UserCog, path: "/staff", gradient: "from-slate-600 to-slate-800", roles: ADMIN_ROLES },
+  { label: "Reports", icon: BarChart3, path: "/reports", gradient: "from-orange-500 to-red-600", roles: ADMIN_ROLES },
   {
     label: "Expenses",
     icon: BadgeDollarSign,
     path: "/expenses",
-    tone: "danger",
+    gradient: "from-red-500 to-rose-700",
     roles: ADMIN_ROLES,
   },
 ];
@@ -307,6 +312,15 @@ export function DashboardPage() {
     refetchInterval: 30_000,
   });
 
+  // Clinic-wide USD→UGX rate, the same EXCHANGE_RATE setting billing converts with.
+  const { data: exchangeSetting } = useQuery({
+    queryKey: ["clinic-settings", "EXCHANGE_RATE"],
+    queryFn: () => clinicSettingsApi.getByKey("EXCHANGE_RATE"),
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  const exchangeRate = Number(exchangeSetting?.value) > 0 ? Number(exchangeSetting!.value) : null;
+
   // /reports/revenue is ADMIN-only — gate the request rather than letting every
   // other role trigger a 403 on page load.
   const revenueRange = useMemo(() => {
@@ -375,7 +389,24 @@ export function DashboardPage() {
           <p className="mt-0.5 text-sm text-muted-foreground">{today}</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate("/settings")}
+            title={
+              exchangeSetting?.updatedAt
+                ? `Set in Settings · updated ${new Date(exchangeSetting.updatedAt).toLocaleString("en-UG")}`
+                : "Set in Settings"
+            }
+            className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary-muted px-3 py-1 text-xs font-medium text-foreground transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ArrowLeftRight className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+            <span className="text-muted-foreground">Exchange rate</span>
+            <span className="font-semibold tabular-nums">
+              {exchangeRate ? `1 USD = ${exchangeRate.toLocaleString("en-UG")} UGX` : "Not set"}
+            </span>
+          </button>
+
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-60 motion-reduce:animate-none" />
@@ -493,6 +524,40 @@ export function DashboardPage() {
           )}
         </section>
       )}
+
+      {/* ── Quick actions ── */}
+      <section aria-labelledby="quick-actions-heading">
+        <h2 id="quick-actions-heading" className="mb-2.5 flex items-center gap-2 text-sm font-semibold text-foreground">
+          <Zap className="h-4 w-4 text-warning" aria-hidden="true" />
+          Quick actions
+        </h2>
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+          {visibleActions.map((action) => (
+            <button
+              key={action.label}
+              type="button"
+              onClick={() => navigate(action.path)}
+              className={cn(
+                "group relative flex min-h-[52px] items-center gap-2.5 overflow-hidden rounded-xl bg-gradient-to-br px-3 py-3 text-left text-white",
+                "shadow-[0_4px_12px_-4px_rgba(15,23,42,0.35)] ring-1 ring-inset ring-white/15",
+                "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_22px_-6px_rgba(15,23,42,0.45)] hover:brightness-110 active:translate-y-0 active:brightness-95",
+                "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                action.gradient,
+              )}
+            >
+              <span className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-white/20">
+                <action.icon className="h-4 w-4 text-white" aria-hidden="true" />
+              </span>
+              <span className="min-w-0 flex-1 truncate text-sm font-semibold">{action.label}</span>
+              <ArrowRight
+                className="h-3.5 w-3.5 flex-none opacity-60 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:opacity-100"
+                aria-hidden="true"
+              />
+            </button>
+          ))}
+        </div>
+      </section>
 
       {/* ── Schedule + status ── */}
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
@@ -685,43 +750,6 @@ export function DashboardPage() {
           </ResponsiveContainer>
         </Panel>
       )}
-
-      {/* ── Quick actions ── */}
-      <section aria-labelledby="quick-actions-heading">
-        <h2 id="quick-actions-heading" className="mb-2.5 text-sm font-semibold text-foreground">
-          Quick actions
-        </h2>
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-          {visibleActions.map((action) => {
-            const t = TONE[action.tone];
-            return (
-              <button
-                key={action.label}
-                type="button"
-                onClick={() => navigate(action.path)}
-                className={cn(
-                  "group flex min-h-[44px] items-center gap-2.5 rounded-xl border border-border/70 bg-card px-3 py-2.5 text-left shadow-xs",
-                  "transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:shadow-md active:translate-y-0",
-                  "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                )}
-              >
-                <span
-                  className={cn(
-                    "flex h-8 w-8 flex-none items-center justify-center rounded-lg",
-                    t.chip,
-                  )}
-                >
-                  <action.icon className={cn("h-4 w-4", t.icon)} aria-hidden="true" />
-                </span>
-                <span className="min-w-0 truncate text-sm font-medium text-foreground">
-                  {action.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
     </div>
   );
 }

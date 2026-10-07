@@ -733,13 +733,17 @@ export function PatientDetailPage() {
         {/* ── Patient Header Card ──────────────────────────────────────── */}
         <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
           {/* Dark top bar */}
-          <div className="px-5 py-1.5 bg-[#0369a1] text-white flex items-center justify-between gap-4">
+          <div className="px-5 py-2.5 bg-[#0369a1] text-white flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/20 ring-1 ring-white/30 rounded-full flex items-center justify-center text-sm font-bold uppercase">
+                {patient.firstName?.[0]}
+                {patient.lastName?.[0]}
+              </div>
               <div>
-                <p className="font-bold text-base leading-tight">
+                <p className="font-bold text-base leading-tight text-white">
                   {patient.firstName} {patient.lastName}
                 </p>
-                <p className="text-primary/50 text-xs mt-0.5">
+                <p className="mt-0.5 font-mono text-xs text-white/85">
                   {patient.patientCode}
                 </p>
               </div>

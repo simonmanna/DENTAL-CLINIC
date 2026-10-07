@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2 } from 'lucide-react';
+import { ActionButton, RowActions } from "@/components/ui/action-button";
 
 const locationTypeLabels: Record<LocationType, string> = {
   [LocationType.MAIN_CLINIC]: 'Main Clinic',
@@ -75,22 +76,10 @@ export function LocationsTable({ locations, onEdit, onDelete }: LocationsTablePr
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onEdit(location)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onDelete(location.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <RowActions className="justify-start">
+                    <ActionButton tone="edit" label="Edit" onClick={() => onEdit(location)} />
+                    <ActionButton tone="delete" label="Delete" onClick={() => onDelete(location.id)} />
+                  </RowActions>
                 </TableCell>
               </TableRow>
             ))
