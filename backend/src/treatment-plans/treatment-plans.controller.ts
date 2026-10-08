@@ -34,7 +34,10 @@ import {
   TreatmentPlansService,
   ReportFilters,
 } from './treatment-plans.service';
-import { ExecuteSessionDto, AddExtraSessionDto } from './dto/execute-session.dto';
+import {
+  ExecuteSessionDto,
+  AddExtraSessionDto,
+} from './dto/execute-session.dto';
 import { EditSessionDto, DeleteSessionDto } from './dto/edit-session.dto';
 
 // Value import (not `import type`): a type-only import erases the class, so
@@ -46,6 +49,11 @@ import { PricingCalculationDto } from './dto/pricing-calculation.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
+import {
+  ProcedureReportQueryDto,
+  SessionReportQueryDto,
+  TreatmentPlanReportQueryDto,
+} from './dto/treatment-report-query.dto';
 
 // Treatment plans, procedures and sessions are confidential clinical data.
 // RECEPTIONIST / PHARMACIST / LAB_TECHNICIAN are EXCLUDED (least privilege) —
@@ -239,10 +247,16 @@ export class TreatmentPlansController {
     @CurrentUser('id') currentUserId: string | undefined,
     @CurrentUser('staffId') staffId: string | undefined,
   ) {
-    return this.svc.markProcedureComplete(id, procedureId, visitId, currentUserId, {
-      finalOverrideReason,
-      providerId: staffId,
-    });
+    return this.svc.markProcedureComplete(
+      id,
+      procedureId,
+      visitId,
+      currentUserId,
+      {
+        finalOverrideReason,
+        providerId: staffId,
+      },
+    );
   }
 
   @ApiOperation({ summary: 'Cancel a procedure' })
@@ -612,7 +626,7 @@ export class TreatmentPlansController {
   @ApiResponse({ status: 200, description: 'Report returned successfully' })
   @Roles(...AUDIT_READ_ROLES)
   @Get('reports/plans')
-  getTreatmentPlansReport(@Query() filters: any) {
+  getTreatmentPlansReport(@Query() filters: TreatmentPlanReportQueryDto) {
     return this.svc.getTreatmentPlansReport(filters as ReportFilters);
   }
 
@@ -620,7 +634,7 @@ export class TreatmentPlansController {
   @ApiResponse({ status: 200, description: 'Report returned successfully' })
   @Roles(...AUDIT_READ_ROLES)
   @Get('reports/procedures')
-  getProceduresReport(@Query() filters: any) {
+  getProceduresReport(@Query() filters: ProcedureReportQueryDto) {
     return this.svc.getProceduresReport(filters as ReportFilters);
   }
 
@@ -628,8 +642,13 @@ export class TreatmentPlansController {
   @ApiResponse({ status: 200, description: 'Report returned successfully' })
   @Roles(...AUDIT_READ_ROLES)
   @Get('reports/sessions')
-  getSessionsReport(@Query() filters: any) {
-    return this.svc.getSessionsReport(filters as ReportFilters);
+  getSessionsReport(@Query() filters: SessionReportQueryDto) {
+    return this.svc.getSessionsReport({
+      ...filters,
+      // `isFinal` arrives as the string "true"/"false" on the query string.
+      isFinal:
+        filters.isFinal === undefined ? undefined : filters.isFinal === 'true',
+    } as ReportFilters & { isFinal?: boolean });
   }
 
   @Roles(...BILLING_READ_ROLES)

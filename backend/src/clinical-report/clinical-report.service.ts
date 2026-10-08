@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TreatmentStatus, SessionStatus, Prisma } from '@prisma/client';
+import { UserRole } from '@prisma/client';
+import { clinicDateRange } from '../reports-common';
 import {
     ClinicalReportQueryDto,
     ClinicalReportType,
@@ -32,7 +34,10 @@ export class ClinicalReportsService {
         eod.setHours(23, 59, 59, 999);
 
         if (period === ReportPeriodClinical.CUSTOM && customStart && customEnd) {
-            return { startDate: new Date(customStart), endDate: new Date(customEnd) };
+            // Inclusive clinic-day bounds; `new Date(customEnd)` alone is UTC
+            // midnight and would cut the final day out of the window.
+            const range = clinicDateRange(customStart, customEnd);
+            return { startDate: range!.gte!, endDate: range!.lte! };
         }
 
         switch (period) {
@@ -1077,13 +1082,15 @@ export class ClinicalReportsService {
     // Add these methods to your ClinicalReportsService class
 
     async getStaff() {
-        // R-11 fix: include HYGIENIST and NURSE roles in addition to DENTIST so
-        // that hygienist productivity reports have staff to query. Previously
-        // only DENTISTs were listed, making hygienist productivity invisible.
+        // Clinical providers, so nurse productivity is not invisible. Roles come
+        // from the generated UserRole enum rather than string literals: this
+        // listed 'HYGIENIST', which the schema has never had, so Prisma rejected
+        // the whole query and the Visits report's Doctor dropdown 500'd.
+        const providerRoles = [UserRole.DENTIST, UserRole.NURSE];
         return this.prisma.staff.findMany({
           where: {
             user: {
-              role: { in: ['DENTIST', 'HYGIENIST', 'NURSE'] as any },
+              role: { in: providerRoles },
             },
           },
           select: {

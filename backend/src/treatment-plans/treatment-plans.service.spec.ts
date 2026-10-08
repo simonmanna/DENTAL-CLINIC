@@ -762,3 +762,172 @@ describe('TreatmentPlansService — extraction absence marker', () => {
     expect(audit.data.userId).toBe('user-9');
   });
 });
+
+// ── Reports: filter semantics ───────────────────────────────────────────────
+//
+// These read back the `where` / pagination the service handed to Prisma. The
+// windows matter clinically: a record created at 01:43 EAT used to fall outside
+// both its own day and the previous one, so it appeared in no single-day report.
+describe('TreatmentPlansService reports', () => {
+  const build = () => {
+    const prisma = createPrismaMock();
+    const service = new TreatmentPlansService(
+      prisma,
+      createAutoMock(),
+      createAutoMock(),
+      mockConditionsService(),
+    );
+    prisma.treatmentPlan.count.mockResolvedValue(0);
+    prisma.treatmentPlan.findMany.mockResolvedValue([]);
+    prisma.treatmentPlan.groupBy.mockResolvedValue([]);
+    prisma.treatmentProcedure.count.mockResolvedValue(0);
+    prisma.treatmentProcedure.findMany.mockResolvedValue([]);
+    prisma.treatmentProcedure.groupBy.mockResolvedValue([]);
+    prisma.procedureSession.count.mockResolvedValue(0);
+    prisma.procedureSession.findMany.mockResolvedValue([]);
+    prisma.procedureSession.groupBy.mockResolvedValue([]);
+    prisma.invoiceItem.findMany.mockResolvedValue([]);
+    return { prisma, service };
+  };
+
+  describe('date windows', () => {
+    it('resolves a plan window to the clinic calendar day', async () => {
+      const { prisma, service } = build();
+
+      await service.getTreatmentPlansReport({
+        startDate: '2026-06-03',
+        endDate: '2026-06-03',
+      } as any);
+
+      const { createdAt } = prisma.treatmentPlan.findMany.mock.calls[0][0].where;
+      // Africa/Kampala is UTC+3: the clinic day runs 21:00Z the previous day
+      // through 20:59:59.999Z.
+      expect(createdAt.gte.toISOString()).toBe('2026-06-02T21:00:00.000Z');
+      expect(createdAt.lte.toISOString()).toBe('2026-06-03T20:59:59.999Z');
+    });
+
+    it('covers the final millisecond of the day', async () => {
+      const { prisma, service } = build();
+
+      await service.getProceduresReport({ endDate: '2026-06-03' } as any);
+
+      const { createdAt } =
+        prisma.treatmentProcedure.findMany.mock.calls[0][0].where;
+      expect(createdAt.lte.getMilliseconds()).toBe(999);
+    });
+
+    it('rejects an unparseable date instead of passing it to Prisma', async () => {
+      const { service } = build();
+
+      await expect(
+        service.getTreatmentPlansReport({ startDate: 'garbage' } as any),
+      ).rejects.toThrow(/Invalid startDate/);
+    });
+
+    it('applies no window when neither edge is given', async () => {
+      const { prisma, service } = build();
+
+      await service.getTreatmentPlansReport({} as any);
+
+      expect(
+        prisma.treatmentPlan.findMany.mock.calls[0][0].where.createdAt,
+      ).toBeUndefined();
+    });
+
+    it('keeps un-executed sessions reachable when a window is applied', async () => {
+      const { prisma, service } = build();
+
+      await service.getSessionsReport({
+        startDate: '2026-06-03',
+        endDate: '2026-06-03',
+      } as any);
+
+      // A PENDING session has no performedDate; matching only on that column
+      // dropped every one of them as soon as a date filter was set.
+      const { where } = prisma.procedureSession.findMany.mock.calls[0][0];
+      const [clause] = where.AND;
+      expect(clause.OR).toHaveLength(2);
+      expect(clause.OR[0].performedDate.gte.toISOString()).toBe(
+        '2026-06-02T21:00:00.000Z',
+      );
+      expect(clause.OR[1].performedDate).toBeNull();
+      expect(clause.OR[1].createdAt.gte.toISOString()).toBe(
+        '2026-06-02T21:00:00.000Z',
+      );
+    });
+  });
+
+  describe('soft-deleted clinical records', () => {
+    it('excludes sessions whose parent procedure was voided', async () => {
+      const { prisma, service } = build();
+
+      await service.getSessionsReport({} as any);
+
+      const { where } = prisma.procedureSession.findMany.mock.calls[0][0];
+      expect(where.deletedAt).toBeNull();
+      expect(where.treatmentProcedure).toEqual({ deletedAt: null });
+    });
+
+    it('keeps the parent-alive clause when a nested filter is also applied', async () => {
+      const { prisma, service } = build();
+
+      await service.getSessionsReport({ dentistId: 'd1' } as any);
+
+      const { where } = prisma.procedureSession.findMany.mock.calls[0][0];
+      expect(where.treatmentProcedure.deletedAt).toBeNull();
+      expect(where.treatmentProcedure.treatmentPlan).toEqual({
+        dentistId: 'd1',
+      });
+    });
+  });
+
+  describe('pagination clamping', () => {
+    it.each([
+      ['negative', -5, 20],
+      ['zero', 0, 20],
+      ['over the cap', 5000, 100],
+      ['fractional', 12.7, 12],
+    ])('clamps a %s limit', async (_label, input, expected) => {
+      const { prisma, service } = build();
+
+      const result: any = await service.getTreatmentPlansReport({
+        limit: input,
+      } as any);
+
+      expect(result.pagination.limit).toBe(expected);
+      expect(prisma.treatmentPlan.findMany.mock.calls[0][0].take).toBe(expected);
+    });
+
+    it('clamps a page below 1', async () => {
+      const { prisma, service } = build();
+
+      const result: any = await service.getTreatmentPlansReport({
+        page: 0,
+      } as any);
+
+      expect(result.pagination.page).toBe(1);
+      expect(prisma.treatmentPlan.findMany.mock.calls[0][0].skip).toBe(0);
+    });
+  });
+
+  describe('procedure money totals', () => {
+    const groups = [
+      { status: 'COMPLETED', _count: { id: 2 }, _sum: { baseAmount: 500, totalPrice: 500, amountPaid: 0 } },
+      { status: 'CANCELLED', _count: { id: 1 }, _sum: { baseAmount: 100, totalPrice: 100, amountPaid: 0 } },
+    ];
+
+    it('leaves cancelled work out of revenue and outstanding', async () => {
+      const { prisma, service } = build();
+      prisma.treatmentProcedure.groupBy.mockResolvedValue(groups);
+
+      const result: any = await service.getProceduresReport({} as any);
+
+      // Cancelled treatment is not revenue, and its balance is not owed.
+      expect(result.summary.totalRevenue).toBe(500);
+      expect(result.summary.totalOutstanding).toBe(500);
+      // Still counted, and still reported — just not as revenue.
+      expect(result.summary.totalCancelled).toBe(1);
+      expect(result.summary.cancelledValue).toBe(100);
+    });
+  });
+});

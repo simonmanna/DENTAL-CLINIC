@@ -25,6 +25,7 @@ import { ConditionsReportQueryDto, PatientConditionStatusEnum, ConditionCategory
 
 import { ConditionCategory, ConditionSeverity, ToothSurface, Prisma, PatientConditionStatus, TreatmentStatus, ChartEntryType, ChartEntryStatus } from '@prisma/client';
 import { assertVisitWritableTx } from '../visit/visit-guard';
+import { clinicDateRange } from '../reports-common';
 
 /**
  * Chart row status for a diagnosis status. A RESOLVED or RULED_OUT diagnosis
@@ -1087,12 +1088,14 @@ async getPatientConditionsReport(query: ConditionsReportQueryDto) {
   const limit = query.limit ?? 50;
   const skip = (page - 1) * limit;
 
-  const startDate = query.startDate ? new Date(query.startDate) : new Date(0);
-  const endDate = query.endDate ? new Date(query.endDate) : new Date('2100-01-01');
+  // Inclusive clinic-day bounds. Passing the bare "to" date through
+  // `new Date()` yields UTC midnight, which excludes everything diagnosed
+  // later that day.
+  const diagnosedRange = clinicDateRange(query.startDate, query.endDate);
 
   const where: any = {
     deletedAt: null,
-    diagnosedAt: { gte: startDate, lte: endDate },
+    ...(diagnosedRange && { diagnosedAt: diagnosedRange }),
   };
 
   if (query.status) where.status = query.status;

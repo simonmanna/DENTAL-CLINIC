@@ -73,6 +73,7 @@ import {
 } from './dto/edit-session.dto';
 
 import { PricingCalculationDto } from './dto/pricing-calculation.dto';
+import { clinicDateRange } from '../reports-common';
 
 export {
   CreateTreatmentPlanDto,
@@ -95,6 +96,41 @@ export interface ReportFilters {
   limit?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+}
+
+/**
+ * Clamp report paging into a sane range.
+ *
+ * `limit` previously reached Prisma as `take` unchecked, so `limit=-5` reversed
+ * the page direction and yielded `totalPages: -2`, and `limit=0` returned
+ * nothing with `totalPages: null`.
+ */
+/** Procedure statuses that represent real, billable clinical work. */
+const BILLABLE_PROCEDURE_STATUSES = new Set<string>([
+  TreatmentStatus.PENDING,
+  TreatmentStatus.PLANNED,
+  TreatmentStatus.IN_PROGRESS,
+  TreatmentStatus.COMPLETED,
+  TreatmentStatus.ON_HOLD,
+  TreatmentStatus.REFERRED,
+]);
+
+const REPORT_MAX_LIMIT = 100;
+const REPORT_DEFAULT_LIMIT = 20;
+
+function resolveReportPaging(filters: { page?: number; limit?: number }): {
+  page: number;
+  limit: number;
+} {
+  const rawPage = Number(filters.page);
+  const rawLimit = Number(filters.limit);
+  const page =
+    Number.isFinite(rawPage) && rawPage >= 1 ? Math.floor(rawPage) : 1;
+  const limit =
+    Number.isFinite(rawLimit) && rawLimit >= 1
+      ? Math.min(REPORT_MAX_LIMIT, Math.floor(rawLimit))
+      : REPORT_DEFAULT_LIMIT;
+  return { page, limit };
 }
 
 @Injectable()
@@ -4838,8 +4874,7 @@ export class TreatmentPlansService {
   // REPORT 1 — Treatment Plans
   // ═══════════════════════════════════════════════════════════════════════════════
   async getTreatmentPlansReport(filters: ReportFilters) {
-    const page = Math.max(1, filters.page ?? 1);
-    const limit = Math.min(100, filters.limit ?? 20);
+    const { page, limit } = resolveReportPaging(filters);
     const sortBy = filters.sortBy ?? 'createdAt';
     const sortOrder = filters.sortOrder ?? 'desc';
 
@@ -4857,14 +4892,8 @@ export class TreatmentPlansService {
 
     const where: Prisma.TreatmentPlanWhereInput = {};
 
-    if (filters.startDate || filters.endDate) {
-      where.createdAt = {
-        ...(filters.startDate && { gte: new Date(filters.startDate) }),
-        ...(filters.endDate && {
-          lte: new Date(filters.endDate + 'T23:59:59'),
-        }),
-      };
-    }
+    const dateRange = clinicDateRange(filters.startDate, filters.endDate);
+    if (dateRange) where.createdAt = dateRange;
     if (filters.dentistId) where.dentistId = filters.dentistId;
     if (filters.patientId) where.patientId = filters.patientId;
     if (filters.status) where.status = filters.status as TreatmentStatus;
@@ -5078,8 +5107,7 @@ export class TreatmentPlansService {
       categoryId?: string;
     },
   ) {
-    const page = Math.max(1, filters.page ?? 1);
-    const limit = Math.min(100, filters.limit ?? 20);
+    const { page, limit } = resolveReportPaging(filters);
     const sortBy = filters.sortBy ?? 'createdAt';
     const sortOrder = filters.sortOrder ?? 'desc';
 
@@ -5099,14 +5127,8 @@ export class TreatmentPlansService {
       deletedAt: null,
     };
 
-    if (filters.startDate || filters.endDate) {
-      where.createdAt = {
-        ...(filters.startDate && { gte: new Date(filters.startDate) }),
-        ...(filters.endDate && {
-          lte: new Date(filters.endDate + 'T23:59:59'),
-        }),
-      };
-    }
+    const dateRange = clinicDateRange(filters.startDate, filters.endDate);
+    if (dateRange) where.createdAt = dateRange;
 
     // Plan-level filters
     const planFilter: Prisma.TreatmentPlanWhereInput = {};
@@ -5322,6 +5344,22 @@ export class TreatmentPlansService {
       ]),
     );
 
+    // Money totals leave out cancelled / deleted work: a procedure that was
+    // called off is not revenue, and its balance is not owed. The Plans tab
+    // already aggregates this way, so counting them here made the two tabs
+    // report different figures for the same underlying rows.
+    const billableGroups = statusGroups.filter((g) =>
+      BILLABLE_PROCEDURE_STATUSES.has(g.status),
+    );
+    const totalRevenue = billableGroups.reduce(
+      (s, g) => s + Number(g._sum.baseAmount ?? 0),
+      0,
+    );
+    const totalCollected = billableGroups.reduce(
+      (s, g) => s + (baseAmountPaidByStatus.get(g.status) ?? 0),
+      0,
+    );
+
     return {
       data: rows,
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
@@ -5332,20 +5370,17 @@ export class TreatmentPlansService {
         totalPlanned: byStatus['PLANNED']?.count ?? 0,
         totalCancelled: byStatus['CANCELLED']?.count ?? 0,
         // ── Aggregate money totals (UGX-equivalent — safe to sum) ─────
-        totalRevenue: statusGroups.reduce(
-          (s, g) => s + Number(g._sum.baseAmount ?? 0),
-          0,
-        ),
-        totalCollected: Array.from(baseAmountPaidByStatus.values()).reduce(
-          (s, n) => s + n,
-          0,
-        ),
-        totalOutstanding:
-          statusGroups.reduce((s, g) => s + Number(g._sum.baseAmount ?? 0), 0) -
-          Array.from(baseAmountPaidByStatus.values()).reduce(
-            (s, n) => s + n,
-            0,
-          ),
+        totalRevenue,
+        totalCollected,
+        totalOutstanding: totalRevenue - totalCollected,
+        // Money already booked against work that was later cancelled —
+        // surfaced separately so it stays visible rather than being dropped.
+        cancelledValue: statusGroups
+          .filter((g) => !BILLABLE_PROCEDURE_STATUSES.has(g.status))
+          .reduce((s, g) => s + Number(g._sum.baseAmount ?? 0), 0),
+        cancelledCollected: statusGroups
+          .filter((g) => !BILLABLE_PROCEDURE_STATUSES.has(g.status))
+          .reduce((s, g) => s + (baseAmountPaidByStatus.get(g.status) ?? 0), 0),
         // Base currency name so the UI can label "UGX 1,234,567" correctly
         // even if the clinic switches base later.
         baseCurrency: 'UGX',
@@ -5362,8 +5397,7 @@ export class TreatmentPlansService {
       treatmentProcedureId?: string;
     },
   ) {
-    const page = Math.max(1, filters.page ?? 1);
-    const limit = Math.min(100, filters.limit ?? 20);
+    const { page, limit } = resolveReportPaging(filters);
     const sortBy = filters.sortBy ?? 'performedDate';
     const sortOrder = filters.sortOrder ?? 'desc';
 
@@ -5378,16 +5412,29 @@ export class TreatmentPlansService {
       ? sortBy
       : 'performedDate';
 
-    const where: Prisma.ProcedureSessionWhereInput = { deletedAt: null };
+    // `deletedAt` on the session covers a voided session; the parent clause
+    // covers a voided *procedure*, whose sessions would otherwise keep being
+    // counted as live clinical work.
+    const where: Prisma.ProcedureSessionWhereInput = {
+      deletedAt: null,
+      treatmentProcedure: { deletedAt: null },
+    };
 
-    // Date filter on performedDate for executed sessions
-    if (filters.startDate || filters.endDate) {
-      where.performedDate = {
-        ...(filters.startDate && { gte: new Date(filters.startDate) }),
-        ...(filters.endDate && {
-          lte: new Date(filters.endDate + 'T23:59:59'),
-        }),
-      };
+    // The window measures when work was *done*. A session that has not been
+    // executed yet has no performedDate, so matching only on that column made
+    // every PENDING session vanish the moment a date filter was applied; fall
+    // back to createdAt for those so the status chart stays honest.
+    const dateRange = clinicDateRange(filters.startDate, filters.endDate);
+    if (dateRange) {
+      where.AND = [
+        ...((where.AND as Prisma.ProcedureSessionWhereInput[]) ?? []),
+        {
+          OR: [
+            { performedDate: dateRange },
+            { performedDate: null, createdAt: dateRange },
+          ],
+        },
+      ];
     }
     if (filters.status) where.status = filters.status as SessionStatus;
     if (filters.isFinal !== undefined) where.isFinal = filters.isFinal;
@@ -5430,7 +5477,9 @@ export class TreatmentPlansService {
         },
       ];
     }
-    if (Object.keys(tpFilter).length) where.treatmentProcedure = tpFilter;
+    if (Object.keys(tpFilter).length) {
+      where.treatmentProcedure = { deletedAt: null, ...tpFilter };
+    }
 
     const [total, sessions, statusGroups] = await Promise.all([
       this.prisma.procedureSession.count({ where }),

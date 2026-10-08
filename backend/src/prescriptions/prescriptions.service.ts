@@ -13,6 +13,7 @@ import {
   EditPrescriptionDto,
 } from './dto/create-prescription.dto';
 import { PrescriptionStatus, StockLedgerType, Prisma } from '@prisma/client';
+import { clinicDateRange } from '../reports-common';
 
 function toNum(v: unknown): number {
   if (v == null) return 0;
@@ -622,18 +623,11 @@ export class PrescriptionsService {
     if (visitId) where.visitId = visitId;
     if (dentistId) where.dentistId = dentistId;
 
-    // Date range filter on createdAt (inclusive bounds, ISO strings from controller)
-    if (dateFrom || dateTo) {
-      where.createdAt = {};
-      if (dateFrom) {
-        const d = new Date(dateFrom);
-        if (!isNaN(d.getTime())) where.createdAt.gte = d;
-      }
-      if (dateTo) {
-        const d = new Date(dateTo);
-        if (!isNaN(d.getTime())) where.createdAt.lte = d;
-      }
-    }
+    // Inclusive clinic-day bounds. `new Date('2026-10-07')` is UTC midnight, so
+    // using it directly as `lte` excluded the whole of the "to" day — a report
+    // filtered to a single day came back empty.
+    const dateRange = clinicDateRange(dateFrom, dateTo);
+    if (dateRange) where.createdAt = dateRange;
 
     if (search) {
       where.OR = [

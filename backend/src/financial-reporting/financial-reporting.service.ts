@@ -11,13 +11,11 @@
 //     where Invoice.status='POSTED' (not VOID).
 //   - "Outstanding" means unpaid balance on POSTED invoices.
 
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { startOfDay, endOfDay } from 'date-fns';
-import { fromZonedTime, toZonedTime } from 'date-fns-tz';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { InvoiceStatus, Prisma, CashFlowDirection } from '@prisma/client';
 import { FinancialReportQueryDto } from './dto/financial-report-query.dto';
-import { DEFAULT_REPORT_TIMEZONE } from '../reports-common';
+import { clinicDateRange } from '../reports-common';
 
 function toNum(v: unknown): number {
   if (v == null) return 0;
@@ -25,40 +23,6 @@ function toNum(v: unknown): number {
   if (typeof (v as any).toNumber === 'function') return (v as any).toNumber();
   const n = Number(v);
   return isNaN(n) ? 0 : n;
-}
-
-/**
- * Build an inclusive `{ gte, lte }` window from two `YYYY-MM-DD` strings.
- *
- * Both boundaries are resolved in the *clinic's* timezone and then converted
- * back to UTC instants, so "today" always means the clinic's calendar day and
- * never the server's. Parsing the bare date with `new Date()` and then calling
- * `setHours` mixes UTC parsing with server-local mutation, which silently
- * shifted every report window by the UTC offset (3h for Africa/Kampala).
- */
-function buildDateRange(
-  startDate?: string,
-  endDate?: string,
-  tz: string = DEFAULT_REPORT_TIMEZONE,
-) {
-  const parse = (value: string, field: string): Date => {
-    const d = new Date(value);
-    if (isNaN(d.getTime())) {
-      throw new BadRequestException(`Invalid ${field}: "${value}"`);
-    }
-    return d;
-  };
-
-  const range: { gte?: Date; lte?: Date } = {};
-  if (startDate) {
-    const local = toZonedTime(parse(startDate, 'startDate'), tz);
-    range.gte = fromZonedTime(startOfDay(local), tz);
-  }
-  if (endDate) {
-    const local = toZonedTime(parse(endDate, 'endDate'), tz);
-    range.lte = fromZonedTime(endOfDay(local), tz);
-  }
-  return Object.keys(range).length ? range : undefined;
 }
 
 /** Read payment method from receipt — prefer structured metadata, fall back
@@ -120,7 +84,7 @@ export class FinancialReportingService {
       sortOrder = 'desc',
     } = query;
 
-    const dateRange = buildDateRange(startDate, endDate);
+    const dateRange = clinicDateRange(startDate, endDate);
 
     // Which timestamp the window measures. A draft raised in September and
     // posted in October belongs to October's sales, so callers can switch the
@@ -558,7 +522,7 @@ export class FinancialReportingService {
       sortOrder = 'desc',
     } = query;
 
-    const dateRange = buildDateRange(startDate, endDate);
+    const dateRange = clinicDateRange(startDate, endDate);
 
     // Default: ACTIVE only. status='ALL' → no filter. status='VOID' → voids only.
     const statusFilter: Prisma.ReceiptWhereInput =
@@ -865,7 +829,7 @@ export class FinancialReportingService {
       sortOrder = 'desc',
     } = query;
 
-    const dateRange = buildDateRange(startDate, endDate);
+    const dateRange = clinicDateRange(startDate, endDate);
 
     // Default: exclude VOIDED/FAILED/REFUNDED. status='ALL' opens everything,
     // status='VOIDED' shows just voids, etc.
@@ -1063,7 +1027,7 @@ export class FinancialReportingService {
       sortOrder = 'desc',
     } = query as any;
 
-    const dateRange = buildDateRange(startDate, endDate);
+    const dateRange = clinicDateRange(startDate, endDate);
 
     const where: Prisma.ExpenseWhereInput = {
       ...(status && status !== 'ALL' && { status: status }),
@@ -1268,7 +1232,7 @@ export class FinancialReportingService {
   // how much cash left per period. Excludes VOIDED / FAILED / REFUNDED.
   async getCashFlowReport(query: FinancialReportQueryDto) {
     const { startDate, endDate, page = 1, limit = 50 } = query;
-    const range = buildDateRange(startDate, endDate);
+    const range = clinicDateRange(startDate, endDate);
 
     const where: Prisma.PaymentWhereInput = {
       direction: CashFlowDirection.OUT,
@@ -1477,7 +1441,7 @@ export class FinancialReportingService {
   // ─────────────────────────────────────────────────────────────────────────
   async getVendorPaymentsReport(query: FinancialReportQueryDto) {
     const { startDate, endDate, page = 1, limit = 50 } = query;
-    const range = buildDateRange(startDate, endDate);
+    const range = clinicDateRange(startDate, endDate);
 
     const where: Prisma.PaymentWhereInput = {
       direction: CashFlowDirection.OUT,
@@ -1574,7 +1538,7 @@ export class FinancialReportingService {
   // Revenue (collected receipts) − Expenses (active, not voided) per period.
   async getProfitabilityReport(query: FinancialReportQueryDto) {
     const { startDate, endDate } = query;
-    const range = buildDateRange(startDate, endDate);
+    const range = clinicDateRange(startDate, endDate);
 
     const [revenue, expenses] = await Promise.all([
       this.prisma.payment.aggregate({

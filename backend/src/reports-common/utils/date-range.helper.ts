@@ -12,6 +12,7 @@ import {
   subDays,
 } from 'date-fns';
 import { formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz';
+import { BadRequestException } from '@nestjs/common';
 
 /**
  * Default clinic timezone. Override per-deployment via REPORT_TIMEZONE env var.
@@ -96,7 +97,9 @@ export function resolveDateRange(
       break;
     }
     case ReportPeriod.LAST_WEEK: {
-      const lastWeekStart = startOfWeek(subDays(zonedNow, 7), { weekStartsOn: 1 });
+      const lastWeekStart = startOfWeek(subDays(zonedNow, 7), {
+        weekStartsOn: 1,
+      });
       startZoned = lastWeekStart;
       endZoned = endOfWeek(lastWeekStart, { weekStartsOn: 1 });
       label = `Last week (${format(startZoned, 'MMM d')} – ${format(endZoned, 'MMM d')})`;
@@ -158,6 +161,52 @@ export function resolveDateRange(
 }
 
 /**
+ * Inclusive `{ gte, lte }` window for a pair of `YYYY-MM-DD` strings, resolved
+ * in the clinic's timezone.
+ *
+ * Reports take two bare dates from a `<input type="date">` and mean "the clinic's
+ * calendar day". Building the bounds with `new Date('2026-06-03')` instead parses
+ * UTC midnight, and a follow-up `setHours`/`'T23:59:59'` resolves in the *server's*
+ * zone — so the window becomes 03:00 EAT to 23:59:59 EAT. Rows in the first three
+ * hours of the day are dropped, and because the previous day's window ends at
+ * 20:59:59 UTC they are not picked up there either: a record created at 01:43 EAT
+ * is invisible on both days.
+ *
+ * Returns `undefined` when neither edge is given, so callers can spread it
+ * straight into a `where` clause.
+ *
+ * @throws BadRequestException when a value is not a parseable date.
+ */
+export function clinicDateRange(
+  startDate?: string,
+  endDate?: string,
+  timezone: string = DEFAULT_REPORT_TIMEZONE,
+): { gte?: Date; lte?: Date } | undefined {
+  const parse = (value: string, field: string): Date => {
+    const d = new Date(value);
+    if (isNaN(d.getTime())) {
+      throw new BadRequestException(`Invalid ${field}: "${value}"`);
+    }
+    return d;
+  };
+
+  const range: { gte?: Date; lte?: Date } = {};
+  if (startDate) {
+    range.gte = fromZonedTime(
+      startOfDay(toZonedTime(parse(startDate, 'startDate'), timezone)),
+      timezone,
+    );
+  }
+  if (endDate) {
+    range.lte = fromZonedTime(
+      endOfDay(toZonedTime(parse(endDate, 'endDate'), timezone)),
+      timezone,
+    );
+  }
+  return Object.keys(range).length ? range : undefined;
+}
+
+/**
  * Build a Prisma `where.<field>` filter from a resolved range.
  * Use this everywhere instead of constructing `{ gte, lte }` manually.
  */
@@ -185,7 +234,10 @@ export enum ActivityAxis {
  * Choose which timestamp field to filter on for a given entity + axis.
  * Returns the Prisma field name (camelCase).
  */
-export function activityField(entity: 'visit' | 'session' | 'plan', axis: ActivityAxis): string {
+export function activityField(
+  entity: 'visit' | 'session' | 'plan',
+  axis: ActivityAxis,
+): string {
   switch (entity) {
     case 'visit':
       return axis === ActivityAxis.CREATED
