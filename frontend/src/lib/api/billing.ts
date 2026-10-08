@@ -159,9 +159,15 @@ export const billingApi = {
       .then((r) => r.data),
 
   /** Void an invoice (handles DRAFT / ACTIVE / PARTIALLY_PAID / PAID) */
-  voidInvoice: (id: string, reason: string, voidedBy?: string) =>
+  voidInvoice: (id: string, reason: string) =>
     api
-      .patch<Invoice>(`/billing/invoices/${id}/void`, { reason, voidedBy })
+      .patch<Invoice>(`/billing/invoices/${id}/void`, { reason })
+      .then((r) => r.data),
+
+  /** Soft-delete a DRAFT invoice (posted invoices must be voided instead). */
+  deleteDraftInvoice: (id: string, reason: string) =>
+    api
+      .delete<Invoice>(`/billing/invoices/${id}`, { data: { reason } })
       .then((r) => r.data),
 
   /** Record a payment on an invoice */

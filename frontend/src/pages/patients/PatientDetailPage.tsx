@@ -730,6 +730,13 @@ export function PatientDetailPage() {
   return (
     <div className="min-h-screen bg-muted/50">
       <div className="max-w-screen-2xl mx-auto px-2 py-4 space-y-4">
+        {patient.deletedAt && (
+          <div className="rounded-lg border border-danger/25 bg-danger-muted/60 px-4 py-2.5 text-sm text-danger">
+            This patient was deleted on {formatDate(patient.deletedAt)}
+            {patient.deletedReason ? ` — ${patient.deletedReason}` : ""}. An
+            admin can restore them from Patients → Deleted patients.
+          </div>
+        )}
         {/* ── Patient Header Card ──────────────────────────────────────── */}
         <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
           {/* Dark top bar */}

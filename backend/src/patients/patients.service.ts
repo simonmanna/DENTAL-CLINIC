@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -98,6 +99,8 @@ export class PatientsService {
       query;
 
     const where: Prisma.PatientWhereInput = {
+      // Soft-deleted patients only show in the "deleted" view.
+      deletedAt: query.deleted ? { not: null } : null,
       ...(isActive !== undefined && { isActive }),
       ...(gender && { gender: gender as any }),
       ...(search && {
@@ -236,6 +239,7 @@ export class PatientsService {
         SELECT COALESCE(AVG(EXTRACT(YEAR FROM AGE(NOW(), "dateOfBirth"))), 0)::int as avg_age
         FROM patients
         WHERE "dateOfBirth" IS NOT NULL
+          ${query.deleted ? Prisma.sql` AND "deletedAt" IS NOT NULL` : Prisma.sql` AND "deletedAt" IS NULL`}
           ${
             query.search
               ? Prisma.sql` AND (
@@ -442,6 +446,96 @@ export class PatientsService {
     });
   }
 
+  /**
+   * Soft delete: the patient leaves every list/search but the row and all of
+   * its clinical + billing history stay intact, and it can be restored.
+   * Blocked while the patient still owes money on a posted invoice.
+   */
+  async softDelete(
+    id: string,
+    dto: { reason?: string } = {},
+    deletedById?: string,
+  ) {
+    const patient = await this.prisma.patient.findUnique({
+      where: { id },
+      select: { id: true, deletedAt: true },
+    });
+    if (!patient) throw new NotFoundException(`Patient ${id} not found`);
+    if (patient.deletedAt) {
+      throw new BadRequestException('Patient is already deleted');
+    }
+
+    const owing = await this.prisma.invoice.count({
+      where: {
+        patientId: id,
+        deletedAt: null,
+        status: 'POSTED',
+        balance: { gt: 0 },
+      },
+    });
+    if (owing > 0) {
+      throw new BadRequestException(
+        `Cannot delete patient: ${owing} invoice(s) still have an outstanding balance. ` +
+          `Settle or void them first.`,
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.patient.update({
+        where: { id },
+        data: {
+          deletedAt: new Date(),
+          deletedById: deletedById ?? null,
+          deletedReason: dto.reason ?? null,
+          isActive: false,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          userId: deletedById ?? null,
+          action: 'DELETE',
+          module: 'PATIENTS',
+          entityType: 'Patient',
+          recordId: id,
+          reason: dto.reason ?? null,
+        },
+      });
+      return updated;
+    });
+  }
+
+  async restore(id: string, restoredById?: string) {
+    const patient = await this.prisma.patient.findUnique({
+      where: { id },
+      select: { id: true, deletedAt: true },
+    });
+    if (!patient) throw new NotFoundException(`Patient ${id} not found`);
+    if (!patient.deletedAt) {
+      throw new BadRequestException('Patient is not deleted');
+    }
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.patient.update({
+        where: { id },
+        data: {
+          deletedAt: null,
+          deletedById: null,
+          deletedReason: null,
+          isActive: true,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          userId: restoredById ?? null,
+          action: 'RESTORE',
+          module: 'PATIENTS',
+          entityType: 'Patient',
+          recordId: id,
+        },
+      });
+      return updated;
+    });
+  }
+
   async getVisitHistory(id: string, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
     const [total, records] = await Promise.all([
@@ -490,15 +584,17 @@ export class PatientsService {
 
   async getStats() {
     const [total, active, today, thisMonth] = await Promise.all([
-      this.prisma.patient.count(),
-      this.prisma.patient.count({ where: { isActive: true } }),
+      this.prisma.patient.count({ where: { deletedAt: null } }),
+      this.prisma.patient.count({ where: { isActive: true, deletedAt: null } }),
       this.prisma.patient.count({
         where: {
+          deletedAt: null,
           registeredAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
         },
       }),
       this.prisma.patient.count({
         where: {
+          deletedAt: null,
           registeredAt: {
             gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
           },

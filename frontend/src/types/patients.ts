@@ -22,6 +22,8 @@ export interface Patient {
   occupation?: string;
   previousCardNumber?: string;
   isActive?: boolean;
+  deletedAt?: string | null;
+  deletedReason?: string | null;
   createdAt: string;
   updatedAt: string;
   

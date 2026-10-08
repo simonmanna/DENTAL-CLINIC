@@ -993,6 +993,10 @@ model Patient {
   previousCardNumber String?
   avatar             String?
   isActive           Boolean   @default(true)
+  // Soft delete — patients are never hard-deleted (clinical/billing history).
+  deletedAt          DateTime?
+  deletedById        String?
+  deletedReason      String?
   registeredAt       DateTime  @default(now())
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
@@ -1029,6 +1033,7 @@ model Patient {
   patientConditions     PatientCondition[]
   treatmentConsumptions TreatmentConsumption[]
 
+  @@index([deletedAt])
   @@map("patients")
 }
 

@@ -104,6 +104,16 @@ export class PatientQueryDto {
   })
   isActive?: boolean;
 
+  // true → list soft-deleted patients instead of live ones.
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
+  deleted?: boolean;
+
   // ── NEW: Age filtering ─────────────────────────────────────────
   @IsOptional()
   @IsInt()

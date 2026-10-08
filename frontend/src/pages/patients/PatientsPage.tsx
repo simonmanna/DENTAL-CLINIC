@@ -53,8 +53,11 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
+  RotateCcw,
 } from "lucide-react";
 import { ActionButton, RowActions } from "@/components/ui/action-button";
+import { usePermissions } from "@/hooks/usePermissions";
+import { DeletePatientDialog } from "./components/DeletePatientDialog";
 
 interface PaginatedResponse<T> {
   data: T[];
@@ -1293,6 +1296,10 @@ export function PatientsPage() {
   const [page, setPage] = useState(1);
   const [showAdd, setShowAdd] = useState(false);
   const [editPatient, setEditPatient] = useState<any>(null);
+  // Soft delete — admins can switch the list to the deleted patients to restore.
+  const { isAdmin } = usePermissions();
+  const [showDeleted, setShowDeleted] = useState(false);
+  const [deletePatient, setDeletePatient] = useState<Patient | null>(null);
 
   // Debounce the search box so each keystroke doesn't fire a request (and
   // re-render the table mid-typing).
@@ -1311,7 +1318,7 @@ export function PatientsPage() {
     isFetching,
     refetch,
   } = useQuery<{ data: Patient[]; meta: any | null }>({
-    queryKey: ["patients", { page, search, genderFilter, dateFrom, dateTo }],
+    queryKey: ["patients", { page, search, genderFilter, dateFrom, dateTo, showDeleted }],
     queryFn: () => {
       const params: Record<string, string | number> = {
         page,
@@ -1321,6 +1328,7 @@ export function PatientsPage() {
       if (genderFilter) params.gender = genderFilter;
       if (dateFrom) params.dateFrom = dateFrom;
       if (dateTo) params.dateTo = dateTo;
+      if (showDeleted) params.deleted = "true";
       return patientsApi.getAllWithMeta(params);
     },
     placeholderData: (previousData) => previousData,
@@ -1458,6 +1466,30 @@ export function PatientsPage() {
     onError: (error: any) => notifySaveError(error, "update"),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      patientsApi.softDelete(id, reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["patients"] });
+      qc.invalidateQueries({ queryKey: ["patient-stats"] });
+      notify.success("Patient deleted", `${patientName(deletePatient)} was moved to Deleted patients.`);
+      setDeletePatient(null);
+    },
+    onError: (error: any) =>
+      notify.error("Could not delete patient", apiMessage(error) || "Something went wrong. Please try again."),
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: (p: Patient) => patientsApi.restore(p.id),
+    onSuccess: (_d, p) => {
+      qc.invalidateQueries({ queryKey: ["patients"] });
+      qc.invalidateQueries({ queryKey: ["patient-stats"] });
+      notify.success("Patient restored", `${patientName(p)} is back in the patient list.`);
+    },
+    onError: (error: any) =>
+      notify.error("Could not restore patient", apiMessage(error) || "Something went wrong. Please try again."),
+  });
+
   const patients = patientsResp?.data || [];
   const apiMeta = patientsResp?.meta;
 
@@ -1491,7 +1523,7 @@ export function PatientsPage() {
           <p>
             {isLoading
               ? " "
-              : `${meta.total.toLocaleString()} ${hasFilters ? "matching" : "registered"} patient${meta.total === 1 ? "" : "s"}`}
+              : `${meta.total.toLocaleString()} ${showDeleted ? "deleted" : hasFilters ? "matching" : "registered"} patient${meta.total === 1 ? "" : "s"}`}
           </p>
         </div>
         <div className="pts-header-actions">
@@ -1554,6 +1586,21 @@ export function PatientsPage() {
             <option value="FEMALE">Female</option>
             <option value="OTHER">Other</option>
           </select>
+
+          {isAdmin && (
+            <select
+              className="pts-select"
+              aria-label="Show active or deleted patients"
+              value={showDeleted ? "deleted" : "active"}
+              onChange={(e) => {
+                setShowDeleted(e.target.value === "deleted");
+                setPage(1);
+              }}
+            >
+              <option value="active">Active patients</option>
+              <option value="deleted">Deleted patients</option>
+            </select>
+          )}
 
           {/* ── Registered date range filter ─────────────────────────────── */}
           <div className="pts-daterange" title="Filter by registration date">
@@ -1834,7 +1881,23 @@ export function PatientsPage() {
                           <td>
                             <RowActions>
                               <ActionButton iconOnly tone="view" label={`View ${fullName}`} onClick={open} />
-                              <ActionButton iconOnly tone="edit" label={`Edit ${fullName}`} onClick={() => setEditPatient(p)} />
+                              {showDeleted ? (
+                                <ActionButton
+                                  iconOnly
+                                  tone="success"
+                                  icon={RotateCcw}
+                                  label={`Restore ${fullName}`}
+                                  loading={restoreMutation.isPending && restoreMutation.variables?.id === p.id}
+                                  onClick={() => restoreMutation.mutate(p)}
+                                />
+                              ) : (
+                                <>
+                                  <ActionButton iconOnly tone="edit" label={`Edit ${fullName}`} onClick={() => setEditPatient(p)} />
+                                  {isAdmin && (
+                                    <ActionButton iconOnly tone="delete" label={`Delete ${fullName}`} onClick={() => setDeletePatient(p)} />
+                                  )}
+                                </>
+                              )}
                             </RowActions>
                           </td>
                         </tr>
@@ -1867,6 +1930,18 @@ export function PatientsPage() {
         mode="add"
         dentists={dentists}
         defaultDentistId={defaultDentistId}
+      />
+
+      {/* ── Delete (soft) ── */}
+      <DeletePatientDialog
+        key={deletePatient?.id}
+        open={!!deletePatient}
+        patientName={patientName(deletePatient)}
+        loading={deleteMutation.isPending}
+        onClose={() => setDeletePatient(null)}
+        onConfirm={(reason) =>
+          deletePatient && deleteMutation.mutate({ id: deletePatient.id, reason })
+        }
       />
 
       {/* ── Edit Modal ── */}

@@ -1524,10 +1524,29 @@ export class InvoicesService {
    *   • Cash flow entries stay untouched — they reflect cash that was
    *     physically received.
    */
+  /**
+   * Soft-delete a DRAFT invoice. Runs the same reversal as a void (ledger
+   * entries voided, procedures/sessions released for re-billing) and also
+   * stamps `deletedAt`, so the invoice drops out of every list. The row is
+   * kept for audit — invoices are never hard-deleted.
+   */
+  deleteDraftInvoice(
+    id: string,
+    dto: { reason?: string; deletedBy?: string } = {},
+  ) {
+    return this.voidInvoice(
+      id,
+      { reason: dto.reason, voidedBy: dto.deletedBy },
+      { softDelete: true },
+    );
+  }
+
   async voidInvoice(
     id: string,
     dto: { reason?: string; voidedBy?: string } = {},
+    opts: { softDelete?: boolean } = {},
   ) {
+    const softDelete = opts.softDelete === true;
     const invoice = await this.prisma.invoice.findUnique({
       where: { id },
       select: {
@@ -1535,11 +1554,17 @@ export class InvoicesService {
         status: true,
         invoiceNumber: true,
         amountPaid: true,
-        items: { select: { id: true, ledgerEntryId: true, itemType: true, prescriptionItemId: true, quantity: true } },
+        deletedAt: true,
+        items: { select: { id: true, ledgerEntryId: true, itemType: true, prescriptionItemId: true, quantity: true, status: true } },
       },
     });
-    if (!invoice) throw new NotFoundException('Invoice not found');
+    if (!invoice || invoice.deletedAt) throw new NotFoundException('Invoice not found');
 
+    if (softDelete && invoice.status !== InvoiceStatus.DRAFT) {
+      throw new BadRequestException(
+        `Only DRAFT invoices can be deleted. Void this ${invoice.status} invoice instead.`,
+      );
+    }
     if (invoice.status === InvoiceStatus.VOID) {
       throw new BadRequestException('Invoice is already voided');
     }
@@ -1588,7 +1613,7 @@ export class InvoicesService {
       });
       if (activeReceiptCount > 0) {
         throw new BadRequestException(
-          `Cannot void invoice ${invoice.invoiceNumber}: ${activeReceiptCount} active ` +
+          `Cannot ${softDelete ? 'delete' : 'void'} invoice ${invoice.invoiceNumber}: ${activeReceiptCount} active ` +
             `receipt(s) must be voided first so their cash flow is reversed.`,
         );
       }
@@ -1600,7 +1625,10 @@ export class InvoicesService {
         where: {
           id,
           version: expectedVersion,
-          status: { in: [InvoiceStatus.DRAFT, InvoiceStatus.POSTED] },
+          deletedAt: null,
+          status: softDelete
+            ? InvoiceStatus.DRAFT
+            : { in: [InvoiceStatus.DRAFT, InvoiceStatus.POSTED] },
         },
         data: {
           status: InvoiceStatus.VOID,
@@ -1609,6 +1637,11 @@ export class InvoicesService {
           voidedBy: dto.voidedBy ?? null,
           voidReason: dto.reason ?? null,
           updatedById: dto.voidedBy ?? null,
+          ...(softDelete && {
+            deletedAt: new Date(),
+            deletedById: dto.voidedBy ?? null,
+            deletedReason: dto.reason ?? null,
+          }),
         },
       });
       if (flipped.count === 0) {
@@ -1642,7 +1675,7 @@ export class InvoicesService {
       await tx.auditLog.create({
         data: {
           userId: dto.voidedBy ?? null,
-          action: 'VOID',
+          action: softDelete ? 'DELETE' : 'VOID',
           module: 'BILLING',
           entityType: 'Invoice',
           recordId: id,
@@ -1656,6 +1689,7 @@ export class InvoicesService {
           newData: {
             status: InvoiceStatus.VOID,
             voidReason: dto.reason ?? null,
+            deleted: softDelete,
           } as Prisma.InputJsonValue,
         },
       });
@@ -1696,10 +1730,18 @@ export class InvoicesService {
         data: { status: 'VOID' },
       });
 
-      // 3a. Restore stock for PRESCRIPTION items
-      const rxVoidItems = invoice.items.filter(
-        (i) => i.itemType === 'PRESCRIPTION' && i.prescriptionItemId,
-      );
+      // 3a. Restore stock for PRESCRIPTION items. Stock is only deducted when
+      //     the invoice is activated (DRAFT → POSTED), so a DRAFT has nothing
+      //     to give back — restoring here would inflate stock.
+      const rxVoidItems =
+        invoice.status === InvoiceStatus.POSTED
+          ? invoice.items.filter(
+              (i) =>
+                i.itemType === 'PRESCRIPTION' &&
+                i.prescriptionItemId &&
+                i.status !== 'VOID',
+            )
+          : [];
       if (rxVoidItems.length > 0) {
         let locId: string | null = null;
         const setting = await tx.clinicSettings.findUnique({
@@ -1769,8 +1811,9 @@ export class InvoicesService {
                 referenceType: 'INVOICE_VOID',
                 referenceId: id,
                 notes: `Invoice ${invoice.invoiceNumber} voided — stock restored`,
-                performedById: null,
-                performedByStaffId: dto.voidedBy ?? null,
+                // voidedBy is a User id (not a Staff id).
+                performedById: dto.voidedBy ?? null,
+                performedByStaffId: null,
               },
             });
           }
@@ -2011,7 +2054,8 @@ export class InvoicesService {
     }
 
     // ── Build Prisma where clause ─────────────────────────────────────
-    const where: Prisma.InvoiceWhereInput = {};
+    // Soft-deleted drafts are gone from every list (kept only for audit).
+    const where: Prisma.InvoiceWhereInput = { deletedAt: null };
     if (params.patientId) where.patientId = params.patientId;
     if (params.visitId) where.visitId = params.visitId;
     if (params.status && params.status !== 'ALL') where.status = params.status as any;

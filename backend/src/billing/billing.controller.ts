@@ -329,9 +329,26 @@ export class BillingController {
     @Body() dto: VoidInvoiceDto,
     @CurrentUser('id') currentUserId: string | undefined,
   ) {
+    // The actor is always the authenticated user. A client-sent `voidedBy`
+    // (historically a display name) is ignored: it lands in FK columns
+    // (audit_logs.userId) and a non-id value failed the void with a 409.
     return this.invoices.voidInvoice(id, {
       reason: dto.reason,
-      voidedBy: dto.voidedBy ?? currentUserId,
+      voidedBy: currentUserId,
+    });
+  }
+
+  // Soft-delete a DRAFT invoice (posted invoices must be voided instead).
+  @Delete('invoices/:id')
+  @Roles(...CAN_EDIT_INVOICE)
+  deleteDraftInvoice(
+    @Param('id') id: string,
+    @Body() dto: VoidInvoiceDto,
+    @CurrentUser('id') currentUserId: string | undefined,
+  ) {
+    return this.invoices.deleteDraftInvoice(id, {
+      reason: dto?.reason,
+      deletedBy: currentUserId,
     });
   }
 

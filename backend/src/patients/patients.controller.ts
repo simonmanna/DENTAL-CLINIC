@@ -19,6 +19,7 @@ import {
 } from './dto/patient.dto';
 import { PatientReportQueryDto, ReportPeriod } from './dto/report-query.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
 
 @ApiTags('Patients')
@@ -135,9 +136,25 @@ export class PatientsController {
     return this.svc.update(id, dto);
   }
 
+  // Soft delete — the patient is hidden from lists but all history is kept
+  // and the record can be restored.
   @Delete(':id')
-  deactivate(@Param('id') id: string) {
-    return this.svc.deactivate(id);
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  softDelete(
+    @Param('id') id: string,
+    @Body() dto: { reason?: string },
+    @CurrentUser('id') currentUserId: string | undefined,
+  ) {
+    return this.svc.softDelete(id, { reason: dto?.reason }, currentUserId);
+  }
+
+  @Post(':id/restore')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  restore(
+    @Param('id') id: string,
+    @CurrentUser('id') currentUserId: string | undefined,
+  ) {
+    return this.svc.restore(id, currentUserId);
   }
 
   @Get(':id/visits')

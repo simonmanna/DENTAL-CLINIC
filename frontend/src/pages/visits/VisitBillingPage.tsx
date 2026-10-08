@@ -34,7 +34,6 @@ import {
   Pencil,
 } from "lucide-react";
 import { billingApi } from "@/lib/api/billing";
-import { useAuthStore } from "@/store/auth.store";
 import { usePermissions } from "@/hooks/usePermissions";
 import { ReceivedByPicker } from "@/components/billing/ReceivedByPicker";
 import type {
@@ -136,23 +135,36 @@ function Spinner({ size = "sm" }: { size?: "sm" | "md" }) {
   );
 }
 
+/** Server error text for a failed mutation (Nest sends `message` as string or string[]). */
+function apiErrorMessage(err: unknown): string | null {
+  if (!err) return null;
+  const msg = (err as any)?.response?.data?.message;
+  if (Array.isArray(msg)) return msg.join(", ");
+  return msg || (err as any)?.message || "Request failed";
+}
+
 // ─── Void Invoice Dialog ──────────────────────────────────────────────────────
 
 function VoidInvoiceDialog({
   invoice,
+  mode = "void",
   onClose,
   onConfirm,
   isPending,
+  error,
 }: {
   invoice: Invoice;
+  /** "void" keeps the invoice visible as VOID; "delete" soft-deletes a DRAFT. */
+  mode?: "void" | "delete";
   onClose: () => void;
   onConfirm: (reason: string) => void;
   isPending: boolean;
+  error?: string | null;
 }) {
   const [reason, setReason] = useState("");
-  const isPartialOrPaid =
-    invoice.paymentStatus === "PARTIALLY_PAID" ||
-    invoice.paymentStatus === "PAID";
+  const isDelete = mode === "delete";
+  const activeReceiptCount =
+    invoice.receipts?.filter((r) => r.status === "ACTIVE").length ?? 0;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
@@ -160,7 +172,7 @@ function VoidInvoiceDialog({
           <div className="flex items-center gap-2">
             <Ban className="w-4 h-4 text-danger" />
             <h2 className="text-sm font-semibold text-foreground">
-              Void Invoice
+              {isDelete ? "Delete Draft Invoice" : "Void Invoice"}
             </h2>
           </div>
           <button
@@ -180,22 +192,33 @@ function VoidInvoiceDialog({
               {formatCurrency(invoice.total, invoice.currency)}
             </span>
           </div>
-          {isPartialOrPaid && (
+          {isDelete && (
+            <p className="text-xs text-muted-foreground">
+              The draft is removed from all invoice lists and its procedures
+              are released so they can be billed again. It is kept in the
+              audit trail.
+            </p>
+          )}
+          {activeReceiptCount > 0 && (
             <div className="bg-warning-muted/60 border border-warning/25 rounded-lg px-3 py-2.5 text-xs text-warning">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="w-3.5 h-3.5 text-warning mt-0.5 shrink-0" />
                 <div>
                   <p className="font-semibold mb-0.5">
-                    Receipts will be automatically reversed
+                    Void the receipts first
                   </p>
                   <p>
-                    All{" "}
-                    {invoice.receipts?.filter((r) => r.status === "ACTIVE")
-                      .length ?? 0}{" "}
-                    active receipt(s) will be voided.
+                    This invoice has {activeReceiptCount} active receipt(s).
+                    Void them from the Receipts page so the cash is reversed,
+                    then {isDelete ? "delete" : "void"} the invoice.
                   </p>
                 </div>
               </div>
+            </div>
+          )}
+          {error && (
+            <div className="bg-danger-muted/60 border border-danger/25 rounded-lg px-3 py-2 text-xs text-danger">
+              {error}
             </div>
           )}
           <div>
@@ -205,7 +228,7 @@ function VoidInvoiceDialog({
             <textarea
               rows={3}
               className="w-full text-sm border border-input rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-danger/30 resize-none"
-              placeholder="Describe why this invoice is being voided..."
+                            placeholder={`Describe why this invoice is being ${isDelete ? "deleted" : "voided"}...`}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
             />
@@ -220,12 +243,17 @@ function VoidInvoiceDialog({
           </button>
           <button
             onClick={() => onConfirm(reason)}
-            disabled={!reason.trim() || isPending}
+            disabled={!reason.trim() || isPending || activeReceiptCount > 0}
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-danger text-white text-sm font-medium hover:bg-danger disabled:opacity-50"
           >
             {isPending ? (
               <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Voiding...
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
+                {isDelete ? "Deleting..." : "Voiding..."}
+              </>
+            ) : isDelete ? (
+              <>
+                <Trash2 className="w-3.5 h-3.5" /> Delete Draft
               </>
             ) : (
               <>
@@ -1037,13 +1065,9 @@ export function VisitBillingPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { user } = useAuthStore();
   // Void + currency-change are ADMIN_ONLY on the backend — hide them for
   // everyone else instead of surfacing a 403 on click.
   const { isAdmin, userRole } = usePermissions();
-  const currentUserName = user?.staff
-    ? `${user.staff.firstName} ${user.staff.lastName}`.trim()
-    : (user?.email ?? undefined);
   const patientName = searchParams.get("patientName") ?? "";
   const visitCode = searchParams.get("visitCode") ?? "";
 
@@ -1051,6 +1075,7 @@ export function VisitBillingPage() {
   const [showPayment, setShowPayment] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [showVoidDialog, setShowVoidDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [inputCurrency, setInputCurrency] = useState<string>(BASE_CURRENCY);
   const [activeTabInvoiceId, setActiveTabInvoiceId] = useState<string | null>(
     null,
@@ -1363,12 +1388,23 @@ export function VisitBillingPage() {
     onSuccess: () => invalidate(),
   });
 
+  // The actor is taken from the auth token server-side.
   const voidMutation = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
-      billingApi.voidInvoice(id, reason, currentUserName),
+      billingApi.voidInvoice(id, reason),
     onSuccess: () => {
       invalidate();
       setShowVoidDialog(false);
+    },
+  });
+
+  const deleteDraftMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      billingApi.deleteDraftInvoice(id, reason),
+    onSuccess: () => {
+      setActiveTabInvoiceId(null);
+      invalidate();
+      setShowDeleteDialog(false);
     },
   });
 
@@ -1950,12 +1986,27 @@ export function VisitBillingPage() {
                     </button>
                   )}
                   <div className="flex items-center gap-2">
-                  {isAdmin &&
-                    ["DRAFT", "POSTED", "CLOSED"].includes(
-                    selectedInvoice.status,
-                  ) && (
+                  {selectedInvoice.status === "DRAFT" &&
+                    (isAdmin ||
+                      userRole === UserRole.DENTIST ||
+                      userRole === UserRole.RECEPTIONIST) && (
                     <button
-                      onClick={() => setShowVoidDialog(true)}
+                      onClick={() => {
+                        deleteDraftMutation.reset();
+                        setShowDeleteDialog(true);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-danger/25 text-danger text-sm hover:bg-danger-muted/60"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Delete
+                    </button>
+                  )}
+                  {isAdmin &&
+                    ["DRAFT", "POSTED"].includes(selectedInvoice.status) && (
+                    <button
+                      onClick={() => {
+                        voidMutation.reset();
+                        setShowVoidDialog(true);
+                      }}
                       className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-danger/25 bg-danger text-white text-sm hover:bg-danger-muted/60"
                     >
                       <Ban className="w-3.5 h-3.5" /> Void
@@ -3038,6 +3089,19 @@ export function VisitBillingPage() {
                 voidMutation.mutate({ id: selectedInvoice.id, reason })
               }
               isPending={voidMutation.isPending}
+              error={apiErrorMessage(voidMutation.error)}
+            />
+          )}
+          {showDeleteDialog && (
+            <VoidInvoiceDialog
+              mode="delete"
+              invoice={selectedInvoice}
+              onClose={() => setShowDeleteDialog(false)}
+              onConfirm={(reason) =>
+                deleteDraftMutation.mutate({ id: selectedInvoice.id, reason })
+              }
+              isPending={deleteDraftMutation.isPending}
+              error={apiErrorMessage(deleteDraftMutation.error)}
             />
           )}
         </>

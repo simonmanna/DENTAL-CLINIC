@@ -69,6 +69,14 @@ getAllWithMeta: (params?: Record<string, string | number | undefined>) => {
   update: (id: string, data: UpdatePatientForm) =>
     api.patch<Patient>(`/patients/${id}`, data).then((r) => r.data),
 
+  /** Soft-delete a patient (hidden from lists, history kept, restorable). */
+  softDelete: (id: string, reason: string) =>
+    api.delete<Patient>(`/patients/${id}`, { data: { reason } }).then((r) => r.data),
+
+  /** Restore a soft-deleted patient */
+  restore: (id: string) =>
+    api.post<Patient>(`/patients/${id}/restore`).then((r) => r.data),
+
   /** Get patient statistics */
   getStats: () => api.get<PatientStats>("/patients/stats").then((r) => r.data),
 
