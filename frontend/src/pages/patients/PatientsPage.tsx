@@ -49,6 +49,7 @@ import {
   List,
   RefreshCw,
   Stethoscope,
+  CalendarPlus,
   AlertCircle,
   CheckCircle,
   Clock,
@@ -242,6 +243,17 @@ const STYLES = `
   .pts-btn-outline { background: var(--clr-surface); color: var(--clr-text); border-color: var(--clr-input); }
   .pts-btn-outline:hover:not(:disabled) { border-color: var(--clr-primary); color: var(--clr-primary); background: var(--clr-primary-l); }
   .pts-btn .pts-spin-icon { animation: pts-spin .8s linear infinite; }
+  /* Register-dialog actions: one distinct colour per outcome. */
+  .pts-btn-visit { background: hsl(24 90% 48%); color: #fff; box-shadow: var(--shadow-sm); }
+  .pts-btn-visit:hover:not(:disabled) { background: hsl(24 90% 42%); }
+  .pts-btn-appt { background: hsl(262 60% 52%); color: #fff; box-shadow: var(--shadow-sm); }
+  .pts-btn-appt:hover:not(:disabled) { background: hsl(262 60% 45%); }
+  .pts-modal-footer .pts-footer-spacer { flex: 1; }
+  .pts-modal-footer .pts-btn { padding: 0 12px; gap: 6px; font-size: .8125rem; }
+  @media (max-width: 640px) {
+    .pts-modal-footer .pts-footer-spacer { display: none; }
+    .pts-modal-footer .pts-btn { flex: 1 1 100%; }
+  }
 
   .pts-toolbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
   .pts-count-badge {
@@ -686,6 +698,8 @@ function PtsPageinator({
 
 /* ─── Form Modal (shared for Add + Edit) ───────────────────────────────────── */
 type WalkInVisit = { dentistId: string; chiefComplaint: string };
+/** What happens after the patient is saved (add mode only). */
+type AfterRegister = "none" | "visit" | "appointment";
 
 const EMPTY_FORM = {
   firstName: "",
@@ -738,7 +752,7 @@ function PatientFormModal({
 }: {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: any, visit?: WalkInVisit) => void;
+  onSubmit: (data: any, visit?: WalkInVisit, then?: AfterRegister) => void;
   loading: boolean;
   initial?: any;
   mode: "add" | "edit";
@@ -751,7 +765,7 @@ function PatientFormModal({
     chiefComplaint: "",
   });
   const [dentistError, setDentistError] = useState<string>();
-  const [submitted, setSubmitted] = useState<"patient" | "visit">("patient");
+  const [submitted, setSubmitted] = useState<AfterRegister>("none");
 
   const [form, setForm] = useState<any>(() =>
     initial
@@ -846,8 +860,15 @@ function PatientFormModal({
 
   const handleSubmit = () => {
     if (validate()) {
-      setSubmitted("patient");
+      setSubmitted("none");
       onSubmit(form);
+    }
+  };
+
+  const handleSubmitWithAppointment = () => {
+    if (validate()) {
+      setSubmitted("appointment");
+      onSubmit(form, undefined, "appointment");
     }
   };
 
@@ -857,7 +878,7 @@ function PatientFormModal({
     setDentistError(dentistOk ? undefined : "Choose the dentist for the visit");
     if (formOk && dentistOk) {
       setSubmitted("visit");
-      onSubmit(form, visit);
+      onSubmit(form, visit, "visit");
     }
   };
 
@@ -1101,7 +1122,7 @@ function PatientFormModal({
             <div className="pts-form-section">
               <div className="pts-section-label">
                 <span className="num">4</span>
-                <span>Visit Now (for Register Patient and Visit)</span>
+                <span>Visit Now (only for “Register Patient &amp; Visit”)</span>
               </div>
               <div className="pts-grid-2">
                 <Field label="Dentist" error={dentistError}>
@@ -1147,31 +1168,53 @@ function PatientFormModal({
           >
             Cancel
           </button>
+          <span className="pts-footer-spacer" />
           {mode === "add" && (
-            <button
-              className="pts-btn pts-btn-outline"
-              onClick={handleSubmitWithVisit}
-              disabled={loading}
-            >
-              {loading && submitted === "visit" ? (
-                <>
-                  <span className="pts-spinner" />
-                  Opening visit…
-                </>
-              ) : (
-                <>
-                  <Stethoscope size={15} />
-                  Register Patient and Visit
-                </>
-              )}
-            </button>
+            <>
+              <button
+                className="pts-btn pts-btn-appt"
+                onClick={handleSubmitWithAppointment}
+                disabled={loading}
+                title="Save the patient, then book an appointment for them"
+              >
+                {loading && submitted === "appointment" ? (
+                  <>
+                    <span className="pts-spinner" />
+                    Saving…
+                  </>
+                ) : (
+                  <>
+                    <CalendarPlus size={15} />
+                    Register Patient &amp; Appointment
+                  </>
+                )}
+              </button>
+              <button
+                className="pts-btn pts-btn-visit"
+                onClick={handleSubmitWithVisit}
+                disabled={loading}
+                title="Save the patient and open a visit with the chosen dentist now"
+              >
+                {loading && submitted === "visit" ? (
+                  <>
+                    <span className="pts-spinner" />
+                    Opening visit…
+                  </>
+                ) : (
+                  <>
+                    <Stethoscope size={15} />
+                    Register Patient &amp; Visit
+                  </>
+                )}
+              </button>
+            </>
           )}
           <button
             className="pts-btn pts-btn-primary"
             onClick={handleSubmit}
             disabled={loading}
           >
-            {loading && submitted === "patient" ? (
+            {loading && submitted === "none" ? (
               <>
                 <span className="pts-spinner" />
                 Saving…
@@ -1349,8 +1392,17 @@ export function PatientsPage() {
   };
 
   const addMutation = useMutation({
-    mutationFn: async ({ d, visit }: { d: any; visit?: WalkInVisit }) => {
+    mutationFn: async ({
+      d,
+      visit,
+      then,
+    }: {
+      d: any;
+      visit?: WalkInVisit;
+      then?: AfterRegister;
+    }) => {
       const patient = await patientsApi.create(preparePayload(d));
+      if (then === "appointment") return { patient, bookAppointment: true };
       if (!visit) return { patient };
       try {
         const created = await visitsApi.createWalkIn({
@@ -1365,12 +1417,15 @@ export function PatientsPage() {
         return { patient, visitFailed: true, visitError: apiMessage(e) };
       }
     },
-    onSuccess: ({ patient, visit, visitFailed, visitError }: any) => {
+    onSuccess: ({ patient, visit, visitFailed, visitError, bookAppointment }: any) => {
       refetch();
       qc.invalidateQueries({ queryKey: ["patient-stats"] });
       setShowAdd(false);
       const name = patientName(patient);
-      if (visit) {
+      if (bookAppointment) {
+        notify.success("Patient registered", `${name} was added. Choose a time for their appointment.`);
+        navigate(`/appointments?book=1&patientId=${encodeURIComponent(patient.id)}`);
+      } else if (visit) {
         notify.success("Patient registered", `${name} was added and a visit was opened.`);
         qc.invalidateQueries({ queryKey: ["appointments"] });
         qc.invalidateQueries({ queryKey: ["visits"] });
@@ -1807,7 +1862,7 @@ export function PatientsPage() {
       <PatientFormModal
         open={showAdd}
         onClose={() => setShowAdd(false)}
-        onSubmit={(d, visit) => addMutation.mutate({ d, visit })}
+        onSubmit={(d, visit, then) => addMutation.mutate({ d, visit, then })}
         loading={addMutation.isPending}
         mode="add"
         dentists={dentists}

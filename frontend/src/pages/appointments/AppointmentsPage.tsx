@@ -865,7 +865,17 @@ export function BookModal({
   });
 
   const patients: Patient[] = (patientsData as any)?.data || patientsData || [];
-  const selectedPatient = patients.find((pt) => pt.id === form.patientId);
+  // A just-registered patient (opened via ?patientId=) may not be in the first
+  // page of search results — fetch it directly so it shows as selected.
+  const listedPatient = patients.find((pt) => pt.id === form.patientId);
+  const { data: fetchedPatient } = useQuery<Patient>({
+    queryKey: ["patient", form.patientId],
+    queryFn: () => patientsApi.getById(form.patientId),
+    enabled: open && !!form.patientId && !patientsLoading && !listedPatient,
+  });
+  const selectedPatient =
+    listedPatient ??
+    (fetchedPatient?.id === form.patientId ? fetchedPatient : undefined);
   const age = selectedPatient?.dateOfBirth
     ? Math.floor(
         (Date.now() - new Date(selectedPatient.dateOfBirth).getTime()) /
@@ -1567,7 +1577,7 @@ export function RoleWarningDialog({
 export function AppointmentsPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [view, setView] = useState<"day" | "week">("week");
   const [selectedDate, setSelectedDate] = useState(new Date());
 
@@ -1578,7 +1588,15 @@ export function AppointmentsPage() {
   );
 
   const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
-  const [showBook, setShowBook] = useState(false);
+  // ?book=1 (e.g. "Register Patient & Appointment") opens the booking dialog.
+  const [showBook, setShowBook] = useState(searchParams.get("book") === "1");
+  const closeBook = () => {
+    setShowBook(false);
+    // Drop the one-shot ?book / ?patientId so a refresh doesn't reopen it.
+    if (searchParams.has("book") || searchParams.has("patientId")) {
+      setSearchParams({}, { replace: true });
+    }
+  };
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -1655,7 +1673,7 @@ export function AppointmentsPage() {
     mutationFn: appointmentsApi.create,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["cal"] });
-      setShowBook(false);
+      closeBook();
       toast.success("Appointment booked successfully");
     },
     onError: (error: any) => {
@@ -2295,7 +2313,7 @@ const handleStartVisit = () => {
       {/* ── Book Modal ── */}
       <BookModal
         open={showBook}
-        onClose={() => setShowBook(false)}
+        onClose={closeBook}
         onBook={(d) => bookMutation.mutate(d)}
         dentists={dentists}
         defaultPatientId={searchParams.get("patientId") || undefined}
