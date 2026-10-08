@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { notify } from "@/lib/notify";
 import { patientsApi } from "../../lib/api/patients";
 import { visitsApi } from "../../lib/api";
 import { staffApi } from "../../lib/api/staff-api";
@@ -1209,6 +1210,34 @@ function Field({ label, required, hint, children, error }: any) {
 }
 
 /* ─── Main Page ─────────────────────────────────────────────────────────────── */
+const patientName = (p: any) =>
+  [p?.firstName, p?.lastName].filter(Boolean).join(" ") || "Patient";
+
+const apiMessage = (e: any): string | undefined => {
+  const msg = e?.response?.data?.message;
+  if (!msg) return undefined;
+  return Array.isArray(msg) ? msg.join(" • ") : String(msg);
+};
+
+// Yellow for problems the user can fix (bad input, duplicates), red for
+// everything else (server down, permissions, unexpected failures).
+const notifySaveError = (error: any, action: "create" | "update") => {
+  const status = error?.response?.status;
+  const msg = apiMessage(error);
+  const verb = action === "create" ? "register" : "update";
+  if (status === 400 || status === 422) {
+    notify.warning("Please check the patient details", msg || "Some fields are invalid.");
+  } else if (status === 409) {
+    notify.warning("Patient already exists", msg || "A patient with these details is already registered.");
+  } else if (!error?.response) {
+    notify.error(`Could not ${verb} patient`, "Cannot reach the server. Check your connection and try again.");
+  } else if (status === 401 || status === 403) {
+    notify.error(`Could not ${verb} patient`, msg || "You don't have permission to do this.");
+  } else {
+    notify.error(`Could not ${verb} patient`, msg || "Something went wrong. Please try again.");
+  }
+};
+
 export function PatientsPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -1333,34 +1362,30 @@ export function PatientsPage() {
       } catch (e: any) {
         // The patient is saved; only the visit failed. Say so and fall back
         // to the patient's page rather than leaving the dialog half-done.
-        const msg = e?.response?.data?.message;
-        alert(
-          "Patient registered, but the visit could not be opened" +
-            (msg ? `:\n${Array.isArray(msg) ? msg.join("\n") : msg}` : "."),
-        );
-        return { patient, visitFailed: true };
+        return { patient, visitFailed: true, visitError: apiMessage(e) };
       }
     },
-    onSuccess: ({ patient, visit, visitFailed }: any) => {
+    onSuccess: ({ patient, visit, visitFailed, visitError }: any) => {
       refetch();
       qc.invalidateQueries({ queryKey: ["patient-stats"] });
       setShowAdd(false);
+      const name = patientName(patient);
       if (visit) {
+        notify.success("Patient registered", `${name} was added and a visit was opened.`);
         qc.invalidateQueries({ queryKey: ["appointments"] });
         qc.invalidateQueries({ queryKey: ["visits"] });
         navigate(`/visits/${visit.id}`);
       } else if (visitFailed) {
+        notify.warning(
+          "Patient registered, but the visit could not be opened",
+          visitError || `${name} was saved. Open a visit from their page.`,
+        );
         navigate(`/patients/${patient.id}`);
-      }
-    },
-    onError: (error: any) => {
-      if (error.response?.status === 400 && error.response?.data?.message) {
-        const errors = error.response.data.message;
-        alert(`Validation error:\n${Array.isArray(errors) ? errors.join("\n") : errors}`);
       } else {
-        alert("Failed to create patient. Please try again.");
+        notify.success("Patient registered", `${name} was added successfully.`);
       }
     },
+    onError: (error: any) => notifySaveError(error, "create"),
   });
 
   const editMutation = useMutation({
@@ -1369,18 +1394,13 @@ export function PatientsPage() {
         editPatient.id,
         preparePayload(d, editPatient.dateOfBirth), // ← Pass original DOB for edit
       ),
-    onSuccess: () => {
+    onSuccess: (updated: any) => {
       refetch();
+      qc.invalidateQueries({ queryKey: ["patient-stats"] });
+      notify.success("Patient updated", `${patientName(updated?.firstName ? updated : editPatient)}'s details were saved.`);
       setEditPatient(null);
     },
-    onError: (error: any) => {
-      if (error.response?.status === 400 && error.response?.data?.message) {
-        const errors = error.response.data.message;
-        alert(`Validation error:\n${Array.isArray(errors) ? errors.join("\n") : errors}`);
-      } else {
-        alert("Failed to update patient. Please try again.");
-      }
-    },
+    onError: (error: any) => notifySaveError(error, "update"),
   });
 
   const patients = patientsResp?.data || [];
