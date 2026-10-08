@@ -29,7 +29,6 @@ import {
   assertFdiTooth,
   assertSurfaces,
 } from '../common/dental/dental-validation';
-import { assertToothPresence } from '../common/dental/tooth-presence';
 import { assertVisitWritableTx } from '../visit/visit-guard';
 import { TreatmentPlansService } from '../treatment-plans/treatment-plans.service';
 
@@ -857,15 +856,6 @@ export class ChartEntryService {
 
     const fdi = dto.toothNumber;
     const surfaces = assertSurfaces(dto.surfaces, fdi);
-
-    // Guard: don't record surface-level work (e.g. caries MOD) on a tooth
-    // already charted as absent. Recording the absence itself, or a non-surface
-    // finding, is unaffected (assertToothPresence is a no-op without surfaces).
-    await assertToothPresence(this.prisma, {
-      patientId: dto.patientId,
-      toothNumbers: [fdi],
-      surfaces,
-    });
 
     const result = await this.prisma.$transaction(async (tx) => {
       await assertVisitWritableTx(tx, {

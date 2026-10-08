@@ -26,6 +26,7 @@ import {
 import { SessionExecutionDialog } from "./SessionExecutionDialog";
 import { ProcedureSessionManager } from "./ProcedureSessionManager";
 import { ProcedureDetailDialog } from "./ProcedureDetailDialog";
+import { notify } from "@/lib/notify";
 import { toast } from "react-hot-toast";
 
 import { treatmentPlansApi } from "../../../lib/api/treatment-plans";
@@ -1333,8 +1334,10 @@ export const TreatmentPlanTab: React.FC<TreatmentPlanTabProps> = ({
 
   const addProcMut = useMutation({
     mutationFn: (d: any) => txApi.addProcedure(activePlanId!, d),
-    onSuccess: () => {
-      toast.success("Procedure added");
+    onSuccess: (added: any) => {
+      const warnings: string[] = added?.warnings ?? [];
+      if (warnings.length) warnings.forEach((w) => notify.warning("Procedure added", w));
+      else toast.success("Procedure added");
       inv();
       setShowAddModal(false);
     },

@@ -270,19 +270,19 @@ describe('ChartEntryService', () => {
       }
     });
 
-    it('ADD_CONDITION blocks a surface-bearing condition on an absent tooth', async () => {
-      // Tooth 16 already charted absent (K08.1) → caries MOD must be rejected.
+    it('ADD_CONDITION allows a surface-bearing condition on a tooth charted absent', async () => {
+      // Absence is advisory only — a stale "missing" marker must not block charting.
       prisma.chartEntry.findMany.mockResolvedValue([
         { toothNumber: 16, type: 'CONDITION', conditionCode: 'K08.1' },
       ]);
-      await expect(
-        service.executeQuickAction({
-          patientId: 'p1', toothNumber: 16, action: 'ADD_CONDITION',
-          surfaces: ['MESIAL', 'OCCLUSAL', 'DISTAL'],
-          conditionLabel: 'Caries', conditionCode: 'K02.9',
-        } as any),
-      ).rejects.toBeInstanceOf(BadRequestException);
-      expect(prisma.chartEntry.create).not.toHaveBeenCalled();
+      prisma.chartEntry.updateMany.mockResolvedValue({ count: 0 });
+      prisma.chartEntry.create.mockResolvedValue({ id: 'ce8', createdAt: new Date(), updatedAt: new Date() });
+      const out = await service.executeQuickAction({
+        patientId: 'p1', toothNumber: 16, action: 'ADD_CONDITION',
+        surfaces: ['MESIAL', 'OCCLUSAL', 'DISTAL'],
+        conditionLabel: 'Caries', conditionCode: 'K02.9',
+      } as any);
+      expect(out.chartEntry.id).toBe('ce8');
     });
 
     it('ADD_CONDITION allows a NON-surface finding on an absent tooth', async () => {

@@ -54,7 +54,6 @@ import { assertVisitWritableTx, checkClinicalWrite } from './visit-guard';
 import { InvoiceLifecycleService } from '../billing/invoice-lifecycle.service';
 import { StockMovementService } from '../common/inventory/stock-movement.service';
 import { assertFdiTooth, assertSurfaces } from '../common/dental/dental-validation';
-import { assertToothPresence } from '../common/dental/tooth-presence';
 
 import {
   IsString,
@@ -874,11 +873,6 @@ export class VisitsService {
         ...new Set(toothNumbers.flatMap((t) => assertSurfaces(dto.surfaces, t))),
       ];
     }
-    await assertToothPresence(this.prisma as any, {
-      patientId: visit.patientId,
-      toothNumbers,
-      surfaces,
-    });
 
     const exchangeRate = await this.getClinicExchangeRate(procedure.currency);
 

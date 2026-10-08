@@ -37,10 +37,7 @@ import {
   findToothPresenceViolation,
   findDuplicateProcedure,
 } from '../common/dental/procedure-safety';
-import {
-  assertToothPresence,
-  findAbsentTeeth,
-} from '../common/dental/tooth-presence';
+import { findAbsentTeeth } from '../common/dental/tooth-presence';
 import { InvoiceLifecycleService } from '../billing/invoice-lifecycle.service';
 import { StockMovementService } from '../common/inventory/stock-movement.service';
 import { assertVisitWritableTx } from '../visit/visit-guard';
@@ -824,30 +821,28 @@ export class TreatmentPlansService {
   // ───────────────────────────────────────────────────────────────────────────
 
   /**
-   * Blocks restorative work on a tooth recorded ABSENT by a clinically-live
-   * (ACTIVE / MONITORED) condition. A RESOLVED / RULED_OUT absence no longer
-   * blocks — e.g. a mis-diagnosed extraction that was ruled out, or a site that
-   * was restored and had its absence condition resolved. Replacement procedures
-   * (implant / bridge / denture) are always allowed; surface-level work never is.
+   * Advisory only: returns a warning when the procedure targets a tooth recorded
+   * ABSENT by a clinically-live condition (and is not an implant / bridge /
+   * denture), or null. It never blocks — the dentist knows the mouth better
+   * than the chart, and a stale "missing" marker must not stop planning.
    *
    * Absence detection (dual-source, data-driven) lives in tooth-presence.ts; the
-   * allow/deny decision is the pure findToothPresenceViolation() so it is
-   * unit-tested without a DB (see procedure-safety.spec.ts).
+   * decision is the pure findToothPresenceViolation() (procedure-safety.spec.ts).
    */
-  async assertToothPresenceForProcedure(
+  async toothPresenceWarning(
     patientId: string,
     procedure: { name: string; code?: string | null },
     toothNumbers: number[],
     surfaces: (string | null | undefined)[],
-  ): Promise<void> {
-    if (toothNumbers.length === 0) return;
+  ): Promise<string | null> {
+    if (toothNumbers.length === 0) return null;
 
     const absentTeeth = await findAbsentTeeth(
       this.prisma,
       patientId,
       toothNumbers,
     );
-    if (absentTeeth.size === 0) return;
+    if (absentTeeth.size === 0) return null;
 
     const violation = findToothPresenceViolation({
       toothNumbers,
@@ -855,19 +850,12 @@ export class TreatmentPlansService {
       absentTeeth,
       isReplacement: isReplacementProcedure(procedure),
     });
-    if (!violation) return;
+    if (!violation) return null;
 
-    if (violation.kind === 'SURFACE_ON_ABSENT') {
-      throw new BadRequestException(
-        `Tooth ${violation.tooth} is recorded as absent — surface-level work ` +
-          `cannot be planned on a missing tooth. Restore the site first, or ` +
-          `resolve the absence if it was recorded in error.`,
-      );
-    }
-    throw new BadRequestException(
-      `Tooth ${violation.tooth} is recorded as absent — "${procedure.name}" ` +
-        `cannot be planned on a missing tooth. Use an implant / bridge / denture ` +
-        `to restore the site, or resolve the absence if it was recorded in error.`,
+    return (
+      `Tooth ${violation.tooth} is charted as missing. "${procedure.name}" was ` +
+      `added anyway — if the tooth is present, resolve the "missing" condition ` +
+      `on the chart.`
     );
   }
 
@@ -980,11 +968,11 @@ export class TreatmentPlansService {
       }
     }
 
-    // ── Clinical safety guards (run before the write transaction) ────────────
-    //   1. No restorative work on a tooth that is recorded ABSENT.
-    //   2. No duplicate of a procedure already active on the same tooth.
-    // Either throws a 400 / 409 so an invalid plan never persists.
-    await this.assertToothPresenceForProcedure(
+    // ── Clinical checks (run before the write transaction) ───────────────────
+    //   1. Work on a tooth charted ABSENT → allowed, returned as a warning.
+    //   2. Duplicate of a procedure already active on the same tooth → 409
+    //      (stops double-planning and double-billing).
+    const presenceWarning = await this.toothPresenceWarning(
       plan.patientId,
       procedure,
       toothNumbers,
@@ -1407,7 +1395,7 @@ export class TreatmentPlansService {
     ));
 
     const { _invoiceParams: _billed, ...result } = txResult as any;
-    return result;
+    return presenceWarning ? { ...result, warnings: [presenceWarning] } : result;
     } catch (e) {
     // A racing duplicate committed first; replay its stored response instead
     // of surfacing the unique-violation error to the caller.

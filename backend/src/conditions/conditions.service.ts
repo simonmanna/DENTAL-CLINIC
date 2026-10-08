@@ -11,10 +11,6 @@ import {
   assertFdiTooth,
   assertSurfaces,
 } from '../common/dental/dental-validation';
-import {
-  assertToothPresence,
-  findAbsentTeeth,
-} from '../common/dental/tooth-presence';
 
 import { CreateConditionDto } from './dto/create-condition.dto';
 import { UpdateConditionDto } from './dto/update-condition.dto';
@@ -694,13 +690,6 @@ async createPatientCondition(
   if (dto.toothNumber != null) assertFdiTooth(dto.toothNumber);
   const validatedSurfaces = assertSurfaces(dto.surfaces, dto.toothNumber ?? null);
 
-  // Guard: block a surface-level condition on a tooth charted as absent.
-  await assertToothPresence(this.prisma, {
-    patientId: dto.patientId,
-    toothNumbers: [dto.toothNumber],
-    surfaces: validatedSurfaces,
-  });
-
   if (condition.isToothSpecific && !dto.toothNumber)
     throw new BadRequestException(`Condition "${condition.name}" requires a tooth number`);
 
@@ -853,19 +842,11 @@ async updatePatientCondition(
     if (!visit) throw new NotFoundException(`Visit ${dto.visitId} not found for this patient`);
   }
 
-  // Validate tooth/surface on edit, and block surface work on an absent tooth.
-  // Uses the EFFECTIVE tooth (incoming, else the existing value) so a surface
-  // change on an unchanged tooth is still guarded.
+  // Validate tooth/surface on edit. Uses the EFFECTIVE tooth (incoming, else
+  // the existing value) so a surface change on an unchanged tooth is checked.
   const effectiveTooth = dto.toothNumber ?? existing.toothNumber ?? null;
   if (dto.toothNumber != null) assertFdiTooth(dto.toothNumber);
-  if (dto.surfaces !== undefined) {
-    const validated = assertSurfaces(dto.surfaces, effectiveTooth);
-    await assertToothPresence(this.prisma, {
-      patientId: existing.patientId,
-      toothNumbers: [effectiveTooth],
-      surfaces: validated,
-    });
-  }
+  if (dto.surfaces !== undefined) assertSurfaces(dto.surfaces, effectiveTooth);
 
   // Validate new providerId if supplied
   if (dto.providerId) {
@@ -1371,30 +1352,6 @@ async findOnePatientCondition(id: string, opts: { includeDeleted?: boolean } = {
         ce.surfaces = assertSurfaces(ce.surfaces, ce.toothNumber ?? null) as any;
       }
 
-      // Guard: block surface-level conditions on teeth already charted absent.
-      // Batched per patient (one absence query each) rather than N per-entry
-      // calls. Surfaces were canonicalised above, so filter(Boolean) is exact.
-      const surfaceTeethByPatient = new Map<string, number[]>();
-      for (const e of entries) {
-        const hasSurfaces = ((e.surfaces as any[])?.filter(Boolean).length ?? 0) > 0;
-        if (e.toothNumber != null && hasSurfaces) {
-          const list = surfaceTeethByPatient.get(e.patientId) ?? [];
-          list.push(e.toothNumber);
-          surfaceTeethByPatient.set(e.patientId, list);
-        }
-      }
-      for (const [pid, teeth] of surfaceTeethByPatient) {
-        const absent = await findAbsentTeeth(this.prisma, pid, teeth);
-        const blocked = teeth.find((t) => absent.has(t));
-        if (blocked != null) {
-          throw new BadRequestException(
-            `Tooth ${blocked} is recorded as absent — surface-level work cannot be ` +
-              `recorded on a missing tooth. Restore the site first (implant / bridge / ` +
-              `denture), or resolve the absence if it was recorded in error.`,
-          );
-        }
-      }
-
       // Validate providers up front so a stray empty-string providerId
       // doesn't crash the transaction halfway through.
       const providerIds = [
@@ -1623,11 +1580,6 @@ async findOnePatientCondition(id: string, opts: { includeDeleted?: boolean } = {
       if (update.toothNumber != null) assertFdiTooth(update.toothNumber);
       if (update.surfaces !== undefined) {
         update.surfaces = assertSurfaces(update.surfaces, effectiveTooth) as any;
-        await assertToothPresence(this.prisma, {
-          patientId: existing.patientId,
-          toothNumbers: [effectiveTooth],
-          surfaces: update.surfaces as any,
-        });
       }
 
       // Substantive edits require a reason (same rule as the single-row update)

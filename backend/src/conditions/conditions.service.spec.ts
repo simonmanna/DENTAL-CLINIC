@@ -232,21 +232,23 @@ describe('ConditionsService', () => {
       expect(out).toMatchObject({ id: 'pc1' });
     });
 
-    it('blocks a surface-bearing condition on a tooth charted as absent', async () => {
+    it('allows a surface-bearing condition on a tooth charted as absent', async () => {
       prisma.patient.findUnique.mockResolvedValue({ id: 'p1' });
       prisma.condition.findUnique.mockResolvedValue({
         id: 'c1', name: 'Caries', requiresSurface: true, isToothSpecific: true,
       });
-      prisma.patient.findUnique.mockResolvedValue({ id: 'p1' });
-      // Absence detection — tooth 16 is recorded absent.
+      // Tooth 16 is recorded absent — advisory only, never blocks.
       prisma.patientCondition.findMany.mockResolvedValue([{ toothNumber: 16 }]);
-      await expect(
-        service.createPatientCondition(
-          { patientId: 'p1', conditionId: 'c1', toothNumber: 16, surfaces: ['OCCLUSAL'] } as any,
-          'user-1',
-        ),
-      ).rejects.toBeInstanceOf(BadRequestException);
-      expect(prisma.patientCondition.create).not.toHaveBeenCalled();
+      prisma.patientCondition.create.mockResolvedValue({
+        id: 'pc1', patientId: 'p1', conditionId: 'c1', toothNumber: 16,
+        surfaces: ['OCCLUSAL'], status: 'ACTIVE',
+      });
+      prisma.chartEntry.create.mockResolvedValue({ id: 'ce1' });
+      await service.createPatientCondition(
+        { patientId: 'p1', conditionId: 'c1', toothNumber: 16, surfaces: ['OCCLUSAL'] } as any,
+        'user-1',
+      );
+      expect(prisma.patientCondition.create).toHaveBeenCalledTimes(1);
     });
 
     // ── I1: idempotency replay + storage ──────────────────────────────────
@@ -312,35 +314,6 @@ describe('ConditionsService', () => {
       );
       expect(prisma.idempotencyKey.findUnique).not.toHaveBeenCalled();
       expect(prisma.idempotencyKey.create).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('createPatientConditionsBatch', () => {
-    it('blocks the batch when a surface-bearing entry targets an absent tooth', async () => {
-      prisma.condition.findMany.mockResolvedValue([
-        { id: 'c1', name: 'Caries', requiresSurface: true, isToothSpecific: true },
-      ]);
-      prisma.patient.findUnique.mockResolvedValue({ id: 'p1' });
-      // Absence detection — tooth 16 is recorded absent.
-      prisma.patientCondition.findMany.mockResolvedValue([{ toothNumber: 16 }]);
-      await expect(
-        service.createPatientConditionsBatch(
-          [
-            {
-              patientId: 'p1', conditionId: 'c1', toothNumber: 16,
-              surfaces: ['OCCLUSAL'],
-            } as any,
-          ],
-          [
-            {
-              patientId: 'p1', toothNumber: 16, surfaces: ['OCCLUSAL'],
-              label: 'Caries', conditionId: 'c1',
-            },
-          ],
-          'user-1',
-        ),
-      ).rejects.toBeInstanceOf(BadRequestException);
-      expect(prisma.patientCondition.create).not.toHaveBeenCalled();
     });
   });
 

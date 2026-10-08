@@ -49,6 +49,8 @@ import type {
 } from "../../../types/treatment-plans";
 import api from "@/lib/api/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { notify } from "@/lib/notify";
+import { toast } from "@/components/ui/sonner";
 
 import { CompactSurfacePicker } from "./SurfacePicker";
 import {
@@ -428,7 +430,16 @@ export function AddTreatmentDialog({
       if (!planId) throw new Error("No plan selected");
       return treatmentPlansApi.addProcedure(planId, payload, idempotencyKey);
     },
-    onSuccess: () => {
+    onSuccess: (added: any, { payload }) => {
+      // Non-blocking clinical notes (e.g. tooth charted missing) from the API
+      // replace the plain success toast so the dentist sees them.
+      const warnings: string[] = added?.warnings ?? [];
+      if (warnings.length) {
+        warnings.forEach((w) => notify.warning("Procedure added", w));
+      } else {
+        const n = payload.toothNumbers?.length ?? 0;
+        toast.success(n > 1 ? `Procedure added to ${n} teeth` : "Procedure added");
+      }
       queryClient.invalidateQueries({ queryKey: ["tx-plan", selectedPlanId] });
       queryClient.invalidateQueries({ queryKey: ["tx-plans", patientId] });
       queryClient.invalidateQueries({ queryKey: ["chart-entries", patientId] });
@@ -470,7 +481,12 @@ export function AddTreatmentDialog({
       );
       return Promise.all(promises);
     },
-    onSuccess: () => {
+    onSuccess: (_res, { toothNumbers }) => {
+      toast.success(
+        toothNumbers.length > 1
+          ? `Existing procedure recorded on ${toothNumbers.length} teeth`
+          : "Existing procedure recorded",
+      );
       queryClient.invalidateQueries({ queryKey: ["chart-entries", patientId] });
       queryClient.invalidateQueries({ queryKey: ["tx-plans", patientId] });
       onSuccess();

@@ -447,18 +447,10 @@ export class TreatmentPlansEditService {
     }
 
     // ── (C3) Re-validate the new tooth set exactly like add-procedure ──────
-    // The edit path previously skipped FDI / presence / duplicate checks, so an
-    // edit could persist an invalid FDI code, move restorative work onto an
-    // absent tooth, or recreate a duplicate that add-time would have rejected.
+    // FDI codes and duplicates are enforced; a tooth charted absent is
+    // advisory only (see TreatmentPlansService.toothPresenceWarning).
     if (dto.toothNumbers !== undefined && !hasSessions) {
       for (const t of dto.toothNumbers) assertFdiTooth(t);
-      const proc = { name: tp.procedure.name, code: tp.procedure.code };
-      await this.plans.assertToothPresenceForProcedure(
-        tp.treatmentPlan.patientId,
-        proc,
-        dto.toothNumbers,
-        dto.surfaces ?? [],
-      );
       await this.plans.assertNoDuplicateActiveProcedure(
         tp.treatmentPlan.patientId,
         tp.procedureId,

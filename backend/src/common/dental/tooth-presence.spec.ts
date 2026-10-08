@@ -3,8 +3,7 @@
 // cases B1, C6 (a resolved/ruled-out absence is excluded by the query filter)
 // and the D2–D5 guards.
 
-import { BadRequestException } from '@nestjs/common';
-import { findAbsentTeeth, assertToothPresence } from './tooth-presence';
+import { findAbsentTeeth } from './tooth-presence';
 
 type Row = { toothNumber: number };
 
@@ -57,37 +56,5 @@ describe('findAbsentTeeth', () => {
     const where = patientCondition.findMany.mock.calls[0][0].where;
     expect(where.status).toEqual({ in: ['ACTIVE', 'MONITORED'] });
     expect(where.deletedAt).toBeNull();
-  });
-});
-
-describe('assertToothPresence', () => {
-  it('is a no-op when no surfaces are supplied (never queries)', async () => {
-    const { db, patientCondition } = mockDb([{ toothNumber: 36 }], []);
-    await expect(
-      assertToothPresence(db, { patientId: 'p1', toothNumbers: [36], surfaces: [] }),
-    ).resolves.toBeUndefined();
-    expect(patientCondition.findMany).not.toHaveBeenCalled();
-  });
-
-  it('throws when surface work targets an absent tooth', async () => {
-    const { db } = mockDb([{ toothNumber: 36 }], []);
-    await expect(
-      assertToothPresence(db, {
-        patientId: 'p1',
-        toothNumbers: [36],
-        surfaces: ['MESIAL'],
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-  });
-
-  it('resolves when surface work targets a present tooth', async () => {
-    const { db } = mockDb([], []);
-    await expect(
-      assertToothPresence(db, {
-        patientId: 'p1',
-        toothNumbers: [11],
-        surfaces: ['MESIAL'],
-      }),
-    ).resolves.toBeUndefined();
   });
 });
