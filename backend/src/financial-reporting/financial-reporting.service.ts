@@ -11,10 +11,13 @@
 //     where Invoice.status='POSTED' (not VOID).
 //   - "Outstanding" means unpaid balance on POSTED invoices.
 
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { startOfDay, endOfDay } from 'date-fns';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { PrismaService } from '../prisma/prisma.service';
 import { InvoiceStatus, Prisma, CashFlowDirection } from '@prisma/client';
 import { FinancialReportQueryDto } from './dto/financial-report-query.dto';
+import { DEFAULT_REPORT_TIMEZONE } from '../reports-common';
 
 function toNum(v: unknown): number {
   if (v == null) return 0;
@@ -24,13 +27,36 @@ function toNum(v: unknown): number {
   return isNaN(n) ? 0 : n;
 }
 
-function buildDateRange(startDate?: string, endDate?: string) {
+/**
+ * Build an inclusive `{ gte, lte }` window from two `YYYY-MM-DD` strings.
+ *
+ * Both boundaries are resolved in the *clinic's* timezone and then converted
+ * back to UTC instants, so "today" always means the clinic's calendar day and
+ * never the server's. Parsing the bare date with `new Date()` and then calling
+ * `setHours` mixes UTC parsing with server-local mutation, which silently
+ * shifted every report window by the UTC offset (3h for Africa/Kampala).
+ */
+function buildDateRange(
+  startDate?: string,
+  endDate?: string,
+  tz: string = DEFAULT_REPORT_TIMEZONE,
+) {
+  const parse = (value: string, field: string): Date => {
+    const d = new Date(value);
+    if (isNaN(d.getTime())) {
+      throw new BadRequestException(`Invalid ${field}: "${value}"`);
+    }
+    return d;
+  };
+
   const range: { gte?: Date; lte?: Date } = {};
-  if (startDate) range.gte = new Date(startDate);
+  if (startDate) {
+    const local = toZonedTime(parse(startDate, 'startDate'), tz);
+    range.gte = fromZonedTime(startOfDay(local), tz);
+  }
   if (endDate) {
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
-    range.lte = end;
+    const local = toZonedTime(parse(endDate, 'endDate'), tz);
+    range.lte = fromZonedTime(endOfDay(local), tz);
   }
   return Object.keys(range).length ? range : undefined;
 }
@@ -38,7 +64,10 @@ function buildDateRange(startDate?: string, endDate?: string) {
 /** Read payment method from receipt — prefer structured metadata, fall back
  *  to the legacy "Payment Info: {…json…}" suffix some older receipts stored
  *  in notes. */
-function extractReceiptMethod(receipt: { metadata: unknown; notes: string | null }): string | null {
+function extractReceiptMethod(receipt: {
+  metadata: unknown;
+  notes: string | null;
+}): string | null {
   const fromMeta = (receipt.metadata as any)?.method;
   if (fromMeta) return String(fromMeta);
 
@@ -54,6 +83,14 @@ function extractReceiptMethod(receipt: { metadata: unknown; notes: string | null
   }
   return null;
 }
+
+/** `dateBasis` query value → the Invoice column the window filters on. */
+const INVOICE_DATE_FIELD: Record<string, string> = {
+  created: 'createdAt',
+  issued: 'issuedAt',
+  due: 'dueDate',
+  paid: 'paidAt',
+};
 
 @Injectable()
 export class FinancialReportingService {
@@ -73,6 +110,10 @@ export class FinancialReportingService {
       status,
       paymentStatus,
       currency,
+      dateBasis = 'created',
+      minAmount,
+      maxAmount,
+      overdueOnly,
       page = 1,
       limit = 20,
       sortBy = 'createdAt',
@@ -81,19 +122,40 @@ export class FinancialReportingService {
 
     const dateRange = buildDateRange(startDate, endDate);
 
+    // Which timestamp the window measures. A draft raised in September and
+    // posted in October belongs to October's sales, so callers can switch the
+    // axis instead of always being stuck on the insert timestamp.
+    const dateField = INVOICE_DATE_FIELD[dateBasis] ?? 'createdAt';
+    const amountRange =
+      minAmount != null || maxAmount != null
+        ? {
+            ...(minAmount != null && { gte: minAmount }),
+            ...(maxAmount != null && { lte: maxAmount }),
+          }
+        : undefined;
+    const wantsOverdueOnly = overdueOnly === 'true';
+
     // User-driven filter (may include VOID if the user explicitly asks for it).
     const baseWhere: Prisma.InvoiceWhereInput = {
       ...(patientId && { patientId }),
       ...(status && status !== 'ALL' && { status: status as InvoiceStatus }),
-      ...(paymentStatus && paymentStatus !== 'ALL' && { paymentStatus: paymentStatus as any }),
+      ...(paymentStatus &&
+        paymentStatus !== 'ALL' && { paymentStatus: paymentStatus as any }),
       ...(currency && { currency }),
-      ...(dateRange && { createdAt: dateRange }),
+      ...(dateRange && { [dateField]: dateRange }),
+      ...(amountRange && { total: amountRange }),
+      ...(wantsOverdueOnly && {
+        dueDate: { lt: new Date() },
+        balance: { gt: 0 },
+      }),
       ...(search && {
         OR: [
           { invoiceNumber: { contains: search, mode: 'insensitive' } },
           { patient: { firstName: { contains: search, mode: 'insensitive' } } },
           { patient: { lastName: { contains: search, mode: 'insensitive' } } },
-          { patient: { patientCode: { contains: search, mode: 'insensitive' } } },
+          {
+            patient: { patientCode: { contains: search, mode: 'insensitive' } },
+          },
         ],
       }),
       ...(dentistId && { visit: { dentistId } }),
@@ -107,13 +169,19 @@ export class FinancialReportingService {
         ? baseWhere
         : { ...baseWhere, status: { not: InvoiceStatus.VOID } };
 
-    const validSortFields: Record<string, Prisma.InvoiceOrderByWithRelationInput> = {
+    const validSortFields: Record<
+      string,
+      Prisma.InvoiceOrderByWithRelationInput
+    > = {
       createdAt: { createdAt: sortOrder as any },
       total: { total: sortOrder as any },
       amountPaid: { amountPaid: sortOrder as any },
       balance: { balance: sortOrder as any },
       status: { status: sortOrder as any },
+      paymentStatus: { paymentStatus: sortOrder as any },
       invoiceNumber: { invoiceNumber: sortOrder as any },
+      issuedAt: { issuedAt: sortOrder as any },
+      dueDate: { dueDate: sortOrder as any },
     };
     const orderBy = validSortFields[sortBy] ?? { createdAt: 'desc' };
 
@@ -221,6 +289,27 @@ export class FinancialReportingService {
       _count: { _all: true },
     });
 
+    // ── Per-currency billed / collected over the WHOLE filtered set ─────────
+    //
+    // The UI shows a UGX and a USD figure side by side. Summing the visible
+    // page would make the headline change every time the user switches rows
+    // per page, so the split is aggregated server-side instead.
+    const byCurrencyRaw = await this.prisma.invoice.groupBy({
+      by: ['currency'],
+      where: livePosted,
+      _count: { _all: true },
+      _sum: { total: true, amountPaid: true, balance: true },
+    });
+    const billedByCurrency = byCurrencyRaw
+      .map((c) => ({
+        currency: c.currency,
+        billed: toNum(c._sum.total),
+        collected: toNum(c._sum.amountPaid),
+        outstanding: toNum(c._sum.balance),
+        count: c._count._all,
+      }))
+      .sort((a, b) => b.billed - a.billed);
+
     // ── Status breakdown (uses baseWhere so VOID is visible if user filtered) ─
     const statusBreakdown = await this.prisma.invoice.groupBy({
       by: ['status'],
@@ -322,7 +411,9 @@ export class FinancialReportingService {
     for (const r of activeReceiptsForMethods) {
       const method = extractReceiptMethod(r) ?? 'UNKNOWN';
       if (!methodAgg[method]) methodAgg[method] = { total: 0, count: 0 };
-      methodAgg[method].total += toNum(r.baseAmountReceived ?? r.amountReceived);
+      methodAgg[method].total += toNum(
+        r.baseAmountReceived ?? r.amountReceived,
+      );
       methodAgg[method].count += 1;
     }
 
@@ -370,7 +461,9 @@ export class FinancialReportingService {
         agingBuckets[5].amount += bal;
         continue;
       }
-      const daysOld = Math.floor((now.getTime() - inv.dueDate.getTime()) / 86400000);
+      const daysOld = Math.floor(
+        (now.getTime() - inv.dueDate.getTime()) / 86400000,
+      );
       for (let i = 0; i < 5; i++) {
         const b = agingBuckets[i];
         if (daysOld >= b.min && daysOld <= b.max) {
@@ -396,12 +489,14 @@ export class FinancialReportingService {
         // counts
         total,
         // money (all base currency)
-        totalBilled,              // sum of POSTED (non-VOID) invoice baseTotal
-        totalCollected,           // sum of POSTED invoice baseAmountPaid
+        totalBilled,
+        billedByCurrency, // sum of POSTED (non-VOID) invoice baseTotal
+        totalCollected, // sum of POSTED invoice baseAmountPaid
         totalOutstanding: toNum(agg._sum.baseBalance),
-        collectionRate: totalBilled > 0
-          ? Math.round((totalCollected / totalBilled) * 10000) / 100
-          : 0,
+        collectionRate:
+          totalBilled > 0
+            ? Math.round((totalCollected / totalBilled) * 10000) / 100
+            : 0,
         // breakdowns
         statusBreakdown: statusBreakdown.map((s) => ({
           status: s.status,
@@ -450,8 +545,13 @@ export class FinancialReportingService {
       startDate,
       endDate,
       patientId,
+      dentistId,
       status,
       currency,
+      method,
+      receivedById,
+      minAmount,
+      maxAmount,
       page = 1,
       limit = 20,
       sortBy = 'generatedAt',
@@ -468,22 +568,82 @@ export class FinancialReportingService {
           ? { status: 'VOID' as any }
           : { status: 'ACTIVE' as any };
 
+    // Both the patient and the doctor filter live on the `invoice` relation, so
+    // they have to be merged into a single nested clause — two separate spreads
+    // of `invoice` would silently drop the first one.
+    const invoiceFilter: Prisma.InvoiceWhereInput = {
+      ...(patientId && { patientId }),
+      ...(dentistId && { visit: { dentistId } }),
+    };
+
+    // Payment method is derived, not stored on Receipt: modern rows carry it on
+    // the linked Payment, older ones only in `metadata.method` (see
+    // `extractReceiptMethod`). Match either so legacy receipts stay findable.
+    const methodFilter: Prisma.ReceiptWhereInput | undefined = method
+      ? {
+          OR: [
+            { payment: { method: method as any } },
+            { metadata: { path: ['method'], equals: method } },
+          ],
+        }
+      : undefined;
+
+    const amountRange =
+      minAmount != null || maxAmount != null
+        ? {
+            ...(minAmount != null && { gte: minAmount }),
+            ...(maxAmount != null && { lte: maxAmount }),
+          }
+        : undefined;
+
     const sharedFilters: Prisma.ReceiptWhereInput = {
       ...(dateRange && { generatedAt: dateRange }),
-      ...(patientId && { invoice: { patientId } }),
+      ...(Object.keys(invoiceFilter).length && { invoice: invoiceFilter }),
       ...(currency && { currencyCode: currency as any }),
+      ...(receivedById && { receivedById }),
+      ...(amountRange && { amountReceived: amountRange }),
       ...(search && {
         OR: [
           { receiptNumber: { contains: search, mode: 'insensitive' } },
-          { invoice: { invoiceNumber: { contains: search, mode: 'insensitive' } } },
-          { invoice: { patient: { firstName: { contains: search, mode: 'insensitive' } } } },
-          { invoice: { patient: { lastName: { contains: search, mode: 'insensitive' } } } },
-          { invoice: { patient: { patientCode: { contains: search, mode: 'insensitive' } } } },
+          {
+            invoice: {
+              invoiceNumber: { contains: search, mode: 'insensitive' },
+            },
+          },
+          {
+            invoice: {
+              patient: { firstName: { contains: search, mode: 'insensitive' } },
+            },
+          },
+          {
+            invoice: {
+              patient: { lastName: { contains: search, mode: 'insensitive' } },
+            },
+          },
+          {
+            invoice: {
+              patient: {
+                patientCode: { contains: search, mode: 'insensitive' },
+              },
+            },
+          },
         ],
       }),
     };
 
-    const listWhere: Prisma.ReceiptWhereInput = { ...sharedFilters, ...statusFilter };
+    if (methodFilter) {
+      // `search` already owns the top-level `OR`, so nest the method clause
+      // under `AND` instead of overwriting it.
+      sharedFilters.AND = [
+        ...((sharedFilters.AND as any[]) ?? []),
+        methodFilter,
+      ];
+    }
+
+    const listWhere: Prisma.ReceiptWhereInput = {
+      ...sharedFilters,
+      ...statusFilter,
+    };
     // Same filter without status — used for the void aggregate so it always
     // reports the universe the user is looking at.
     const universeWhere: Prisma.ReceiptWhereInput = sharedFilters;
@@ -491,6 +651,10 @@ export class FinancialReportingService {
     const validSortFields: Record<string, any> = {
       generatedAt: { generatedAt: sortOrder },
       amountReceived: { amountReceived: sortOrder },
+      receiptNumber: { receiptNumber: sortOrder },
+      currencyCode: { currencyCode: sortOrder },
+      currency: { currencyCode: sortOrder },
+      status: { status: sortOrder },
     };
     const orderBy = validSortFields[sortBy] ?? { generatedAt: 'desc' };
 
@@ -616,7 +780,11 @@ export class FinancialReportingService {
               },
             }),
       },
-      select: { generatedAt: true, baseAmountReceived: true, amountReceived: true },
+      select: {
+        generatedAt: true,
+        baseAmountReceived: true,
+        amountReceived: true,
+      },
       orderBy: { generatedAt: 'asc' },
     });
 
@@ -648,7 +816,9 @@ export class FinancialReportingService {
     for (const r of methodReceipts) {
       const method = extractReceiptMethod(r) ?? 'UNKNOWN';
       if (!methodAgg[method]) methodAgg[method] = { total: 0, count: 0 };
-      methodAgg[method].total += toNum(r.baseAmountReceived ?? r.amountReceived);
+      methodAgg[method].total += toNum(
+        r.baseAmountReceived ?? r.amountReceived,
+      );
       methodAgg[method].count += 1;
     }
 
@@ -882,17 +1052,23 @@ export class FinancialReportingService {
 
   async getExpensesReport(query: FinancialReportQueryDto) {
     const {
-      search, startDate, endDate, status, category,
-      page = 1, limit = 20,
-      sortBy = 'expenseDate', sortOrder = 'desc',
+      search,
+      startDate,
+      endDate,
+      status,
+      category,
+      page = 1,
+      limit = 20,
+      sortBy = 'expenseDate',
+      sortOrder = 'desc',
     } = query as any;
 
     const dateRange = buildDateRange(startDate, endDate);
 
     const where: Prisma.ExpenseWhereInput = {
-      ...(status && status !== 'ALL' && { status: status as any }),
+      ...(status && status !== 'ALL' && { status: status }),
       // `category` filter now carries a dynamic ExpenseCategory id.
-      ...(category && { categoryId: category as any }),
+      ...(category && { categoryId: category }),
       ...(dateRange && { expenseDate: dateRange }),
       ...(search && {
         OR: [
@@ -939,21 +1115,31 @@ export class FinancialReportingService {
           status: true,
           approvedById: true,
           approvedBy: {
-            select: { id: true, email: true, staff: { select: { firstName: true, lastName: true } } },
+            select: {
+              id: true,
+              email: true,
+              staff: { select: { firstName: true, lastName: true } },
+            },
           },
           approvedAt: true,
           approvalNotes: true,
           paidAt: true,
           createdById: true,
           createdBy: {
-            select: { id: true, email: true, staff: { select: { firstName: true, lastName: true } } },
+            select: {
+              id: true,
+              email: true,
+              staff: { select: { firstName: true, lastName: true } },
+            },
           },
           attachments: true,
           notes: true,
           createdAt: true,
           payments: {
             // Only show active payment rows for the per-row totalPaid.
-            where: { status: { notIn: ['VOIDED', 'FAILED', 'REFUNDED'] as any } },
+            where: {
+              status: { notIn: ['VOIDED', 'FAILED', 'REFUNDED'] as any },
+            },
             select: {
               id: true,
               paymentCode: true,
@@ -1042,7 +1228,9 @@ export class FinancialReportingService {
         totalPaid: e.payments.reduce((sum, p) => sum + toNum(p.amount), 0),
       })),
       pagination: {
-        page, limit, total,
+        page,
+        limit,
+        total,
         totalPages: Math.ceil(total / limit),
       },
       summary: {
@@ -1151,15 +1339,10 @@ export class FinancialReportingService {
         paidAt: r.paidAt,
         reference: r.reference,
         vendor:
-          r.purchaseOrder?.supplier?.name ??
-          r.expense?.supplier?.name ??
-          null,
+          r.purchaseOrder?.supplier?.name ?? r.expense?.supplier?.name ?? null,
         documentNumber:
           r.purchaseOrder?.poNumber ?? r.expense?.expenseCode ?? null,
-        description:
-          r.purchaseOrder?.poNumber ??
-          r.expense?.title ??
-          null,
+        description: r.purchaseOrder?.poNumber ?? r.expense?.title ?? null,
       })),
       pagination: {
         page,
@@ -1300,10 +1483,7 @@ export class FinancialReportingService {
       direction: CashFlowDirection.OUT,
       status: { notIn: ['VOIDED', 'FAILED', 'REFUNDED'] as any },
       ...(range && { paidAt: range }),
-      OR: [
-        { purchaseOrderId: { not: null } },
-        { expenseId: { not: null } },
-      ],
+      OR: [{ purchaseOrderId: { not: null } }, { expenseId: { not: null } }],
     };
 
     const [data, total, totals] = await Promise.all([
@@ -1337,14 +1517,19 @@ export class FinancialReportingService {
     ]);
 
     // Group by supplier for the breakdown table.
-    const bySupplier = new Map<string, { supplierId: string; supplierName: string; total: number; count: number }>();
+    const bySupplier = new Map<
+      string,
+      { supplierId: string; supplierName: string; total: number; count: number }
+    >();
     for (const p of data) {
-      const sup =
-        p.purchaseOrder?.supplier ?? p.expense?.supplier ?? null;
+      const sup = p.purchaseOrder?.supplier ?? p.expense?.supplier ?? null;
       if (!sup) continue;
-      const cur =
-        bySupplier.get(sup.id) ??
-        { supplierId: sup.id, supplierName: sup.name, total: 0, count: 0 };
+      const cur = bySupplier.get(sup.id) ?? {
+        supplierId: sup.id,
+        supplierName: sup.name,
+        total: 0,
+        count: 0,
+      };
       cur.total += toNum(p.amount);
       cur.count += 1;
       bySupplier.set(sup.id, cur);

@@ -28,9 +28,13 @@ import {
   Eye,
 } from "lucide-react";
 import { ActionButton, RowActions } from "@/components/ui/action-button";
+import { useDebounce } from "@/hooks/useDebounce";
+import { staffApi } from "@/lib/api/staff-api";
+import type { Dentist } from "@/types/staff";
 import {
   financialReportingApi,
   FinancialReportFilters,
+  InvoiceDateBasis,
   InvoiceRow,
   ReceiptRow,
   PaymentRow,
@@ -85,10 +89,13 @@ type SortOrder = "asc" | "desc";
 
 interface FilterState {
   search: string;
+  datePreset: DatePreset;
   startDate: string;
   endDate: string;
+  dateBasis: InvoiceDateBasis;
   patientId: string;
   dentistId: string;
+  receivedById: string;
   accountId: string;
   status: string;
   paymentStatus: string;
@@ -97,15 +104,21 @@ interface FilterState {
   direction: string;
   currency: string;
   category: string;
+  minAmount: string;
+  maxAmount: string;
+  overdueOnly: boolean;
   limit: number;
 }
 
 const DEFAULT_FILTERS: FilterState = {
   search: "",
+  datePreset: "all",
   startDate: "",
   endDate: "",
+  dateBasis: "created",
   patientId: "",
   dentistId: "",
+  receivedById: "",
   accountId: "",
   status: "",
   paymentStatus: "",
@@ -114,8 +127,102 @@ const DEFAULT_FILTERS: FilterState = {
   direction: "",
   currency: "",
   category: "",
+  minAmount: "",
+  maxAmount: "",
+  overdueOnly: false,
   limit: 20,
 };
+
+/** Filters that only make sense on one tab — cleared when the tab changes. */
+const TAB_SCOPED_FILTER_KEYS = [
+  "status",
+  "paymentStatus",
+  "method",
+  "type",
+  "direction",
+  "category",
+  "dateBasis",
+  "overdueOnly",
+  "receivedById",
+] as const;
+
+// ─── Date presets ─────────────────────────────────────────────────────────────
+//
+// Day arithmetic happens in the browser's local calendar and is sent as a bare
+// YYYY-MM-DD string; the backend then resolves both edges in the clinic's
+// timezone (Africa/Kampala), so "Today" is the clinic's day either way.
+
+type DatePreset =
+  | "all"
+  | "today"
+  | "yesterday"
+  | "thisWeek"
+  | "thisMonth"
+  | "lastMonth"
+  | "thisYear"
+  | "custom";
+
+const DATE_PRESETS: { key: DatePreset; label: string }[] = [
+  { key: "all", label: "All Time" },
+  { key: "today", label: "Today" },
+  { key: "yesterday", label: "Yesterday" },
+  { key: "thisWeek", label: "This Week" },
+  { key: "thisMonth", label: "This Month" },
+  { key: "lastMonth", label: "Last Month" },
+  { key: "thisYear", label: "This Year" },
+  { key: "custom", label: "Custom" },
+];
+
+const isoDate = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate(),
+  ).padStart(2, "0")}`;
+
+/** Monday-based start of week, matching the backend's `weekStartsOn: 1`. */
+function startOfWeek(d: Date): Date {
+  const out = new Date(d);
+  const day = (out.getDay() + 6) % 7;
+  out.setDate(out.getDate() - day);
+  return out;
+}
+
+/** `null` means "leave the dates alone" — i.e. the Custom preset. */
+function getPresetRange(
+  key: DatePreset,
+): { startDate: string; endDate: string } | null {
+  const now = new Date();
+  const today = isoDate(now);
+  switch (key) {
+    case "all":
+      return { startDate: "", endDate: "" };
+    case "today":
+      return { startDate: today, endDate: today };
+    case "yesterday": {
+      const y = new Date(now);
+      y.setDate(y.getDate() - 1);
+      return { startDate: isoDate(y), endDate: isoDate(y) };
+    }
+    case "thisWeek":
+      return { startDate: isoDate(startOfWeek(now)), endDate: today };
+    case "thisMonth":
+      return {
+        startDate: isoDate(new Date(now.getFullYear(), now.getMonth(), 1)),
+        endDate: today,
+      };
+    case "lastMonth": {
+      const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const last = new Date(now.getFullYear(), now.getMonth(), 0);
+      return { startDate: isoDate(first), endDate: isoDate(last) };
+    }
+    case "thisYear":
+      return {
+        startDate: isoDate(new Date(now.getFullYear(), 0, 1)),
+        endDate: today,
+      };
+    default:
+      return null;
+  }
+}
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
 
@@ -320,80 +427,147 @@ function Pagination({
 
 // ─── Filter bar ───────────────────────────────────────────────────────────────
 
+type FilterPatch = Partial<FilterState>;
+
+/** A removable description of one active filter, for the chip row. */
+interface ActiveFilterChip {
+  label: string;
+  clear: FilterPatch;
+}
+
 function FilterBar({
   filters,
-  setFilters,
+  onChange,
   extra,
   onReset,
+  chips,
 }: {
   filters: FilterState;
-  setFilters: React.Dispatch<React.SetStateAction<FilterState>>;
+  onChange: (patch: FilterPatch) => void;
   extra?: React.ReactNode;
   onReset: () => void;
+  chips: ActiveFilterChip[];
 }) {
   const set =
     (key: keyof FilterState) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-      setFilters((f) => ({ ...f, [key]: e.target.value }));
+      onChange({ [key]: e.target.value } as FilterPatch);
+
+  // Picking a preset writes the two dates; "Custom" hands control back to the
+  // From/To inputs, and editing either input switches to Custom.
+  const selectPreset = (key: DatePreset) => {
+    const range = getPresetRange(key);
+    onChange(range ? { datePreset: key, ...range } : { datePreset: key });
+  };
+
+  const setDate = (key: "startDate" | "endDate") => (value: string) =>
+    onChange({ [key]: value, datePreset: "custom" } as FilterPatch);
 
   return (
-    <div className="bg-white border border-border rounded-xl p-1 flex flex-wrap gap-3 items-end shadow-sm">
-      <div className="flex-1 min-w-48">
-        <label className="block text-xs font-medium text-muted-foreground mb-1">
-          Search
-        </label>
-        <input
-          value={filters.search}
-          onChange={set("search")}
-          placeholder="Invoice #, patient, reference…"
-          className="w-full h-9 rounded-lg border border-border px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent placeholder:text-muted-foreground/70"
-        />
+    <div className="bg-white border border-border rounded-xl p-3 space-y-3 shadow-sm">
+      {/* Quick ranges */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-xs font-medium text-muted-foreground mr-1">
+          Range
+        </span>
+        {DATE_PRESETS.map((p) => (
+          <button
+            key={p.key}
+            onClick={() => selectPreset(p.key)}
+            className={`h-7 px-2.5 rounded-lg text-xs font-medium border transition-colors ${
+              filters.datePreset === p.key
+                ? "bg-primary text-white border-primary"
+                : "border-border text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
       </div>
-      <div>
-        <label className="block text-xs font-medium text-muted-foreground mb-1">
-          From
-        </label>
-        <input
-          type="date"
-          value={filters.startDate}
-          onChange={set("startDate")}
-          className="h-9 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/60"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-muted-foreground mb-1">
-          To
-        </label>
-        <input
-          type="date"
-          value={filters.endDate}
-          onChange={set("endDate")}
-          className="h-9 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/60"
-        />
-      </div>
-      {extra}
-      <div>
-        <label className="block text-xs font-medium text-muted-foreground mb-1">
-          Rows
-        </label>
-        <select
-          value={filters.limit}
-          onChange={set("limit")}
-          className="h-9 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/60 bg-white"
+
+      {/* Controls */}
+      <div className="flex flex-wrap gap-3 items-end">
+        <div className="flex-1 min-w-48">
+          <label className="block text-xs font-medium text-muted-foreground mb-1">
+            Search
+          </label>
+          <input
+            value={filters.search}
+            onChange={set("search")}
+            placeholder="Invoice #, patient, reference…"
+            className="w-full h-9 rounded-lg border border-border px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent placeholder:text-muted-foreground/70"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">
+            From
+          </label>
+          <input
+            type="date"
+            value={filters.startDate}
+            max={filters.endDate || undefined}
+            onChange={(e) => setDate("startDate")(e.target.value)}
+            className="h-9 w-40 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/60"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">
+            To
+          </label>
+          <input
+            type="date"
+            value={filters.endDate}
+            min={filters.startDate || undefined}
+            onChange={(e) => setDate("endDate")(e.target.value)}
+            className="h-9 w-40 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/60"
+          />
+        </div>
+        {extra}
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">
+            Rows
+          </label>
+          <select
+            value={filters.limit}
+            onChange={(e) => onChange({ limit: Number(e.target.value) })}
+            className="h-9 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/60 bg-white"
+          >
+            {[10, 20, 50, 100].map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          onClick={onReset}
+          className="h-9 px-3 rounded-lg text-sm border border-border text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
         >
-          {[10, 20, 50, 100].map((n) => (
-            <option key={n} value={n}>
-              {n}
-            </option>
-          ))}
-        </select>
+          Reset
+        </button>
       </div>
-      <button
-        onClick={onReset}
-        className="h-9 px-3 rounded-lg text-sm border border-border text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
-      >
-        Reset
-      </button>
+
+      {/* What is currently narrowing the result */}
+      {chips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-border/60">
+          <span className="text-xs text-muted-foreground/70 mr-1">
+            Filtering by
+          </span>
+          {chips.map((chip) => (
+            <button
+              key={chip.label}
+              onClick={() => onChange(chip.clear)}
+              title="Remove this filter"
+              className="h-6 inline-flex items-center gap-1 pl-2 pr-1.5 rounded-full bg-primary-muted/60 text-primary text-xs font-medium ring-1 ring-primary/25 hover:bg-primary-muted"
+            >
+              {chip.label}
+              <span aria-hidden className="text-primary/70">
+                ×
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -660,6 +834,30 @@ const INVOICE_COLUMNS = (navigate: (to: string) => void): ColDef<InvoiceRow>[] =
       </span>
     ),
     csv: (r) => r.items?.length ?? 0,
+  },
+  {
+    key: "issuedAt",
+    label: "Issued",
+    render: (r) => (
+      <span className="text-xs text-muted-foreground/70">{fmtDate(r.issuedAt)}</span>
+    ),
+    csv: (r) => fmtDate(r.issuedAt),
+  },
+  {
+    key: "dueDate",
+    label: "Due",
+    render: (r) => (
+      <span
+        className={`text-xs ${
+          r.balance > 0 && r.dueDate && new Date(r.dueDate) < new Date()
+            ? "text-danger font-medium"
+            : "text-muted-foreground/70"
+        }`}
+      >
+        {fmtDate(r.dueDate)}
+      </span>
+    ),
+    csv: (r) => fmtDate(r.dueDate),
   },
   {
     key: "createdAt",
@@ -1086,6 +1284,42 @@ const TABS: { id: TabId; label: string; icon: string }[] = [
   { id: "payments", label: "Payments", icon: "💰" },
 ];
 
+/**
+ * Each tab sorts on a different column and the server whitelists them per
+ * report, so the default has to follow the tab or the sort silently falls back.
+ */
+const DEFAULT_SORT_BY: Record<TabId, string> = {
+  invoices: "createdAt",
+  receipts: "generatedAt",
+  expenses: "expenseDate",
+  payments: "paidAt",
+};
+
+/** Matches `EXPORT_HARD_LIMIT` in backend/src/reports-common/types. */
+const EXPORT_ROW_LIMIT = 5000;
+
+const CURRENCY_OPTIONS = ["UGX", "USD"];
+
+const PAYMENT_METHODS = [
+  "CASH",
+  "VISA_CARD",
+  "MASTERCARD",
+  "MTN_MOBILE_MONEY",
+  "AIRTEL_MONEY",
+  "BANK_TRANSFER",
+  "CHEQUE",
+  "INSURANCE",
+];
+
+const DATE_BASIS_OPTIONS: { value: InvoiceDateBasis; label: string }[] = [
+  { value: "created", label: "Created" },
+  { value: "issued", label: "Issued" },
+  { value: "due", label: "Due" },
+  { value: "paid", label: "Paid" },
+];
+
+const staffName = (s: Dentist) => `${s.firstName} ${s.lastName}`;
+
 // ══════════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1109,13 +1343,29 @@ function FinancialReportsView({
   const [activeTab, setActiveTab] = useState<TabId>(tabIds[0]);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [page, setPage] = useState(1);
-  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortBy, setSortBy] = useState(DEFAULT_SORT_BY[tabIds[0]]);
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCharts, setShowCharts] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const [dentists, setDentists] = useState<Dentist[]>([]);
+
+  // Fetched once and shared by both tabs' Doctor / Cashier selects. A failure
+  // here must not break the report, so the list just stays empty.
+  useEffect(() => {
+    let cancelled = false;
+    staffApi
+      .getDentists()
+      .then((list) => {
+        if (!cancelled) setDentists(Array.isArray(list) ? list : []);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Data state per tab
   const [invoiceData, setInvoiceData] = useState<any>({
@@ -1176,36 +1426,44 @@ function FinancialReportsView({
   return { data: dataArray, pagination, summary };
 }, [activeTab, invoiceData, receiptData, paymentData, expenseData]);
 
-// Compute per-currency totals from visible table rows when backend summary returns 0
+// Per-currency billed / collected / outstanding for the invoices tab.
+//
+// These come from the backend's `billedByCurrency` aggregate, which covers the
+// whole filtered set. Summing `currentData.data` instead — as this did before —
+// meant the headline revenue changed whenever the user switched rows per page.
 const revenueByCurrency = useMemo(() => {
-  if (activeTab !== "invoices") return { ugx: 0, usd: 0, collectedUgx: 0, collectedUsd: 0, balanceUgx: 0, balanceUsd: 0 };
-  const rows = currentData.data;
-  let ugx = 0, usd = 0, collUgx = 0, collUsd = 0, balUgx = 0, balUsd = 0;
-  for (const r of rows) {
-    const cur = r.currency === "USD" ? "USD" : "UGX";
-    if (cur === "USD") {
-      usd += Number(r.total) || 0;
-      collUsd += Number(r.amountPaid) || 0;
-      balUsd += Number(r.balance) || 0;
-    } else {
-      ugx += Number(r.total) || 0;
-      collUgx += Number(r.amountPaid) || 0;
-      balUgx += Number(r.balance) || 0;
-    }
+  const empty = {
+    ugx: 0,
+    usd: 0,
+    collectedUgx: 0,
+    collectedUsd: 0,
+    balanceUgx: 0,
+    balanceUsd: 0,
+  };
+  if (activeTab !== "invoices") return empty;
+  const out = { ...empty };
+  for (const row of (currentData.summary?.billedByCurrency ?? []) as any[]) {
+    const isUsd = row.currency === "USD";
+    out[isUsd ? "usd" : "ugx"] += Number(row.billed) || 0;
+    out[isUsd ? "collectedUsd" : "collectedUgx"] += Number(row.collected) || 0;
+    out[isUsd ? "balanceUsd" : "balanceUgx"] += Number(row.outstanding) || 0;
   }
-  return { ugx, usd, collectedUgx: collUgx, collectedUsd: collUsd, balanceUgx: balUgx, balanceUsd: balUsd };
-}, [activeTab, currentData.data]);
+  return out;
+}, [activeTab, currentData.summary]);
 
-const fetchReport = useCallback(async () => {
-  setLoading(true);
-  setError(null);
-  
-  const apiFilters: FinancialReportFilters = {
-    search: filters.search || undefined,
+// Only the free-text box is debounced; every other control is a discrete
+// choice and should take effect on the click.
+const debouncedSearch = useDebounce(filters.search, 300);
+
+const apiFilters: FinancialReportFilters = useMemo(
+  () => ({
+    search: debouncedSearch || undefined,
     startDate: filters.startDate || undefined,
     endDate: filters.endDate || undefined,
+    dateBasis: activeTab === "invoices" ? filters.dateBasis : undefined,
     patientId: filters.patientId || undefined,
     dentistId: filters.dentistId || undefined,
+    receivedById: filters.receivedById || undefined,
     accountId: filters.accountId || undefined,
     status: filters.status || undefined,
     paymentStatus: filters.paymentStatus || undefined,
@@ -1214,11 +1472,48 @@ const fetchReport = useCallback(async () => {
     direction: filters.direction || undefined,
     currency: filters.currency || undefined,
     category: filters.category || undefined,
+    minAmount: filters.minAmount ? Number(filters.minAmount) : undefined,
+    maxAmount: filters.maxAmount ? Number(filters.maxAmount) : undefined,
+    overdueOnly: filters.overdueOnly ? "true" : undefined,
     page,
     limit: filters.limit,
     sortBy,
     sortOrder,
-  };
+  }),
+  // Depends on the individual fields, not on `filters` as a whole: the object
+  // identity changes on every keystroke, which would defeat the debounce above
+  // and fire one request per character.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [
+    debouncedSearch,
+    filters.startDate,
+    filters.endDate,
+    filters.dateBasis,
+    filters.patientId,
+    filters.dentistId,
+    filters.receivedById,
+    filters.accountId,
+    filters.status,
+    filters.paymentStatus,
+    filters.method,
+    filters.type,
+    filters.direction,
+    filters.currency,
+    filters.category,
+    filters.minAmount,
+    filters.maxAmount,
+    filters.overdueOnly,
+    filters.limit,
+    activeTab,
+    page,
+    sortBy,
+    sortOrder,
+  ],
+);
+
+const fetchReport = useCallback(async () => {
+  setLoading(true);
+  setError(null);
 
   try {
     const rawResponse = await (() => {
@@ -1246,24 +1541,24 @@ const fetchReport = useCallback(async () => {
   } finally {
     setLoading(false);
   }
-}, [activeTab, filters, page, sortBy, sortOrder]);
+}, [activeTab, apiFilters, filters.limit]);
 
-  // Avoid double-fetch: when filters/tab change, reset page first without fetching.
-  // The page state change triggers a second effect run which does the fetch.
-  const needsPageReset = useRef(false);
+  // Every filter edit goes through `updateFilters`, which resets the page in the
+  // same event. React batches the two setState calls into one render, so one
+  // edit means exactly one request and no double-fetch.
+  //
+  // The previous version armed a ref in a second effect and skipped the fetch
+  // whenever it was set; because `setPage(1)` is a no-op when the page is
+  // already 1, React bailed out of the re-render and every *other* filter edit
+  // was silently dropped — which is why the date filter looked inert.
+  const updateFilters = useCallback((patch: Partial<FilterState>) => {
+    setFilters((f) => ({ ...f, ...patch }));
+    setPage(1);
+  }, []);
 
   useEffect(() => {
-    if (needsPageReset.current) {
-      needsPageReset.current = false;
-      setPage(1);
-      return;
-    }
     fetchReport();
   }, [fetchReport]);
-
-  useEffect(() => {
-    needsPageReset.current = true;
-  }, [filters, activeTab]);
 
   const handleSort = useCallback(
     (col: string) => {
@@ -1279,9 +1574,20 @@ const fetchReport = useCallback(async () => {
 
   const handleTabChange = (id: TabId) => {
     setActiveTab(id);
-    setFilters(DEFAULT_FILTERS);
+    // Keep the date range, search and currency — switching from Invoices to
+    // Receipts to inspect the same window is the whole point of the tabs. Only
+    // the filters that do not exist on the new tab are cleared.
+    setFilters((f) => {
+      const next = { ...f };
+      for (const key of TAB_SCOPED_FILTER_KEYS) {
+        (next as any)[key] = DEFAULT_FILTERS[key];
+      }
+      return next;
+    });
     setPage(1);
-    setSortBy("createdAt");
+    // Each tab has its own sortable columns server-side; `createdAt` is not a
+    // valid receipts sort key and would silently fall back.
+    setSortBy(DEFAULT_SORT_BY[id]);
     setSortOrder("desc");
     setError(null);
   };
@@ -1299,14 +1605,52 @@ const fetchReport = useCallback(async () => {
     }
   }, [activeTab, navigate]);
 
-  const handleExportCSV = () => {
-  const rows = Array.isArray(currentData.data) ? currentData.data : [];
-  exportCSV(
-    `${activeTab}-report-${new Date().toISOString().slice(0, 10)}.csv`,
-    activeColumns,
-    rows,
-  );
-};
+  const [exporting, setExporting] = useState(false);
+
+  /**
+   * Export the whole filtered result set, not just the page on screen — a CSV
+   * of 20 rows out of 800 is worse than useless for reconciliation. Re-requests
+   * with a single large page, capped to match the backend's export limit.
+   */
+  const handleExportCSV = async () => {
+    setExporting(true);
+    try {
+      const total = currentData.pagination.total ?? 0;
+      let rows = Array.isArray(currentData.data) ? currentData.data : [];
+
+      if (total > rows.length) {
+        const wide = {
+          ...apiFilters,
+          page: 1,
+          limit: Math.min(total, EXPORT_ROW_LIMIT),
+        };
+        const full = await (() => {
+          switch (activeTab) {
+            case "invoices": return financialReportingApi.getInvoicesReport(wide);
+            case "receipts": return financialReportingApi.getReceiptsReport(wide);
+            case "payments": return financialReportingApi.getPaymentsReport(wide);
+            case "expenses": return financialReportingApi.getExpensesReport(wide);
+          }
+        })();
+        if (Array.isArray(full?.data)) rows = full.data as any[];
+        if (total > EXPORT_ROW_LIMIT) {
+          setError(
+            `Export capped at ${EXPORT_ROW_LIMIT.toLocaleString()} rows of ${total.toLocaleString()} — narrow the filters for the full set.`,
+          );
+        }
+      }
+
+      exportCSV(
+        `${activeTab}-report-${new Date().toISOString().slice(0, 10)}.csv`,
+        activeColumns,
+        rows,
+      );
+    } catch (e: any) {
+      setError(e?.message ?? "Export failed");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handlePrint = () => {
     const content = printRef.current?.innerHTML;
@@ -1329,19 +1673,115 @@ const fetchReport = useCallback(async () => {
 
   const summary = currentData.summary ?? {};
 
+  // ── Shared filter-extra building blocks ─────────────────────────────────────
+  //
+  // Native <select>/<input> is what the rest of this page uses; staying with it
+  // keeps the filter bar visually consistent.
+  const selectClass =
+    "h-9 rounded-lg border border-border px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/60";
+
+  const Field = ({
+    label,
+    children,
+  }: {
+    label: string;
+    children: React.ReactNode;
+  }) => (
+    <div>
+      <label className="block text-xs font-medium text-muted-foreground mb-1">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+
+  const staffSelect = (
+    key: "dentistId" | "receivedById",
+    label: string,
+  ) => (
+    <Field label={label}>
+      <select
+        value={filters[key]}
+        onChange={(e) => updateFilters({ [key]: e.target.value })}
+        className={`${selectClass} max-w-44`}
+      >
+        <option value="">All</option>
+        {dentists.map((d) => (
+          <option key={d.id} value={d.id}>
+            {staffName(d)}
+          </option>
+        ))}
+      </select>
+    </Field>
+  );
+
+  const currencySelect = (
+    <Field label="Currency">
+      <select
+        value={filters.currency}
+        onChange={(e) => updateFilters({ currency: e.target.value })}
+        className={selectClass}
+      >
+        <option value="">All</option>
+        {CURRENCY_OPTIONS.map((c) => (
+          <option key={c} value={c}>
+            {c}
+          </option>
+        ))}
+      </select>
+    </Field>
+  );
+
+  const amountRangeInputs = (
+    <Field label="Amount">
+      <div className="flex items-center gap-1">
+        <input
+          type="number"
+          min={0}
+          inputMode="decimal"
+          value={filters.minAmount}
+          onChange={(e) => updateFilters({ minAmount: e.target.value })}
+          placeholder="Min"
+          className="h-9 w-24 rounded-lg border border-border px-2 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/60"
+        />
+        <span className="text-muted-foreground/70 text-xs">–</span>
+        <input
+          type="number"
+          min={0}
+          inputMode="decimal"
+          value={filters.maxAmount}
+          onChange={(e) => updateFilters({ maxAmount: e.target.value })}
+          placeholder="Max"
+          className="h-9 w-24 rounded-lg border border-border px-2 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/60"
+        />
+      </div>
+    </Field>
+  );
+
   // ── Invoice-specific filter extras ──────────────────────────────────────────
   const invoiceExtras = (
     <>
-      <div>
-        <label className="block text-xs font-medium text-muted-foreground mb-1">
-          Invoice Status
-        </label>
+      <Field label="Date Basis">
+        <select
+          value={filters.dateBasis}
+          onChange={(e) =>
+            updateFilters({ dateBasis: e.target.value as InvoiceDateBasis })
+          }
+          className={selectClass}
+          title="Which invoice date the range applies to"
+        >
+          {DATE_BASIS_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Invoice Status">
         <select
           value={filters.status}
-          onChange={(e) =>
-            setFilters((f) => ({ ...f, status: e.target.value }))
-          }
-          className="h-9 rounded-lg border border-border px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/60"
+          onChange={(e) => updateFilters({ status: e.target.value })}
+          className={selectClass}
         >
           <option value="">All</option>
           {["DRAFT", "POSTED", "VOID"].map((s) => (
@@ -1350,17 +1790,12 @@ const fetchReport = useCallback(async () => {
             </option>
           ))}
         </select>
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-muted-foreground mb-1">
-          Payment Status
-        </label>
+      </Field>
+      <Field label="Payment Status">
         <select
           value={filters.paymentStatus}
-          onChange={(e) =>
-            setFilters((f) => ({ ...f, paymentStatus: e.target.value }))
-          }
-          className="h-9 rounded-lg border border-border px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/60"
+          onChange={(e) => updateFilters({ paymentStatus: e.target.value })}
+          className={selectClass}
         >
           <option value="">All</option>
           {["UNPAID", "PARTIALLY_PAID", "PAID"].map((s) => (
@@ -1369,7 +1804,55 @@ const fetchReport = useCallback(async () => {
             </option>
           ))}
         </select>
-      </div>
+      </Field>
+      {currencySelect}
+      {staffSelect("dentistId", "Doctor")}
+      {amountRangeInputs}
+      <label className="h-9 flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={filters.overdueOnly}
+          onChange={(e) => updateFilters({ overdueOnly: e.target.checked })}
+          className="size-4 rounded border-border accent-primary"
+        />
+        Overdue only
+      </label>
+    </>
+  );
+
+  // ── Receipt-specific filter extras ──────────────────────────────────────────
+  const receiptExtras = (
+    <>
+      <Field label="Status">
+        <select
+          value={filters.status}
+          onChange={(e) => updateFilters({ status: e.target.value })}
+          className={selectClass}
+        >
+          {/* "" is the server's default, which means ACTIVE only. */}
+          <option value="">Active</option>
+          <option value="VOID">Void</option>
+          <option value="ALL">All</option>
+        </select>
+      </Field>
+      {currencySelect}
+      <Field label="Method">
+        <select
+          value={filters.method}
+          onChange={(e) => updateFilters({ method: e.target.value })}
+          className={selectClass}
+        >
+          <option value="">All</option>
+          {PAYMENT_METHODS.map((m) => (
+            <option key={m} value={m}>
+              {m.replace(/_/g, " ")}
+            </option>
+          ))}
+        </select>
+      </Field>
+      {staffSelect("dentistId", "Doctor")}
+      {staffSelect("receivedById", "Cashier")}
+      {amountRangeInputs}
     </>
   );
 
@@ -1381,7 +1864,7 @@ const fetchReport = useCallback(async () => {
         </label>
         <select
           value={filters.type}
-          onChange={(e) => setFilters((f) => ({ ...f, type: e.target.value }))}
+          onChange={(e) => updateFilters({ type: e.target.value })}
           className="h-9 rounded-lg border border-border px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/60"
         >
           <option value="">All</option>
@@ -1401,7 +1884,7 @@ const fetchReport = useCallback(async () => {
         <select
           value={filters.direction}
           onChange={(e) =>
-            setFilters((f) => ({ ...f, direction: e.target.value }))
+            updateFilters({ direction: e.target.value })
           }
           className="h-9 rounded-lg border border-border px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/60"
         >
@@ -1417,7 +1900,7 @@ const fetchReport = useCallback(async () => {
         <select
           value={filters.method}
           onChange={(e) =>
-            setFilters((f) => ({ ...f, method: e.target.value }))
+            updateFilters({ method: e.target.value })
           }
           className="h-9 rounded-lg border border-border px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/60"
         >
@@ -1450,7 +1933,7 @@ const fetchReport = useCallback(async () => {
         <select
           value={filters.status}
           onChange={(e) =>
-            setFilters((f) => ({ ...f, status: e.target.value }))
+            updateFilters({ status: e.target.value })
           }
           className="h-9 rounded-lg border border-border px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/60"
         >
@@ -1469,7 +1952,7 @@ const fetchReport = useCallback(async () => {
         <select
           value={filters.category ?? ""}
           onChange={(e) =>
-            setFilters((f) => ({ ...f, category: e.target.value }))
+            updateFilters({ category: e.target.value })
           }
           className="h-9 rounded-lg border border-border px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/60"
         >
@@ -1497,14 +1980,63 @@ const fetchReport = useCallback(async () => {
     </>
   );
 
+  // One removable chip per narrowing filter, so it is never a mystery why a
+  // report is showing fewer rows than expected. The date range is deliberately
+  // left out — the preset buttons above already show it.
+  const activeFilterChips = useMemo(() => {
+    const chips: { label: string; clear: Partial<FilterState> }[] = [];
+    const push = (label: string, clear: Partial<FilterState>) =>
+      chips.push({ label, clear });
+
+    if (filters.search) push(`Search: "${filters.search}"`, { search: "" });
+    if (filters.status)
+      push(
+        `Status: ${STATUS_CFG[filters.status]?.label ?? filters.status.replace(/_/g, " ")}`,
+        { status: "" },
+      );
+    if (filters.paymentStatus)
+      push(
+        `Payment: ${PAYMENT_STATUS_CFG[filters.paymentStatus]?.label ?? filters.paymentStatus}`,
+        { paymentStatus: "" },
+      );
+    if (filters.currency) push(`Currency: ${filters.currency}`, { currency: "" });
+    if (filters.method)
+      push(`Method: ${filters.method.replace(/_/g, " ")}`, { method: "" });
+    if (filters.type) push(`Type: ${filters.type.replace(/_/g, " ")}`, { type: "" });
+    if (filters.direction) push(`Direction: ${filters.direction}`, { direction: "" });
+    if (filters.category)
+      push(`Category: ${filters.category.replace(/_/g, " ")}`, { category: "" });
+    if (filters.dentistId) {
+      const d = dentists.find((x) => x.id === filters.dentistId);
+      push(`Doctor: ${d ? staffName(d) : filters.dentistId}`, { dentistId: "" });
+    }
+    if (filters.receivedById) {
+      const d = dentists.find((x) => x.id === filters.receivedById);
+      push(`Cashier: ${d ? staffName(d) : filters.receivedById}`, {
+        receivedById: "",
+      });
+    }
+    if (filters.minAmount) push(`Min ${filters.minAmount}`, { minAmount: "" });
+    if (filters.maxAmount) push(`Max ${filters.maxAmount}`, { maxAmount: "" });
+    if (filters.overdueOnly) push("Overdue only", { overdueOnly: false });
+    if (activeTab === "invoices" && filters.dateBasis !== "created")
+      push(
+        `Dated by: ${DATE_BASIS_OPTIONS.find((o) => o.value === filters.dateBasis)?.label}`,
+        { dateBasis: "created" },
+      );
+    return chips;
+  }, [filters, dentists, activeTab]);
+
   const filterExtras =
     activeTab === "invoices"
       ? invoiceExtras
-      : activeTab === "payments"
-        ? paymentExtras
-        : activeTab === "expenses"
-          ? expenseExtras
-          : undefined;
+      : activeTab === "receipts"
+        ? receiptExtras
+        : activeTab === "payments"
+          ? paymentExtras
+          : activeTab === "expenses"
+            ? expenseExtras
+            : undefined;
 
   // ── Render summary section per tab ───────────────────────────────────────────
   const renderSummary = () => {
@@ -1562,7 +2094,7 @@ const fetchReport = useCallback(async () => {
               />
               <StatCard
                 label="Collection Rate"
-                value={`${summary.collectionRate ?? (summary.totalRevenue ? Math.round((summary.totalCollected / summary.totalRevenue) * 100) : 0)}%`}
+                value={`${summary.collectionRate ?? (summary.totalBilled ? Math.round((summary.totalCollected / summary.totalBilled) * 100) : 0)}%`}
                 icon="📈"
                 accent="#10b981"
               />
@@ -1586,7 +2118,7 @@ const fetchReport = useCallback(async () => {
                   <PieBreakdown
                     data={(summary.statusBreakdown ?? []).map((s: any) => ({
                       name: STATUS_CFG[s.status]?.label ?? s.status,
-                      total: s.total,
+                      total: s.billed,
                     }))}
                     title="Revenue by Invoice Status"
                   />
@@ -1595,7 +2127,7 @@ const fetchReport = useCallback(async () => {
                   <PieBreakdown
                     data={(summary.paymentStatusBreakdown ?? []).map((s: any) => ({
                       name: PAYMENT_STATUS_CFG[s.paymentStatus]?.label ?? s.paymentStatus,
-                      total: s.balance || s.total,
+                      total: s.outstanding || s.billed,
                     }))}
                     title="Outstanding by Payment Status"
                   />
@@ -1689,7 +2221,7 @@ const fetchReport = useCallback(async () => {
                   {/* Revenue by doctor */}
                   <div className="bg-white rounded-xl border border-border p-4 shadow-sm">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                      Revenue by Doctor
+                      Revenue by Doctor (UGX-equivalent)
                     </p>
                     <div className="space-y-2">
                       {(summary.revenueByDoctor ?? [])
@@ -1702,14 +2234,14 @@ const fetchReport = useCallback(async () => {
                                   {d.name}
                                 </span>
                                 <span className="text-xs tabular-nums text-muted-foreground ml-2">
-                                  {fmtCurrency(d.total)}
+                                  {fmtCurrency(d.billed)}
                                 </span>
                               </div>
                               <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                                 <div
                                   className="h-full rounded-full bg-primary"
                                   style={{
-                                    width: `${summary.totalRevenue ? Math.round((d.total / summary.totalRevenue) * 100) : 0}%`,
+                                    width: `${summary.totalBilled ? Math.round((d.billed / summary.totalBilled) * 100) : 0}%`,
                                   }}
                                 />
                               </div>
@@ -2132,10 +2664,10 @@ const fetchReport = useCallback(async () => {
               </button>
               <button
                 onClick={handleExportCSV}
-                disabled={loading}
+                disabled={loading || exporting}
                 className="px-3 py-2 text-sm rounded-lg border border-primary text-primary hover:bg-primary-muted/60 flex items-center gap-1.5 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? "⏳ Loading…" : "⬇ Export CSV"}
+                {loading || exporting ? "⏳ Loading…" : "⬇ Export CSV"}
               </button>
               <button
                 onClick={handlePrint}
@@ -2189,10 +2721,11 @@ const fetchReport = useCallback(async () => {
         {/* Filters */}
         <FilterBar
           filters={filters}
-          setFilters={setFilters}
+          onChange={updateFilters}
           extra={filterExtras}
+          chips={activeFilterChips}
           onReset={() => {
-            setFilters(DEFAULT_FILTERS);
+            setFilters({ ...DEFAULT_FILTERS, limit: filters.limit });
             setPage(1);
           }}
         />

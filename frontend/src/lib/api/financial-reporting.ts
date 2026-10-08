@@ -20,7 +20,17 @@ export interface FinancialReportFilters {
   sortBy?: string;
   sortOrder?: string;
   category?: string;
+  /** Which Invoice timestamp the date window measures. */
+  dateBasis?: InvoiceDateBasis;
+  /** Staff member who took the money (receipts). */
+  receivedById?: string;
+  minAmount?: number;
+  maxAmount?: number;
+  /** Sent as the string "true" — query params are strings. */
+  overdueOnly?: string;
 }
+
+export type InvoiceDateBasis = "created" | "issued" | "due" | "paid";
 
 // ── Typed response shapes ──────────────────────────────────────────────────
 
@@ -96,14 +106,25 @@ export interface InvoiceRow {
   }[];
 }
 
+/**
+ * Mirrors `FinancialReportingService.getInvoicesReport`'s `summary` exactly.
+ * Money fields are base currency (UGX-equivalent) unless the name says
+ * otherwise; `billedByCurrency` is the per-currency split in each currency's
+ * own units, aggregated over the whole filtered set rather than one page.
+ */
 export interface InvoiceSummary {
   total: number;
-  totalRevenue: number;
+  totalBilled: number;
   totalCollected: number;
   totalOutstanding: number;
-  totalBaseRevenue?: number;
-  totalBaseCollected?: number;
   collectionRate?: number;
+  billedByCurrency?: {
+    currency: string;
+    billed: number;
+    collected: number;
+    outstanding: number;
+    count: number;
+  }[];
   outstandingCount: number;
   outstandingAmount: number;
   overdueCount: number;
@@ -111,21 +132,21 @@ export interface InvoiceSummary {
   statusBreakdown: {
     status: string;
     count: number;
-    total: number;
-    paid: number;
+    billed: number;
+    collected: number;
   }[];
   paymentStatusBreakdown?: {
     paymentStatus: string;
     count: number;
-    total: number;
-    paid: number;
-    balance: number;
+    billed: number;
+    collected: number;
+    outstanding: number;
   }[];
   revenueByProcedure: { name: string; total: number; count: number }[];
   revenueByDoctor: {
     name: string;
-    total: number;
-    paid: number;
+    billed: number;
+    collected: number;
     count: number;
   }[];
   paymentsByMethod: { method: string; total: number; count: number }[];
