@@ -22,9 +22,23 @@ BACKUP_BASE_KEEP=4
 # BACKUP_CRON_ENABLED=true
 ```
 
-Schedules are in `@Cron(...)` decorators in `backend/src/backup/backup.service.ts`: full dump daily 02:00, uploads sync 02:30, prune 04:30, base backup Sunday 03:00.
+### Settings live in the app, not in `.env`
 
-Put `BACKUP_DIR` on a **different physical disk** than the Postgres data directory if the machine has one. A backup on the same dying disk is not a backup.
+Admins manage backups from **Admin → Backups** (`/admin/backups`):
+
+- **Regular backup location** — folder on the clinic server where automatic backups go. "Change location…" opens a folder browser of the server's drives (local, USB, mapped network) with a path box for UNC shares (`\\nas\backups`). Picking a bare drive (`E:\`) saves into `E:\ClinicBackups`. Existing backups stay in the old folder when you switch.
+- **Back up to another location…** — one-time backup (database + optionally x-rays) to any folder, e.g. a USB disk you take home. The regular location is unchanged unless you tick "Also make this my regular backup location". Custom locations are never auto-pruned and are remembered under "Recent".
+- **Automatic backup** — on/off; every 1/3/6/12 hours, daily, or weekly; time (and weekday).
+- **Catch up on missed backups** — like Windows Task Scheduler's "run as soon as possible after a scheduled start is missed": if the PC was off/asleep or the API was down at backup time, one backup runs ~90 s after the server is back. A failed scheduled backup retries every 15 min, up to 3 tries.
+- **Keep backups** — 1 week … 1 year, or forever. The 3 newest dumps are always kept.
+- **X-rays & documents** — include the uploads folder (copies new/changed files, never deletes).
+- **Advanced → weekly point-in-time base backup** — off by default; needs WAL archiving (section 2).
+
+Settings and run history are stored per machine in `backend/data/backup/` (`state.json`, `history.jsonl`; override with `BACKUP_STATE_DIR`). On first start the `.env` values below seed the defaults (`BACKUP_DIR` → location, `BACKUP_FULL_RETENTION_DAYS` → keep, `BACKUP_UPLOADS_SRC` → uploads folder, `BACKUP_CRON_ENABLED=false` → automatic off); after that the app settings win.
+
+The location page warns when the backup folder is on the **same drive as the PostgreSQL data directory**. A backup on the same dying disk is not a backup.
+
+If you change the regular location and use WAL archiving, update `archive_command` in `postgresql.conf` to the new `wal` folder too.
 
 ## 2. Enable WAL archiving (the incremental layer) — REQUIRED
 
@@ -82,7 +96,7 @@ nssm set ClinicApi AppStderr C:\clinic\logs\api.err.log
 nssm start ClinicApi
 ```
 
-As a safety net, you can also add a Windows Task Scheduler task that runs `node C:\clinic\api\dist\scripts\run-backup.js full` daily. Pick one primary scheduler: if Task Scheduler owns the backups, set `BACKUP_CRON_ENABLED=false` in `.env` so they don't double-run.
+As a safety net, you can also add a Windows Task Scheduler task that runs `node C:\clinic\api\dist\src\scripts\run-backup.js` daily (add `--to E:\Backups` for another folder, `--no-uploads` to skip x-rays, or `base` for a base backup). Pick one primary scheduler: if Task Scheduler owns the backups, turn off **Back up automatically** on the Backups page so they don't double-run.
 
 ## 5. Restore procedures — practice these
 

@@ -364,7 +364,10 @@ export function DashboardPage() {
   const overdue = d.pending?.overdueInvoices ?? 0;
   const outstanding = d.pending?.outstandingBalance ?? 0;
   const lastFull = backupStatus?.lastByKind?.full;
-  const backupStale = !!lastFull && lastFull.status !== "success";
+  const backupFailed = !!lastFull && lastFull.status !== "success";
+  const backupOverdue = !!backupStatus?.overdue;
+  const backupStale = backupFailed || backupOverdue;
+  const lastBackupAt = backupStatus?.lastSuccessAt ?? lastFull?.finishedAt;
 
   const today = new Date().toLocaleDateString("en-UG", {
     weekday: "long",
@@ -433,10 +436,16 @@ export function DashboardPage() {
                 <CheckCircle2 className="h-3.5 w-3.5 text-success" aria-hidden="true" />
               )}
               Backup{" "}
-              {new Date(lastFull.finishedAt).toLocaleTimeString("en-UG", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {lastBackupAt
+                ? new Date(lastBackupAt).toLocaleString("en-UG", {
+                    ...(new Date(lastBackupAt).toDateString() ===
+                    new Date().toDateString()
+                      ? {}
+                      : { day: "numeric", month: "short" }),
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "never"}
             </button>
           )}
         </div>
@@ -518,7 +527,7 @@ export function DashboardPage() {
               className="inline-flex items-center gap-1 text-xs font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <DatabaseBackup className="h-3 w-3" aria-hidden="true" />
-              Last backup did not complete
+              {backupFailed ? "Last backup did not complete" : "Scheduled backup is overdue"}
               <ArrowRight className="h-3 w-3" aria-hidden="true" />
             </button>
           )}
