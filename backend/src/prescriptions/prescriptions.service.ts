@@ -599,6 +599,9 @@ export class PrescriptionsService {
     search?: string;
     dateFrom?: string;
     dateTo?: string;
+    /** `HH:mm` clinic-local bounds on the first / last day. */
+    startTime?: string;
+    endTime?: string;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   }) {
@@ -612,6 +615,8 @@ export class PrescriptionsService {
       search,
       dateFrom,
       dateTo,
+      startTime,
+      endTime,
       sortBy,
       sortOrder = 'desc',
     } = params;
@@ -626,7 +631,7 @@ export class PrescriptionsService {
     // Inclusive clinic-day bounds. `new Date('2026-10-07')` is UTC midnight, so
     // using it directly as `lte` excluded the whole of the "to" day — a report
     // filtered to a single day came back empty.
-    const dateRange = clinicDateRange(dateFrom, dateTo);
+    const dateRange = clinicDateRange(dateFrom, dateTo, { startTime, endTime });
     if (dateRange) where.createdAt = dateRange;
 
     if (search) {

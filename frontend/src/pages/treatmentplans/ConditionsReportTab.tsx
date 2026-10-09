@@ -1,3 +1,4 @@
+import { ReportTimeRange } from "@/components/reports/ReportTimeRange";
 import React, { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { conditionsApi } from "@/lib/api/conditions";
@@ -49,7 +50,7 @@ function SeverityBadge({ severity }: { severity?: string }) {
 }
 
 function fmtDate(d?: string | null): string {
-  return formatDate(d, "short");
+  return formatDate(d, "datetime");
 }
 
 const fullName = (p?: { firstName: string; lastName: string } | null): string =>
@@ -76,6 +77,8 @@ interface ConditionsFilters {
   severity: string;
   dateFrom: string;
   dateTo: string;
+  startTime: string;
+  endTime: string;
   dentistId: string;
   page: number;
   limit: number;
@@ -88,6 +91,8 @@ const DEFAULT_FILTERS: ConditionsFilters = {
   severity: "",
   dateFrom: "",
   dateTo: "",
+  startTime: "",
+  endTime: "",
   dentistId: "",
   page: 1,
   limit: 20,
@@ -109,6 +114,8 @@ export default function ConditionsReportTab(): JSX.Element {
       severity: filters.severity || undefined,
       startDate: filters.dateFrom || undefined,
       endDate: filters.dateTo || undefined,
+      startTime: (filters.dateFrom && filters.startTime) || undefined,
+      endTime: (filters.dateTo && filters.endTime) || undefined,
       dentistId: filters.dentistId || undefined,
       page: filters.page,
       limit: filters.limit,
@@ -151,6 +158,8 @@ export default function ConditionsReportTab(): JSX.Element {
         severity: filters.severity || undefined,
         startDate: filters.dateFrom || undefined,
         endDate: filters.dateTo || undefined,
+        startTime: (filters.dateFrom && filters.startTime) || undefined,
+        endTime: (filters.dateTo && filters.endTime) || undefined,
         dentistId: filters.dentistId || undefined,
         page: 1,
         limit: 100,
@@ -246,6 +255,15 @@ export default function ConditionsReportTab(): JSX.Element {
           <label className="block text-xs font-medium text-muted-foreground mb-1">To</label>
           <input type="date" value={filters.dateTo} onChange={(e) => update({ dateTo: e.target.value, page: 1 })} className={inputCls} />
         </div>
+
+        <ReportTimeRange
+          startTime={filters.startTime}
+          endTime={filters.endTime}
+          hasStartDate={!!filters.dateFrom}
+          hasEndDate={!!filters.dateTo}
+          onChange={(patch) => update({ ...patch, page: 1 })}
+          inputClassName={inputCls}
+        />
 
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1">Doctor</label>

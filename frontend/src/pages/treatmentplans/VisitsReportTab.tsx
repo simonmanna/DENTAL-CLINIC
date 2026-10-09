@@ -1,3 +1,4 @@
+import { ReportTimeRange } from "@/components/reports/ReportTimeRange";
 // src/pages/treatmentplans/VisitsReportTab.tsx
 // ─────────────────────────────────────────────────────────────────────────────
 // Self-contained "Visits" tab for the Treatment Reports page. Kept as its own
@@ -68,6 +69,16 @@ function shortDate(s?: string | null): string {
     : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+function dateTime(s?: string | null): string {
+  if (!s) return "—";
+  const d = new Date(s);
+  return Number.isNaN(d.getTime())
+    ? "—"
+    : d.toLocaleString("en-GB", {
+        day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+      });
+}
+
 function StatusBadge({ status }: { status: string }) {
   const cls = STATUS_CFG[status] ?? "bg-muted text-muted-foreground ring-border";
   return (
@@ -127,7 +138,7 @@ function VisitRow({ visit, navigate }: { visit: PatientVisitsReport["data"][numb
           {visit.visitCode}
         </td>
         <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-          {shortDate(visit.createdAt)}
+          {dateTime(visit.createdAt)}
         </td>
         <td className="px-3 py-2.5">
           <p className="font-medium text-foreground">{visit.patientName}</p>
@@ -250,6 +261,8 @@ interface VisitsFilters {
   period: ReportPeriodClinical;
   startDate: string;
   endDate: string;
+  startTime: string;
+  endTime: string;
   dentistId: string;
   status: string;
   page: number;
@@ -259,6 +272,8 @@ const DEFAULT_FILTERS: VisitsFilters = {
   period: ReportPeriodClinical.THIS_MONTH,
   startDate: "",
   endDate: "",
+  startTime: "",
+  endTime: "",
   dentistId: "",
   status: "",
   page: 1,
@@ -278,6 +293,8 @@ export default function VisitsReportTab(): JSX.Element {
       period: filters.period,
       startDate: filters.startDate || undefined,
       endDate: filters.endDate || undefined,
+      startTime: (filters.startDate && filters.startTime) || undefined,
+      endTime: (filters.endDate && filters.endTime) || undefined,
       dentistId: filters.dentistId || undefined,
       status: filters.status || undefined,
       page: filters.page,
@@ -367,6 +384,14 @@ export default function VisitsReportTab(): JSX.Element {
                 className={inputCls}
               />
             </div>
+            <ReportTimeRange
+              startTime={filters.startTime}
+              endTime={filters.endTime}
+              hasStartDate={!!filters.startDate}
+              hasEndDate={!!filters.endDate}
+              onChange={(patch) => update({ ...patch, page: 1 })}
+              inputClassName={inputCls}
+            />
           </>
         )}
 
@@ -453,7 +478,7 @@ export default function VisitsReportTab(): JSX.Element {
                   <tr className="border-b border-border bg-muted/50">
                     {[
                       "Visit",
-                      "Date",
+                      "Date & Time",
                       "Patient",
                       "Prev Card",
                       "Doctor",

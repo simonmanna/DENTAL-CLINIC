@@ -8,8 +8,10 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  Matches,
   Min,
 } from 'class-validator';
+import { REPORT_TIME_PATTERN } from '../../reports-common';
 import { BillingType, SessionStatus, TreatmentStatus } from '@prisma/client';
 
 /**
@@ -31,6 +33,18 @@ export class TreatmentReportQueryDto {
   @IsOptional()
   @IsString()
   endDate?: string;
+
+  /** `HH:mm` clinic-local; narrows the first day of the range. */
+  @ApiPropertyOptional({ example: '08:00' })
+  @IsOptional()
+  @Matches(REPORT_TIME_PATTERN, { message: 'startTime must be HH:mm' })
+  startTime?: string;
+
+  /** `HH:mm` clinic-local; narrows the last day (inclusive of the minute). */
+  @ApiPropertyOptional({ example: '17:30' })
+  @IsOptional()
+  @Matches(REPORT_TIME_PATTERN, { message: 'endTime must be HH:mm' })
+  endTime?: string;
 
   @ApiPropertyOptional() @IsOptional() @IsString() dentistId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() patientId?: string;

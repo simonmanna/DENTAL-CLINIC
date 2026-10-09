@@ -298,6 +298,9 @@ export interface ConditionsReportQuery {
   limit?: number;
   startDate?: string;
   endDate?: string;
+  /** `HH:mm`, clinic-local; narrows the first / last day of the range. */
+  startTime?: string;
+  endTime?: string;
   status?: string;
   category?: string;
   severity?: string;

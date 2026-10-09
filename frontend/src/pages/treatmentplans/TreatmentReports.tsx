@@ -18,6 +18,7 @@ import { treatmentPlansApi } from "@/lib/api/treatment-plans";
 import { staffApi } from "@/lib/api/staff-api";
 
 // ─── Tabs that own their own data/state (kept modular for easy debugging) ──────
+import { ReportTimeRange } from "@/components/reports/ReportTimeRange";
 import VisitsReportTab from "./VisitsReportTab";
 import PrescriptionsReportTab from "./PrescriptionsReportTab";
 import AppointmentsReportTab from "./AppointmentsReportTab";
@@ -174,6 +175,8 @@ interface ReportFilters {
   search?: string;
   startDate?: string;
   endDate?: string;
+  startTime?: string;
+  endTime?: string;
   dentistId?: string;
   patientId?: string;
   status?: string;
@@ -229,6 +232,8 @@ interface FilterState {
   search: string;
   startDate: string;
   endDate: string;
+  startTime: string;
+  endTime: string;
   dentistId: string;
   patientId: string;
   status: string;
@@ -269,6 +274,11 @@ const fmtCurrency = (
 
 const fmtDate = (d?: string | null): string =>
   d ? new Date(d).toLocaleDateString("en-GB") : "—";
+
+const fmtDateTime = (d?: string | null): string =>
+  d
+    ? new Date(d).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })
+    : "—";
 
 const fmtPct = (v?: number | null): string => `${v ?? 0}%`;
 
@@ -549,6 +559,15 @@ function FilterBar({
           className="h-9 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-success/60"
         />
       </div>
+
+      <ReportTimeRange
+        startTime={filters.startTime}
+        endTime={filters.endTime}
+        hasStartDate={!!filters.startDate}
+        hasEndDate={!!filters.endDate}
+        onChange={(patch) => setFilters((f) => ({ ...f, ...patch }))}
+        inputClassName="h-9 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-success/60"
+      />
 
       <div>
         <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -856,9 +875,9 @@ const PLAN_COLUMNS: ColumnDef<PlanRow>[] = [
     key: "createdAt",
     label: "Created",
     render: (r) => (
-      <span className="text-xs text-muted-foreground">{fmtDate(r.createdAt)}</span>
+      <span className="text-xs text-muted-foreground">{fmtDateTime(r.createdAt)}</span>
     ),
-    csv: (r) => fmtDate(r.createdAt),
+    csv: (r) => fmtDateTime(r.createdAt),
   },
 ];
 
@@ -999,17 +1018,17 @@ const PROCEDURE_COLUMNS: ColumnDef<ProcedureRow>[] = [
     key: "performedDate",
     label: "Performed",
     render: (r) => (
-      <span className="text-xs text-muted-foreground">{fmtDate(r.performedDate)}</span>
+      <span className="text-xs text-muted-foreground">{fmtDateTime(r.performedDate)}</span>
     ),
-    csv: (r) => fmtDate(r.performedDate),
+    csv: (r) => fmtDateTime(r.performedDate),
   },
   {
     key: "createdAt",
     label: "Added",
     render: (r) => (
-      <span className="text-xs text-muted-foreground">{fmtDate(r.createdAt)}</span>
+      <span className="text-xs text-muted-foreground">{fmtDateTime(r.createdAt)}</span>
     ),
-    csv: (r) => fmtDate(r.createdAt),
+    csv: (r) => fmtDateTime(r.createdAt),
   },
 ];
 
@@ -1131,9 +1150,9 @@ const SESSION_COLUMNS: ColumnDef<SessionRow>[] = [
     key: "performedDate",
     label: "Performed",
     render: (r) => (
-      <span className="text-xs text-muted-foreground">{fmtDate(r.performedDate)}</span>
+      <span className="text-xs text-muted-foreground">{fmtDateTime(r.performedDate)}</span>
     ),
-    csv: (r) => fmtDate(r.performedDate),
+    csv: (r) => fmtDateTime(r.performedDate),
   },
 ];
 
@@ -1222,6 +1241,8 @@ const DEFAULT_FILTERS: FilterState = {
   search: "",
   startDate: "",
   endDate: "",
+  startTime: "",
+  endTime: "",
   dentistId: "",
   patientId: "",
   status: "",
@@ -1279,6 +1300,8 @@ export default function TreatmentReports(): JSX.Element {
       search: filters.search || undefined,
       startDate: filters.startDate || undefined,
       endDate: filters.endDate || undefined,
+      startTime: (filters.startDate && filters.startTime) || undefined,
+      endTime: (filters.endDate && filters.endTime) || undefined,
       dentistId: filters.dentistId || undefined,
       patientId: filters.patientId || undefined,
       status: filters.status || undefined,
@@ -1362,6 +1385,8 @@ export default function TreatmentReports(): JSX.Element {
       search: filters.search || undefined,
       startDate: filters.startDate || undefined,
       endDate: filters.endDate || undefined,
+      startTime: (filters.startDate && filters.startTime) || undefined,
+      endTime: (filters.endDate && filters.endTime) || undefined,
       dentistId: filters.dentistId || undefined,
       patientId: filters.patientId || undefined,
       status: filters.status || undefined,

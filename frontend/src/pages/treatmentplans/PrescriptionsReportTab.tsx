@@ -1,3 +1,4 @@
+import { ReportTimeRange } from "@/components/reports/ReportTimeRange";
 // src/pages/treatmentplans/PrescriptionsReportTab.tsx
 // Self-contained "Prescriptions Report" tab for the Treatment Reports page.
 
@@ -50,6 +51,10 @@ function fmtDate(d?: string | null): string {
   return formatDate(d, "short");
 }
 
+function fmtDateTime(d?: string | null): string {
+  return formatDate(d, "datetime");
+}
+
 const fullName = (
   p?: { firstName: string; lastName: string } | null,
 ): string => (p ? `${p.firstName} ${p.lastName}` : "—");
@@ -94,6 +99,8 @@ interface PrescriptionsFilters {
   status: string;
   dateFrom: string;
   dateTo: string;
+  startTime: string;
+  endTime: string;
   dentistId: string;
   page: number;
   limit: number;
@@ -106,6 +113,8 @@ const DEFAULT_FILTERS: PrescriptionsFilters = {
   status: "",
   dateFrom: "",
   dateTo: "",
+  startTime: "",
+  endTime: "",
   dentistId: "",
   page: 1,
   limit: 20,
@@ -129,6 +138,8 @@ export default function PrescriptionsReportTab(): JSX.Element {
         : undefined,
       dateFrom: filters.dateFrom || undefined,
       dateTo: filters.dateTo || undefined,
+      startTime: (filters.dateFrom && filters.startTime) || undefined,
+      endTime: (filters.dateTo && filters.endTime) || undefined,
       dentistId: filters.dentistId || undefined,
       page: filters.page,
       limit: filters.limit,
@@ -176,6 +187,8 @@ export default function PrescriptionsReportTab(): JSX.Element {
           : undefined,
         dateFrom: filters.dateFrom || undefined,
         dateTo: filters.dateTo || undefined,
+        startTime: (filters.dateFrom && filters.startTime) || undefined,
+        endTime: (filters.dateTo && filters.endTime) || undefined,
         dentistId: filters.dentistId || undefined,
         page: 1,
         limit: 100,
@@ -199,7 +212,7 @@ export default function PrescriptionsReportTab(): JSX.Element {
           `"${r.status}"`,
           `"${r.items.length}"`,
           `"${fmtDate(r.validUntil)}"`,
-          `"${fmtDate(r.createdAt)}"`,
+          `"${fmtDateTime(r.createdAt)}"`,
         ].join(","),
       );
       const blob = new Blob([[header, ...body].join("\n")], {
@@ -281,6 +294,15 @@ export default function PrescriptionsReportTab(): JSX.Element {
             className={inputCls}
           />
         </div>
+
+        <ReportTimeRange
+          startTime={filters.startTime}
+          endTime={filters.endTime}
+          hasStartDate={!!filters.dateFrom}
+          hasEndDate={!!filters.dateTo}
+          onChange={(patch) => update({ ...patch, page: 1 })}
+          inputClassName={inputCls}
+        />
 
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -448,7 +470,7 @@ export default function PrescriptionsReportTab(): JSX.Element {
                         {fmtDate(p.validUntil)}
                       </td>
                       <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-                        {fmtDate(p.createdAt)}
+                        {fmtDateTime(p.createdAt)}
                       </td>
                     </tr>
                   ))}

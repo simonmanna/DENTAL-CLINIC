@@ -84,6 +84,9 @@ export {
 export interface ReportFilters {
   startDate?: string;
   endDate?: string;
+  /** `HH:mm` clinic-local bounds on the first / last day. */
+  startTime?: string;
+  endTime?: string;
   dentistId?: string;
   patientId?: string;
   status?: string;
@@ -4880,7 +4883,10 @@ export class TreatmentPlansService {
 
     const where: Prisma.TreatmentPlanWhereInput = {};
 
-    const dateRange = clinicDateRange(filters.startDate, filters.endDate);
+    const dateRange = clinicDateRange(filters.startDate, filters.endDate, {
+      startTime: filters.startTime,
+      endTime: filters.endTime,
+    });
     if (dateRange) where.createdAt = dateRange;
     if (filters.dentistId) where.dentistId = filters.dentistId;
     if (filters.patientId) where.patientId = filters.patientId;
@@ -5115,7 +5121,10 @@ export class TreatmentPlansService {
       deletedAt: null,
     };
 
-    const dateRange = clinicDateRange(filters.startDate, filters.endDate);
+    const dateRange = clinicDateRange(filters.startDate, filters.endDate, {
+      startTime: filters.startTime,
+      endTime: filters.endTime,
+    });
     if (dateRange) where.createdAt = dateRange;
 
     // Plan-level filters
@@ -5412,7 +5421,10 @@ export class TreatmentPlansService {
     // executed yet has no performedDate, so matching only on that column made
     // every PENDING session vanish the moment a date filter was applied; fall
     // back to createdAt for those so the status chart stays honest.
-    const dateRange = clinicDateRange(filters.startDate, filters.endDate);
+    const dateRange = clinicDateRange(filters.startDate, filters.endDate, {
+      startTime: filters.startTime,
+      endTime: filters.endTime,
+    });
     if (dateRange) {
       where.AND = [
         ...((where.AND as Prisma.ProcedureSessionWhereInput[]) ?? []),

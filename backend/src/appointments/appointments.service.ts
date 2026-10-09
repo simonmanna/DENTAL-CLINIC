@@ -55,7 +55,9 @@ import {
   weekRange,
   clinicDayOfWeek,
   clinicLocalTimeToInstant,
+  clinicTimeZone,
 } from '../common/time/clinic-day';
+import { clinicDateRange } from '../reports-common';
 import { assertTransition } from './appointment-status';
 
 // ─── DTOs ─────────────────────────────────────────────────────────────────────
@@ -114,6 +116,9 @@ export class AppointmentQueryDto {
   date?: string;
   startDate?: string;
   endDate?: string;
+  /** `HH:mm` clinic-local bounds on the first / last day of the range. */
+  startTime?: string;
+  endTime?: string;
   page?: string;
   limit?: string;
   view?: 'day' | 'week';
@@ -798,8 +803,25 @@ export class AppointmentsService {
       where.scheduledAt = { gte: start, lt: end };
     } else if (startDate || endDate) {
       const bounds: Prisma.DateTimeFilter = {};
-      if (startDate) bounds.gte = dayRange(startDate).start;
-      if (endDate) bounds.lt = dayRange(endDate).end;
+      if (startDate) {
+        bounds.gte = query.startTime
+          ? clinicDateRange(startDate, undefined, {
+              startTime: query.startTime,
+              timezone: clinicTimeZone(),
+            })!.gte
+          : dayRange(startDate).start;
+      }
+      if (endDate) {
+        // An end time is inclusive of its whole minute, so it closes with lte.
+        if (query.endTime) {
+          bounds.lte = clinicDateRange(undefined, endDate, {
+            endTime: query.endTime,
+            timezone: clinicTimeZone(),
+          })!.lte;
+        } else {
+          bounds.lt = dayRange(endDate).end;
+        }
+      }
       where.scheduledAt = bounds;
     }
 

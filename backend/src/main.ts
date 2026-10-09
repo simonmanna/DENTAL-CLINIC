@@ -7,6 +7,15 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 import { corsOrigins, validateEnv } from './common/config/validate-env';
 
+// Raw SQL aggregates (COUNT(*) and friends) come back from Prisma as BigInt,
+// which JSON.stringify cannot encode, so any report returning one failed with
+// a 500. Every count here stays far below 2^53, so a Number is exact.
+(BigInt.prototype as unknown as { toJSON: () => number }).toJSON = function (
+  this: bigint,
+) {
+  return Number(this);
+};
+
 async function bootstrap() {
   // Refuse to start on a half-configured environment rather than fall back to
   // development defaults in production.

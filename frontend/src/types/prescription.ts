@@ -107,6 +107,9 @@ export interface PrescriptionFilters {
   search?: string;
   dateFrom?: string;
   dateTo?: string;
+  /** `HH:mm`, clinic-local; narrows the first / last day of the range. */
+  startTime?: string;
+  endTime?: string;
   sortBy?: 'createdAt' | 'prescriptionCode' | 'status' | 'validUntil' | 'updatedAt';
   sortOrder?: 'asc' | 'desc';
   page?: number;

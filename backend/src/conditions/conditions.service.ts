@@ -1072,7 +1072,10 @@ async getPatientConditionsReport(query: ConditionsReportQueryDto) {
   // Inclusive clinic-day bounds. Passing the bare "to" date through
   // `new Date()` yields UTC midnight, which excludes everything diagnosed
   // later that day.
-  const diagnosedRange = clinicDateRange(query.startDate, query.endDate);
+  const diagnosedRange = clinicDateRange(query.startDate, query.endDate, {
+    startTime: query.startTime,
+    endTime: query.endTime,
+  });
 
   const where: any = {
     deletedAt: null,

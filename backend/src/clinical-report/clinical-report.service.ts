@@ -879,8 +879,13 @@ export class ClinicalReportsService {
         const visitWhere: any = {
                     // R-07 fix: filter by startedAt (when the visit happened) instead
                     // of createdAt (when the row was inserted). Future-dated visits
-                    // booked today no longer appear in today's report.
-                    startedAt: { gte: startDate, lte: endDate },
+                    // booked today no longer appear in today's report. Visits from
+                    // before startedAt was recorded fall back to their check-in
+                    // time; otherwise they vanished from every period.
+                    OR: [
+                        { startedAt: { gte: startDate, lte: endDate } },
+                        { startedAt: null, checkedInAt: { gte: startDate, lte: endDate } },
+                    ],
                 };
                 if (query.patientId) visitWhere.patientId = query.patientId;
                 if (query.dentistId) visitWhere.dentistId = query.dentistId;
@@ -892,7 +897,7 @@ export class ClinicalReportsService {
                 include: {
                     patient: { select: { id: true, patientCode: true, firstName: true, lastName: true, phone: true } },
                     dentist: { select: { id: true, firstName: true, lastName: true, specialization: true } },
-                    procedures: { include: { procedure: { select: { name: true, code: true } } } },
+                    procedures: { where: { deletedAt: null }, include: { procedure: { select: { name: true, code: true } } } },
                     prescriptions: { select: { id: true, status: true } },
                     procedureSessions: { select: { id: true, status: true, sessionNumber: true } },
                     progressReports: { select: { id: true, outcome: true, complaintStatus: true } },
@@ -910,6 +915,16 @@ export class ClinicalReportsService {
             where: visitWhere,
             _count: true,
         });
+
+        // Summary money and procedure counts cover the whole filtered range,
+        // not just the page being shown.
+        const [rangeMoney, rangeProcedures] = await Promise.all([
+            this.prisma.invoice.aggregate({
+                where: { visit: { is: visitWhere }, status: { not: 'VOID' }, deletedAt: null },
+                _sum: { baseTotal: true, baseAmountPaid: true },
+            }),
+            this.prisma.visitProcedure.count({ where: { visit: visitWhere, deletedAt: null } }),
+        ]);
 
         // Visit money from the visit's invoices (base currency) — the visit
         // columns were only fed by legacy VisitProcedure lines.
@@ -983,12 +998,10 @@ export class ClinicalReportsService {
             summary: {
                 total,
                 byStatus: Object.fromEntries(visitStatusSummary.map((s) => [s.status, s._count])),
-                totalRevenue: rows.reduce((s, v) => s + toNum(v.totalCost), 0),
-                totalCollected: rows.reduce((s, v) => s + toNum(v.amountPaid), 0),
+                totalRevenue: toNum(rangeMoney._sum.baseTotal),
+                totalCollected: toNum(rangeMoney._sum.baseAmountPaid),
                 avgProceduresPerVisit:
-                    rows.length > 0
-                        ? (rows.reduce((s, v) => s + v.procedureCount, 0) / rows.length).toFixed(1)
-                        : 0,
+                    total > 0 ? (rangeProcedures / total).toFixed(1) : 0,
             },
             data: rows,
             pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },

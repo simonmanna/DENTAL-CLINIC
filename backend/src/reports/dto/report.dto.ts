@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsEnum, IsDateString, IsInt, Min, Max } from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsDateString, IsInt, Min, Max, Matches } from 'class-validator';
+import { REPORT_TIME_PATTERN } from '../../reports-common';
 import { Type } from 'class-transformer';
 
 export enum ReportPeriod {
@@ -9,6 +10,8 @@ export enum ReportPeriod {
   LAST_WEEK = 'last_week',
   THIS_MONTH = 'this_month',
   LAST_MONTH = 'last_month',
+  LAST_3_MONTHS = 'last_3_months',
+  LAST_6_MONTHS = 'last_6_months',
   THIS_YEAR = 'this_year',
   CUSTOM = 'custom',
 }
@@ -38,6 +41,18 @@ export class VisitReportQueryDto {
   @IsOptional()
   @IsDateString()
   endDate?: string;
+
+  /** `HH:mm` clinic-local; narrows the first day of a custom range. */
+  @ApiProperty({ required: false, example: '08:00' })
+  @IsOptional()
+  @Matches(REPORT_TIME_PATTERN, { message: 'startTime must be HH:mm' })
+  startTime?: string;
+
+  /** `HH:mm` clinic-local; narrows the last day (inclusive of the minute). */
+  @ApiProperty({ required: false, example: '17:30' })
+  @IsOptional()
+  @Matches(REPORT_TIME_PATTERN, { message: 'endTime must be HH:mm' })
+  endTime?: string;
 
   @ApiProperty({ enum: ReportType, default: ReportType.SUMMARY })
   @IsEnum(ReportType)

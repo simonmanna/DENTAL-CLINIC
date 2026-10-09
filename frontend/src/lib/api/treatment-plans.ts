@@ -122,6 +122,9 @@ export interface ReportFilters {
   search?: string;
   startDate?: string;
   endDate?: string;
+  /** `HH:mm`, clinic-local; narrows the first / last day of the range. */
+  startTime?: string;
+  endTime?: string;
   dentistId?: string;
   patientId?: string;
   status?: string;

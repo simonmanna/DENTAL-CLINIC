@@ -21,6 +21,17 @@ import {
   ReportPeriod,
   ReportType,
 } from './dto/report.dto';
+import { clinicDateRange } from '../reports-common';
+
+/**
+ * Payment status of a visit from its invoices (base currency). Mirrors the
+ * clinical report so both screens label the same visit the same way.
+ */
+export function visitPaymentStatus(billed: number, paid: number): string {
+  if (billed <= 0) return 'OPEN';
+  if (paid + 0.01 >= billed) return 'PAID';
+  return paid > 0 ? 'PARTIALLY_PAID' : 'UNPAID';
+}
 
 function toNum(v: unknown): number {
   if (v == null) return 0;
@@ -262,7 +273,7 @@ export class ReportsService {
         include: {
           patient: true,
           dentist: true,
-          procedures: { include: { procedure: true } },
+          procedures: { where: { deletedAt: null }, include: { procedure: true } },
           // payments: true,
         },
         orderBy: { createdAt: 'desc' },
@@ -728,6 +739,7 @@ export class ReportsService {
       query.period,
       query.startDate,
       query.endDate,
+      { startTime: query.startTime, endTime: query.endTime },
     );
 
     const baseWhere = this.buildReportWhereClause(query, startDate, endDate);
@@ -822,15 +834,16 @@ export class ReportsService {
     period: ReportPeriod,
     customStart?: string,
     customEnd?: string,
+    times: { startTime?: string; endTime?: string } = {},
   ): { startDate: Date; endDate: Date } {
     const start = new Date();
     const end = new Date();
 
     if (period === ReportPeriod.CUSTOM && customStart && customEnd) {
-      return {
-        startDate: new Date(customStart),
-        endDate: new Date(customEnd),
-      };
+      // Inclusive clinic-day bounds: `new Date(customEnd)` alone is UTC
+      // midnight, which cut the whole "to" day out of the window.
+      const range = clinicDateRange(customStart, customEnd, times)!;
+      return { startDate: range.gte!, endDate: range.lte! };
     }
 
     switch (period) {
@@ -871,6 +884,20 @@ export class ReportsService {
         start.setHours(0, 0, 0, 0);
         end.setMonth(end.getMonth());
         end.setDate(0);
+        end.setHours(23, 59, 59, 999);
+        break;
+      case ReportPeriod.LAST_3_MONTHS:
+      case ReportPeriod.LAST_6_MONTHS:
+        // Rolling window ending today, matching the clinical reports.
+        start.setMonth(
+          start.getMonth() - (period === ReportPeriod.LAST_3_MONTHS ? 3 : 6),
+        );
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        break;
+      case ReportPeriod.THIS_YEAR:
+        start.setMonth(0, 1);
+        start.setHours(0, 0, 0, 0);
         end.setHours(23, 59, 59, 999);
         break;
       default:
@@ -1673,6 +1700,7 @@ async getPatientVisitsReport(query: VisitReportQueryDto): Promise<PatientVisitsR
       query.period,
       query.startDate,
       query.endDate,
+      { startTime: query.startTime, endTime: query.endTime },
     );
 
     const where = this.buildReportWhereClause(query, startDate, endDate);
@@ -1691,7 +1719,7 @@ async getPatientVisitsReport(query: VisitReportQueryDto): Promise<PatientVisitsR
       include: {
         patient: { select: { id: true, firstName: true, lastName: true, patientCode: true, phone: true, previousCardNumber: true } },
         dentist: { select: { id: true, firstName: true, lastName: true, specialization: true } },
-        procedures: { include: { procedure: true } },
+        procedures: { where: { deletedAt: null }, include: { procedure: true } },
         procedureSessions: {
           where: { deletedAt: null },
           include: {
@@ -1723,20 +1751,32 @@ async getPatientVisitsReport(query: VisitReportQueryDto): Promise<PatientVisitsR
     // 4. Build summary (byStatus, totalRevenue, totalCollected, etc.)
     const allVisitsForSummary = await this.prisma.visit.findMany({
       where,
-      select: { status: true, totalCost: true, amountPaid: true, procedures: { select: { id: true } } },
+      select: { status: true, procedures: { where: { deletedAt: null }, select: { id: true } } },
+    });
+
+    // Revenue/collected come from the visits' invoices across the whole
+    // filtered range. Visit.totalCost / amountPaid are legacy columns that
+    // modern (treatment-plan) billing never updates, so they read 0.
+    const invoiceTotals = await this.prisma.invoice.aggregate({
+      where: {
+        visit: { is: where },
+        status: { not: InvoiceStatus.VOID },
+        deletedAt: null,
+      },
+      _sum: { baseTotal: true, baseAmountPaid: true },
     });
 
     const byStatus: Record<string, number> = {};
-    let totalRevenue = 0;
-    let totalCollected = 0;
+    const totalRevenue = toNum(invoiceTotals._sum.baseTotal);
+    const totalCollected = toNum(invoiceTotals._sum.baseAmountPaid);
     let totalProcedures = 0;
 
     for (const v of allVisitsForSummary) {
       byStatus[v.status] = (byStatus[v.status] || 0) + 1;
-      totalRevenue += toNum(v.totalCost);
-      totalCollected += toNum(v.amountPaid);
       totalProcedures += v.procedures.length;
     }
+
+    const money = await this.visitMoney(visits.map((v) => v.id));
 
     const avgProceduresPerVisit = totalVisits > 0 ? (totalProcedures / totalVisits).toFixed(1) : '0';
 
@@ -1789,6 +1829,8 @@ async getPatientVisitsReport(query: VisitReportQueryDto): Promise<PatientVisitsR
     }));
 
 
+      const { billed, paid } = money.get(visit.id) ?? { billed: 0, paid: 0 };
+
       return {
         visitId: visit.id,
         visitCode: visit.visitCode,
@@ -1801,11 +1843,11 @@ async getPatientVisitsReport(query: VisitReportQueryDto): Promise<PatientVisitsR
         dentistName: `${visit.dentist.firstName} ${visit.dentist.lastName}`,
         dentistSpecialization: visit.dentist.specialization ?? undefined,
         status: visit.status,
-        paymentStatus: this.determinePaymentStatus(visit),
+        paymentStatus: visitPaymentStatus(billed, paid),
         totalCost: totalCostFromProcedures,
         totalPrice: totalCostFromProcedures,
-        amountPaid: toNum(visit.amountPaid),
-        balance: toNum(visit.totalCost) - toNum(visit.amountPaid),
+        amountPaid: paid,
+        balance: Math.max(0, billed - paid),
         diagnosis: visit.diagnosis || [],
         icdCodes: visit.icdCodes || [],
         procedureCount: treatmentProcedures.length,  // ← count from treatment procedures
@@ -1845,11 +1887,6 @@ async getPatientVisitsReport(query: VisitReportQueryDto): Promise<PatientVisitsR
     };
   }
 
-  private determinePaymentStatus(visit: any): string {
-    if (visit.amountPaid === 0) return 'UNPAID';
-    if (visit.amountPaid >= visit.totalCost) return 'PAID';
-    return 'PARTIAL';
-  }
 
   // ═══════════════════════════════════════════════════════════════════════
   // NEW REPORTS (Phase 3 — operator-driven, manager-facing)

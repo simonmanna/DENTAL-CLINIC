@@ -1,3 +1,4 @@
+import { ReportTimeRange } from "@/components/reports/ReportTimeRange";
 // src/pages/treatmentplans/AppointmentsReportTab.tsx
 // Self-contained "Appointments Report" tab for the Treatment Reports page.
 
@@ -122,6 +123,8 @@ interface AppointmentFilters {
   status: string;
   startDate: string;
   endDate: string;
+  startTime: string;
+  endTime: string;
   dentistId: string;
   page: number;
   limit: number;
@@ -132,6 +135,8 @@ const DEFAULT_FILTERS: AppointmentFilters = {
   status: "",
   startDate: "",
   endDate: "",
+  startTime: "",
+  endTime: "",
   dentistId: "",
   page: 1,
   limit: 20,
@@ -151,6 +156,8 @@ export default function AppointmentsReportTab(): JSX.Element {
       status: filters.status || undefined,
       startDate: filters.startDate || undefined,
       endDate: filters.endDate || undefined,
+      startTime: (filters.startDate && filters.startTime) || undefined,
+      endTime: (filters.endDate && filters.endTime) || undefined,
       dentistId: filters.dentistId || undefined,
       page: filters.page,
       limit: filters.limit,
@@ -194,6 +201,8 @@ export default function AppointmentsReportTab(): JSX.Element {
         status: filters.status || undefined,
         startDate: filters.startDate || undefined,
         endDate: filters.endDate || undefined,
+        startTime: (filters.startDate && filters.startTime) || undefined,
+        endTime: (filters.endDate && filters.endTime) || undefined,
         dentistId: filters.dentistId || undefined,
         page: 1,
         limit: 100,
@@ -298,6 +307,15 @@ export default function AppointmentsReportTab(): JSX.Element {
             className={inputCls}
           />
         </div>
+
+        <ReportTimeRange
+          startTime={filters.startTime}
+          endTime={filters.endTime}
+          hasStartDate={!!filters.startDate}
+          hasEndDate={!!filters.endDate}
+          onChange={(patch) => update({ ...patch, page: 1 })}
+          inputClassName={inputCls}
+        />
 
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1">
