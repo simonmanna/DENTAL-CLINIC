@@ -261,6 +261,46 @@ describe('StockMovementService.receive', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
+  it('keeps a named lot and its expiry when asked to (transfer, count)', async () => {
+    const svc = makeService();
+    const { tx, batches } = makeTx();
+
+    await svc.receive(tx, {
+      itemId: ITEM,
+      locationId: LOC,
+      quantity: 4,
+      unitCost: 10,
+      batchNumber: 'LOT-7',
+      expiryDate: days(30),
+      referenceType: 'TRANSFER',
+      referenceId: 't1',
+      requireBatchDetails: false,
+      preserveBatchNumber: true,
+    });
+
+    expect(batches).toHaveLength(1);
+    expect(batches[0].batchNumber).toBe('LOT-7');
+    expect(batches[0].expiryDate).toEqual(days(30));
+  });
+
+  it('still pools a non-tracked item into DEFAULT', async () => {
+    const svc = makeService();
+    const { tx, batches } = makeTx();
+
+    await svc.receive(tx, {
+      itemId: ITEM,
+      locationId: LOC,
+      quantity: 4,
+      unitCost: 10,
+      batchNumber: 'TYPED-BY-USER',
+      referenceType: 'STOCK_IN',
+      referenceId: 's1',
+      requireBatchDetails: false,
+    });
+
+    expect(batches[0].batchNumber).toBe('DEFAULT');
+  });
+
   it('refuses a non-positive quantity', async () => {
     const svc = makeService();
     const { tx } = makeTx();

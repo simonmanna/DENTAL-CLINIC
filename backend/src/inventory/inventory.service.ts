@@ -13,6 +13,7 @@ import {
   UpdateInventoryCategoryDto,
 } from './dto/inventory.dto';
 import { Prisma, StockLedgerType } from '@prisma/client';
+import { clinicDateRange } from '../reports-common';
 
 function toNum(v: unknown): number {
   if (v == null) return 0;
@@ -468,6 +469,22 @@ export class InventoryService {
   // STATS / DASHBOARD — Performance-optimized with raw query
   // ═══════════════════════════════════════════════════════════════════════════
 
+  /**
+   * On-hand value per item from its batches (quantity x the batch's own
+   * cost). The item master `unitCost` is only a cached average and was left
+   * stale by older receipt paths, which undervalued stock in the report.
+   */
+  private async batchValues(itemIds?: string[]): Promise<Map<string, number>> {
+    if (itemIds && itemIds.length === 0) return new Map();
+    const rows = await this.prisma.$queryRaw<{ itemId: string; value: number }[]>`
+      SELECT "itemId", SUM(quantity * "unitCost")::float8 AS value
+      FROM inventory_batches
+      WHERE quantity > 0
+      ${itemIds ? Prisma.sql`AND "itemId" IN (${Prisma.join(itemIds)})` : Prisma.empty}
+      GROUP BY "itemId"`;
+    return new Map(rows.map((r) => [r.itemId, Number(r.value) || 0]));
+  }
+
   async getStats() {
     // Use a single pass over items with minimal data selected
     const activeItems = await this.prisma.inventoryItem.findMany({
@@ -483,10 +500,11 @@ export class InventoryService {
     let lowStockCount = 0;
     let outOfStockCount = 0;
     let totalStockValue = 0;
+    const values = await this.batchValues(activeItems.map((i) => i.id));
 
     for (const item of activeItems) {
       const totalQty = this.calculateTotalQuantity(item.locationStocks);
-      totalStockValue += totalQty * toNum(item.unitCost);
+      totalStockValue += values.get(item.id) ?? 0;
 
       if (totalQty === 0) outOfStockCount++;
       else if (this.isLowStock(totalQty, item.minQuantity)) lowStockCount++;
@@ -624,9 +642,10 @@ export class InventoryService {
       ]);
     }
 
+    const values = await this.batchValues(items.map((i) => i.id));
     const enriched = items.map((item) => {
       const totalQuantity = this.calculateTotalQuantity(item.locationStocks);
-      const stockValue = totalQuantity * toNum(item.unitCost);
+      const stockValue = values.get(item.id) ?? 0;
       const isLowStockFlag = this.isLowStock(totalQuantity, item.minQuantity);
       return { ...item, totalQuantity, stockValue, isLowStock: isLowStockFlag };
     });
@@ -711,21 +730,16 @@ export class InventoryService {
     const safeLimit = Math.min(Math.max(limit, 1), 100);
     const skip = (page - 1) * safeLimit;
 
+    // Clinic-day bounds: `new Date('YYYY-MM-DD')` is UTC midnight and
+    // `setHours` runs in the server's zone, which shifted the window.
+    const createdRange = clinicDateRange(dateFrom, dateTo);
+
     const where: Prisma.InventoryLedgerWhereInput = {
       ...(itemId && { itemId }),
       ...(locationId && { locationId }),
       ...(type && { type }),
       ...(referenceType && { referenceType }),
-      ...(dateFrom || dateTo
-        ? {
-            createdAt: {
-              ...(dateFrom && { gte: new Date(dateFrom) }),
-              ...(dateTo && {
-                lte: new Date(new Date(dateTo).setHours(23, 59, 59, 999)),
-              }),
-            },
-          }
-        : {}),
+      ...(createdRange ? { createdAt: createdRange } : {}),
       ...(search && {
         OR: [
           { item: { name: { contains: search, mode: 'insensitive' as const } } },
@@ -780,16 +794,7 @@ export class InventoryService {
         ...(locationId && { locationId }),
         ...(type && { type }),
         ...(referenceType && { referenceType }),
-        ...(dateFrom || dateTo
-          ? {
-              createdAt: {
-                ...(dateFrom && { gte: new Date(dateFrom) }),
-                ...(dateTo && {
-                  lte: new Date(new Date(dateTo).setHours(23, 59, 59, 999)),
-                }),
-              },
-            }
-          : {}),
+        ...(createdRange ? { createdAt: createdRange } : {}),
       };
 
       // Use aggregation instead of loading all rows
@@ -814,32 +819,31 @@ export class InventoryService {
       });
 
       const typeBreakdown: Record<string, { count: number; value: number; qty: number }> = {};
-      let totalIn = 0;
-      let totalOut = 0;
-      let totalValueIn = 0;
-      let totalValueOut = 0;
-
       for (const group of typeGroups) {
-        const key = group.type as string;
-        const qty = Math.abs(group._sum.quantityChange ?? 0);
-        const value = toNum(group._sum.totalValue);
-
-        typeBreakdown[key] = {
+        typeBreakdown[group.type as string] = {
           count: group._count,
-          value,
-          qty,
+          value: toNum(group._sum.totalValue),
+          qty: Math.abs(group._sum.quantityChange ?? 0),
         };
-
-        // Determine direction based on type
-        const isInbound = ['PURCHASE_RECEIPT', 'ADJUSTMENT_IN', 'TRANSFER_IN', 'RETURN_IN', 'OPENING_BALANCE'].includes(key);
-        if (isInbound) {
-          totalIn += qty;
-          totalValueIn += value;
-        } else {
-          totalOut += qty;
-          totalValueOut += value;
-        }
       }
+
+      // In vs out by the sign of each movement. A fixed list of inbound types
+      // had missed STOCK_IN and REVERSAL_IN, so direct receipts and voided
+      // issues were reported as stock going out.
+      const [inbound, outbound] = await Promise.all([
+        this.prisma.inventoryLedger.aggregate({
+          where: { ...summaryWhere, quantityChange: { gt: 0 } },
+          _sum: { quantityChange: true, totalValue: true },
+        }),
+        this.prisma.inventoryLedger.aggregate({
+          where: { ...summaryWhere, quantityChange: { lt: 0 } },
+          _sum: { quantityChange: true, totalValue: true },
+        }),
+      ]);
+      const totalIn = inbound._sum.quantityChange ?? 0;
+      const totalOut = Math.abs(outbound._sum.quantityChange ?? 0);
+      const totalValueIn = toNum(inbound._sum.totalValue);
+      const totalValueOut = toNum(outbound._sum.totalValue);
 
       summary = {
         totalTransactions: aggResult._count,

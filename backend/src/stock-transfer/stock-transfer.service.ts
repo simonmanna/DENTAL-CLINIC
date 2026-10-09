@@ -271,6 +271,7 @@ export class StockTransferService {
               // a transfer must not refuse to move stock that was booked in
               // before batch tracking was switched on for the item.
               requireBatchDetails: false,
+              preserveBatchNumber: invItem.batchTracking,
               itemName: invItem.name,
             });
           }

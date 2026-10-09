@@ -345,6 +345,7 @@ export class StockAdjustmentService {
               // Not `requireBatchDetails`: a cycle count must be able to book
               // found stock without inventing an expiry date for it.
               requireBatchDetails: false,
+              preserveBatchNumber: inventoryItem.batchTracking,
               itemName: inventoryItem.name,
             });
           } else {

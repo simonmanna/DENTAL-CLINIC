@@ -258,6 +258,13 @@ export class StockMovementService {
       links?: LedgerLinks;
       /** Set when the item has batchTracking enabled — forces batch details. */
       requireBatchDetails?: boolean;
+      /**
+       * Keep the given batch number without demanding an expiry date. For
+       * moves of stock that already exists as a named lot (transfer, count
+       * correction): without it the lot collapsed into DEFAULT and lost its
+       * batch number and expiry at the destination.
+       */
+      preserveBatchNumber?: boolean;
       itemName?: string;
     },
   ): Promise<{
@@ -279,6 +286,7 @@ export class StockMovementService {
       performedById,
       links,
       requireBatchDetails,
+      preserveBatchNumber,
       itemName,
     } = params;
 
@@ -301,7 +309,10 @@ export class StockMovementService {
         );
       }
     }
-    const resolvedBatchNumber = requireBatchDetails ? batchNumber! : 'DEFAULT';
+    const resolvedBatchNumber =
+      requireBatchDetails || (preserveBatchNumber && batchNumber)
+        ? batchNumber!
+        : 'DEFAULT';
 
     const before = await this.batchSum(tx, itemId, locationId);
 
