@@ -33,7 +33,7 @@ import {
   AddInvoicePaymentDto,
   RefundInvoicePaymentDto,
 } from './dto/billing.dto';
-import { CashFlowDirection, InvoiceStatus, InvoicePaymentStatus, PaymentType, StockLedgerType, Prisma, Receipt } from '@prisma/client';
+import { CashFlowDirection, InvoiceStatus, InvoicePaymentStatus, PaymentType, Prisma, Receipt } from '@prisma/client';
 import { PaymentAccountResolverService } from './payment-account-resolver.service';
 import { M, type Money } from '../common/money/money';
 import { DocumentNumberService } from '../common/document-number/document-number.service';
@@ -43,6 +43,8 @@ import {
 } from '../general-ledger/general-ledger.service';
 import { glCashKeyForMethod } from '../general-ledger/gl-accounts';
 import { InvoiceGlSyncService } from './invoice-gl-sync.service';
+import { PrescriptionStockService } from '../common/inventory/prescription-stock.service';
+import { StockMovementService } from '../common/inventory/stock-movement.service';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -57,12 +59,6 @@ function toNum(v: unknown): number {
   if (typeof (v as any).toNumber === 'function') return (v as any).toNumber();
   const n = Number(v);
   return isNaN(n) ? 0 : n;
-}
-
-function genLedgerCode(): string {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-  return `ILG-${new Date().getFullYear()}-${timestamp}${random}`;
 }
 
 // ─── Select shape — must exactly match Prisma schema field names ──────────────
@@ -213,7 +209,16 @@ export class InvoicesService {
     private readonly docNum: DocumentNumberService,
     private readonly gl: GeneralLedgerService,
     private readonly invoiceGlSync?: InvoiceGlSyncService,
+    private readonly prescriptionStock?: PrescriptionStockService,
   ) {}
+
+  /** Injected in the app; built on demand in unit specs. */
+  private rxStock(): PrescriptionStockService {
+    return (
+      this.prescriptionStock ??
+      new PrescriptionStockService(new StockMovementService(this.docNum))
+    );
+  }
 
   // ── Create invoice from selected ledger entries ────────────────────────────
 
@@ -1730,9 +1735,9 @@ export class InvoicesService {
         data: { status: 'VOID' },
       });
 
-      // 3a. Restore stock for PRESCRIPTION items. Stock is only deducted when
-      //     the invoice is activated (DRAFT → POSTED), so a DRAFT has nothing
-      //     to give back — restoring here would inflate stock.
+      // 3a. Give back PRESCRIPTION stock. Posting (DRAFT → POSTED) is one of
+      //     the two points a prescription line can leave stock, so only a
+      //     POSTED invoice may have taken any; a DRAFT has nothing to return.
       const rxVoidItems =
         invoice.status === InvoiceStatus.POSTED
           ? invoice.items.filter(
@@ -1742,82 +1747,16 @@ export class InvoicesService {
                 i.status !== 'VOID',
             )
           : [];
-      if (rxVoidItems.length > 0) {
-        let locId: string | null = null;
-        const setting = await tx.clinicSettings.findUnique({
-          where: { key: 'PHARMACY_LOCATION' },
+      for (const item of rxVoidItems) {
+        // Back into the batches it left from, unless the drugs were already
+        // handed over (then they are gone and the stock stays out).
+        await this.rxStock().returnIfNotDispensed(tx, {
+          prescriptionItemId: item.prescriptionItemId!,
+          invoiceId: id,
+          reason: `Invoice ${invoice.invoiceNumber} voided`,
+          // voidedBy is a User id (not a Staff id).
+          performedById: dto.voidedBy ?? null,
         });
-        if (setting?.value) {
-          const loc = await tx.location.findUnique({
-            where: { id: setting.value },
-            select: { id: true, isActive: true },
-          });
-          if (loc?.isActive) locId = loc.id;
-        }
-        if (!locId) {
-          const defaultLoc = await tx.location.findFirst({
-            where: { isDefault: true, isActive: true },
-            select: { id: true },
-          });
-          locId = defaultLoc?.id ?? null;
-        }
-        if (locId) {
-          for (const item of rxVoidItems) {
-            const rxItem = await tx.prescriptionItem.findUnique({
-              where: { id: item.prescriptionItemId! },
-              include: {
-                drug: {
-                  include: {
-                    inventoryItem: true,
-                  },
-                },
-              },
-            });
-            if (!rxItem?.drug?.inventoryItem) continue;
-
-            const inventoryItemId = rxItem.drug.inventoryItem.id;
-            const unitCost = toNum(rxItem.drug.inventoryItem.unitCost);
-
-            const locationStock = await tx.inventoryLocationStock.findFirst({
-              where: { itemId: inventoryItemId, locationId: locId },
-              select: { id: true, quantity: true },
-            });
-            const qtyBefore = locationStock?.quantity ?? 0;
-            const qty = item.quantity;
-
-            if (locationStock) {
-              await tx.inventoryLocationStock.update({
-                where: { id: locationStock.id },
-                data: { quantity: qtyBefore + qty },
-              });
-            } else {
-              await tx.inventoryLocationStock.create({
-                data: { itemId: inventoryItemId, locationId: locId, quantity: Math.max(0, qty) },
-              });
-            }
-
-            await tx.inventoryLedger.create({
-              data: {
-                ledgerCode: genLedgerCode(),
-                itemId: inventoryItemId,
-                locationId: locId,
-                batchId: null,
-                type: StockLedgerType.RETURN_IN,
-                quantityBefore: qtyBefore,
-                quantityChange: qty,
-                quantityAfter: qtyBefore + qty,
-                unitCost,
-                totalValue: qty * unitCost,
-                referenceType: 'INVOICE_VOID',
-                referenceId: id,
-                notes: `Invoice ${invoice.invoiceNumber} voided — stock restored`,
-                // voidedBy is a User id (not a Staff id).
-                performedById: dto.voidedBy ?? null,
-                performedByStaffId: null,
-              },
-            });
-          }
-        }
       }
 
       // 4. Reset linked treatment procedures so the clinician can re-bill them.

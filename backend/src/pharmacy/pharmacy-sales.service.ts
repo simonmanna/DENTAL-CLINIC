@@ -12,6 +12,8 @@ import {
   StockLedgerType,
   Prisma,
 } from '@prisma/client';
+import { StockMovementService } from '../common/inventory/stock-movement.service';
+import { PrescriptionStockService } from '../common/inventory/prescription-stock.service';
 import {
   CreatePharmacySaleDto,
   AddSalePaymentDto,
@@ -52,18 +54,14 @@ type DrugWithInventory = Prisma.DrugGetPayload<{
 }>;
 
 // ─── Code generator (match your existing genCode utility) ───────────────────
-function genLedgerCode(): string {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-  return `ILG-${new Date().getFullYear()}-${timestamp}${random}`;
-}
-
 @Injectable()
 export class PharmacySalesService {
   constructor(
     private prisma: PrismaService,
     private ledger: LedgerService,           // ← add
     private invoices: InvoicesService,        // ← add
+    private readonly movements: StockMovementService,
+    private readonly rxStock: PrescriptionStockService,
   ) { }
   // ═══════════════════════════════════════════════════════════════════════════
   // PRIVATE HELPERS
@@ -145,98 +143,11 @@ export class PharmacySalesService {
     return locationStock?.quantity ?? 0; // Return 0 if no stock record exists
   }
 
-  private async upsertLocationStock(
-    tx: Prisma.TransactionClient,
-    inventoryItemId: string,
-    locationId: string,
-    quantityChange: number,
-  ): Promise<void> {
-    const existing = await tx.inventoryLocationStock.findFirst({
-      where: { itemId: inventoryItemId, locationId },
-    });
-
-    if (existing) {
-      const newQty = existing.quantity + quantityChange;
-      if (newQty < 0) {
-        throw new BadRequestException(
-          `Location stock would go negative for inventoryItem "${inventoryItemId}". ` +
-          `Current: ${existing.quantity}, change: ${quantityChange}`,
-        );
-      }
-      await tx.inventoryLocationStock.update({
-        where: { id: existing.id },
-        data: { quantity: newQty },
-      });
-    } else {
-      const qty = Math.max(0, quantityChange);
-      await tx.inventoryLocationStock.create({
-        data: { itemId: inventoryItemId, locationId, quantity: qty },
-      });
-    }
-  }
-
   /**
-   * ✅ NEW: Write to InventoryLedger (replaces createStockLog)
+   * Issue a sale line's stock through the one stock path: batch draw (FEFO),
+   * expired batches excluded, valued at the batch cost. The old copy drew the
+   * whole quantity from a single batch and wrote the location total by hand.
    */
-  private async createInventoryLedgerEntry(
-    tx: Prisma.TransactionClient,
-    params: {
-      inventoryItemId: string;
-      locationId: string;
-      batchId?: string | null;
-      type: StockLedgerType;
-      quantityBefore: number;
-      quantityChange: number;
-      quantityAfter: number;
-      unitCost: number;
-      referenceType: string; // e.g. 'PHARMACY_SALE'
-      referenceId: string; // e.g. sale.id or saleCode
-      notes: string;
-      performedById?: string | null;
-      performedByStaffId?: string | null;
-    },
-  ): Promise<void> {
-    const {
-      inventoryItemId,
-      locationId,
-      batchId,
-      type,
-      quantityBefore,
-      quantityChange,
-      quantityAfter,
-      unitCost,
-      referenceType,
-      referenceId,
-      notes,
-      performedById,
-      performedByStaffId,
-    } = params;
-
-    await tx.inventoryLedger.create({
-      data: {
-        ledgerCode: genLedgerCode(),
-        itemId: inventoryItemId,
-        locationId,
-        batchId: batchId ?? null,
-        type,
-        quantityBefore,
-        quantityChange,
-        quantityAfter,
-        unitCost,
-        totalValue: Math.abs(quantityChange) * unitCost,
-        referenceType,
-        referenceId,
-        notes,
-        performedById: performedById ?? null,
-        performedByStaffId: performedByStaffId ?? null,
-      },
-    });
-  }
-
-  /**
-   * Deduct stock + write InventoryLedger entry for pharmacy sale
-   */
-
   private async deductDrugStock(
     tx: Prisma.TransactionClient,
     drugId: string,
@@ -245,130 +156,28 @@ export class PharmacySalesService {
     saleId: string,
     saleCode: string,
     servedBy?: string | null,
-    performedByStaffId?: string | null,
+    performedByUserId?: string | null,
     logNotePrefix = 'Pharmacy sale',
   ): Promise<void> {
     const drug = await tx.drug.findUnique({
       where: { id: drugId },
-      include: {
-        inventoryItem: {
-          include: {
-            locationStocks: { where: { locationId } },
-            batches: {
-              where: { locationId, isActive: true, quantity: { gt: 0 } },
-              orderBy: [{ expiryDate: 'asc' }, { receivedAt: 'asc' }],
-              take: 1,
-            },
-          },
-        },
-      },
+      select: { name: true, inventoryItemId: true },
     });
+    if (!drug?.inventoryItemId) return;
 
-    if (!drug?.inventoryItem) return;
-
-    const inventoryItemId = drug.inventoryItem.id;
-    const unitCost = toNum(drug.inventoryItem.unitCost);
-
-    // Get location stock before change
-    const locationStock = await tx.inventoryLocationStock.findFirst({
-      where: { itemId: inventoryItemId, locationId },
-      select: { quantity: true },
-    });
-    const qtyBefore = locationStock?.quantity ?? 0;
-
-    // 1. Update location stock only ✅
-    await this.upsertLocationStock(tx, inventoryItemId, locationId, -quantity);
-
-    // ❌ REMOVED: No longer update master inventoryItem.quantity
-    // const updated = await tx.inventoryItem.update({ ... });
-
-    // 2. Optional: Deduct from specific batch (FIFO)
-    let batchId: string | null = null;
-    if (drug.inventoryItem.batches?.[0]) {
-      const oldestBatch = drug.inventoryItem.batches[0];
-      const newBatchQty = oldestBatch.quantity - quantity;
-
-      await tx.inventoryBatch.update({
-        where: { id: oldestBatch.id },
-        data: {
-          quantity: { decrement: quantity },
-          isActive: newBatchQty > 0,
-        },
-      });
-      batchId = oldestBatch.id;
-    }
-
-    // 3. Write InventoryLedger entry ✅
-    await this.createInventoryLedgerEntry(tx, {
-      inventoryItemId,
+    await this.movements.issue(tx, {
+      itemId: drug.inventoryItemId,
       locationId,
-      batchId,
+      quantity,
+      strategy: 'FEFO',
       type: StockLedgerType.SALE,
-      quantityBefore: qtyBefore,
-      quantityChange: -quantity,
-      quantityAfter: qtyBefore - quantity,
-      unitCost,
       referenceType: 'PHARMACY_SALE',
       referenceId: saleId,
-      notes: `${logNotePrefix}: ${saleCode}${servedBy ? ` | Staff: ${servedBy}` : ''}`,
-      performedById: null,
-      performedByStaffId: performedByStaffId ?? null,
+      notes: `${logNotePrefix} ${saleCode}${servedBy ? ` | Served by: ${servedBy}` : ''}`,
+      performedById: performedByUserId ?? null,
+      itemName: drug.name,
     });
   }
-
-  /**
-   * Restore stock + write InventoryLedger entry for refund
-   */
-  private async restoreDrugStock(
-    tx: Prisma.TransactionClient,
-    drugId: string,
-    locationId: string,
-    quantity: number,
-    saleId: string,
-    saleCode: string,
-    reason: string,
-    performedByStaffId?: string | null,
-  ): Promise<void> {
-    const drug = await tx.drug.findUnique({
-      where: { id: drugId },
-      include: { inventoryItem: true },
-    });
-
-    if (!drug?.inventoryItem) return;
-
-    const inventoryItemId = drug.inventoryItem.id;
-    const unitCost = toNum(drug.inventoryItem.unitCost);
-
-    const locationStock = await tx.inventoryLocationStock.findFirst({
-      where: { itemId: inventoryItemId, locationId },
-      select: { quantity: true },
-    });
-    const qtyBefore = locationStock?.quantity ?? 0;
-
-    // 1. Restore location stock only ✅
-    await this.upsertLocationStock(tx, inventoryItemId, locationId, quantity);
-
-    // ❌ REMOVED: No master quantity update
-    // const updated = await tx.inventoryItem.update({ ... });
-
-    // 2. Write InventoryLedger entry ✅
-    await this.createInventoryLedgerEntry(tx, {
-      inventoryItemId,
-      locationId,
-      batchId: null,
-      type: StockLedgerType.RETURN_IN,
-      quantityBefore: qtyBefore,
-      quantityChange: quantity,
-      quantityAfter: qtyBefore + quantity,
-      unitCost,
-      referenceType: 'PHARMACY_SALE_REFUND',
-      referenceId: saleId,
-      notes: `Pharmacy refund: ${reason || 'No reason provided'} | Original sale: ${saleCode}`,
-      performedById: null,
-      performedByStaffId: performedByStaffId ?? null,
-    });
-  }
-
 
   private async createLedgerEntriesForSale(
     sale: {
@@ -695,12 +504,33 @@ export class PharmacySalesService {
 
       // ── Stock deduction ──────────────────────────────────────────────────
       console.log('\n[SALE DEBUG] ── Step 4b: Stock deduction ──');
+      // A sale that dispenses a prescription issues each prescribed line once
+      // (not again if the posted invoice already did); anything else is an
+      // ordinary sale line.
+      const rxLines = dto.prescriptionId
+        ? await tx.prescriptionItem.findMany({
+            where: { prescriptionId: dto.prescriptionId },
+            select: { id: true, drugId: true },
+          })
+        : [];
       for (const [index, item] of dto.items.entries()) {
         console.log(`[SALE DEBUG] Deducting stock for item #${index}: drugId=${item.drugId}, qty=${item.quantity}`);
-        await this.deductDrugStock(
-          tx, item.drugId, locationId, item.quantity,
-          created.id, saleCode, dto.servedBy, staffId,
-        );
+        const lineIdx = rxLines.findIndex((l) => l.drugId === item.drugId);
+        if (lineIdx >= 0) {
+          const [line] = rxLines.splice(lineIdx, 1);
+          await this.rxStock.issueOnce(tx, {
+            prescriptionItemId: line.id,
+            quantity: item.quantity,
+            locationId,
+            notes: `Pharmacy sale ${saleCode}`,
+            performedById: userId ?? null,
+          });
+        } else {
+          await this.deductDrugStock(
+            tx, item.drugId, locationId, item.quantity,
+            created.id, saleCode, dto.servedBy, userId,
+          );
+        }
         console.log(`[SALE DEBUG] ✅ Stock deducted for item #${index}`);
       }
 
@@ -1758,6 +1588,7 @@ export class PharmacySalesService {
     // Build consolidated items
     const rxLineItems = prescriptions.flatMap((rx) =>
       rx.items.map((item) => ({
+        prescriptionItemId: item.id as string | null,
         drugId: item.drugId,
         quantity: item.quantity,
         unitPrice: Number(item.drug?.sellPrice ?? item.drug?.unitPrice ?? 0),
@@ -1770,12 +1601,15 @@ export class PharmacySalesService {
       ...i,
       discount: i.discount ?? 0,
       prescriptionId: null as string | null,
+      prescriptionItemId: null as string | null,
     }));
 
     const allItems = [...rxLineItems, ...walkInLineItems];
 
-    // Aggregate quantities for stock validation
-    const qtyByDrug = allItems.reduce<Record<string, number>>((acc, item) => {
+    // Walk-in quantities are checked up front. Prescription lines are checked
+    // as they are issued: a line the posted invoice already issued needs no
+    // stock now, so a blanket check here would wrongly refuse it.
+    const qtyByDrug = walkInLineItems.reduce<Record<string, number>>((acc, item) => {
       acc[item.drugId] = (acc[item.drugId] ?? 0) + item.quantity;
       return acc;
     }, {});
@@ -1818,7 +1652,7 @@ export class PharmacySalesService {
           balance,
           status: PharmacySaleStatus.PENDING, // will complete via invoice payment
           items: {
-            create: allItems.map((i) => ({
+            create: allItems.map(({ prescriptionItemId: _rxLine, ...i }) => ({
               drugId: i.drugId,
               quantity: i.quantity,
               unitPrice: i.unitPrice,
@@ -1844,14 +1678,33 @@ export class PharmacySalesService {
       });
 
       for (const [drugId, qty] of Object.entries(qtyByDrug)) {
-        await this.deductDrugStock(tx, drugId, locationId, qty, created.id, saleCode, dto.servedBy, staffId, 'Multi-dispense sale');
+        await this.deductDrugStock(tx, drugId, locationId, qty, created.id, saleCode, dto.servedBy, userId, 'Multi-dispense sale');
+      }
+
+      // Each prescription line leaves stock once — not again if its posted
+      // invoice already issued it.
+      for (const line of rxLineItems) {
+        await this.rxStock.issueOnce(tx, {
+          prescriptionItemId: line.prescriptionItemId!,
+          quantity: line.quantity,
+          locationId,
+          notes: `Multi-dispense ${saleCode}`,
+          performedById: userId ?? null,
+        });
       }
 
       if (dto.prescriptionIds?.length) {
-        await tx.prescription.updateMany({
-          where: { id: { in: dto.prescriptionIds } },
+        // Claimed inside the transaction, so a concurrent dispense of the same
+        // prescription cannot also succeed.
+        const claimed = await tx.prescription.updateMany({
+          where: { id: { in: dto.prescriptionIds }, status: 'ACTIVE' },
           data: { status: 'DISPENSED', dispensedAt: new Date(), dispensedBy: dto.servedBy ?? null },
         });
+        if (claimed.count !== dto.prescriptionIds.length) {
+          throw new BadRequestException(
+            'A prescription was dispensed or changed in the meantime. Nothing was dispensed.',
+          );
+        }
       }
 
       return created;
@@ -2084,19 +1937,15 @@ export class PharmacySalesService {
       throw new BadRequestException('Sale is already refunded');
 
     return this.prisma.$transaction(async (tx) => {
-      // Restore stock + write ledger for each item
-      for (const item of sale.items) {
-        await this.restoreDrugStock(
-          tx,
-          item.drugId,
-          sale.locationId,
-          item.quantity,
-          sale.id,
-          sale.saleCode,
-          reason ?? 'No reason provided',
-          performedByStaffId,
-        );
-      }
+      // Give back what the sale took, into the batches it came from and at the
+      // cost it left at. The old restore credited the location total only,
+      // which the next movement re-derived from the batches and so undid.
+      await this.movements.reverseOutstanding(tx, {
+        referenceType: 'PHARMACY_SALE',
+        referenceId: sale.id,
+        reversalReferenceType: 'PHARMACY_SALE_REFUND',
+        reason: reason ?? 'No reason provided',
+      });
 
       return tx.pharmacySale.update({
         where: { id: saleId },

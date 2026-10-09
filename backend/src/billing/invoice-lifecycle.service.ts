@@ -22,13 +22,14 @@ import {
   InvoicePaymentStatus,
   InvoiceItemType,
   LedgerEntryType,
-  StockLedgerType,
   Prisma,
 } from '@prisma/client';
 import { withUniqueCodeRetry } from './utils/unique-code';
 import { DocumentNumberService } from '../common/document-number/document-number.service';
 import { GeneralLedgerService, GL } from '../general-ledger/general-ledger.service';
 import { InvoiceGlSyncService } from './invoice-gl-sync.service';
+import { PrescriptionStockService } from '../common/inventory/prescription-stock.service';
+import { StockMovementService } from '../common/inventory/stock-movement.service';
 import { M, type Money } from '../common/money/money';
 
 function toNum(v: unknown): number {
@@ -37,12 +38,6 @@ function toNum(v: unknown): number {
   if (typeof (v as any).toNumber === 'function') return (v as any).toNumber();
   const n = Number(v);
   return isNaN(n) ? 0 : n;
-}
-
-function genLedgerCode(): string {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-  return `ILG-${new Date().getFullYear()}-${timestamp}${random}`;
 }
 
 /** Outcome of reversing a treatment procedure's billing (cancel / delete). */
@@ -80,11 +75,20 @@ export class InvoiceLifecycleService {
     private readonly docNum: DocumentNumberService,
     private readonly gl: GeneralLedgerService,
     private readonly invoiceGlSync?: InvoiceGlSyncService,
+    private readonly prescriptionStock?: PrescriptionStockService,
   ) {}
 
   /** Injected in the app; built on demand in unit specs that pass 4 args. */
   private glSync(): InvoiceGlSyncService {
     return this.invoiceGlSync ?? new InvoiceGlSyncService(this.prisma, this.gl);
+  }
+
+  /** Injected in the app; built on demand in unit specs. */
+  private rxStock(): PrescriptionStockService {
+    return (
+      this.prescriptionStock ??
+      new PrescriptionStockService(new StockMovementService(this.docNum))
+    );
   }
 
   // ── Find or create the DRAFT invoice for a patient/visit/plan ─────────────
@@ -1348,28 +1352,22 @@ export class InvoiceLifecycleService {
         }
       }
 
-      // ── Deduct stock for PRESCRIPTION items ────────────────────────────
+      // ── Issue stock for PRESCRIPTION items ─────────────────────────────
+      // Once per prescription line: if the pharmacy already dispensed it, the
+      // stock has left and posting the bill moves nothing more.
       const rxItems = activeItems.filter(
         (i) => i.itemType === 'PRESCRIPTION' && !!(i as any).prescriptionItemId,
       );
       if (rxItems.length > 0) {
-        let locId = await this.resolvePharmacyLocation(tx);
-        if (!locId) {
-          const defaultLoc = await tx.location.findFirst({
-            where: { isDefault: true, isActive: true },
-            select: { id: true },
-          });
-          locId = defaultLoc?.id ?? null;
-        }
+        const locId = await this.resolvePharmacyLocation(tx);
         if (locId) {
           for (const item of rxItems) {
-            await this.deductRxStock(tx, {
+            await this.rxStock().issueOnce(tx, {
               prescriptionItemId: (item as any).prescriptionItemId,
               quantity: item.quantity,
-              referenceId: invoiceId,
-              referenceCode: invoice.invoiceNumber,
               locationId: locId,
-              performedByStaffId: activatedBy ?? null,
+              notes: `Invoice ${invoice.invoiceNumber} posted`,
+              performedById: currentUserId ?? null,
             });
           }
         }
@@ -1427,168 +1425,6 @@ export class InvoiceLifecycleService {
       select: { id: true },
     });
     return defaultLoc?.id ?? null;
-  }
-
-  private async upsertLocationStock(
-    tx: Prisma.TransactionClient,
-    inventoryItemId: string,
-    locationId: string,
-    quantityChange: number,
-  ): Promise<void> {
-    const existing = await tx.inventoryLocationStock.findFirst({
-      where: { itemId: inventoryItemId, locationId },
-    });
-    if (existing) {
-      const newQty = existing.quantity + quantityChange;
-      await tx.inventoryLocationStock.update({
-        where: { id: existing.id },
-        data: { quantity: newQty },
-      });
-    } else {
-      const qty = Math.max(0, quantityChange);
-      await tx.inventoryLocationStock.create({
-        data: { itemId: inventoryItemId, locationId, quantity: qty },
-      });
-    }
-  }
-
-  private async createInventoryLedgerEntry(
-    tx: Prisma.TransactionClient,
-    params: {
-      inventoryItemId: string;
-      locationId: string;
-      batchId?: string | null;
-      type: StockLedgerType;
-      quantityBefore: number;
-      quantityChange: number;
-      quantityAfter: number;
-      unitCost: number;
-      referenceType: string;
-      referenceId: string;
-      notes: string;
-      performedByStaffId?: string | null;
-    },
-  ): Promise<void> {
-    const {
-      inventoryItemId,
-      locationId,
-      batchId,
-      type,
-      quantityBefore,
-      quantityChange,
-      quantityAfter,
-      unitCost,
-      referenceType,
-      referenceId,
-      notes,
-      performedByStaffId,
-    } = params;
-
-    await tx.inventoryLedger.create({
-      data: {
-        ledgerCode: genLedgerCode(),
-        itemId: inventoryItemId,
-        locationId,
-        batchId: batchId ?? null,
-        type,
-        quantityBefore,
-        quantityChange,
-        quantityAfter,
-        unitCost,
-        totalValue: Math.abs(quantityChange) * unitCost,
-        referenceType,
-        referenceId,
-        notes,
-        performedById: null,
-        performedByStaffId: performedByStaffId ?? null,
-      },
-    });
-  }
-
-  private async deductRxStock(
-    tx: Prisma.TransactionClient,
-    params: {
-      prescriptionItemId: string;
-      quantity: number;
-      referenceId: string;
-      referenceCode: string;
-      locationId: string;
-      performedByStaffId?: string | null;
-    },
-  ): Promise<void> {
-    const {
-      prescriptionItemId,
-      quantity,
-      referenceId,
-      referenceCode,
-      locationId,
-      performedByStaffId,
-    } = params;
-
-    const rxItem = await tx.prescriptionItem.findUnique({
-      where: { id: prescriptionItemId },
-      include: {
-        drug: {
-          include: {
-            inventoryItem: {
-              include: {
-                locationStocks: { where: { locationId } },
-                batches: {
-                  where: { locationId, isActive: true, quantity: { gt: 0 } },
-                  orderBy: [{ expiryDate: 'asc' }, { receivedAt: 'asc' }],
-                  take: 1,
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!rxItem?.drug?.inventoryItem) return;
-
-    const inventoryItemId = rxItem.drug.inventoryItem.id;
-    const unitCost = toNum(rxItem.drug.inventoryItem.unitCost);
-
-    const locationStock = await tx.inventoryLocationStock.findFirst({
-      where: { itemId: inventoryItemId, locationId },
-      select: { quantity: true },
-    });
-    const qtyBefore = locationStock?.quantity ?? 0;
-
-    // Decrement location stock (allow negative)
-    await this.upsertLocationStock(tx, inventoryItemId, locationId, -quantity);
-
-    // If batch-tracked, deduct from oldest batch (FEFO)
-    let batchId: string | null = null;
-    if (rxItem.drug.inventoryItem.batches?.[0]) {
-      const oldestBatch = rxItem.drug.inventoryItem.batches[0];
-      const newBatchQty = oldestBatch.quantity - quantity;
-      await tx.inventoryBatch.update({
-        where: { id: oldestBatch.id },
-        data: {
-          quantity: { decrement: quantity },
-          isActive: newBatchQty > 0,
-        },
-      });
-      batchId = oldestBatch.id;
-    }
-
-    // Write InventoryLedger entry
-    await this.createInventoryLedgerEntry(tx, {
-      inventoryItemId,
-      locationId,
-      batchId,
-      type: StockLedgerType.SALE,
-      quantityBefore: qtyBefore,
-      quantityChange: -quantity,
-      quantityAfter: qtyBefore - quantity,
-      unitCost,
-      referenceType: 'INVOICE',
-      referenceId,
-      notes: `Invoice ${referenceCode} — prescription item auto-deducted${performedByStaffId ? ` | Staff: ${performedByStaffId}` : ''}`,
-      performedByStaffId,
-    });
   }
 
   // ── Add an encounter item to a DRAFT or POSTED invoice ─────────────────────

@@ -654,6 +654,90 @@ export class StockMovementService {
       throw new BadRequestException('This document has already been reversed.');
     }
 
+    await this.reverseRows(tx, rows, {
+      referenceId,
+      reversalReferenceType,
+      reason,
+      performedById,
+      links,
+    });
+
+    return { reversed: rows.length };
+  }
+
+  /**
+   * Reverse only the rows of a reference that are still in effect, optionally
+   * for one item. For references that can be issued, given back and issued
+   * again (a prescription line billed, voided and re-billed), where
+   * `reverseDocument`'s all-or-nothing rule would refuse the second return.
+   *
+   * Rows without a batch are skipped: the old hand-rolled paths wrote them
+   * against the location total only, which the next movement re-derived from
+   * the batches — so there is nothing physical to give back.
+   */
+  async reverseOutstanding(
+    tx: Prisma.TransactionClient,
+    params: {
+      referenceType: string;
+      referenceId: string;
+      itemId?: string;
+      reversalReferenceType: string;
+      reason: string;
+      performedById?: string | null;
+    },
+  ): Promise<{ reversed: number }> {
+    const rows = await tx.inventoryLedger.findMany({
+      where: {
+        referenceType: params.referenceType,
+        referenceId: params.referenceId,
+        ...(params.itemId ? { itemId: params.itemId } : {}),
+        reversalOfId: null,
+        reversedBy: { is: null },
+        batchId: { not: null },
+      },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        itemId: true,
+        locationId: true,
+        batchId: true,
+        quantityChange: true,
+        unitCost: true,
+      },
+    });
+
+    await this.reverseRows(tx, rows, {
+      referenceId: params.referenceId,
+      reversalReferenceType: params.reversalReferenceType,
+      reason: params.reason,
+      performedById: params.performedById,
+    });
+
+    return { reversed: rows.length };
+  }
+
+  /** Post the inverse of each row, newest first, back into its own batch. */
+  private async reverseRows(
+    tx: Prisma.TransactionClient,
+    rows: Array<{
+      id: string;
+      itemId: string;
+      locationId: string;
+      batchId: string | null;
+      quantityChange: number;
+      unitCost: Prisma.Decimal | number;
+    }>,
+    params: {
+      referenceId: string;
+      reversalReferenceType: string;
+      reason: string;
+      performedById?: string | null;
+      links?: LedgerLinks;
+    },
+  ): Promise<void> {
+    const { referenceId, reversalReferenceType, reason, performedById, links } =
+      params;
+
     // Undo in reverse order so intermediate balances stay plausible.
     for (const row of [...rows].reverse()) {
       const change = -row.quantityChange;
@@ -713,8 +797,6 @@ export class StockMovementService {
 
       await this.refreshItemAverageCost(tx, row.itemId);
     }
-
-    return { reversed: rows.length };
   }
 
   // ───────────────────────────────────────────────────────────────────────────

@@ -39,6 +39,7 @@ function matches(row: any, where: any): boolean {
       if ('gte' in cond && !(value !== null && value >= cond.gte)) return false;
       if ('not' in cond && value === cond.not) return false;
       if ('in' in cond && !cond.in.includes(value)) return false;
+      if ('is' in cond && cond.is === null && value != null) return false;
     } else if (value !== cond) {
       return false;
     }
@@ -154,8 +155,12 @@ function makeTx(batches: FakeBatch[] = []) {
       },
       findMany: ({ where }: any) =>
         ledger
-          .filter((r) => matches(r, where))
-          .map((r) => ({ ...r, reversedBy: r.reversedBy ?? null })),
+          .map((r) => ({
+            ...r,
+            reversedBy:
+              r.reversedBy ?? ledger.find((x) => x.reversalOfId === r.id) ?? null,
+          }))
+          .filter((r) => matches(r, where)),
     },
     inventoryItem: {
       update: ({ where, data }: any) => {
@@ -673,6 +678,63 @@ describe('StockMovementService.reverseDocument', () => {
         reason: 'x',
       }),
     ).rejects.toThrow(/no stock movement to reverse/);
+  });
+});
+
+describe('StockMovementService.reverseOutstanding', () => {
+  it('gives back only what is still out, across issue/return cycles', async () => {
+    const svc = makeService();
+    const { tx, batches, ledger } = makeTx([
+      batch({ id: 'b1', batchNumber: 'DEFAULT', quantity: 10, unitCost: 50 }),
+    ]);
+    const ref = { referenceType: 'PRESCRIPTION_ITEM', referenceId: 'line-1' };
+    const back = {
+      ...ref,
+      reversalReferenceType: 'PRESCRIPTION_ITEM_RETURN',
+      reason: 'Invoice voided',
+    };
+
+    await svc.issue(tx, { itemId: ITEM, locationId: LOC, quantity: 4, ...ref });
+    expect(batches[0].quantity).toBe(6);
+
+    await expect(svc.reverseOutstanding(tx, back)).resolves.toEqual({ reversed: 1 });
+    expect(batches[0].quantity).toBe(10);
+
+    // Nothing left to give back: no error, nothing moves.
+    await expect(svc.reverseOutstanding(tx, back)).resolves.toEqual({ reversed: 0 });
+    expect(batches[0].quantity).toBe(10);
+
+    // Billed again and voided again: only the new issue is reversed.
+    await svc.issue(tx, { itemId: ITEM, locationId: LOC, quantity: 3, ...ref });
+    await expect(svc.reverseOutstanding(tx, back)).resolves.toEqual({ reversed: 1 });
+    expect(batches[0].quantity).toBe(10);
+    expect(ledger.filter((r) => r.reversalOfId)).toHaveLength(2);
+  });
+
+  it('skips rows that never touched a batch', async () => {
+    const svc = makeService();
+    const { tx, ledger } = makeTx([
+      batch({ id: 'b1', batchNumber: 'DEFAULT', quantity: 10, unitCost: 50 }),
+    ]);
+    ledger.push({
+      id: 'legacy',
+      itemId: ITEM,
+      locationId: LOC,
+      batchId: null,
+      quantityChange: -2,
+      unitCost: 0,
+      referenceType: 'INVOICE',
+      referenceId: 'inv-1',
+      reversalOfId: null,
+    });
+    await expect(
+      svc.reverseOutstanding(tx, {
+        referenceType: 'INVOICE',
+        referenceId: 'inv-1',
+        reversalReferenceType: 'INVOICE_VOID',
+        reason: 'void',
+      }),
+    ).resolves.toEqual({ reversed: 0 });
   });
 });
 

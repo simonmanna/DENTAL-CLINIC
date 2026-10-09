@@ -139,7 +139,19 @@ export class PrescriptionsController {
   // @Roles('PHARMACIST', 'ADMIN', 'SUPER_ADMIN')
   @ApiOperation({ summary: 'Dispense a prescription (deducts stock)' })
   dispense(@Param('id') id: string, @Request() req) {
-    return this.prescriptionsService.dispense(id, req.user.name || 'Pharmacy');
+    // req.user has no `name`; the old `req.user.name || 'Pharmacy'` also went
+    // into the stock ledger's user reference, which made every dispense of a
+    // stocked drug fail on the foreign key.
+    const staff = req.user?.staff;
+    const name = staff
+      ? `${staff.firstName ?? ''} ${staff.lastName ?? ''}`.trim()
+      : req.user?.email;
+    return this.prescriptionsService.dispense(
+      id,
+      name || 'Pharmacy',
+      undefined,
+      req.user?.id ?? null,
+    );
   }
 
   @Delete(':id')

@@ -12,23 +12,11 @@ import {
   PrescriptionItemDto,
   EditPrescriptionDto,
 } from './dto/create-prescription.dto';
-import { PrescriptionStatus, StockLedgerType, Prisma } from '@prisma/client';
+import { PrescriptionStatus, Prisma } from '@prisma/client';
 import { clinicDateRange } from '../reports-common';
-
-function toNum(v: unknown): number {
-  if (v == null) return 0;
-  if (typeof v === 'number') return v;
-  if (typeof (v as any).toNumber === 'function') return (v as any).toNumber();
-  const n = Number(v);
-  return isNaN(n) ? 0 : n;
-}
-
-// ─── Helper: Generate ledger code ─────
-function genLedgerCode(): string {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-  return `ILG-${new Date().getFullYear()}-${timestamp}${random}`;
-}
+import { PrescriptionStockService } from '../common/inventory/prescription-stock.service';
+import { StockMovementService } from '../common/inventory/stock-movement.service';
+import { DocumentNumberService } from '../common/document-number/document-number.service';
 
 const PRESCRIPTION_SELECT = {
   id: true,
@@ -87,7 +75,20 @@ const PRESCRIPTION_SELECT = {
 
 @Injectable()
 export class PrescriptionsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly prescriptionStock?: PrescriptionStockService,
+  ) {}
+
+  /** Injected in the app; built on demand in unit specs. */
+  private rxStock(): PrescriptionStockService {
+    return (
+      this.prescriptionStock ??
+      new PrescriptionStockService(
+        new StockMovementService(new DocumentNumberService(this.prisma)),
+      )
+    );
+  }
 
   // ─── Create with Multiple Items ───────────────────────────────────────────
 
@@ -378,32 +379,26 @@ export class PrescriptionsService {
 
   // ─── Dispense with InventoryLedger ✅ PRODUCTION READY ────────────────────
 
-  async dispense(id: string, dispensedBy: string, locationId?: string) {
-    // Resolve location first
+  async dispense(
+    id: string,
+    dispensedBy: string,
+    locationId?: string,
+    actorUserId?: string | null,
+  ) {
     const effectiveLocationId =
       locationId ?? (await this.resolvePharmacyLocation());
 
     const prescription = await this.prisma.prescription.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        prescriptionCode: true,
+        status: true,
         items: {
-          include: {
-            drug: {
-              include: {
-                inventoryItem: {
-                  select: {
-                    id: true,
-                    unitCost: true,
-                    minQuantity: true,
-                    // ✅ Include locationStocks instead of quantity
-                    locationStocks: {
-                      where: { locationId: effectiveLocationId },
-                      select: { quantity: true, locationId: true },
-                    },
-                  },
-                },
-              },
-            },
+          select: {
+            id: true,
+            quantity: true,
+            drug: { select: { name: true, inventoryItemId: true } },
           },
         },
       },
@@ -417,129 +412,49 @@ export class PrescriptionsService {
       throw new BadRequestException('Cannot dispense cancelled prescription');
     }
 
-    // Check stock availability at the specific location
-    const stockIssues: string[] = [];
-    for (const item of prescription.items) {
-      const inventoryItem = item.drug?.inventoryItem;
-      if (!inventoryItem) {
-        stockIssues.push(`${item.drug.name}: not linked to inventory`);
-        continue;
-      }
-
-      // ✅ Aggregate quantity from locationStocks at this location
-      const locationStock = inventoryItem.locationStocks.find(
-        (s) => s.locationId === effectiveLocationId,
-      );
-      const availableQty = locationStock?.quantity ?? 0;
-
-      if (availableQty < item.quantity) {
-        stockIssues.push(
-          `${item.drug.name}: requested ${item.quantity}, available ${availableQty}`,
-        );
-      }
-    }
-
-    if (stockIssues.length > 0) {
+    const unlinked = prescription.items
+      .filter((i) => !i.drug?.inventoryItemId)
+      .map((i) => i.drug?.name ?? i.id);
+    if (unlinked.length > 0) {
       throw new BadRequestException(
-        `Insufficient stock at location:\n${stockIssues.join('\n')}`,
+        `Not linked to inventory, so stock cannot be issued: ${unlinked.join(', ')}`,
       );
     }
 
-    // Deduct stock + write InventoryLedger in transaction
     await this.prisma.$transaction(async (tx) => {
+      // Each line leaves stock once. If the posted invoice already issued it,
+      // handing it over moves nothing more.
       for (const item of prescription.items) {
-        const inventoryItem = item.drug?.inventoryItem;
-        if (!inventoryItem) continue;
-
-        const quantityChange = -item.quantity;
-        const unitCost = toNum(inventoryItem.unitCost);
-
-        // ✅ Get location stock before change for ledger snapshot
-        const locationStock = await tx.inventoryLocationStock.findFirst({
-          where: { itemId: inventoryItem.id, locationId: effectiveLocationId },
-          select: { id: true, quantity: true },
-        });
-        const qtyBefore = locationStock?.quantity ?? 0;
-        const qtyAfter = qtyBefore + quantityChange;
-
-        if (qtyAfter < 0) {
-          throw new BadRequestException(
-            `Stock would go negative for ${item.drug.name}. Available: ${qtyBefore}, Requested: ${item.quantity}`,
-          );
-        }
-
-        // 1. ✅ Update location stock ONLY (no master quantity update)
-        if (locationStock) {
-          await tx.inventoryLocationStock.update({
-            where: { id: locationStock.id },
-            data: { quantity: qtyAfter },
-          });
-        } else if (qtyAfter > 0) {
-          await tx.inventoryLocationStock.create({
-            data: {
-              itemId: inventoryItem.id,
-              locationId: effectiveLocationId,
-              quantity: qtyAfter,
-              minQuantity: inventoryItem.minQuantity ?? 0,
-            },
-          });
-        }
-
-        // 2. ✅ Optional: Deduct from specific batch (FIFO)
-        let batchId: string | null = null;
-        const oldestBatch = await tx.inventoryBatch.findFirst({
-          where: {
-            itemId: inventoryItem.id,
-            locationId: effectiveLocationId,
-            isActive: true,
-            quantity: { gt: 0 },
-          },
-          orderBy: [{ expiryDate: 'asc' }, { receivedAt: 'asc' }],
-          select: { id: true, quantity: true },
-        });
-
-        if (oldestBatch) {
-          const newBatchQty = oldestBatch.quantity - item.quantity;
-          await tx.inventoryBatch.update({
-            where: { id: oldestBatch.id },
-            data: {
-              quantity: { decrement: item.quantity },
-              isActive: newBatchQty > 0,
-            },
-          });
-          batchId = oldestBatch.id;
-        }
-
-        // 3. ✅ Write InventoryLedger entry
-        await tx.inventoryLedger.create({
-          data: {
-            ledgerCode: genLedgerCode(),
-            itemId: inventoryItem.id,
-            locationId: effectiveLocationId,
-            batchId,
-            type: StockLedgerType.USAGE,
-            quantityBefore: qtyBefore,
-            quantityChange,
-            quantityAfter: qtyAfter,
-            unitCost,
-            totalValue: Math.abs(quantityChange) * unitCost,
-            referenceType: 'PRESCRIPTION_DISPENSE',
-            referenceId: prescription.id,
-            notes: `Prescription dispensed: ${item.quantity} ${item.drug.name} (${item.dosage}, ${item.frequency}, ${item.duration})`,
-            performedById: dispensedBy ?? null,
-          },
+        await this.rxStock().issueOnce(tx, {
+          prescriptionItemId: item.id,
+          quantity: item.quantity,
+          locationId: effectiveLocationId,
+          notes: `Prescription ${prescription.prescriptionCode} dispensed`,
+          performedById: actorUserId ?? null,
         });
       }
 
-      // 4. Mark prescription as dispensed
-      await tx.prescription.update({
-        where: { id },
+      // Claim the status inside the transaction. The check above ran outside
+      // it, so two simultaneous dispenses could both pass; the second now
+      // finds the status changed and rolls back its stock movement.
+      const claimed = await tx.prescription.updateMany({
+        where: {
+          id,
+          status: {
+            notIn: [PrescriptionStatus.DISPENSED, PrescriptionStatus.CANCELLED],
+          },
+        },
         data: {
           status: PrescriptionStatus.DISPENSED,
           dispensedBy: dispensedBy || 'Pharmacy',
           dispensedAt: new Date(),
         },
       });
+      if (claimed.count !== 1) {
+        throw new BadRequestException(
+          'This prescription was dispensed or cancelled in the meantime.',
+        );
+      }
     });
 
     return this.findOne(id);
