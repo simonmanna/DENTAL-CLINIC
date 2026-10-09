@@ -35,6 +35,9 @@ export class CreateLabOrderDto {
   urgency?: 'ROUTINE' | 'URGENT' | 'STAT';
 }
 
+/** Events read per source before the timeline is merged and cut. */
+const TIMELINE_PER_SOURCE = 50;
+
 @Injectable()
 export class EmrService {
   constructor(private prisma: PrismaService) {}
@@ -136,42 +139,65 @@ export class EmrService {
   }
 
   async getPatientTimeline(patientId: string) {
-    const [appointments, emrRecords, invoices, prescriptions, imagingRecords] = await Promise.all([
+    const take = TIMELINE_PER_SOURCE;
+    const [appointments, visits, emrRecords, invoices, prescriptions, imagingRecords] = await Promise.all([
       this.prisma.appointment.findMany({
         where: { patientId },
         select: { id: true, scheduledAt: true, type: true, status: true, chiefComplaint: true },
-        orderBy: { scheduledAt: 'desc' }, take: 20,
+        orderBy: { scheduledAt: 'desc' }, take,
+      }),
+      this.prisma.visit.findMany({
+        where: { patientId },
+        select: { id: true, visitCode: true, status: true, chiefComplaint: true, createdAt: true },
+        orderBy: { createdAt: 'desc' }, take,
       }),
       this.prisma.eMRRecord.findMany({
         where: { patientId },
         select: { id: true, createdAt: true, assessment: true, diagnosis: true },
-        orderBy: { createdAt: 'desc' }, take: 20,
+        orderBy: { createdAt: 'desc' }, take,
       }),
       this.prisma.invoice.findMany({
-        where: { patientId },
+        // Soft-deleted drafts are not part of the patient's history.
+        where: { patientId, deletedAt: null },
         select: { id: true, invoiceNumber: true, total: true, status: true, createdAt: true },
-        orderBy: { createdAt: 'desc' }, take: 10,
+        orderBy: { createdAt: 'desc' }, take,
       }),
       this.prisma.prescription.findMany({
         where: { patientId },
         select: { id: true, prescriptionCode: true, status: true, createdAt: true },
-        orderBy: { createdAt: 'desc' }, take: 10,
+        orderBy: { createdAt: 'desc' }, take,
       }),
       this.prisma.imagingRecord.findMany({
         where: { patientId },
         select: { id: true, type: true,  takenAt: true },
-        orderBy: { takenAt: 'desc' }, take: 10,
+        orderBy: { takenAt: 'desc' }, take,
       }),
     ]);
 
-    const timeline = [
-      ...appointments.map(a => ({ type: 'APPOINTMENT', date: a.scheduledAt, data: a })),
-      ...emrRecords.map(e => ({ type: 'EMR', date: e.createdAt, data: e })),
-      ...invoices.map(i => ({ type: 'INVOICE', date: i.createdAt, data: i })),
-      ...prescriptions.map(p => ({ type: 'PRESCRIPTION', date: p.createdAt, data: p })),
-      ...imagingRecords.map(i => ({ type: 'IMAGING', date: i.takenAt, data: i })),
-    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const sources = [
+      appointments.map(a => ({ type: 'APPOINTMENT', date: a.scheduledAt, data: a })),
+      visits.map(v => ({ type: 'VISIT', date: v.createdAt, data: v })),
+      emrRecords.map(e => ({ type: 'EMR', date: e.createdAt, data: e })),
+      invoices.map(i => ({ type: 'INVOICE', date: i.createdAt, data: i })),
+      prescriptions.map(p => ({ type: 'PRESCRIPTION', date: p.createdAt, data: p })),
+      imagingRecords.map(i => ({ type: 'IMAGING', date: i.takenAt, data: i })),
+    ];
 
-    return timeline;
+    // Each source is capped separately, so below the oldest event of a source
+    // that hit its cap the history is incomplete. Cutting the merged list
+    // there keeps it a true chronology instead of one with silent gaps (the
+    // old per-source caps of 10–20 dropped recent invoices while showing
+    // years-old appointments).
+    const cutoff = Math.max(
+      -Infinity,
+      ...sources
+        .filter((events) => events.length >= take)
+        .map((events) => new Date(events[events.length - 1].date).getTime()),
+    );
+
+    return sources
+      .flat()
+      .filter((e) => new Date(e.date).getTime() >= cutoff)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }
 }

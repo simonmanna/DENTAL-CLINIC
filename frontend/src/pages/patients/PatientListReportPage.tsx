@@ -211,7 +211,7 @@ function toRow(p: Patient): PatientRow {
     doctor: p.appointments?.[0]?.dentist
       ? `${p.appointments[0].dentist.firstName} ${p.appointments[0].dentist.lastName}`
       : "Unassigned",
-    visits: (p as any)._count?.emrRecords ?? 0,
+    visits: (p as any)._count?.visits ?? 0,
     appointments: (p as any)._count?.appointments ?? 0,
   };
 }

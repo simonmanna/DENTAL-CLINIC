@@ -657,6 +657,8 @@ function TimelineTab({ patientId }: { patientId: string }) {
               <p className="text-sm text-foreground font-medium">
                 {event.data?.assessment ||
                   event.data?.invoiceNumber ||
+                  event.data?.visitCode ||
+                  event.data?.prescriptionCode ||
                   event.data?.type?.replace(/_/g, " ") ||
                   event.data?.title ||
                   event.data?.medicationName ||

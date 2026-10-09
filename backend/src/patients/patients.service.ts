@@ -6,6 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { clinicDateRange } from '../reports-common';
 import {
   CreatePatientDto,
   UpdatePatientDto,
@@ -114,12 +115,10 @@ export class PatientsService {
       }),
     };
 
-    // Registered-at range
-    if (dateFrom || dateTo) {
-      where.registeredAt = {};
-      if (dateFrom) where.registeredAt.gte = new Date(dateFrom);
-      if (dateTo) where.registeredAt.lte = new Date(dateTo + 'T23:59:59.999Z');
-    }
+    // Registered-at range, as clinic calendar days. `T23:59:59.999Z` is UTC
+    // and ran three hours into the next clinic day.
+    const registered = clinicDateRange(dateFrom, dateTo);
+    if (registered) where.registeredAt = registered;
 
     // Age → dateOfBirth inversion
     if (ageMin !== undefined || ageMax !== undefined) {
@@ -172,7 +171,7 @@ export class PatientsService {
         orderBy = { gender: sortOrder };
         break;
       case 'visits':
-        orderBy = { emrRecords: { _count: sortOrder } };
+        orderBy = { visits: { _count: sortOrder } };
         break;
       case 'appointments':
         orderBy = { appointments: { _count: sortOrder } };
@@ -201,7 +200,7 @@ export class PatientsService {
             },
           },
           _count: {
-            select: { appointments: true, emrRecords: true },
+            select: { appointments: true, emrRecords: true, visits: true },
           },
         },
       }),
@@ -223,16 +222,23 @@ export class PatientsService {
   async getPatientAnalytics(query: PatientQueryDto) {
     const where = this.buildWhere(query);
 
+    // "New this month" within the filtered set: intersect with any
+    // registered-date window instead of replacing it, so it can never exceed
+    // the filtered total.
+    const registered = where.registeredAt as Prisma.DateTimeFilter | undefined;
+    const monthStart = startOfMonth(new Date());
+    const newFrom =
+      registered?.gte instanceof Date && registered.gte > monthStart
+        ? registered.gte
+        : monthStart;
+
     const [total, male, female, newThisMonth, avgAgeResult] = await Promise.all(
       [
         this.prisma.patient.count({ where }),
         this.prisma.patient.count({ where: { ...where, gender: 'MALE' } }),
         this.prisma.patient.count({ where: { ...where, gender: 'FEMALE' } }),
         this.prisma.patient.count({
-          where: {
-            ...where,
-            registeredAt: { gte: startOfMonth(new Date()) },
-          },
+          where: { ...where, registeredAt: { ...registered, gte: newFrom } },
         }),
         // Raw query because Prisma _avg does not support DateTime fields
         this.prisma.$queryRaw<{ avg_age: number }[]>`
@@ -253,8 +259,8 @@ export class PatientsService {
           }
           ${query.gender ? Prisma.sql` AND "gender" = ${query.gender}` : Prisma.empty}
           ${query.isActive !== undefined ? Prisma.sql` AND "isActive" = ${query.isActive}` : Prisma.empty}
-          ${query.dateFrom ? Prisma.sql` AND "registeredAt" >= ${new Date(query.dateFrom)}` : Prisma.empty}
-          ${query.dateTo ? Prisma.sql` AND "registeredAt" <= ${new Date(query.dateTo + 'T23:59:59.999Z')}` : Prisma.empty}
+          ${where.registeredAt && (where.registeredAt as any).gte ? Prisma.sql` AND "registeredAt" >= ${(where.registeredAt as any).gte}` : Prisma.empty}
+          ${where.registeredAt && (where.registeredAt as any).lte ? Prisma.sql` AND "registeredAt" <= ${(where.registeredAt as any).lte}` : Prisma.empty}
           ${query.ageMin !== undefined ? Prisma.sql` AND "dateOfBirth" <= ${new Date(new Date().getFullYear() - query.ageMin, new Date().getMonth(), new Date().getDate())}` : Prisma.empty}
           ${query.ageMax !== undefined ? Prisma.sql` AND "dateOfBirth" >= ${new Date(new Date().getFullYear() - query.ageMax, new Date().getMonth(), new Date().getDate())}` : Prisma.empty}
       `,
@@ -383,7 +389,10 @@ export class PatientsService {
             appointments: true,
             treatmentPlans: true,
             emrRecords: true,
-            invoices: true,
+            // Soft-deleted drafts are not part of the patient's history.
+            invoices: { where: { deletedAt: null } },
+            prescriptions: true,
+            visits: true,
           },
         },
       },
