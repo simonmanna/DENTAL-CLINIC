@@ -1,6 +1,7 @@
-import { IsOptional, IsString, IsEnum, IsInt, Min, Max } from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsInt, Min, Max, Matches } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
+import { REPORT_TIME_PATTERN } from '../../reports-common';
 
 export enum ClinicalReportType {
   TREATMENT_HISTORY = 'treatment_history',
@@ -44,6 +45,17 @@ export class ClinicalReportQueryDto {
   @IsOptional()
   @IsString()
   endDate?: string;
+
+  /** `HH:mm` clinic-local; applies with a custom range. */
+  @ApiPropertyOptional({ example: '08:00' })
+  @IsOptional()
+  @Matches(REPORT_TIME_PATTERN, { message: 'startTime must be HH:mm' })
+  startTime?: string;
+
+  @ApiPropertyOptional({ example: '17:30' })
+  @IsOptional()
+  @Matches(REPORT_TIME_PATTERN, { message: 'endTime must be HH:mm' })
+  endTime?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

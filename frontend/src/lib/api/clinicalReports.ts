@@ -31,6 +31,9 @@ export interface ClinicalReportQuery {
   period?: ReportPeriodClinical;
   startDate?: string;
   endDate?: string;
+  /** `HH:mm`, clinic-local; narrows the first / last day of a custom range. */
+  startTime?: string;
+  endTime?: string;
   patientId?: string;
   dentistId?: string;
   procedureId?: string;

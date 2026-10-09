@@ -5,7 +5,9 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
 } from 'class-validator';
+import { REPORT_TIME_PATTERN } from '../../reports-common';
 import { Type } from 'class-transformer';
 
 /** Which timestamp an invoice report measures. Sales belong on `issued`. */
@@ -16,6 +18,9 @@ export class FinancialReportQueryDto {
   @IsOptional() @IsString() search?: string;
   @IsOptional() @IsString() startDate?: string;
   @IsOptional() @IsString() endDate?: string;
+  /** `HH:mm` clinic-local; narrows the first / last day of the window. */
+  @IsOptional() @Matches(REPORT_TIME_PATTERN, { message: 'startTime must be HH:mm' }) startTime?: string;
+  @IsOptional() @Matches(REPORT_TIME_PATTERN, { message: 'endTime must be HH:mm' }) endTime?: string;
   @IsOptional() @IsString() patientId?: string;
   @IsOptional() @IsString() dentistId?: string;
   @IsOptional() @IsString() status?: string;

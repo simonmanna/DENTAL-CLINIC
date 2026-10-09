@@ -84,7 +84,10 @@ export class FinancialReportingService {
       sortOrder = 'desc',
     } = query;
 
-    const dateRange = clinicDateRange(startDate, endDate);
+    const dateRange = clinicDateRange(startDate, endDate, {
+      startTime: query.startTime,
+      endTime: query.endTime,
+    });
 
     // Which timestamp the window measures. A draft raised in September and
     // posted in October belongs to October's sales, so callers can switch the
@@ -522,7 +525,10 @@ export class FinancialReportingService {
       sortOrder = 'desc',
     } = query;
 
-    const dateRange = clinicDateRange(startDate, endDate);
+    const dateRange = clinicDateRange(startDate, endDate, {
+      startTime: query.startTime,
+      endTime: query.endTime,
+    });
 
     // Default: ACTIVE only. status='ALL' → no filter. status='VOID' → voids only.
     const statusFilter: Prisma.ReceiptWhereInput =
@@ -829,7 +835,10 @@ export class FinancialReportingService {
       sortOrder = 'desc',
     } = query;
 
-    const dateRange = clinicDateRange(startDate, endDate);
+    const dateRange = clinicDateRange(startDate, endDate, {
+      startTime: query.startTime,
+      endTime: query.endTime,
+    });
 
     // Default: exclude VOIDED/FAILED/REFUNDED. status='ALL' opens everything,
     // status='VOIDED' shows just voids, etc.
@@ -1027,7 +1036,10 @@ export class FinancialReportingService {
       sortOrder = 'desc',
     } = query as any;
 
-    const dateRange = clinicDateRange(startDate, endDate);
+    const dateRange = clinicDateRange(startDate, endDate, {
+      startTime: query.startTime,
+      endTime: query.endTime,
+    });
 
     const where: Prisma.ExpenseWhereInput = {
       ...(status && status !== 'ALL' && { status: status }),
@@ -1232,7 +1244,10 @@ export class FinancialReportingService {
   // how much cash left per period. Excludes VOIDED / FAILED / REFUNDED.
   async getCashFlowReport(query: FinancialReportQueryDto) {
     const { startDate, endDate, page = 1, limit = 50 } = query;
-    const range = clinicDateRange(startDate, endDate);
+    const range = clinicDateRange(startDate, endDate, {
+      startTime: query.startTime,
+      endTime: query.endTime,
+    });
 
     const where: Prisma.PaymentWhereInput = {
       direction: CashFlowDirection.OUT,
@@ -1441,7 +1456,10 @@ export class FinancialReportingService {
   // ─────────────────────────────────────────────────────────────────────────
   async getVendorPaymentsReport(query: FinancialReportQueryDto) {
     const { startDate, endDate, page = 1, limit = 50 } = query;
-    const range = clinicDateRange(startDate, endDate);
+    const range = clinicDateRange(startDate, endDate, {
+      startTime: query.startTime,
+      endTime: query.endTime,
+    });
 
     const where: Prisma.PaymentWhereInput = {
       direction: CashFlowDirection.OUT,
@@ -1538,7 +1556,10 @@ export class FinancialReportingService {
   // Revenue (collected receipts) − Expenses (active, not voided) per period.
   async getProfitabilityReport(query: FinancialReportQueryDto) {
     const { startDate, endDate } = query;
-    const range = clinicDateRange(startDate, endDate);
+    const range = clinicDateRange(startDate, endDate, {
+      startTime: query.startTime,
+      endTime: query.endTime,
+    });
 
     const [revenue, expenses] = await Promise.all([
       this.prisma.payment.aggregate({

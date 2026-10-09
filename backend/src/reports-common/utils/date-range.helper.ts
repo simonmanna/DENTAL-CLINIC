@@ -172,16 +172,22 @@ export function resolveDateRange(
  * 20:59:59 UTC they are not picked up there either: a record created at 01:43 EAT
  * is invisible on both days.
  *
+ * Optional `startTime` / `endTime` (`HH:mm`, clinic local) narrow the first and
+ * last day: the window opens at `startDate startTime:00.000` and closes at
+ * `endDate endTime:59.999`, so `endTime` is inclusive of its whole minute. A
+ * time without its matching date is ignored.
+ *
  * Returns `undefined` when neither edge is given, so callers can spread it
  * straight into a `where` clause.
  *
- * @throws BadRequestException when a value is not a parseable date.
+ * @throws BadRequestException when a value is not a parseable date or time.
  */
 export function clinicDateRange(
   startDate?: string,
   endDate?: string,
-  timezone: string = DEFAULT_REPORT_TIMEZONE,
+  options: { startTime?: string; endTime?: string; timezone?: string } = {},
 ): { gte?: Date; lte?: Date } | undefined {
+  const timezone = options.timezone || DEFAULT_REPORT_TIMEZONE;
   const parse = (value: string, field: string): Date => {
     const d = new Date(value);
     if (isNaN(d.getTime())) {
@@ -189,22 +195,33 @@ export function clinicDateRange(
     }
     return d;
   };
+  const parseTime = (value: string | undefined, field: string) => {
+    if (!value) return undefined;
+    const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value);
+    if (!m) {
+      throw new BadRequestException(`Invalid ${field}: "${value}" (expected HH:mm)`);
+    }
+    return { h: Number(m[1]), min: Number(m[2]) };
+  };
+  const startTime = parseTime(options.startTime, 'startTime');
+  const endTime = parseTime(options.endTime, 'endTime');
 
   const range: { gte?: Date; lte?: Date } = {};
   if (startDate) {
-    range.gte = fromZonedTime(
-      startOfDay(toZonedTime(parse(startDate, 'startDate'), timezone)),
-      timezone,
-    );
+    const local = startOfDay(toZonedTime(parse(startDate, 'startDate'), timezone));
+    if (startTime) local.setHours(startTime.h, startTime.min, 0, 0);
+    range.gte = fromZonedTime(local, timezone);
   }
   if (endDate) {
-    range.lte = fromZonedTime(
-      endOfDay(toZonedTime(parse(endDate, 'endDate'), timezone)),
-      timezone,
-    );
+    const local = endOfDay(toZonedTime(parse(endDate, 'endDate'), timezone));
+    if (endTime) local.setHours(endTime.h, endTime.min, 59, 999);
+    range.lte = fromZonedTime(local, timezone);
   }
   return Object.keys(range).length ? range : undefined;
 }
+
+/** Shared validator pattern for `HH:mm` report time filters. */
+export const REPORT_TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /**
  * Build a Prisma `where.<field>` filter from a resolved range.

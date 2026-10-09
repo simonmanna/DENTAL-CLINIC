@@ -5,6 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { clinicDateRange } from '../reports-common';
 import { ReceiptFilterDto } from './dto/receipt-filter.dto';
 import { VoidReceiptDto } from './dto/void-receipt.dto';
 import { M } from '../common/money/money';
@@ -43,6 +44,8 @@ export class ReceiptsService {
       currencyCode,
       startDate,
       endDate,
+      startTime,
+      endTime,
       minAmount,
       maxAmount,
       page = 1,
@@ -99,16 +102,10 @@ export class ReceiptsService {
       }
     }
 
-    // Date range on generatedAt — end date is end-of-day inclusive.
-    if (startDate || endDate) {
-      where.generatedAt = {};
-      if (startDate) where.generatedAt.gte = new Date(startDate);
-      if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        where.generatedAt.lte = end;
-      }
-    }
+    // Date/time range on generatedAt, resolved as clinic-local days; the end
+    // date (or end time's minute) is inclusive.
+    const generatedRange = clinicDateRange(startDate, endDate, { startTime, endTime });
+    if (generatedRange) where.generatedAt = generatedRange;
 
     // Amount range on amountReceived (the actual currency the patient paid).
     if (minAmount !== undefined || maxAmount !== undefined) {

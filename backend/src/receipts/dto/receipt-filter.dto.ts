@@ -5,8 +5,10 @@ import {
   IsDateString,
   IsIn,
   Min,
+  Matches,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { REPORT_TIME_PATTERN } from '../../reports-common';
 import { CurrencyCode, PaymentMethod, ReceiptStatus } from '@prisma/client';
 
 export class ReceiptFilterDto {
@@ -48,6 +50,15 @@ export class ReceiptFilterDto {
   @IsOptional()
   @IsDateString()
   endDate?: string;
+
+  // Optional HH:mm (clinic-local) narrowing the first / last day.
+  @IsOptional()
+  @Matches(REPORT_TIME_PATTERN, { message: 'startTime must be HH:mm' })
+  startTime?: string;
+
+  @IsOptional()
+  @Matches(REPORT_TIME_PATTERN, { message: 'endTime must be HH:mm' })
+  endTime?: string;
 
   // ── Amount range on amountReceived (currency the patient paid) ───
   @IsOptional()

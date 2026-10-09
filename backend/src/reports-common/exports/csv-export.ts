@@ -1,6 +1,8 @@
 import { stringify } from 'csv-stringify/sync';
 import { Readable } from 'stream';
 import { Response } from 'express';
+import { formatInTimeZone } from 'date-fns-tz';
+import { DEFAULT_REPORT_TIMEZONE } from '../utils/date-range.helper';
 
 /**
  * Column spec for CSV export. Each column defines a header label and a
@@ -84,12 +86,17 @@ export function streamCsv<T>(
 }
 
 /**
- * Format a single cell value for CSV output. Dates become ISO dates, decimals
+ * Format a single cell value for CSV output. Dates become clinic-local
+ * `yyyy-MM-dd HH:mm:ss` timestamps, decimals
  * become plain numbers (no currency symbol), null/undefined become empty.
  */
 function formatCell(v: unknown): string {
   if (v == null) return '';
-  if (v instanceof Date) return v.toISOString().slice(0, 19).replace('T', ' ');
+  if (v instanceof Date) {
+    return isNaN(v.getTime())
+      ? ''
+      : formatInTimeZone(v, DEFAULT_REPORT_TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
+  }
   if (typeof v === 'number') return Number.isFinite(v) ? String(v) : '';
   if (typeof v === 'boolean') return v ? 'true' : 'false';
   if (typeof v === 'string') return v;

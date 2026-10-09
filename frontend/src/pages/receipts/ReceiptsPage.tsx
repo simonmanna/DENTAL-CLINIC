@@ -1091,6 +1091,9 @@ export function ReceiptsPage() {
   const [currencyFilter, setCurrencyFilter] = useState<"" | "UGX" | "USD">("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  // Optional HH:mm narrowing the first / last day; only sent with its date.
+  const [timeFrom, setTimeFrom] = useState("");
+  const [timeTo, setTimeTo] = useState("");
   const [minAmount, setMinAmount] = useState<string>("");
   const [maxAmount, setMaxAmount] = useState<string>("");
 
@@ -1128,6 +1131,8 @@ export function ReceiptsPage() {
     currencyFilter,
     dateFrom,
     dateTo,
+    timeFrom,
+    timeTo,
     minAmount,
     maxAmount,
   ]);
@@ -1143,6 +1148,8 @@ export function ReceiptsPage() {
         currencyFilter,
         dateFrom,
         dateTo,
+        timeFrom,
+        timeTo,
         minAmount,
         maxAmount,
         page,
@@ -1156,6 +1163,8 @@ export function ReceiptsPage() {
         currencyCode: currencyFilter || undefined,
         startDate: dateFrom || undefined,
         endDate: dateTo || undefined,
+        startTime: (dateFrom && timeFrom) || undefined,
+        endTime: (dateTo && timeTo) || undefined,
         minAmount: minAmount ? Number(minAmount) : undefined,
         maxAmount: maxAmount ? Number(maxAmount) : undefined,
         page,
@@ -1199,6 +1208,8 @@ export function ReceiptsPage() {
     setPeriod("all");
     setDateFrom("");
     setDateTo("");
+    setTimeFrom("");
+    setTimeTo("");
     setMinAmount("");
     setMaxAmount("");
   };
@@ -1511,6 +1522,25 @@ export function ReceiptsPage() {
                 width: 110,
               }}
             />
+            <input
+              type="time"
+              aria-label="Time from"
+              title={dateFrom ? "From time (optional)" : "Pick a From date first"}
+              value={timeFrom}
+              disabled={!dateFrom}
+              onChange={(e) => setTimeFrom(e.target.value)}
+              style={{
+                border: "none",
+                outline: "none",
+                fontSize: ".8rem",
+                fontFamily: "inherit",
+                color: "var(--clr-text)",
+                background: "transparent",
+                padding: "2px 0",
+                width: 84,
+                opacity: dateFrom ? 1 : 0.5,
+              }}
+            />
             <span style={{ color: "var(--clr-muted)", fontSize: ".75rem" }}>
               →
             </span>
@@ -1529,6 +1559,25 @@ export function ReceiptsPage() {
                 background: "transparent",
                 padding: "2px 0",
                 width: 110,
+              }}
+            />
+            <input
+              type="time"
+              aria-label="Time to"
+              title={dateTo ? "To time (optional)" : "Pick a To date first"}
+              value={timeTo}
+              disabled={!dateTo}
+              onChange={(e) => setTimeTo(e.target.value)}
+              style={{
+                border: "none",
+                outline: "none",
+                fontSize: ".8rem",
+                fontFamily: "inherit",
+                color: "var(--clr-text)",
+                background: "transparent",
+                padding: "2px 0",
+                width: 84,
+                opacity: dateTo ? 1 : 0.5,
               }}
             />
           </div>
@@ -1660,7 +1709,10 @@ export function ReceiptsPage() {
               <span className="pur-badge" style={chipStyle}>
                 date:{" "}
                 <strong>
-                  {dateFrom || "…"} → {dateTo || "…"}
+                  {dateFrom || "…"}
+                  {dateFrom && timeFrom ? ` ${timeFrom}` : ""} →{" "}
+                  {dateTo || "…"}
+                  {dateTo && timeTo ? ` ${timeTo}` : ""}
                 </strong>
               </span>
             )}
@@ -1735,7 +1787,7 @@ export function ReceiptsPage() {
                     <th className="pur-text-right">Amount</th>
                     <th className="pur-text-center">Payment Method</th>
                     <th>Received By</th>
-                    <th>Date</th>
+                    <th>Date &amp; Time</th>
                     <th className="pur-text-center">Status</th>
                     <th className="pur-text-right">Actions</th>
                   </tr>
@@ -1838,7 +1890,7 @@ export function ReceiptsPage() {
                             color: "var(--clr-muted)",
                           }}
                         >
-                          {formatDate(receipt.generatedAt)}
+                          {formatDate(receipt.generatedAt, "datetime")}
                         </td>
                         <td className="pur-text-center">
                           {isVoided ? (
@@ -1932,7 +1984,7 @@ function ReceiptDetailView({
                   color: "var(--clr-muted)",
                 }}
               >
-                Generated {formatDate(receipt.generatedAt)}
+                Generated {formatDate(receipt.generatedAt, "datetime")}
               </p>
             </div>
           </div>
@@ -1983,10 +2035,12 @@ function ReceiptDetailView({
               <p className="rd-receipt-label">Receipt</p>
               <h2>{receipt.receiptNumber}</h2>
               <p>
-                {new Date(receipt.generatedAt).toLocaleDateString("en-UG", {
+                {new Date(receipt.generatedAt).toLocaleString("en-UG", {
                   day: "2-digit",
                   month: "long",
                   year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
                 })}
               </p>
             </div>
@@ -2216,7 +2270,7 @@ function ReceiptDetailView({
               </div>
               <div className="rd-pay-details">
                 <p>
-                  Date: {formatDate(receipt.generatedAt)}
+                  Date: {formatDate(receipt.generatedAt, "datetime")}
                 </p>
                 {(receipt.payment?.method || receipt.paymentMethod) && (
                   <p>
@@ -2269,7 +2323,7 @@ function ReceiptDetailView({
                           margin: "2px 0 0",
                         }}
                       >
-                        {formatDate(payment.paidAt)}
+                        {formatDate(payment.paidAt, "datetime")}
                       </p>
                     </div>
                   </div>

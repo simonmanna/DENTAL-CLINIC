@@ -62,6 +62,9 @@ export interface ReceiptFilters {
   currencyCode?: 'UGX' | 'USD';
   startDate?: string;
   endDate?: string;
+  /** `HH:mm`, clinic-local; narrows the first / last day of the range. */
+  startTime?: string;
+  endTime?: string;
   minAmount?: number;
   maxAmount?: number;
   page?: number;

@@ -26,6 +26,7 @@ export class ClinicalReportsService {
         period: ReportPeriodClinical = ReportPeriodClinical.THIS_MONTH,
         customStart?: string,
         customEnd?: string,
+        times: { startTime?: string; endTime?: string } = {},
     ): { startDate: Date; endDate: Date } {
         const now = new Date();
         const today = new Date(now);
@@ -36,7 +37,7 @@ export class ClinicalReportsService {
         if (period === ReportPeriodClinical.CUSTOM && customStart && customEnd) {
             // Inclusive clinic-day bounds; `new Date(customEnd)` alone is UTC
             // midnight and would cut the final day out of the window.
-            const range = clinicDateRange(customStart, customEnd);
+            const range = clinicDateRange(customStart, customEnd, times);
             return { startDate: range!.gte!, endDate: range!.lte! };
         }
 
@@ -87,6 +88,7 @@ export class ClinicalReportsService {
             query.period,
             query.startDate,
             query.endDate,
+            { startTime: query.startTime, endTime: query.endTime },
         );
 
         switch (query.type) {

@@ -6,6 +6,9 @@ export interface FinancialReportFilters {
   search?: string;
   startDate?: string;
   endDate?: string;
+  /** `HH:mm`, clinic-local; narrows the first / last day of the range. */
+  startTime?: string;
+  endTime?: string;
   patientId?: string;
   dentistId?: string;
   accountId?: string;

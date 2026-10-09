@@ -4,7 +4,9 @@ import {
   dateRangeWhere,
   activityField,
   ActivityAxis,
+  clinicDateRange,
 } from './date-range.helper';
+import { BadRequestException } from '@nestjs/common';
 import { toZonedTime } from 'date-fns-tz';
 
 describe('resolveDateRange', () => {
@@ -150,5 +152,41 @@ describe('activityField', () => {
   });
   it('returns scheduledAt for visits when axis is SCHEDULED', () => {
     expect(activityField('visit', ActivityAxis.SCHEDULED)).toBe('scheduledAt');
+  });
+});
+describe('clinicDateRange', () => {
+  const tz = 'Africa/Kampala';
+
+  it('spans whole clinic days when no times are given', () => {
+    expect(clinicDateRange('2026-06-03', '2026-06-04', { timezone: tz })).toEqual({
+      gte: new Date('2026-06-02T21:00:00.000Z'),
+      lte: new Date('2026-06-04T20:59:59.999Z'),
+    });
+  });
+
+  it('narrows the first and last day by startTime / endTime', () => {
+    expect(
+      clinicDateRange('2026-06-03', '2026-06-04', {
+        startTime: '08:15',
+        endTime: '17:30',
+        timezone: tz,
+      }),
+    ).toEqual({
+      gte: new Date('2026-06-03T05:15:00.000Z'),
+      lte: new Date('2026-06-04T14:30:59.999Z'),
+    });
+  });
+
+  it('ignores a time whose date is missing', () => {
+    expect(clinicDateRange(undefined, undefined, { startTime: '08:00' })).toBeUndefined();
+  });
+
+  it('rejects malformed times', () => {
+    expect(() => clinicDateRange('2026-06-03', undefined, { startTime: '8am' })).toThrow(
+      BadRequestException,
+    );
+    expect(() => clinicDateRange(undefined, '2026-06-03', { endTime: '24:00' })).toThrow(
+      BadRequestException,
+    );
   });
 });

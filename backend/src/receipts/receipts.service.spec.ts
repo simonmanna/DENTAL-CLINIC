@@ -75,19 +75,27 @@ describe('ReceiptsService', () => {
       expect(flat).toContain('Jane');
     });
 
-    it('treats endDate as end-of-day inclusive', async () => {
+    it('treats the range as inclusive clinic-local days (EAT)', async () => {
       prisma.receipt.findMany.mockResolvedValue([]);
       prisma.receipt.count.mockResolvedValue(0);
       await service.findAll({ startDate: '2026-01-01', endDate: '2026-01-31' } as any);
       const arg = prisma.receipt.findMany.mock.calls[0][0];
-      expect(arg.where.generatedAt.gte).toEqual(new Date('2026-01-01'));
-      const lte = arg.where.generatedAt.lte as Date;
-      expect(lte.getFullYear()).toBe(2026);
-      expect(lte.getMonth()).toBe(0); // January
-      expect(lte.getDate()).toBe(31);
-      expect(lte.getHours()).toBe(23);
-      expect(lte.getMinutes()).toBe(59);
-      expect(lte.getSeconds()).toBe(59);
+      expect(arg.where.generatedAt.gte).toEqual(new Date('2025-12-31T21:00:00.000Z'));
+      expect(arg.where.generatedAt.lte).toEqual(new Date('2026-01-31T20:59:59.999Z'));
+    });
+
+    it('narrows the first and last day by startTime / endTime', async () => {
+      prisma.receipt.findMany.mockResolvedValue([]);
+      prisma.receipt.count.mockResolvedValue(0);
+      await service.findAll({
+        startDate: '2026-01-01',
+        endDate: '2026-01-01',
+        startTime: '08:30',
+        endTime: '12:00',
+      } as any);
+      const arg = prisma.receipt.findMany.mock.calls[0][0];
+      expect(arg.where.generatedAt.gte).toEqual(new Date('2026-01-01T05:30:00.000Z'));
+      expect(arg.where.generatedAt.lte).toEqual(new Date('2026-01-01T09:00:59.999Z'));
     });
 
     it('filters by amount range', async () => {
@@ -112,7 +120,7 @@ describe('ReceiptsService', () => {
       const arg = prisma.receipt.findMany.mock.calls[0][0];
       expect(arg.where.status).toBe('ACTIVE');
       expect(arg.where.invoice).toEqual({ patientId: 'p1' });
-      expect(arg.where.generatedAt.gte).toEqual(new Date('2026-01-01'));
+      expect(arg.where.generatedAt.gte).toBeInstanceOf(Date);
       expect(arg.where.generatedAt.lte).toBeInstanceOf(Date);
       expect(arg.where.amountReceived).toEqual({ gte: 500 });
       expect(arg.where.OR).toBeDefined(); // search OR

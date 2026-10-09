@@ -92,6 +92,8 @@ interface FilterState {
   datePreset: DatePreset;
   startDate: string;
   endDate: string;
+  startTime: string;
+  endTime: string;
   dateBasis: InvoiceDateBasis;
   patientId: string;
   dentistId: string;
@@ -115,6 +117,8 @@ const DEFAULT_FILTERS: FilterState = {
   datePreset: "all",
   startDate: "",
   endDate: "",
+  startTime: "",
+  endTime: "",
   dateBasis: "created",
   patientId: "",
   dentistId: "",
@@ -522,6 +526,32 @@ function FilterBar({
             className="h-9 w-40 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/60"
           />
         </div>
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">
+            Time
+          </label>
+          <div className="flex items-center gap-1">
+            <input
+              type="time"
+              value={filters.startTime}
+              disabled={!filters.startDate}
+              onChange={(e) => onChange({ startTime: e.target.value })}
+              aria-label="From time"
+              title={filters.startDate ? "From time (optional)" : "Pick a From date first"}
+              className="h-9 w-28 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/60 disabled:opacity-50"
+            />
+            <span className="text-muted-foreground/60 text-xs">–</span>
+            <input
+              type="time"
+              value={filters.endTime}
+              disabled={!filters.endDate}
+              onChange={(e) => onChange({ endTime: e.target.value })}
+              aria-label="To time"
+              title={filters.endDate ? "To time (optional)" : "Pick a To date first"}
+              className="h-9 w-28 rounded-lg border border-border px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/60 disabled:opacity-50"
+            />
+          </div>
+        </div>
         {extra}
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -839,9 +869,9 @@ const INVOICE_COLUMNS = (navigate: (to: string) => void): ColDef<InvoiceRow>[] =
     key: "issuedAt",
     label: "Issued",
     render: (r) => (
-      <span className="text-xs text-muted-foreground/70">{fmtDate(r.issuedAt)}</span>
+      <span className="text-xs text-muted-foreground/70">{fmtDateTime(r.issuedAt)}</span>
     ),
-    csv: (r) => fmtDate(r.issuedAt),
+    csv: (r) => fmtDateTime(r.issuedAt),
   },
   {
     key: "dueDate",
@@ -863,9 +893,9 @@ const INVOICE_COLUMNS = (navigate: (to: string) => void): ColDef<InvoiceRow>[] =
     key: "createdAt",
     label: "Created",
     render: (r) => (
-      <span className="text-xs text-muted-foreground/70">{fmtDate(r.createdAt)}</span>
+      <span className="text-xs text-muted-foreground/70">{fmtDateTime(r.createdAt)}</span>
     ),
-    csv: (r) => fmtDate(r.createdAt),
+    csv: (r) => fmtDateTime(r.createdAt),
   },
   {
     key: "_actions",
@@ -1033,7 +1063,7 @@ const RECEIPT_COLUMNS = (navigate: (to: string) => void): ColDef<ReceiptRow>[] =
   },
   {
     key: "generatedAt",
-    label: "Date",
+    label: "Date & Time",
     render: (r) => (
       <span className="text-xs text-muted-foreground">
         {fmtDateTime(r.generatedAt)}
@@ -1161,7 +1191,7 @@ const PAYMENT_COLUMNS: ColDef<PaymentRow>[] = [
   },
   {
     key: "paidAt",
-    label: "Date",
+    label: "Date & Time",
     render: (r) => (
       <span className="text-xs text-muted-foreground/70">{fmtDateTime(r.paidAt)}</span>
     ),
@@ -1255,19 +1285,19 @@ const EXPENSE_COLUMNS: ColDef<ExpenseRow>[] = [
   },
   {
     key: "expenseDate",
-    label: "Date",
+    label: "Date & Time",
     render: (r) => (
-      <span className="text-xs text-muted-foreground">{fmtDate(r.expenseDate)}</span>
+      <span className="text-xs text-muted-foreground">{fmtDateTime(r.expenseDate)}</span>
     ),
-    csv: (r) => fmtDate(r.expenseDate),
+    csv: (r) => fmtDateTime(r.expenseDate),
   },
   {
     key: "paidAt",
     label: "Paid At",
     render: (r) => (
-      <span className="text-xs text-muted-foreground/70">{fmtDate(r.paidAt)}</span>
+      <span className="text-xs text-muted-foreground/70">{fmtDateTime(r.paidAt)}</span>
     ),
-    csv: (r) => fmtDate(r.paidAt),
+    csv: (r) => fmtDateTime(r.paidAt),
   },
 ];
 
@@ -1460,6 +1490,8 @@ const apiFilters: FinancialReportFilters = useMemo(
     search: debouncedSearch || undefined,
     startDate: filters.startDate || undefined,
     endDate: filters.endDate || undefined,
+    startTime: (filters.startDate && filters.startTime) || undefined,
+    endTime: (filters.endDate && filters.endTime) || undefined,
     dateBasis: activeTab === "invoices" ? filters.dateBasis : undefined,
     patientId: filters.patientId || undefined,
     dentistId: filters.dentistId || undefined,
@@ -1488,6 +1520,8 @@ const apiFilters: FinancialReportFilters = useMemo(
     debouncedSearch,
     filters.startDate,
     filters.endDate,
+    filters.startTime,
+    filters.endTime,
     filters.dateBasis,
     filters.patientId,
     filters.dentistId,
@@ -1989,6 +2023,10 @@ const fetchReport = useCallback(async () => {
       chips.push({ label, clear });
 
     if (filters.search) push(`Search: "${filters.search}"`, { search: "" });
+    if (filters.startDate && filters.startTime)
+      push(`From ${filters.startTime}`, { startTime: "" });
+    if (filters.endDate && filters.endTime)
+      push(`Until ${filters.endTime}`, { endTime: "" });
     if (filters.status)
       push(
         `Status: ${STATUS_CFG[filters.status]?.label ?? filters.status.replace(/_/g, " ")}`,

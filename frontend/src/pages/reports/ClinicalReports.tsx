@@ -90,6 +90,12 @@ function shortDate(s?: string | null) {
   if (!s) return '—';
   return new Date(s).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
+function dateTime(s?: string | null) {
+  if (!s) return '—';
+  return new Date(s).toLocaleString('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+}
 
 function Badge({ status }: { status: string }) {
   return (
@@ -287,6 +293,8 @@ interface Filters {
   period: ReportPeriodClinical;
   startDate: string;
   endDate: string;
+  startTime: string;
+  endTime: string;
   patientId: string;
   dentistId: string;
   status: string;
@@ -323,11 +331,19 @@ function FilterBar({
       {/* Custom dates */}
       {filters.period === ReportPeriodClinical.CUSTOM && (
         <>
-          <input type="date" value={filters.startDate} onChange={e => onChange({ startDate: e.target.value, page: 1 })}
-            className={inputCls} />
+          <input type="date" value={filters.startDate} max={filters.endDate || undefined}
+            onChange={e => onChange({ startDate: e.target.value, page: 1 })}
+            className={inputCls} aria-label="From date" />
+          <input type="time" value={filters.startTime} disabled={!filters.startDate}
+            onChange={e => onChange({ startTime: e.target.value, page: 1 })}
+            className={cn(inputCls, 'disabled:opacity-50')} aria-label="From time" title="From time (optional)" />
           <span className="text-muted-foreground/50 text-sm">→</span>
-          <input type="date" value={filters.endDate} onChange={e => onChange({ endDate: e.target.value, page: 1 })}
-            className={inputCls} />
+          <input type="date" value={filters.endDate} min={filters.startDate || undefined}
+            onChange={e => onChange({ endDate: e.target.value, page: 1 })}
+            className={inputCls} aria-label="To date" />
+          <input type="time" value={filters.endTime} disabled={!filters.endDate}
+            onChange={e => onChange({ endTime: e.target.value, page: 1 })}
+            className={cn(inputCls, 'disabled:opacity-50')} aria-label="To time" title="To time (optional)" />
         </>
       )}
 
@@ -466,7 +482,7 @@ function PatientVisitsPanel({ report, onPageChange }: { report: PatientVisitsRep
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-border/60">
-                {['Visit Code', 'Patient', 'Dentist', 'Procedures', 'Status', 'Payment', 'Total', 'Date'].map(h => (
+                {['Visit Code', 'Patient', 'Dentist', 'Procedures', 'Status', 'Payment', 'Total', 'Date & Time'].map(h => (
                   <th key={h} className="px-4 py-3 text-left font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
                 ))}
                 <th className="px-4 py-3" />
@@ -511,7 +527,7 @@ function PatientVisitsPanel({ report, onPageChange }: { report: PatientVisitsRep
                     <p className="font-semibold text-foreground">{formatCurrency(v.totalCost)}</p>
                     {v.balance > 0 && <p className="text-danger text-[10px]">Bal: {formatCurrency(v.balance)}</p>}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{shortDate(v.createdAt)}</td>
+                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{dateTime(v.createdAt)}</td>
                 </CollapsibleRow>
               ))}
             </tbody>
@@ -637,7 +653,7 @@ function TreatmentHistoryPanel({ report, onPageChange }: { report: TreatmentHist
                   </td>
                   <td className="px-4 py-3 font-medium text-foreground">{formatCurrency(plan.estimatedCost)}</td>
                   <td className="px-4 py-3"><Badge status={plan.planStatus} /></td>
-                  <td className="px-4 py-3 text-muted-foreground">{shortDate(plan.createdAt)}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{dateTime(plan.createdAt)}</td>
                 </CollapsibleRow>
               ))}
             </tbody>
@@ -823,7 +839,7 @@ function ProcedureSessionsPanel({ report, onPageChange }: { report: ProcedureSes
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-border/60">
-                {['#', 'Session', 'Procedure', 'Plan', 'Patient', 'Dentist', 'Status', 'Ledger', 'Date'].map(h => (
+                {['#', 'Session', 'Procedure', 'Plan', 'Patient', 'Dentist', 'Status', 'Ledger', 'Date & Time'].map(h => (
                   <th key={h} className="px-4 py-3 text-left font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -848,7 +864,7 @@ function ProcedureSessionsPanel({ report, onPageChange }: { report: ProcedureSes
                   <td className="px-4 py-3 text-muted-foreground">{s.dentistName}</td>
                   <td className="px-4 py-3"><Badge status={s.status} /></td>
                   <td className="px-4 py-3"><Badge status={s.ledgerStatus} /></td>
-                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{shortDate(s.performedDate ?? s.createdAt)}</td>
+                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{dateTime(s.performedDate ?? s.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -1090,7 +1106,7 @@ function DentalChartPanel({ report, onPageChange }: { report: DentalChartStatusR
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-border/60">
-                {['Patient', 'Tooth', 'Type', 'Label', 'Condition Code', 'Visit', 'Date'].map(h => (
+                {['Patient', 'Tooth', 'Type', 'Label', 'Condition Code', 'Visit', 'Date & Time'].map(h => (
                   <th key={h} className="px-4 py-3 text-left font-semibold text-muted-foreground">{h}</th>
                 ))}
               </tr>
@@ -1111,7 +1127,7 @@ function DentalChartPanel({ report, onPageChange }: { report: DentalChartStatusR
                   <td className="px-4 py-3 font-medium text-foreground">{e.label}</td>
                   <td className="px-4 py-3 font-mono text-muted-foreground">{e.conditionCode ?? '—'}</td>
                   <td className="px-4 py-3 font-mono text-primary">{e.visitCode ?? '—'}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{shortDate(e.createdAt)}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{dateTime(e.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -1374,6 +1390,8 @@ export function ClinicalReportsPage() {
     period: ReportPeriodClinical.THIS_MONTH,
     startDate: '',
     endDate: '',
+    startTime: '',
+    endTime: '',
     patientId: '',
     dentistId: '',
     status: '',
@@ -1389,6 +1407,8 @@ export function ClinicalReportsPage() {
     period: filters.period,
     startDate: filters.startDate || undefined,
     endDate: filters.endDate || undefined,
+    startTime: (filters.startDate && filters.startTime) || undefined,
+    endTime: (filters.endDate && filters.endTime) || undefined,
     patientId: filters.patientId || undefined,
     dentistId: filters.dentistId || undefined,
     status: filters.status || undefined,
