@@ -181,6 +181,7 @@ const navItems = [
       { label: "Backups", path: "/admin/backups", icon: Database },
     ],
   },
+  { icon: Settings, label: "Settings", path: "/settings", badge: null },
 ];
 
 const ALL_NAV_PATHS: string[] = navItems
@@ -412,18 +413,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
       </nav>
 
       {/* Bottom actions */}
-      <div className="shrink-0 space-y-1 border-t border-sidebar-border px-3 py-2.5">
-        <Link
-          to="/settings"
-          title={collapsed ? "Settings" : undefined}
-          className={cn(
-            "flex items-center gap-3 rounded-lg py-2.5 text-[14px] font-medium text-sidebar-foreground outline-none transition-colors hover:bg-sidebar-hover hover:text-sidebar-active focus-visible:ring-2 focus-visible:ring-sidebar-accent/70",
-            collapsed ? "justify-center" : "px-3",
-          )}
-        >
-          <Settings className="h-[18px] w-[18px] shrink-0 text-sidebar-muted" strokeWidth={1.75} />
-          {!collapsed && <span>Settings</span>}
-        </Link>
+      <div className="shrink-0 border-t border-sidebar-border px-3 py-2.5">
         <button
           onClick={handleLogout}
           title={collapsed ? "Sign Out" : undefined}
