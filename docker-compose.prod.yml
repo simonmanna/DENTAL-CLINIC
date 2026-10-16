@@ -1,0 +1,61 @@
+# Single-host production stack: Postgres + API + nginx-served SPA.
+# Needs a .env beside this file — see scripts/deploy-vps.sh, which creates it.
+name: dental-clinic
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      CORS_ORIGIN: ${PUBLIC_URL}
+      CLINIC_TIMEZONE: ${CLINIC_TIMEZONE:-Africa/Kampala}
+      TZ: ${CLINIC_TIMEZONE:-Africa/Kampala}
+      PORT: 3001
+      # In-app backups (pg_dump from the image's postgresql18-client)
+      PGHOST: db
+      PGPORT: 5432
+      PGDATABASE: ${POSTGRES_DB}
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PG_BIN: /usr/bin
+      BACKUP_DIR: /backups
+    volumes:
+      - ./data/uploads:/app/uploads
+      - ./data/backup-state:/app/data
+      - ./data/backups:/backups
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${PUBLIC_URL}
+        VITE_DEMO_LOGIN: ${DEMO_LOGIN:-false}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${HTTP_PORT:-8092}:80"
+
+volumes:
+  pgdata:
