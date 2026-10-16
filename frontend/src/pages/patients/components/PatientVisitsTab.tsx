@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, Clock, User, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Calendar, Clock, User, Loader2, CheckCircle } from 'lucide-react';
+import { ActionButton, RowActions } from '@/components/ui/action-button';
 import { treatmentPlansApi } from '@/lib/api/treatment-plans';
 import { format } from 'date-fns';
 
@@ -14,7 +16,14 @@ interface Visit {
   appointment: { type: string } | null;
 }
 
-export function PatientVisitsTab({ patientId }: { patientId: string }) {
+export function PatientVisitsTab({
+  patientId,
+  patientName,
+}: {
+  patientId: string;
+  patientName?: string;
+}) {
+  const navigate = useNavigate();
   const { data: visits, isLoading, error } = useQuery({
     queryKey: ['patient-visits', patientId],
     queryFn: () => treatmentPlansApi.getPatientVisits(patientId),
@@ -24,6 +33,16 @@ export function PatientVisitsTab({ patientId }: { patientId: string }) {
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin mx-auto mt-8" />;
   if (error) return <div className="text-danger text-center mt-8">Failed to load visits</div>;
   if (!visits?.length) return <div className="text-muted-foreground/70 text-center mt-8">No visits found</div>;
+
+  // Same route the Visits list page's "Bills" action opens.
+  const openBills = (visit: Visit) => {
+    const params = new URLSearchParams();
+    if (patientName) params.set('patientName', patientName);
+    if (visit.visitCode) params.set('visitCode', visit.visitCode);
+    navigate(
+      `/VisitBillingPage/${visit.id}/${patientId}${params.toString() ? `?${params}` : ''}`,
+    );
+  };
 
   const statusColor = (status: string) => {
     switch (status) {
@@ -45,9 +64,15 @@ export function PatientVisitsTab({ patientId }: { patientId: string }) {
                 {visit.appointment?.type || 'General'} • Dr. {visit.dentist.firstName} {visit.dentist.lastName}
               </p>
             </div>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColor(visit.status)}`}>
-              {visit.status.replace('_', ' ')}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColor(visit.status)}`}>
+                {visit.status.replace('_', ' ')}
+              </span>
+              <RowActions>
+                <ActionButton tone="view" label="Open" onClick={() => navigate(`/visits/${visit.id}`)} />
+                <ActionButton tone="success" label="Bills" icon={CheckCircle} onClick={() => openBills(visit)} />
+              </RowActions>
+            </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">

@@ -57,6 +57,7 @@ import { PatientVisitsTab } from './components/PatientVisitsTab';
 import { PatientProceduresTab } from './components/PatientProceduresTab';
 
 import { PatientReportTab } from './components/PatientReportTab';
+import { NewVisitDialog } from './components/NewVisitDialog';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -685,6 +686,9 @@ export function PatientDetailPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const { hasRole } = usePermissions();
   const canSeeClinical = hasRole(CLINICAL_ROLES);
+  // Mirrors the backend's CAN_MANAGE_VISIT on POST /visits/walk-in.
+  const canManageVisit = hasRole([...CLINICAL_ROLES, UserRole.RECEPTIONIST]);
+  const [showNewVisit, setShowNewVisit] = useState(false);
   // Front desk, pharmacy and lab users would only get "Failed to load" from
   // the clinical endpoints (403), so those tabs are not offered to them.
   const visibleTabs = TABS.filter((t) => !t.clinical || canSeeClinical);
@@ -771,15 +775,31 @@ export function PatientDetailPage() {
                 {patient.isActive ? "● Active" : "● Inactive"}
               </span>
 
-              {/* Quick action buttons */}
-              <button
-                onClick={() =>
-                  navigate(`/appointments/new?patientId=${patient.id}`)
-                }
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 text-white rounded text-xs font-semibold transition-colors border border-white/20"
-              >
-                <CalendarDays className="w-3.5 h-3.5" /> Book Appointment
-              </button>
+              {/* Quick action buttons (hidden for deleted patients) */}
+              {!patient.deletedAt && (
+                <>
+                  <button
+                    onClick={() =>
+                      navigate(
+                        `/appointments?book=1&patientId=${encodeURIComponent(patient.id)}`,
+                      )
+                    }
+                    title="Book an appointment for this patient"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 text-white rounded text-xs font-semibold transition-colors border border-white/20"
+                  >
+                    <CalendarDays className="w-3.5 h-3.5" /> New Booking
+                  </button>
+                  {canManageVisit && (
+                    <button
+                      onClick={() => setShowNewVisit(true)}
+                      title="Open a visit for this patient now"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-[#0369a1] hover:bg-white/90 rounded text-xs font-semibold transition-colors"
+                    >
+                      <Stethoscope className="w-3.5 h-3.5" /> New Visit
+                    </button>
+                  )}
+                </>
+              )}
               {/*              <button
                 onClick={() => navigate(`/dental-chart/${patient.id}`)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-[#1e3a5f] rounded text-xs font-semibold hover:bg-primary-muted/60 transition-colors"
@@ -882,7 +902,10 @@ export function PatientDetailPage() {
               <PatientAppointmentsTab
                 patientId={patient.id} />
             )}
-            {activeTab === 'visits' && <PatientVisitsTab patientId={patient.id} />}
+            {activeTab === 'visits' && <PatientVisitsTab
+                patientId={patient.id}
+                patientName={`${patient.firstName ?? ''} ${patient.lastName ?? ''}`.trim()}
+              />}
             {canSeeClinical && activeTab === "dental-chart" && (
               <DentalChart patientId={patient.id} readOnly />
             )}
@@ -914,6 +937,13 @@ export function PatientDetailPage() {
           </div>
         </div>
       </div>
+
+      <NewVisitDialog
+        open={showNewVisit}
+        patientId={patient.id}
+        patientName={`${patient.firstName ?? ""} ${patient.lastName ?? ""}`.trim()}
+        onClose={() => setShowNewVisit(false)}
+      />
     </div>
   );
 }
