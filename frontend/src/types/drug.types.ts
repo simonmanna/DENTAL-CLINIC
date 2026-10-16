@@ -71,6 +71,12 @@ export interface Drug {
   sellPrice: string | number;
   isActive: boolean;
   requiresPrescription: boolean;
+  isCommon?: boolean;
+  defaultDosage?: string | null;
+  defaultFrequency?: string | null;
+  defaultDuration?: string | null;
+  defaultRoute?: string | null;
+  defaultInstructions?: string | null;
   inventoryItemId?: string | null;
   inventoryItem?: {
     id: string;
@@ -101,6 +107,12 @@ export interface DrugFormValues {
   sellPrice: number;
   isActive: boolean;
   requiresPrescription: boolean;
+  isCommon: boolean;
+  defaultDosage: string;
+  defaultFrequency: string;
+  defaultDuration: string;
+  defaultRoute: string;
+  defaultInstructions: string;
   inventoryItemId: string;
 }
 

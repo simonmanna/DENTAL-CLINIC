@@ -83,6 +83,43 @@ export class CreateDrugDto {
   @IsBoolean()
   requiresPrescription?: boolean;
 
+  // ─── Quick-prescribe defaults ───────────────────────────────────────────
+
+  @ApiPropertyOptional({ default: false, description: 'Show in Common Medications panel' })
+  @IsOptional()
+  @IsBoolean()
+  isCommon?: boolean;
+
+  @ApiPropertyOptional({ example: '1 tablet' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  defaultDosage?: string;
+
+  @ApiPropertyOptional({ example: 'three times daily' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  defaultFrequency?: string;
+
+  @ApiPropertyOptional({ example: '5 days' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  defaultDuration?: string;
+
+  @ApiPropertyOptional({ example: 'oral' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  defaultRoute?: string;
+
+  @ApiPropertyOptional({ example: 'Take after food' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  defaultInstructions?: string;
+
   @ApiPropertyOptional({ description: 'Link to InventoryItem (optional)' })
   @IsOptional()
   @IsString()

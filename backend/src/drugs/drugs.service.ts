@@ -26,6 +26,12 @@ const DRUG_SELECT = {
   sellPrice: true,
   isActive: true,
   requiresPrescription: true,
+  isCommon: true,
+  defaultDosage: true,
+  defaultFrequency: true,
+  defaultDuration: true,
+  defaultRoute: true,
+  defaultInstructions: true,
   createdAt: true,
   updatedAt: true,
   categoryId: true,
@@ -257,6 +263,12 @@ export class DrugsService {
         sellPrice: dto.sellPrice ?? 0,
         isActive: dto.isActive ?? true,
         requiresPrescription: dto.requiresPrescription ?? false,
+        isCommon: dto.isCommon ?? false,
+        defaultDosage: dto.defaultDosage || null,
+        defaultFrequency: dto.defaultFrequency || null,
+        defaultDuration: dto.defaultDuration || null,
+        defaultRoute: dto.defaultRoute || null,
+        defaultInstructions: dto.defaultInstructions || null,
         ...(dto.categoryId && {
           category: { connect: { id: dto.categoryId } },
         }),
@@ -444,6 +456,23 @@ export class DrugsService {
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
         ...(dto.requiresPrescription !== undefined && {
           requiresPrescription: dto.requiresPrescription,
+        }),
+        ...(dto.isCommon !== undefined && { isCommon: dto.isCommon }),
+        // Defaults are optional text: "" from the form clears the value.
+        ...(dto.defaultDosage !== undefined && {
+          defaultDosage: dto.defaultDosage || null,
+        }),
+        ...(dto.defaultFrequency !== undefined && {
+          defaultFrequency: dto.defaultFrequency || null,
+        }),
+        ...(dto.defaultDuration !== undefined && {
+          defaultDuration: dto.defaultDuration || null,
+        }),
+        ...(dto.defaultRoute !== undefined && {
+          defaultRoute: dto.defaultRoute || null,
+        }),
+        ...(dto.defaultInstructions !== undefined && {
+          defaultInstructions: dto.defaultInstructions || null,
         }),
         ...(dto.categoryId !== undefined && {
           category: dto.categoryId

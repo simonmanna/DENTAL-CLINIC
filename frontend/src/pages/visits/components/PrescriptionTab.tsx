@@ -2,14 +2,10 @@
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  FileText,
-  Loader2,
-  Edit3,
-  Eye,
-} from "lucide-react";
 import { ActionButton, RowActions } from "@/components/ui/action-button";
 import {
+  Loader2,
+  Edit3,
   Plus,
   Pill,
   Trash2,
@@ -22,15 +18,22 @@ import {
   Check,
   RefreshCw,
   ChevronDown,
-  ChevronUp,
-  Stethoscope,
-  User,
+  Star,
   Calendar,
   Hash,
-  Package,
 } from "lucide-react";
 import { prescriptionsApi, drugsApi } from "../../../lib/api";
 import { clinicSettingsApi } from "../../../lib/api/clinic-settings";
+import {
+  RX_ROUTES,
+  RX_FREQUENCIES,
+  RX_DURATIONS,
+  calcQuantity,
+  frequencyMeta,
+  routeLabel,
+  suggestDosage,
+  suggestRoute,
+} from "@/lib/prescribing";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,24 +41,18 @@ interface Drug {
   id: string;
   name: string;
   genericName?: string;
-  category?: string;
+  category?: string | { id: string; name: string } | null;
   form?: string;
   strength?: string;
   manufacturer?: string;
   unitPrice: number;
   isActive: boolean;
-}
-
-interface PrescriptionItemInput {
-  drugId: string;
-  drugName: string;
-  dosage: string;
-  frequency: string;
-  duration: string;
-  route: string;
-  quantity: string;
-  instructions: string;
-  refills: string;
+  isCommon?: boolean;
+  defaultDosage?: string | null;
+  defaultFrequency?: string | null;
+  defaultDuration?: string | null;
+  defaultRoute?: string | null;
+  defaultInstructions?: string | null;
 }
 
 interface PrescriptionItem {
@@ -122,91 +119,6 @@ interface PrescriptionTabProps {
   readOnly?: boolean;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const DEFAULT_ITEM: PrescriptionItemInput = {
-  drugId: "",
-  drugName: "",
-  dosage: "",
-  frequency: "",
-  duration: "",
-  route: "oral",
-  quantity: "",
-  instructions: "",
-  refills: "0",
-};
-
-const ROUTES = [
-  { value: "oral", label: "Oral" },
-  { value: "topical", label: "Topical" },
-  { value: "sublingual", label: "Sublingual" },
-  { value: "rectal", label: "Rectal" },
-  { value: "inhalation", label: "Inhalation" },
-  { value: "intravenous", label: "Intravenous" },
-  { value: "intramuscular", label: "Intramuscular" },
-  { value: "subcutaneous", label: "Subcutaneous" },
-  { value: "ophthalmic", label: "Ophthalmic" },
-  { value: "otic", label: "Otic (Ear)" },
-  { value: "nasal", label: "Nasal" },
-  { value: "buccal", label: "Buccal" },
-];
-
-const FREQUENCY_OPTIONS = [
-  { value: "once daily", label: "OD - Once daily" },
-  { value: "twice daily", label: "BD - Twice daily" },
-  { value: "three times daily", label: "TID - Three times daily" },
-  { value: "four times daily", label: "QID - Four times daily" },
-  { value: "every 4 hours", label: "Q4H - Every 4 hours" },
-  { value: "every 6 hours", label: "Q6H - Every 6 hours" },
-  { value: "every 8 hours", label: "Q8H - Every 8 hours" },
-  { value: "every 12 hours", label: "Q12H - Every 12 hours" },
-  { value: "as needed for pain", label: "PRN - As needed for pain" },
-  { value: "as needed", label: "PRN - As needed" },
-  { value: "at bedtime", label: "HS - At bedtime" },
-  { value: "before meals", label: "AC - Before meals" },
-  { value: "after meals", label: "PC - After meals" },
-  { value: "once weekly", label: "Once weekly" },
-  { value: "twice weekly", label: "Twice weekly" },
-];
-
-const DURATION_OPTIONS = [
-  { value: "1 day", label: "1 day" },
-  { value: "2 days", label: "2 days" },
-  { value: "3 days", label: "3 days" },
-  { value: "5 days", label: "5 days" },
-  { value: "7 days", label: "7 days (1 week)" },
-  { value: "10 days", label: "10 days" },
-  { value: "14 days", label: "14 days (2 weeks)" },
-  { value: "21 days", label: "21 days (3 weeks)" },
-  { value: "1 month", label: "1 month" },
-  { value: "2 months", label: "2 months" },
-  { value: "3 months", label: "3 months" },
-  { value: "6 months", label: "6 months" },
-  { value: "until finished", label: "Until finished" },
-  { value: "as directed", label: "As directed" },
-  { value: "ongoing", label: "Ongoing / Chronic" },
-];
-
-const COMMON_DOSAGES = [
-  "1 tablet",
-  "2 tablets",
-  "1 capsule",
-  "2 capsules",
-  "5ml",
-  "10ml",
-  "15ml",
-  "1 teaspoon",
-  "1 tablespoon",
-  "1 drop",
-  "2 drops",
-  "3 drops",
-  "1 puff",
-  "2 puffs",
-  "1 applicator",
-  "1 patch",
-  "1 suppository",
-];
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function cn(...cls: (string | boolean | undefined | null)[]) {
@@ -231,193 +143,6 @@ const STATUS_ICONS: Record<string, React.ReactNode> = {
   EXPIRED: <AlertTriangle className="w-3 h-3" />,
   CANCELLED: <X className="w-3 h-3" />,
 };
-
-// ─── Drug Combobox Component ────────────────────────────────────────────────
-
-interface DrugComboboxProps {
-  drugs: Drug[];
-  value: string; // drugId
-  displayValue: string; // drugName for display
-  onChange: (drug: Drug | null) => void;
-  disabled?: boolean;
-  placeholder?: string;
-}
-
-function DrugCombobox({
-  drugs,
-  value,
-  displayValue,
-  onChange,
-  disabled = false,
-  placeholder = "Select a drug...",
-}: DrugComboboxProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const containerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Filter drugs based on search
-  const filteredDrugs = useMemo(() => {
-    if (!searchQuery.trim()) return drugs.slice(0, 50); // Show first 50 by default
-
-    const query = searchQuery.toLowerCase();
-    return drugs
-      .filter(
-        (drug) =>
-          drug.name.toLowerCase().includes(query) ||
-          drug.genericName?.toLowerCase().includes(query) ||
-          drug.strength?.toLowerCase().includes(query),
-      )
-      .slice(0, 50);
-  }, [drugs, searchQuery]);
-
-  // Selected drug
-  const selectedDrug = drugs.find((d) => d.id === value);
-
-  const handleSelect = (drug: Drug) => {
-    onChange(drug);
-    setIsOpen(false);
-    setSearchQuery("");
-  };
-
-  const handleClear = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onChange(null);
-    setSearchQuery("");
-  };
-
-  return (
-    <div ref={containerRef} className="relative w-full">
-      {/* Trigger / Display */}
-      <div
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={cn(
-          "w-full flex items-center gap-2 px-3 py-2.5 border rounded-lg cursor-pointer transition-all",
-          isOpen
-            ? "border-primary/60 ring-2 ring-primary/20"
-            : "border-border hover:border-input",
-          disabled && "opacity-50 cursor-not-allowed bg-muted/50",
-          selectedDrug ? "bg-white" : "bg-white",
-        )}
-      >
-        <Search className="w-4 h-4 text-muted-foreground/70 shrink-0" />
-
-        {selectedDrug ? (
-          <div className="flex-1 min-w-0 flex items-center gap-2">
-            <span className="font-medium text-foreground truncate">
-              {selectedDrug.name}
-            </span>
-            {selectedDrug.strength && (
-              <span className="text-xs text-muted-foreground shrink-0">
-                {selectedDrug.strength}
-              </span>
-            )}
-          </div>
-        ) : (
-          <span className="flex-1 text-muted-foreground/70 text-sm truncate">
-            {placeholder}
-          </span>
-        )}
-
-        <div className="flex items-center gap-1 shrink-0">
-          {selectedDrug && (
-            <button
-              onClick={handleClear}
-              className="p-0.5 rounded-full hover:bg-muted text-muted-foreground/70 hover:text-muted-foreground"
-              type="button"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-          {isOpen ? (
-            <ChevronUp className="w-4 h-4 text-muted-foreground/70" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-muted-foreground/70" />
-          )}
-        </div>
-      </div>
-
-      {/* Dropdown */}
-      {isOpen && (
-        <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-border rounded-xl shadow-2xl max-h-80 overflow-hidden flex flex-col">
-          {/* Search Input */}
-          <div className="p-3 border-b border-border/60 sticky top-0 bg-white">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70" />
-              <input
-                ref={inputRef}
-                type="text"
-                className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60"
-                placeholder="Type to search drugs..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                autoFocus
-              />
-            </div>
-          </div>
-
-          {/* Drug List */}
-          <div className="overflow-y-auto flex-1">
-            {filteredDrugs.length === 0 ? (
-              <div className="p-4 text-center text-sm text-muted-foreground">
-                {searchQuery ? "No drugs found" : "Start typing to search"}
-              </div>
-            ) : (
-              <div className="py-1">
-                {filteredDrugs.map((drug) => (
-                  <button
-                    key={drug.id}
-                    type="button"
-                    onClick={() => handleSelect(drug)}
-                    className={cn(
-                      "w-full text-left px-4 py-3 hover:bg-primary-muted/60 transition-colors border-b border-border/40 last:border-0 flex items-center gap-2",
-                      drug.id === value &&
-                        "bg-primary-muted/60 border-l-4 border-l-blue-500",
-                    )}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-foreground truncate">
-                          {drug.name}
-                        </span>
-                        {drug.id === value && (
-                          <Check className="w-4 h-4 text-primary shrink-0" />
-                        )}
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {drug.genericName && `${drug.genericName} • `}
-                        {drug.strength} {drug.form}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="p-2 border-t border-border/60 text-xs text-muted-foreground/70 text-center bg-muted/50">
-            {filteredDrugs.length} of {drugs.length} drugs
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ─── Prescription Print Helpers ───────────────────────────────────────────────
 
@@ -1832,669 +1557,6 @@ function _printAllPrescriptions_legacy(prescriptions: Prescription[], visit?: an
 // }
 
 
-interface NewPrescriptionDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  visitId: string;
-  visit?: PrescriptionTabProps["visit"];
-  onSuccess: () => void;
-  /** When set, the dialog edits this prescription instead of creating a new one */
-  editTarget?: Prescription | null;
-}
-
-function NewPrescriptionDialog({
-  isOpen,
-  onClose,
-  visitId,
-  visit,
-  onSuccess,
-  editTarget,
-}: NewPrescriptionDialogProps) {
-  const qc = useQueryClient();
-  const isEditMode = !!editTarget;
-
-  const [items, setItems] = useState<PrescriptionItemInput[]>([
-    { ...DEFAULT_ITEM },
-  ]);
-  const [notes, setNotes] = useState("");
-  const [validUntil, setValidUntil] = useState("");
-
-  // Load the prescription into the form when entering edit mode
-  useEffect(() => {
-    if (!isOpen) return;
-    if (editTarget) {
-      setItems(
-        editTarget.items.length
-          ? editTarget.items.map((it) => ({
-              drugId: it.drugId,
-              drugName: it.drug?.name ?? "",
-              dosage: it.dosage ?? "",
-              frequency: it.frequency ?? "",
-              duration: it.duration ?? "",
-              route: it.route ?? "oral",
-              quantity: String(it.quantity ?? ""),
-              instructions: it.instructions ?? "",
-              refills: String(it.refills ?? 0),
-            }))
-          : [{ ...DEFAULT_ITEM }],
-      );
-      setNotes(editTarget.notes ?? "");
-      setValidUntil(
-        editTarget.validUntil
-          ? new Date(editTarget.validUntil).toISOString().slice(0, 10)
-          : "",
-      );
-    } else {
-      setItems([{ ...DEFAULT_ITEM }]);
-      setNotes("");
-      setValidUntil("");
-    }
-    // Only re-run when the open state or target changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, editTarget?.id]);
-
-  // Fetch drugs
-  const { data: drugsResponse, isLoading: drugsLoading } = useQuery({
-    queryKey: ["drugs", "active"],
-    queryFn: async () => {
-      return drugsApi.getAll({ isActive: true, limit: 1000 });
-    },
-    enabled: isOpen,
-    staleTime: 60000,
-  });
-
-  // Extract drugs array
-  const drugs: Drug[] = useMemo(() => {
-    if (Array.isArray(drugsResponse)) return drugsResponse;
-    if (drugsResponse?.data) return drugsResponse.data;
-    return [];
-  }, [drugsResponse]);
-
-  const createMutation = useMutation({
-    mutationFn: () => {
-      const validItems = items.filter(
-        (item) =>
-          item.drugId &&
-          item.dosage &&
-          item.frequency &&
-          item.duration &&
-          parseInt(item.quantity) > 0,
-      );
-
-      if (validItems.length === 0) {
-        throw new Error("Please add at least one valid medication");
-      }
-
-      const mappedItems = validItems.map((item) => ({
-        drugId: item.drugId,
-        dosage: item.dosage,
-        frequency: item.frequency,
-        duration: item.duration,
-        route: item.route,
-        quantity: parseInt(item.quantity),
-        instructions: item.instructions || undefined,
-        refills: parseInt(item.refills) || 0,
-      }));
-
-      if (isEditMode && editTarget) {
-        return prescriptionsApi.update(editTarget.id, {
-          notes: notes || undefined,
-          validUntil: validUntil || undefined,
-          items: mappedItems,
-        });
-      }
-
-      return prescriptionsApi.create({
-        visitId,
-        notes: notes || undefined,
-        validUntil: validUntil || undefined,
-        items: mappedItems,
-      });
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["prescriptions", visitId] });
-      qc.invalidateQueries({ queryKey: ["visit", visitId] });
-      resetForm();
-      onSuccess();
-    },
-    onError: (error) => {
-      console.error(
-        `Failed to ${isEditMode ? "update" : "create"} prescription:`,
-        error,
-      );
-    },
-  });
-
-  const resetForm = () => {
-    setItems([{ ...DEFAULT_ITEM }]);
-    setNotes("");
-    setValidUntil("");
-  };
-
-  const handleClose = () => {
-    resetForm();
-    onClose();
-  };
-
-  const addItem = () => {
-    setItems([...items, { ...DEFAULT_ITEM }]);
-  };
-
-  const removeItem = (index: number) => {
-    if (items.length === 1) {
-      setItems([{ ...DEFAULT_ITEM }]);
-    } else {
-      setItems(items.filter((_, i) => i !== index));
-    }
-  };
-
-  const updateItem = (
-    index: number,
-    field: keyof PrescriptionItemInput,
-    value: string,
-  ) => {
-    setItems((prev) => {
-      const newItems = [...prev];
-      newItems[index] = { ...newItems[index], [field]: value };
-      return newItems;
-    });
-  };
-
-  const handleDrugSelect = (index: number, drug: Drug | null) => {
-    if (!drug) {
-      // Clear selection
-      updateItem(index, "drugId", "");
-      updateItem(index, "drugName", "");
-      return;
-    }
-
-    updateItem(index, "drugId", drug.id);
-    updateItem(index, "drugName", drug.name);
-
-    // Auto-suggest dosage based on form
-    let suggestedDosage = "1";
-    const form = (drug.form || "").toLowerCase();
-    if (form.includes("syrup") || form.includes("suspension")) {
-      suggestedDosage = "5ml";
-    } else if (form.includes("drop")) {
-      suggestedDosage = "2 drops";
-    } else if (form.includes("inhaler") || form.includes("spray")) {
-      suggestedDosage = "1 puff";
-    } else if (form.includes("cream") || form.includes("ointment")) {
-      suggestedDosage = "apply thin layer";
-    }
-
-    updateItem(index, "dosage", suggestedDosage);
-  };
-
-  const autoCalculateQuantity = (index: number) => {
-    const item = items[index];
-    if (!item.dosage || !item.frequency || !item.duration) return;
-
-    // Parse dosage number
-    const dosageMatch = item.dosage.match(/(\d+)/);
-    const dosageNum = parseInt(dosageMatch?.[1] || "1");
-
-    // Parse frequency to daily count
-    let dailyCount = 1;
-    const freq = item.frequency.toLowerCase();
-    if (freq.includes("twice") || freq.includes("bd") || freq.includes("b.i.d"))
-      dailyCount = 2;
-    else if (
-      freq.includes("three") ||
-      freq.includes("tid") ||
-      freq.includes("t.i.d")
-    )
-      dailyCount = 3;
-    else if (
-      freq.includes("four") ||
-      freq.includes("qid") ||
-      freq.includes("q.i.d")
-    )
-      dailyCount = 4;
-    else if (freq.includes("every 4") || freq.includes("q4h")) dailyCount = 6;
-    else if (freq.includes("every 6") || freq.includes("q6h")) dailyCount = 4;
-    else if (freq.includes("every 8") || freq.includes("q8h")) dailyCount = 3;
-    else if (freq.includes("every 12") || freq.includes("q12h")) dailyCount = 2;
-
-    // Parse duration to days
-    let days = 7;
-    const dur = item.duration.toLowerCase();
-    const dayMatch = dur.match(/(\d+)\s*day/);
-    const weekMatch = dur.match(/(\d+)\s*week/);
-    const monthMatch = dur.match(/(\d+)\s*month/);
-
-    if (dayMatch) days = parseInt(dayMatch[1]);
-    else if (weekMatch) days = parseInt(weekMatch[1]) * 7;
-    else if (monthMatch) days = parseInt(monthMatch[1]) * 30;
-    else if (dur.includes("until finished") || dur.includes("as directed"))
-      days = 30;
-
-    const calculated = dosageNum * dailyCount * days;
-    updateItem(index, "quantity", calculated.toString());
-  };
-
-  // Validation
-  const validationResults = items.map((item, idx) => {
-    const hasDrugId = !!item.drugId && item.drugId.length > 0;
-    const hasDosage = !!item.dosage && item.dosage.trim().length > 0;
-    const hasFrequency = !!item.frequency && item.frequency.trim().length > 0;
-    const hasDuration = !!item.duration && item.duration.trim().length > 0;
-    const qtyNum = parseInt(item.quantity);
-    const hasQuantity = !isNaN(qtyNum) && qtyNum > 0;
-
-    return {
-      idx,
-      checks: {
-        hasDrugId,
-        hasDosage,
-        hasFrequency,
-        hasDuration,
-        hasQuantity,
-        drugId: item.drugId,
-      },
-      isValid:
-        hasDrugId && hasDosage && hasFrequency && hasDuration && hasQuantity,
-    };
-  });
-
-  const validItemsCount = validationResults.filter((r) => r.isValid).length;
-  const isValid = validItemsCount > 0;
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-[#1e3a5f] to-[#2d5a87] px-6 py-4 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-              <Stethoscope className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-white">
-                {isEditMode ? "Edit Prescription" : "New Prescription"}
-              </h2>
-              <p className="text-xs text-white/80">
-                {isEditMode && editTarget
-                  ? `Rx: ${editTarget.prescriptionCode}`
-                  : visit?.visitCode
-                    ? `Visit: ${visit.visitCode}`
-                    : "New Prescription"}
-                {visit?.patient &&
-                  ` • Patient: ${visit.patient.firstName} ${visit.patient.lastName}`}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={handleClose}
-            className="p-2 rounded-lg hover:bg-white/20"
-          >
-            <X className="w-5 h-5 text-white" />
-          </button>
-        </div>
-
-        {/* Debug Panel - Remove in production */}
-        {/* {process.env.NODE_ENV === 'development' && (
-          <div className="bg-warning-muted/60 px-4 py-2 text-xs border-b border-warning/25">
-            <div className="font-bold text-warning">Debug: Drugs loaded: {drugs.length} | Valid items: {validItemsCount}</div>
-            {validationResults.map((r, i) => (
-              <div key={i} className="text-warning">
-                Item {i+1}: drugId={r.checks.drugId ? '✓' : '✗'}({r.checks.drugId}) | 
-                dosage={r.checks.hasDosage ? '✓' : '✗'} | 
-                freq={r.checks.hasFrequency ? '✓' : '✗'} | 
-                dur={r.checks.hasDuration ? '✓' : '✗'} | 
-                qty={r.checks.hasQuantity ? '✓' : '✗'}({items[i].quantity})
-              </div>
-            ))}
-          </div>
-        )} */}
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Patient Info */}
-          {visit?.patient && (
-            <div className="bg-primary-muted/60 border border-primary/20 rounded-xl p-4 flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary-muted rounded-full flex items-center justify-center">
-                <User className="w-6 h-6 text-primary" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-foreground">
-                    {visit.patient.firstName} {visit.patient.lastName}
-                  </span>
-                  <span className="text-xs px-2 py-0.5 bg-primary-muted text-primary rounded-full">
-                    {visit.patient.patientCode}
-                  </span>
-                </div>
-                <div className="text-sm text-muted-foreground mt-0.5">
-                  Visit ID: {visit.visitCode || visitId.slice(-8)}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Medications */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <Pill className="w-4 h-4 text-primary" />
-                Medications
-                {validItemsCount > 0 && (
-                  <span className="text-xs px-2 py-0.5 bg-success-muted text-success rounded-full">
-                    {validItemsCount} ready
-                  </span>
-                )}
-              </h3>
-              <button
-                onClick={addItem}
-                className="text-xs font-medium text-primary hover:text-primary flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-primary-muted/60"
-              >
-                <Plus className="w-3.5 h-3.5" /> Add Medication
-              </button>
-            </div>
-
-            {items.map((item, index) => (
-              <div
-                key={index}
-                className="bg-muted/50 rounded-xl border border-border p-4 space-y-4"
-              >
-                {/* Item Header */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={cn(
-                        "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
-                        validationResults[index]?.isValid
-                          ? "bg-success-muted text-success"
-                          : "bg-muted text-muted-foreground",
-                      )}
-                    >
-                      {index + 1}
-                    </span>
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Medication
-                    </span>
-                    {item.drugName && (
-                      <span className="text-xs text-muted-foreground/70">
-                        - {item.drugName}
-                      </span>
-                    )}
-                  </div>
-                  {items.length > 1 && (
-                    <button
-                      onClick={() => removeItem(index)}
-                      className="p-1.5 rounded-lg text-muted-foreground/70 hover:text-danger hover:bg-danger-muted/60"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-12 gap-3">
-                  {/* Drug Combobox - SPANS FULL WIDTH */}
-                  <div className="col-span-12">
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                      Drug / Medication <span className="text-danger">*</span>
-                      {item.drugId && (
-                        <span className="ml-2 text-success font-normal">
-                          ✓ Selected (ID: {item.drugId.slice(-6)})
-                        </span>
-                      )}
-                    </label>
-                    <DrugCombobox
-                      drugs={drugs}
-                      value={item.drugId}
-                      displayValue={item.drugName}
-                      onChange={(drug) => handleDrugSelect(index, drug)}
-                      disabled={drugsLoading}
-                      placeholder={
-                        drugsLoading
-                          ? "Loading drugs..."
-                          : "Click to select a drug..."
-                      }
-                    />
-                  </div>
-
-                  {/* Dosage */}
-                  <div className="col-span-3">
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                      Dosage <span className="text-danger">*</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        list={`dosages-${index}`}
-                        className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60"
-                        placeholder="e.g., 1 tablet"
-                        value={item.dosage}
-                        onChange={(e) =>
-                          updateItem(index, "dosage", e.target.value)
-                        }
-                        onBlur={() => autoCalculateQuantity(index)}
-                      />
-                      <datalist id={`dosages-${index}`}>
-                        {COMMON_DOSAGES.map((d) => (
-                          <option key={d} value={d} />
-                        ))}
-                      </datalist>
-                    </div>
-                  </div>
-
-                  {/* Route */}
-                  <div className="col-span-3">
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                      Route
-                    </label>
-                    <select
-                      value={item.route}
-                      onChange={(e) =>
-                        updateItem(index, "route", e.target.value)
-                      }
-                      className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 bg-white"
-                    >
-                      {ROUTES.map((r) => (
-                        <option key={r.value} value={r.value}>
-                          {r.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Frequency */}
-                  <div className="col-span-3">
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                      Frequency <span className="text-danger">*</span>
-                    </label>
-                    <select
-                      value={item.frequency}
-                      onChange={(e) => {
-                        updateItem(index, "frequency", e.target.value);
-                        autoCalculateQuantity(index);
-                      }}
-                      className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 bg-white"
-                    >
-                      <option value="">Select...</option>
-                      {FREQUENCY_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Duration */}
-                  <div className="col-span-3">
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                      Duration <span className="text-danger">*</span>
-                    </label>
-                    <select
-                      value={item.duration}
-                      onChange={(e) => {
-                        updateItem(index, "duration", e.target.value);
-                        autoCalculateQuantity(index);
-                      }}
-                      className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 bg-white"
-                    >
-                      <option value="">Select...</option>
-                      {DURATION_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Quantity */}
-                  <div className="col-span-2">
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                      Qty <span className="text-danger">*</span>
-                      <button
-                        type="button"
-                        onClick={() => autoCalculateQuantity(index)}
-                        className="ml-1 text-primary hover:text-primary"
-                        title="Auto-calculate"
-                      >
-                        <RefreshCw className="w-3 h-3 inline" />
-                      </button>
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60"
-                      value={item.quantity}
-                      onChange={(e) =>
-                        updateItem(index, "quantity", e.target.value)
-                      }
-                    />
-                  </div>
-
-                  {/* Refills */}
-                  <div className="col-span-2">
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                      Refills
-                    </label>
-                    <select
-                      value={item.refills}
-                      onChange={(e) =>
-                        updateItem(index, "refills", e.target.value)
-                      }
-                      className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 bg-white"
-                    >
-                      {[0, 1, 2, 3, 5, 11].map((n) => (
-                        <option key={n} value={n}>
-                          {n} {n === 0 ? "(none)" : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Instructions - spans remaining 8 columns */}
-                  <div className="col-span-8">
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                      Patient Instructions (Sig)
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60"
-                      placeholder="e.g., Take with food • Avoid alcohol • Complete full course"
-                      value={item.instructions}
-                      onChange={(e) =>
-                        updateItem(index, "instructions", e.target.value)
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Prescription Notes & Validity */}
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                Prescription Notes
-              </label>
-              <textarea
-                className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 resize-none"
-                rows={2}
-                placeholder="Additional instructions for pharmacist or patient..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                Valid Until
-              </label>
-              <input
-                type="date"
-                className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60"
-                value={validUntil}
-                onChange={(e) => setValidUntil(e.target.value)}
-                min={new Date().toISOString().split("T")[0]}
-              />
-              <p className="text-xs text-muted-foreground/70 mt-1">
-                Default: 30 days from today
-              </p>
-            </div>
-          </div>
-
-          {/* Error Display */}
-          {createMutation.isError && (
-            <div className="flex items-center gap-2 bg-danger-muted/60 border border-danger/25 rounded-lg px-4 py-3 text-sm text-danger">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
-              {(createMutation.error as Error)?.message ||
-                "Failed to create prescription"}
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="border-t border-border px-6 py-4 flex items-center justify-between bg-muted/50 shrink-0">
-          <div className="text-xs text-muted-foreground">
-            {validItemsCount} of {items.length} medication
-            {validItemsCount !== 1 ? "s" : ""} ready
-          </div>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => createMutation.mutate()}
-              disabled={!isValid || createMutation.isPending}
-              className={cn(
-                "flex items-center gap-2 px-6 py-2 text-sm font-semibold rounded-lg transition-all shadow-lg",
-                isValid
-                  ? "bg-[#1e3a5f] text-white hover:bg-[#16304f] shadow-blue-900/20"
-                  : "bg-border text-muted-foreground cursor-not-allowed",
-              )}
-            >
-              {createMutation.isPending ? (
-                <>
-                  <Spinner size="sm" />
-                  {isEditMode ? "Saving..." : "Creating..."}
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-4 h-4" />
-                  {isEditMode ? "Save Changes" : "Create Prescription"}
-                  {validItemsCount > 0 && ` (${validItemsCount})`}
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 // ─── Prescription Card Component ────────────────────────────────────────────────
 
 interface RxCardProps {
@@ -2803,6 +1865,463 @@ function DeleteDialog({
   );
 }
 
+// ─── Inline editor: draft model ──────────────────────────────────────────────
+
+interface DraftItem {
+  key: string;
+  drugId: string;
+  drug: Pick<Drug, "name" | "strength" | "form">;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  route: string;
+  quantity: string;
+  refills: string;
+  instructions: string;
+}
+
+type QuickEntry = Omit<DraftItem, "key" | "drug" | "drugId"> & {
+  drug: Drug | null;
+};
+
+const EMPTY_QUICK: QuickEntry = {
+  drug: null,
+  dosage: "",
+  frequency: "",
+  duration: "",
+  route: "oral",
+  quantity: "",
+  refills: "0",
+  instructions: "",
+};
+
+let draftSeq = 0;
+const newKey = () => `d${++draftSeq}`;
+
+function drugCategoryName(drug: Drug): string {
+  const c = drug.category as unknown;
+  if (!c) return "";
+  return typeof c === "string" ? c : ((c as { name?: string }).name ?? "");
+}
+
+function drugLabel(drug: Pick<Drug, "name" | "strength">): string {
+  const s = drug.strength?.trim();
+  return s && !drug.name.toLowerCase().includes(s.toLowerCase())
+    ? `${drug.name} ${s}`
+    : drug.name;
+}
+
+function itemToDraft(it: PrescriptionItem): DraftItem {
+  return {
+    key: newKey(),
+    drugId: it.drugId,
+    drug: {
+      name: it.drug?.name ?? "Unknown drug",
+      strength: it.drug?.strength,
+      form: it.drug?.form,
+    },
+    dosage: it.dosage ?? "",
+    frequency: it.frequency ?? "",
+    duration: it.duration ?? "",
+    route: it.route || "oral",
+    quantity: String(it.quantity ?? ""),
+    refills: String(it.refills ?? 0),
+    instructions: it.instructions ?? "",
+  };
+}
+
+function isCompleteItem(i: {
+  dosage: string;
+  frequency: string;
+  duration: string;
+  quantity: string;
+}) {
+  return (
+    !!i.dosage.trim() &&
+    !!i.frequency &&
+    !!i.duration &&
+    parseInt(i.quantity, 10) > 0
+  );
+}
+
+/** Quick-entry values for a drug: its saved defaults, else form-based guesses. */
+function quickFromDrug(drug: Drug): QuickEntry {
+  const dosage = drug.defaultDosage || suggestDosage(drug.form);
+  const frequency = drug.defaultFrequency || "";
+  const duration = drug.defaultDuration || "";
+  const qty = calcQuantity(dosage, frequency, duration);
+  return {
+    drug,
+    dosage,
+    frequency,
+    duration,
+    route: drug.defaultRoute || suggestRoute(drug.form),
+    quantity: qty ? String(qty) : "",
+    refills: "0",
+    instructions: drug.defaultInstructions || "",
+  };
+}
+
+function freqDisplay(value: string) {
+  const m = frequencyMeta(value);
+  if (!m) return { code: value, hint: "" };
+  return {
+    code: m.code,
+    hint: m.perDay ? `${m.perDay}× daily` : m.label.split(" - ")[1] ?? "",
+  };
+}
+
+const fieldCls =
+  "w-full h-10 px-3 text-sm border border-border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 disabled:opacity-50";
+const cellCls =
+  "w-full h-8 px-2 text-xs border border-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-primary/30";
+
+// ─── Drug search (quick entry) ───────────────────────────────────────────────
+
+const DrugSearch = React.forwardRef<
+  HTMLInputElement,
+  {
+    drugs: Drug[];
+    selected: Drug | null;
+    loading: boolean;
+    onSelect: (drug: Drug | null) => void;
+  }
+>(function DrugSearch({ drugs, selected, loading, onSelect }, ref) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node))
+        setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, []);
+
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const list = q
+      ? drugs.filter(
+          (d) =>
+            d.name.toLowerCase().includes(q) ||
+            d.genericName?.toLowerCase().includes(q) ||
+            d.strength?.toLowerCase().includes(q),
+        )
+      : drugs;
+    return list.slice(0, 30);
+  }, [drugs, query]);
+
+  useEffect(() => setActive(0), [query]);
+
+  const pick = (d: Drug) => {
+    onSelect(d);
+    setQuery("");
+    setOpen(false);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setOpen(true);
+      setActive((a) => Math.min(a + 1, results.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((a) => Math.max(a - 1, 0));
+    } else if (e.key === "Enter" && open && results[active]) {
+      e.preventDefault();
+      e.stopPropagation();
+      pick(results[active]);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    } else if (e.key === "Backspace" && !query && selected) {
+      onSelect(null);
+    }
+  };
+
+  return (
+    <div ref={boxRef} className="relative">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70 pointer-events-none" />
+      <input
+        ref={ref}
+        type="text"
+        className={cn(fieldCls, "pl-9 pr-8")}
+        placeholder={
+          loading
+            ? "Loading drugs..."
+            : selected
+              ? ""
+              : "Search medicine (e.g. Paracetamol)"
+        }
+        value={selected && !open ? drugLabel(selected) : query}
+        onChange={(e) => {
+          if (selected) onSelect(null);
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={onKeyDown}
+        disabled={loading}
+        autoComplete="off"
+      />
+      {selected ? (
+        <button
+          type="button"
+          onClick={() => {
+            onSelect(null);
+            setQuery("");
+          }}
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-muted-foreground/70 hover:bg-muted hover:text-foreground"
+          aria-label="Clear drug"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      ) : (
+        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70 pointer-events-none" />
+      )}
+
+      {open && !loading && (
+        <div className="absolute z-40 left-0 right-0 mt-1 bg-white border border-border rounded-xl shadow-xl max-h-72 overflow-y-auto">
+          {results.length === 0 ? (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              No drugs found
+            </div>
+          ) : (
+            results.map((d, i) => (
+              <button
+                key={d.id}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => pick(d)}
+                onMouseEnter={() => setActive(i)}
+                className={cn(
+                  "w-full text-left px-3 py-2 border-b border-border/40 last:border-0 flex items-center gap-2",
+                  i === active ? "bg-primary-muted/60" : "hover:bg-muted/50",
+                )}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-foreground truncate">
+                    {drugLabel(d)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground truncate">
+                    {[d.form, d.genericName, drugCategoryName(d)]
+                      .filter(Boolean)
+                      .join(" • ")}
+                  </div>
+                </div>
+                {d.isCommon && (
+                  <Star className="w-3.5 h-3.5 text-warning shrink-0" />
+                )}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+});
+
+// ─── Right panel ─────────────────────────────────────────────────────────────
+
+interface RecentMed {
+  drugId: string;
+  drug: Drug;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  route: string;
+  quantity: number;
+  instructions: string;
+}
+
+function MedsSidePanel({
+  drugs,
+  recent,
+  onQuickAdd,
+  onAddRecent,
+  inListIds,
+  disabled,
+}: {
+  drugs: Drug[];
+  recent: RecentMed[];
+  onQuickAdd: (drug: Drug) => void;
+  onAddRecent: (r: RecentMed) => void;
+  inListIds: Set<string>;
+  disabled?: boolean;
+}) {
+  const [tab, setTab] = useState<"common" | "recent">("common");
+  const [q, setQ] = useState("");
+
+  const common = useMemo(() => drugs.filter((d) => d.isCommon), [drugs]);
+  const shown = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    // Typing searches the whole formulary, so the panel never dead-ends.
+    const pool = s ? drugs : common;
+    return (
+      s
+        ? pool.filter(
+            (d) =>
+              d.name.toLowerCase().includes(s) ||
+              d.genericName?.toLowerCase().includes(s),
+          )
+        : pool
+    ).slice(0, 40);
+  }, [drugs, common, q]);
+
+  const defaultsLine = (d: Drug) => {
+    const f = d.defaultFrequency ? freqDisplay(d.defaultFrequency).code : "";
+    return [d.defaultDosage, f, d.defaultDuration].filter(Boolean).join(" • ");
+  };
+
+  return (
+    <aside className="bg-white rounded-xl border border-border flex flex-col lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] overflow-hidden">
+      <div className="flex border-b border-border px-2">
+        {(
+          [
+            ["common", "Common Medications"],
+            ["recent", "Recent / Previous"],
+          ] as const
+        ).map(([k, label]) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => setTab(k)}
+            className={cn(
+              "px-3 py-3 text-sm font-medium border-b-2 -mb-px transition-colors",
+              tab === k
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "common" ? (
+        <>
+          <div className="p-3 border-b border-border/60">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70" />
+              <input
+                className={cn(fieldCls, "pl-9 h-9")}
+                placeholder={common.length ? "Search common drugs..." : "Search all drugs..."}
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+            {shown.length === 0 && (
+              <div className="p-4 text-center text-xs text-muted-foreground leading-relaxed">
+                {q ? (
+                  "No drugs match."
+                ) : (
+                  <>
+                    No common medications yet.
+                    <br />
+                    Open <strong>Drugs</strong>, edit a drug and turn on{" "}
+                    <strong>Common Medication</strong> under Prescribing
+                    Defaults.
+                  </>
+                )}
+              </div>
+            )}
+            {shown.map((d) => {
+              const added = inListIds.has(d.id);
+              const line = defaultsLine(d);
+              return (
+                <div
+                  key={d.id}
+                  className="flex items-center gap-2 rounded-lg border border-border/70 px-3 py-2 hover:border-primary/40 hover:bg-primary-muted/20 transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-foreground truncate">
+                      {drugLabel(d)}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground truncate">
+                      {[d.form, drugCategoryName(d)].filter(Boolean).join(" • ")}
+                    </div>
+                    {line && (
+                      <div className="text-[11px] text-primary/80 truncate">
+                        {line}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    disabled={disabled || added}
+                    onClick={() => onQuickAdd(d)}
+                    className={cn(
+                      "w-8 h-8 shrink-0 rounded-full border flex items-center justify-center transition-colors",
+                      added
+                        ? "border-success/40 text-success bg-success-muted/40"
+                        : "border-primary/40 text-primary hover:bg-primary hover:text-white disabled:opacity-40",
+                    )}
+                    title={added ? "Already in list" : "Add to prescription"}
+                    aria-label={`Add ${d.name}`}
+                  >
+                    {added ? (
+                      <Check className="w-4 h-4" />
+                    ) : (
+                      <Plus className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      ) : (
+        <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+          {recent.length === 0 && (
+            <div className="p-4 text-center text-xs text-muted-foreground">
+              No previous prescriptions for this patient.
+            </div>
+          )}
+          {recent.map((r) => {
+            const added = inListIds.has(r.drugId);
+            return (
+              <div
+                key={`${r.drugId}|${r.dosage}|${r.frequency}|${r.duration}`}
+                className="flex items-center gap-2 rounded-lg border border-border/70 px-3 py-2 hover:border-primary/40 transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-foreground truncate">
+                    {drugLabel(r.drug)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground truncate">
+                    {[r.dosage, freqDisplay(r.frequency).code, r.duration]
+                      .filter(Boolean)
+                      .join(" • ")}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={disabled || added}
+                  onClick={() => onAddRecent(r)}
+                  className={cn(
+                    "w-8 h-8 shrink-0 rounded-full border flex items-center justify-center transition-colors",
+                    added
+                      ? "border-success/40 text-success bg-success-muted/40"
+                      : "border-primary/40 text-primary hover:bg-primary hover:text-white disabled:opacity-40",
+                  )}
+                  title={added ? "Already in list" : "Add with same details"}
+                  aria-label={`Add ${r.drug.name}`}
+                >
+                  {added ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </aside>
+  );
+}
+
 // ─── Main PrescriptionTab Component ────────────────────────────────────────────
 
 export function PrescriptionTab({
@@ -2811,9 +2330,24 @@ export function PrescriptionTab({
   readOnly,
 }: PrescriptionTabProps) {
   const qc = useQueryClient();
-  const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<Prescription | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Prescription | null>(null);
+
+  // Editor state. targetId: undefined = auto (latest ACTIVE rx), null = new rx.
+  const [targetId, setTargetId] = useState<string | null | undefined>(undefined);
+  const [draft, setDraft] = useState<DraftItem[]>([]);
+  const [notes, setNotes] = useState("");
+  const [validUntil, setValidUntil] = useState("");
+  const [dirty, setDirty] = useState(false);
+  const [quick, setQuick] = useState<QuickEntry>(EMPTY_QUICK);
+  const [quickError, setQuickError] = useState("");
+  const [editKey, setEditKey] = useState<string | null>(null);
+  const [printMenu, setPrintMenu] = useState(false);
+
+  const drugInputRef = useRef<HTMLInputElement>(null);
+  const doseRef = useRef<HTMLInputElement>(null);
+  const freqRef = useRef<HTMLSelectElement>(null);
+  const durRef = useRef<HTMLSelectElement>(null);
+  const qtyRef = useRef<HTMLInputElement>(null);
 
   // Fetch clinic settings for print header
   const { data: settingsArr = [] } = useQuery({
@@ -2837,198 +2371,968 @@ export function PrescriptionTab({
     enabled: !!visitId,
   });
 
-  // Mutations
+  const { data: drugsResponse, isLoading: drugsLoading } = useQuery({
+    queryKey: ["drugs", "active"],
+    queryFn: () => drugsApi.getAll({ isActive: true, limit: 1000 }),
+    enabled: !readOnly,
+    staleTime: 60000,
+  });
+  const drugs: Drug[] = useMemo(() => {
+    const r = drugsResponse as any;
+    const list: Drug[] = Array.isArray(r) ? r : (r?.data ?? []);
+    return [...list].sort((a, b) => a.name.localeCompare(b.name));
+  }, [drugsResponse]);
+
+  const patientId = visit?.patientId ?? visit?.patient?.id;
+  const { data: patientRx = [] } = useQuery<Prescription[]>({
+    queryKey: ["prescriptions", "patient", patientId],
+    queryFn: () => prescriptionsApi.getByPatient(patientId!),
+    enabled: !!patientId && !readOnly,
+    staleTime: 60000,
+  });
+
+  const sortedRx = useMemo(
+    () =>
+      [...prescriptions].sort(
+        (a, b) => +new Date(b.createdAt) - +new Date(a.createdAt),
+      ),
+    [prescriptions],
+  );
+  const target =
+    targetId === undefined
+      ? (sortedRx.find((r) => r.status === "ACTIVE") ?? null)
+      : targetId === null
+        ? null
+        : (sortedRx.find((r) => r.id === targetId) ?? null);
+
+  // Mirror the server copy into the editor whenever there are no local edits.
+  const targetSig = target
+    ? `${target.id}:${target.items.map((i) => i.id).join(",")}:${target.notes ?? ""}:${target.validUntil ?? ""}`
+    : "new";
+  useEffect(() => {
+    if (dirty) return;
+    setDraft(target ? target.items.map(itemToDraft) : []);
+    setNotes(target?.notes ?? "");
+    setValidUntil(
+      target?.validUntil
+        ? new Date(target.validUntil).toISOString().slice(0, 10)
+        : "",
+    );
+    setEditKey(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetSig, dirty]);
+
+  // Previous meds for this patient (other visits), newest first, de-duplicated.
+  const previousRx = useMemo(
+    () =>
+      [...patientRx]
+        .filter((r) => r.visitId !== visitId && r.status !== "CANCELLED" && r.items?.length)
+        .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)),
+    [patientRx, visitId],
+  );
+  const recentMeds: RecentMed[] = useMemo(() => {
+    const seen = new Set<string>();
+    const out: RecentMed[] = [];
+    for (const rx of previousRx) {
+      for (const it of rx.items) {
+        const sig = `${it.drugId}|${it.dosage}|${it.frequency}|${it.duration}`;
+        if (seen.has(sig) || !it.drug) continue;
+        seen.add(sig);
+        out.push({
+          drugId: it.drugId,
+          drug: it.drug,
+          dosage: it.dosage,
+          frequency: it.frequency,
+          duration: it.duration,
+          route: it.route || "oral",
+          quantity: it.quantity,
+          instructions: it.instructions ?? "",
+        });
+        if (out.length >= 15) return out;
+      }
+    }
+    return out;
+  }, [previousRx]);
+
+  const inListIds = useMemo(() => new Set(draft.map((d) => d.drugId)), [draft]);
+
+  // ── Draft mutations ──
+  const touch = () => setDirty(true);
+
+  const pushItem = (item: Omit<DraftItem, "key">): boolean => {
+    if (inListIds.has(item.drugId)) {
+      setQuickError(`${item.drug.name} is already in the list — edit that row instead.`);
+      return false;
+    }
+    setDraft((d) => [...d, { ...item, key: newKey() }]);
+    setQuickError("");
+    touch();
+    return true;
+  };
+
+  const setQuickField = <K extends keyof QuickEntry>(k: K, v: QuickEntry[K]) => {
+    setQuick((q) => {
+      const next = { ...q, [k]: v };
+      if (k === "dosage" || k === "frequency" || k === "duration") {
+        const qty = calcQuantity(next.dosage, next.frequency, next.duration);
+        if (qty) next.quantity = String(qty);
+      }
+      return next;
+    });
+    setQuickError("");
+  };
+
+  const focusFirstMissing = (q: QuickEntry) => {
+    const el = !q.dosage
+      ? doseRef.current
+      : !q.frequency
+        ? freqRef.current
+        : !q.duration
+          ? durRef.current
+          : !(parseInt(q.quantity, 10) > 0)
+            ? qtyRef.current
+            : doseRef.current;
+    setTimeout(() => el?.focus(), 0);
+  };
+
+  const selectQuickDrug = (drug: Drug | null) => {
+    if (!drug) {
+      setQuick(EMPTY_QUICK);
+      return;
+    }
+    const q = quickFromDrug(drug);
+    setQuick(q);
+    setQuickError(
+      inListIds.has(drug.id) ? `${drug.name} is already in the list.` : "",
+    );
+    focusFirstMissing(q);
+  };
+
+  const addQuick = () => {
+    if (!quick.drug) {
+      setQuickError("Pick a medicine first.");
+      drugInputRef.current?.focus();
+      return;
+    }
+    if (!isCompleteItem(quick)) {
+      setQuickError("Dose, frequency, duration and quantity are required.");
+      focusFirstMissing(quick);
+      return;
+    }
+    const ok = pushItem({
+      drugId: quick.drug.id,
+      drug: quick.drug,
+      dosage: quick.dosage.trim(),
+      frequency: quick.frequency,
+      duration: quick.duration,
+      route: quick.route,
+      quantity: quick.quantity,
+      refills: quick.refills || "0",
+      instructions: quick.instructions.trim(),
+    });
+    if (ok) {
+      setQuick(EMPTY_QUICK);
+      setTimeout(() => drugInputRef.current?.focus(), 0);
+    }
+  };
+
+  /** One click from the Common panel: add straight away when the drug's
+   *  defaults are complete, otherwise stage it in the quick-entry row. */
+  const quickAddDrug = (drug: Drug) => {
+    const q = quickFromDrug(drug);
+    if (isCompleteItem(q)) {
+      pushItem({
+        drugId: drug.id,
+        drug,
+        dosage: q.dosage,
+        frequency: q.frequency,
+        duration: q.duration,
+        route: q.route,
+        quantity: q.quantity,
+        refills: "0",
+        instructions: q.instructions,
+      });
+    } else {
+      setQuick(q);
+      setQuickError("Complete the missing details, then Add to List.");
+      focusFirstMissing(q);
+    }
+  };
+
+  const addRecent = (r: RecentMed) =>
+    pushItem({
+      drugId: r.drugId,
+      drug: r.drug,
+      dosage: r.dosage,
+      frequency: r.frequency,
+      duration: r.duration,
+      route: r.route,
+      quantity: String(
+        calcQuantity(r.dosage, r.frequency, r.duration) ?? r.quantity ?? 1,
+      ),
+      refills: "0",
+      instructions: r.instructions,
+    });
+
+  const loadPreviousRx = () => {
+    const last = previousRx[0];
+    if (!last) return;
+    const fresh = last.items
+      .filter((it) => !inListIds.has(it.drugId))
+      .map((it) => ({ ...itemToDraft(it), refills: "0" }));
+    if (!fresh.length) {
+      setQuickError("Everything from the previous prescription is already listed.");
+      return;
+    }
+    setDraft((d) => [...d, ...fresh]);
+    if (!notes && last.notes) setNotes(last.notes);
+    setQuickError("");
+    touch();
+  };
+
+  const updateDraft = (key: string, field: keyof DraftItem, value: string) => {
+    setDraft((d) =>
+      d.map((it) => {
+        if (it.key !== key) return it;
+        const next = { ...it, [field]: value };
+        if (field === "dosage" || field === "frequency" || field === "duration") {
+          const qty = calcQuantity(next.dosage, next.frequency, next.duration);
+          if (qty) next.quantity = String(qty);
+        }
+        return next;
+      }),
+    );
+    touch();
+  };
+
+  const removeDraft = (key: string) => {
+    setDraft((d) => d.filter((it) => it.key !== key));
+    if (editKey === key) setEditKey(null);
+    touch();
+  };
+
+  const discardChanges = () => {
+    setDirty(false); // effect re-syncs from the server copy
+    setQuick(EMPTY_QUICK);
+    setQuickError("");
+  };
+
+  const startNew = () => {
+    setTargetId(null);
+    setDirty(false);
+    setQuick(EMPTY_QUICK);
+    setQuickError("");
+  };
+
+  // ── Server mutations ──
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["prescriptions", visitId] });
+    qc.invalidateQueries({ queryKey: ["visit", visitId] });
+    if (patientId)
+      qc.invalidateQueries({ queryKey: ["prescriptions", "patient", patientId] });
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const incomplete = draft.filter((d) => !isCompleteItem(d));
+      if (incomplete.length) {
+        throw new Error(
+          `Complete dose, frequency, duration and quantity for: ${incomplete
+            .map((d) => d.drug.name)
+            .join(", ")}`,
+        );
+      }
+      const items = draft.map((d) => ({
+        drugId: d.drugId,
+        dosage: d.dosage.trim(),
+        frequency: d.frequency,
+        duration: d.duration,
+        route: d.route,
+        quantity: parseInt(d.quantity, 10),
+        instructions: d.instructions.trim() || undefined,
+        refills: parseInt(d.refills, 10) || 0,
+      }));
+      if (target) {
+        return prescriptionsApi.update(target.id, {
+          items,
+          notes,
+          validUntil: validUntil || undefined,
+        });
+      }
+      return prescriptionsApi.create({
+        visitId,
+        items,
+        notes: notes || undefined,
+        validUntil: validUntil || undefined,
+      });
+    },
+    onSuccess: async (saved: any) => {
+      // Refetch first so the editor re-syncs to the saved copy without a flash.
+      await qc.invalidateQueries({ queryKey: ["prescriptions", visitId] });
+      invalidate();
+      if (saved?.id) setTargetId(saved.id);
+      setDirty(false);
+      setEditKey(null);
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => prescriptionsApi.remove(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["prescriptions", visitId] });
-      qc.invalidateQueries({ queryKey: ["visit", visitId] });
+    onSuccess: (_r, id) => {
+      if (target?.id === id) {
+        setTargetId(undefined);
+        setDirty(false);
+      }
+      invalidate();
       setDeleteTarget(null);
     },
   });
 
   const dispenseMutation = useMutation({
     mutationFn: (id: string) => prescriptionsApi.dispense(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["prescriptions", visitId] });
-      qc.invalidateQueries({ queryKey: ["visit", visitId] });
+    onSuccess: (_r, id) => {
+      if (target?.id === id) setTargetId(undefined);
+      invalidate();
     },
   });
 
   // Stats
+  const otherRx = sortedRx.filter((r) => r.id !== target?.id);
   const activeCount = prescriptions.filter((r) => r.status === "ACTIVE").length;
-  const dispensedCount = prescriptions.filter(
-    (r) => r.status === "DISPENSED",
-  ).length;
-  const totalItems = prescriptions.reduce((sum, r) => sum + r.items.length, 0);
+  const editingLocked = !!target && target.status !== "ACTIVE";
+  const canSave = !readOnly && !editingLocked && dirty && draft.length > 0;
+
+  const onQuickKey = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !(e.target instanceof HTMLTextAreaElement)) {
+      e.preventDefault();
+      addQuick();
+    }
+  };
+
+  // ─── Read-only view (completed visit, etc.) ───
+  if (readOnly) {
+    return (
+      <div className="space-y-3">
+        {isLoading && (
+          <div className="flex justify-center py-12 bg-white rounded-xl border border-border">
+            <Spinner size="lg" />
+          </div>
+        )}
+        {!isLoading && sortedRx.length === 0 && (
+          <div className="text-center py-12 bg-white rounded-xl border border-dashed border-input text-sm text-muted-foreground">
+            No prescriptions for this visit.
+          </div>
+        )}
+        {sortedRx.map((rx) => (
+          <RxCard
+            key={rx.id}
+            rx={rx}
+            visit={visit}
+            readOnly
+            onDelete={() => {}}
+            onDispense={() => {}}
+            onPrint={() => printPrescription(rx, visit, clinicSettings)}
+            onEdit={() => {}}
+          />
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between bg-white rounded-xl border border-border p-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <Pill className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-foreground">
-              Prescriptions
-            </h3>
-            <div className="flex items-center gap-2 mt-0.5">
-              {prescriptions.length > 0 ? (
-                <>
-                  {activeCount > 0 && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-success-muted/60 text-success border border-success/25 font-medium">
-                      {activeCount} active
-                    </span>
-                  )}
-                  {dispensedCount > 0 && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary-muted/60 text-primary border border-primary/25 font-medium">
-                      {dispensedCount} dispensed
-                    </span>
-                  )}
-                  <span className="text-xs text-muted-foreground/70">
-                    {totalItems} medication{totalItems !== 1 ? "s" : ""} total
-                  </span>
-                </>
-              ) : (
-                <span className="text-xs text-muted-foreground/70">
-                  No prescriptions yet
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] items-start">
+      <div className="space-y-4 min-w-0">
+        <div className="bg-white rounded-xl border border-border">
+          {/* Header */}
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5">
+            <div className="flex items-center gap-3 min-w-0">
+              <Pill className="w-6 h-6 text-primary shrink-0" />
+              <h3 className="text-xl font-bold text-foreground">Prescription</h3>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-success-muted/60 text-success font-medium">
+                {draft.length} medication{draft.length !== 1 ? "s" : ""}
+              </span>
+              {target && (
+                <span className="text-xs font-mono text-muted-foreground">
+                  {target.prescriptionCode}
+                  {target.status !== "ACTIVE" && ` · ${target.status}`}
                 </span>
               )}
+              {dirty && (
+                <span className="text-xs text-warning font-medium">Unsaved changes</span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className="p-2 rounded-lg text-muted-foreground/70 hover:text-foreground hover:bg-muted"
+                title="Refresh"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={loadPreviousRx}
+                disabled={!previousRx.length || editingLocked}
+                title={
+                  previousRx.length
+                    ? `Copy medicines from ${previousRx[0].prescriptionCode} (${new Date(previousRx[0].createdAt).toLocaleDateString()})`
+                    : "No previous prescription for this patient"
+                }
+                className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Load Previous Rx
+              </button>
+              {(target || dirty) && (
+                <button
+                  type="button"
+                  onClick={startNew}
+                  className="flex items-center gap-2 h-9 px-3 rounded-lg border border-primary/30 text-sm font-medium text-primary hover:bg-primary-muted/40"
+                  title="Start another prescription for this visit"
+                >
+                  <Plus className="w-4 h-4" />
+                  New Rx
+                </button>
+              )}
+            </div>
+          </div>
+
+          {editingLocked ? (
+            <div className="mx-5 mt-4 flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              This prescription is {target!.status.toLowerCase()} and can't be
+              changed. Use <strong className="mx-1">New Rx</strong> to prescribe more.
+            </div>
+          ) : (
+            /* Quick entry */
+            <div
+              className="mx-5 mt-4 rounded-xl border border-primary/20 bg-primary-muted/20 p-4"
+              onKeyDown={onQuickKey}
+            >
+              <div className="text-sm font-semibold text-foreground mb-3">
+                Add New Medication{" "}
+                <span className="font-normal text-muted-foreground">(quick entry)</span>
+              </div>
+              <div className="grid gap-3 grid-cols-2 md:grid-cols-12 items-end">
+                <div className="col-span-2 md:col-span-4">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Drug / Medication <span className="text-danger">*</span>
+                  </label>
+                  <DrugSearch
+                    ref={drugInputRef}
+                    drugs={drugs}
+                    selected={quick.drug}
+                    loading={drugsLoading}
+                    onSelect={selectQuickDrug}
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Dose <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    ref={doseRef}
+                    className={fieldCls}
+                    placeholder="e.g. 1"
+                    value={quick.dosage}
+                    onChange={(e) => setQuickField("dosage", e.target.value)}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Route
+                  </label>
+                  <select
+                    className={fieldCls}
+                    value={quick.route}
+                    onChange={(e) => setQuickField("route", e.target.value)}
+                  >
+                    {RX_ROUTES.map((r) => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Frequency <span className="text-danger">*</span>
+                  </label>
+                  <select
+                    ref={freqRef}
+                    className={fieldCls}
+                    value={quick.frequency}
+                    onChange={(e) => setQuickField("frequency", e.target.value)}
+                  >
+                    <option value="">Select…</option>
+                    {RX_FREQUENCIES.map((f) => (
+                      <option key={f.value} value={f.value}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Duration <span className="text-danger">*</span>
+                  </label>
+                  <select
+                    ref={durRef}
+                    className={fieldCls}
+                    value={quick.duration}
+                    onChange={(e) => setQuickField("duration", e.target.value)}
+                  >
+                    <option value="">Select…</option>
+                    {RX_DURATIONS.map((d) => (
+                      <option key={d.value} value={d.value}>
+                        {d.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="md:col-span-1">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Qty <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    ref={qtyRef}
+                    type="number"
+                    min={1}
+                    className={fieldCls}
+                    value={quick.quantity}
+                    onChange={(e) => setQuickField("quantity", e.target.value)}
+                  />
+                </div>
+                <div className="col-span-2 md:col-span-9">
+                  <input
+                    className={cn(fieldCls, "h-9")}
+                    placeholder="Instructions (optional) — e.g. Take after food"
+                    value={quick.instructions}
+                    onChange={(e) => setQuickField("instructions", e.target.value)}
+                  />
+                </div>
+                <div className="col-span-2 md:col-span-3">
+                  <button
+                    type="button"
+                    onClick={addQuick}
+                    className="w-full h-9 flex items-center justify-center gap-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 shadow-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add to List
+                  </button>
+                </div>
+              </div>
+              <div className="mt-2 min-h-[1rem] text-xs">
+                {quickError ? (
+                  <span className="text-danger">{quickError}</span>
+                ) : (
+                  <span className="text-muted-foreground">
+                    Type to search, ↑/↓ then Enter to pick. Enter in any field adds to the list.
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Current medications */}
+          <div className="px-5 pt-5">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-base font-semibold text-foreground">
+                Current Medications
+              </h4>
+              {draft.length > 0 && !editingLocked && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraft([]);
+                    setEditKey(null);
+                    touch();
+                  }}
+                  className="flex items-center gap-1.5 text-sm font-medium text-danger hover:underline"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Clear All
+                </button>
+              )}
+            </div>
+            <div className="border border-border rounded-xl overflow-x-auto">
+              <table className="w-full text-sm min-w-[760px]">
+                <thead className="bg-muted/50 text-xs text-muted-foreground">
+                  <tr className="text-left">
+                    <th className="px-3 py-2.5 w-8">#</th>
+                    <th className="px-3 py-2.5">Medication</th>
+                    <th className="px-3 py-2.5 w-20">Dose</th>
+                    <th className="px-3 py-2.5 w-28">Route</th>
+                    <th className="px-3 py-2.5 w-32">Frequency</th>
+                    <th className="px-3 py-2.5 w-28">Duration</th>
+                    <th className="px-3 py-2.5 w-16">Qty</th>
+                    <th className="px-3 py-2.5 w-16">Refills</th>
+                    <th className="px-3 py-2.5">Instructions</th>
+                    <th className="px-3 py-2.5 w-20 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(isLoading || (drugsLoading && !draft.length)) && (
+                    <tr>
+                      <td colSpan={10} className="py-8 text-center">
+                        <Spinner />
+                      </td>
+                    </tr>
+                  )}
+                  {!isLoading && draft.length === 0 && (
+                    <tr>
+                      <td colSpan={10} className="py-8 text-center text-sm text-muted-foreground">
+                        No medications yet — search above or click{" "}
+                        <Plus className="w-3.5 h-3.5 inline" /> on a common medication.
+                      </td>
+                    </tr>
+                  )}
+                  {draft.map((it, idx) => {
+                    const editing = editKey === it.key;
+                    const incomplete = !isCompleteItem(it);
+                    const f = freqDisplay(it.frequency);
+                    return (
+                      <tr
+                        key={it.key}
+                        className={cn(
+                          "border-t border-border/60 align-middle",
+                          editing ? "bg-primary-muted/20" : "hover:bg-muted/30",
+                          incomplete && !editing && "bg-warning-muted/30",
+                        )}
+                      >
+                        <td className="px-3 py-3 text-muted-foreground">{idx + 1}</td>
+                        <td className="px-3 py-3">
+                          <div className="font-medium text-foreground">{drugLabel(it.drug)}</div>
+                          {it.drug.form && (
+                            <div className="text-[11px] text-muted-foreground">{it.drug.form}</div>
+                          )}
+                        </td>
+                        {editing ? (
+                          <>
+                            <td className="px-1.5 py-2">
+                              <input
+                                className={cellCls}
+                                value={it.dosage}
+                                autoFocus
+                                onChange={(e) => updateDraft(it.key, "dosage", e.target.value)}
+                              />
+                            </td>
+                            <td className="px-1.5 py-2">
+                              <select
+                                className={cellCls}
+                                value={it.route}
+                                onChange={(e) => updateDraft(it.key, "route", e.target.value)}
+                              >
+                                {RX_ROUTES.map((r) => (
+                                  <option key={r.value} value={r.value}>{r.label}</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="px-1.5 py-2">
+                              <select
+                                className={cellCls}
+                                value={it.frequency}
+                                onChange={(e) => updateDraft(it.key, "frequency", e.target.value)}
+                              >
+                                <option value="">Select…</option>
+                                {!frequencyMeta(it.frequency) && it.frequency && (
+                                  <option value={it.frequency}>{it.frequency}</option>
+                                )}
+                                {RX_FREQUENCIES.map((o) => (
+                                  <option key={o.value} value={o.value}>{o.label}</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="px-1.5 py-2">
+                              <select
+                                className={cellCls}
+                                value={it.duration}
+                                onChange={(e) => updateDraft(it.key, "duration", e.target.value)}
+                              >
+                                <option value="">Select…</option>
+                                {!RX_DURATIONS.some((o) => o.value === it.duration) && it.duration && (
+                                  <option value={it.duration}>{it.duration}</option>
+                                )}
+                                {RX_DURATIONS.map((o) => (
+                                  <option key={o.value} value={o.value}>{o.label}</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="px-1.5 py-2">
+                              <input
+                                type="number"
+                                min={1}
+                                className={cellCls}
+                                value={it.quantity}
+                                onChange={(e) => updateDraft(it.key, "quantity", e.target.value)}
+                              />
+                            </td>
+                            <td className="px-1.5 py-2">
+                              <input
+                                type="number"
+                                min={0}
+                                className={cellCls}
+                                value={it.refills}
+                                onChange={(e) => updateDraft(it.key, "refills", e.target.value)}
+                              />
+                            </td>
+                            <td className="px-1.5 py-2">
+                              <input
+                                className={cellCls}
+                                value={it.instructions}
+                                placeholder="Optional"
+                                onChange={(e) => updateDraft(it.key, "instructions", e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && setEditKey(null)}
+                              />
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="px-3 py-3">{it.dosage || <span className="text-danger">—</span>}</td>
+                            <td className="px-3 py-3">{routeLabel(it.route)}</td>
+                            <td className="px-3 py-3">
+                              {it.frequency ? (
+                                <>
+                                  <div>{f.code}</div>
+                                  {f.hint && (
+                                    <div className="text-[11px] text-muted-foreground">({f.hint})</div>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="text-danger">—</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-3">{it.duration || <span className="text-danger">—</span>}</td>
+                            <td className="px-3 py-3">{it.quantity || <span className="text-danger">—</span>}</td>
+                            <td className="px-3 py-3">{it.refills || 0}</td>
+                            <td className="px-3 py-3 text-muted-foreground">{it.instructions || "—"}</td>
+                          </>
+                        )}
+                        <td className="px-3 py-3">
+                          {!editingLocked && (
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setEditKey(editing ? null : it.key)}
+                                className={cn(
+                                  "p-1.5 rounded-md",
+                                  editing
+                                    ? "text-success hover:bg-success-muted/60"
+                                    : "text-primary hover:bg-primary-muted/60",
+                                )}
+                                title={editing ? "Done" : "Edit"}
+                                aria-label={editing ? "Done editing" : `Edit ${it.drug.name}`}
+                              >
+                                {editing ? <Check className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeDraft(it.key)}
+                                className="p-1.5 rounded-md text-danger hover:bg-danger-muted/60"
+                                title="Remove"
+                                aria-label={`Remove ${it.drug.name}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Notes + validity */}
+          <div className="px-5 pt-5 grid gap-4 md:grid-cols-[1fr_180px]">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Additional Prescription Notes{" "}
+                <span className="font-normal text-muted-foreground">(optional)</span>
+              </label>
+              <textarea
+                rows={3}
+                disabled={editingLocked}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-white resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
+                placeholder="e.g. advice to pharmacist, special instructions..."
+                value={notes}
+                onChange={(e) => {
+                  setNotes(e.target.value);
+                  touch();
+                }}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Valid Until
+              </label>
+              <input
+                type="date"
+                disabled={editingLocked}
+                className={fieldCls}
+                value={validUntil}
+                min={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => {
+                  setValidUntil(e.target.value);
+                  touch();
+                }}
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">Blank = 30 days</p>
+            </div>
+          </div>
+
+          {saveMutation.isError && (
+            <div className="mx-5 mt-4 flex items-center gap-2 bg-danger-muted/60 border border-danger/25 rounded-lg px-4 py-3 text-sm text-danger">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              {(saveMutation.error as any)?.response?.data?.message ||
+                (saveMutation.error as Error)?.message ||
+                "Failed to save prescription"}
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-5">
+            <div className="flex items-center gap-2">
+              <div className="relative flex">
+                <button
+                  type="button"
+                  disabled={!target || dirty}
+                  onClick={() => target && printPrescription(target, visit, clinicSettings)}
+                  title={dirty ? "Save before printing" : !target ? "Nothing saved yet" : "Print this prescription"}
+                  className="flex items-center gap-2 h-10 px-4 rounded-l-lg border border-border text-sm font-medium hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Printer className="w-4 h-4" />
+                  Print Prescription
+                </button>
+                <button
+                  type="button"
+                  disabled={!sortedRx.length}
+                  onClick={() => setPrintMenu((v) => !v)}
+                  className="h-10 px-2 rounded-r-lg border border-l-0 border-border hover:bg-muted disabled:opacity-50"
+                  aria-label="More print options"
+                >
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+                {printMenu && (
+                  <div
+                    className="absolute bottom-full mb-1 left-0 z-30 bg-white border border-border rounded-lg shadow-lg py-1 min-w-[220px]"
+                    onMouseLeave={() => setPrintMenu(false)}
+                  >
+                    <button
+                      type="button"
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted"
+                      onClick={() => {
+                        setPrintMenu(false);
+                        printAllPrescriptions(sortedRx, visit, clinicSettings);
+                      }}
+                    >
+                      Print all for this visit ({sortedRx.length})
+                    </button>
+                  </div>
+                )}
+              </div>
+              {target?.status === "ACTIVE" && !dirty && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => dispenseMutation.mutate(target.id)}
+                    disabled={dispenseMutation.isPending}
+                    className="flex items-center gap-2 h-10 px-4 rounded-lg border border-success/40 text-success text-sm font-medium hover:bg-success-muted/40 disabled:opacity-50"
+                  >
+                    {dispenseMutation.isPending ? <Spinner size="sm" /> : <Check className="w-4 h-4" />}
+                    Dispense
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTarget(target)}
+                    className="p-2.5 rounded-lg text-muted-foreground hover:text-danger hover:bg-danger-muted/60"
+                    title="Delete prescription"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {dirty && (
+                <button
+                  type="button"
+                  onClick={discardChanges}
+                  className="h-10 px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg"
+                >
+                  Discard
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => saveMutation.mutate()}
+                disabled={!canSave || saveMutation.isPending}
+                className="flex items-center gap-2 h-11 px-6 rounded-lg bg-primary text-white text-sm font-semibold shadow-sm hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saveMutation.isPending ? <Spinner size="sm" /> : <CheckCircle className="w-4 h-4" />}
+                {target ? "Save Prescription" : "Create Prescription"}
+              </button>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => refetch()}
-            className="p-2 rounded-lg text-muted-foreground/70 hover:text-muted-foreground hover:bg-muted transition-colors"
-            title="Refresh list"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-
-          {!readOnly && (
-            <button
-              onClick={() => setIsNewDialogOpen(true)}
-            className="flex items-center gap-2 px-2 py-1.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary transition-colors shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              New Prescription
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* New / Edit Prescription Dialog */}
-      <NewPrescriptionDialog
-        isOpen={isNewDialogOpen || !!editTarget}
-        onClose={() => {
-          setIsNewDialogOpen(false);
-          setEditTarget(null);
-        }}
-        visitId={visitId}
-        visit={visit}
-        editTarget={editTarget}
-        onSuccess={() => {
-          setIsNewDialogOpen(false);
-          setEditTarget(null);
-        }}
-      />
-
-      {/* Loading State */}
-      {isLoading && (
-        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl border border-border">
-          <Spinner size="lg" />
-          <p className="text-sm text-muted-foreground mt-3">
-            Loading prescriptions...
-          </p>
-        </div>
-      )}
-
-      {/* Error State */}
-      {error && (
-        <div className="flex items-center gap-3 bg-danger-muted/60 border border-danger/25 rounded-xl px-5 py-4">
-          <AlertTriangle className="w-5 h-5 text-danger shrink-0" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-danger">
+        {error && (
+          <div className="flex items-center gap-3 bg-danger-muted/60 border border-danger/25 rounded-xl px-5 py-4">
+            <AlertTriangle className="w-5 h-5 text-danger shrink-0" />
+            <p className="flex-1 text-sm font-medium text-danger">
               Failed to load prescriptions
             </p>
-            <p className="text-xs text-danger mt-0.5">
-              Please check your connection and try again
-            </p>
-          </div>
-          <button
-            onClick={() => refetch()}
-            className="px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger-muted rounded-lg transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!isLoading && !error && prescriptions.length === 0 && (
-        <div className="text-center py-16 bg-white rounded-xl border border-dashed border-input">
-          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-            <Pill className="w-8 h-8 text-muted-foreground/70" />
-          </div>
-          <h4 className="text-base font-semibold text-foreground mb-1">
-            No prescriptions yet
-          </h4>
-          <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-4">
-            Prescriptions written during this visit will appear here. Click "New
-            Prescription" to add medications.
-          </p>
-          {!readOnly && (
             <button
-              onClick={() => setIsNewDialogOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary hover:text-primary hover:bg-primary-muted/60 rounded-lg transition-colors"
+              onClick={() => refetch()}
+              className="px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger-muted rounded-lg"
             >
-              <Plus className="w-4 h-4" />
-              Write your first prescription
+              Retry
             </button>
-          )}
-        </div>
-      )}
+          </div>
+        )}
 
-      {/* Prescriptions List */}
-      {!isLoading && !error && prescriptions.length > 0 && (
-        <div className="space-y-3">
-          {prescriptions.map((rx) => (
-            <RxCard
-              key={rx.id}
-              rx={rx}
-              visit={visit}
-              readOnly={readOnly}
-              onDelete={() => setDeleteTarget(rx)}
-              onDispense={() => dispenseMutation.mutate(rx.id)}
-              onPrint={() => printPrescription(rx, visit, clinicSettings)}
-              onEdit={() => setEditTarget(rx)}
-            />
-          ))}
-        </div>
-      )}
+        {/* Other prescriptions on this visit */}
+        {otherRx.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between px-1">
+              <h4 className="text-sm font-semibold text-foreground">
+                Other prescriptions this visit
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  {activeCount} active
+                </span>
+              </h4>
+            </div>
+            {otherRx.map((rx) => (
+              <RxCard
+                key={rx.id}
+                rx={rx}
+                visit={visit}
+                onDelete={() => setDeleteTarget(rx)}
+                onDispense={() => dispenseMutation.mutate(rx.id)}
+                onPrint={() => printPrescription(rx, visit, clinicSettings)}
+                onEdit={() => {
+                  if (dirty && !window.confirm("Discard unsaved changes?")) return;
+                  setTargetId(rx.id);
+                  setDirty(false);
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
-      {/* Summary Footer */}
-      {/* Summary Footer */}
-      {prescriptions.length > 0 && (
-        <div className="flex items-center justify-between bg-muted/50 rounded-xl border border-border px-4 py-3">
-          <span className="text-xs text-muted-foreground">
-            Showing {prescriptions.length} prescription
-            {prescriptions.length !== 1 ? "s" : ""}
-          </span>
-          <button
-            onClick={() => printAllPrescriptions(prescriptions, visit, clinicSettings)}
-            className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Printer className="w-3.5 h-3.5" />
-            Print All Prescriptions
-          </button>
-        </div>
-      )}
-      
+      <MedsSidePanel
+        drugs={drugs}
+        recent={recentMeds}
+        inListIds={inListIds}
+        disabled={editingLocked}
+        onQuickAdd={quickAddDrug}
+        onAddRecent={addRecent}
+      />
+
       {/* Delete Confirmation */}
       <DeleteDialog
         rx={deleteTarget}

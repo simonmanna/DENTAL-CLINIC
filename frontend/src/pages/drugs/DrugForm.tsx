@@ -28,9 +28,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Pill, Package } from "lucide-react";
+import { Loader2, Pill, Package, Star } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import type { Drug, DrugCategory } from "../../types/drug.types";
 import { UOM_OPTIONS, DRUG_FORMS } from "../../types/drug.types";
+import { RX_ROUTES, RX_FREQUENCIES, RX_DURATIONS } from "@/lib/prescribing";
+
+// Prescribing-default keys: an empty value must reach the API as "" so the
+// backend clears it (other optional fields drop empties instead).
+const DEFAULT_KEYS = new Set([
+  "defaultDosage",
+  "defaultFrequency",
+  "defaultDuration",
+  "defaultRoute",
+  "defaultInstructions",
+]);
 
 // ─── Zod Schema ───────────────────────────────────────────────────────────────
 
@@ -47,6 +59,12 @@ const schema = z.object({
   sellPrice: z.coerce.number().min(0, "Must be ≥ 0"),
   isActive: z.boolean().default(true),
   requiresPrescription: z.boolean().default(false),
+  isCommon: z.boolean().default(false),
+  defaultDosage: z.string().max(100).optional().or(z.literal("")),
+  defaultFrequency: z.string().max(100).optional().or(z.literal("")),
+  defaultDuration: z.string().max(100).optional().or(z.literal("")),
+  defaultRoute: z.string().max(50).optional().or(z.literal("")),
+  defaultInstructions: z.string().max(500).optional().or(z.literal("")),
   inventoryItemId: z.string().optional().or(z.literal("")),
 });
 
@@ -99,6 +117,12 @@ export function DrugForm({
       sellPrice: 0,
       isActive: true,
       requiresPrescription: false,
+      isCommon: false,
+      defaultDosage: "",
+      defaultFrequency: "",
+      defaultDuration: "",
+      defaultRoute: "",
+      defaultInstructions: "",
       inventoryItemId: "",
     },
   });
@@ -119,6 +143,12 @@ export function DrugForm({
         sellPrice: Number(drug.sellPrice),
         isActive: drug.isActive,
         requiresPrescription: drug.requiresPrescription,
+        isCommon: drug.isCommon ?? false,
+        defaultDosage: drug.defaultDosage ?? "",
+        defaultFrequency: drug.defaultFrequency ?? "",
+        defaultDuration: drug.defaultDuration ?? "",
+        defaultRoute: drug.defaultRoute ?? "",
+        defaultInstructions: drug.defaultInstructions ?? "",
         inventoryItemId: drug.inventoryItemId ?? "",
       });
     } else if (!drug && open) {
@@ -136,6 +166,12 @@ export function DrugForm({
         sellPrice: 0,
         isActive: true,
         requiresPrescription: false,
+        isCommon: false,
+        defaultDosage: "",
+        defaultFrequency: "",
+        defaultDuration: "",
+        defaultRoute: "",
+        defaultInstructions: "",
         inventoryItemId: "none",
       });
     }
@@ -152,6 +188,8 @@ export function DrugForm({
         } else {
           cleaned[key] = value;
         }
+      } else if (DEFAULT_KEYS.has(key)) {
+        cleaned[key] = value === "none" ? "" : (value ?? "");
       } else if (value === "" || value === "none") {
         cleaned[key] = undefined;
       } else {
@@ -539,6 +577,174 @@ export function DrugForm({
 
                     
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION: Prescribing defaults (visit Rx quick entry) */}
+              <div className="bg-white rounded border shadow-sm overflow-hidden">
+                <div className="bg-muted/50 px-4 py-2 border-b">
+                  <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1 h-4 bg-[#3c8dbc] rounded-full" />
+                    Prescribing Defaults
+                  </h3>
+                </div>
+                <div className="p-4 space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="isCommon"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded border p-3 hover:bg-muted/50 transition-colors">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-sm font-bold flex items-center gap-2">
+                            <Star className="h-3.5 w-3.5 text-warning" />
+                            Common Medication
+                          </FormLabel>
+                          <p className="text-[10px] text-muted-foreground uppercase">
+                            Show in the visit prescription quick-add panel
+                          </p>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            className="data-[state=checked]:bg-[#3c8dbc]"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Prefilled when this drug is picked on a prescription. The
+                    prescriber can still change them for each patient.
+                  </p>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="defaultDosage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
+                            Dose
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              className="rounded-none border-input"
+                              placeholder="e.g. 1 tablet"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="defaultRoute"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
+                            Route
+                          </FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value || "none"}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="rounded-none border-input">
+                                <SelectValue placeholder="Route" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="none">No default</SelectItem>
+                              {RX_ROUTES.map((o) => (
+                                <SelectItem key={o.value} value={o.value}>
+                                  {o.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="defaultFrequency"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
+                            Frequency
+                          </FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value || "none"}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="rounded-none border-input">
+                                <SelectValue placeholder="Frequency" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="none">No default</SelectItem>
+                              {RX_FREQUENCIES.map((o) => (
+                                <SelectItem key={o.value} value={o.value}>
+                                  {o.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="defaultDuration"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
+                            Duration
+                          </FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value || "none"}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="rounded-none border-input">
+                                <SelectValue placeholder="Duration" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="none">No default</SelectItem>
+                              {RX_DURATIONS.map((o) => (
+                                <SelectItem key={o.value} value={o.value}>
+                                  {o.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="defaultInstructions"
+                      render={({ field }) => (
+                        <FormItem className="sm:col-span-2">
+                          <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
+                            Instructions
+                          </FormLabel>
+                          <FormControl>
+                            <Textarea
+                              rows={2}
+                              className="rounded-none border-input resize-none"
+                              placeholder="e.g. Take after food"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </div>
               </div>

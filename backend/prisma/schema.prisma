@@ -1956,6 +1956,15 @@ model Drug {
   isActive             Boolean       @default(true)
   requiresPrescription Boolean       @default(false)
 
+  // Quick-prescribe: shown in the visit Rx "Common Medications" panel and
+  // used to prefill the quick-entry row.
+  isCommon            Boolean @default(false)
+  defaultDosage       String?
+  defaultFrequency    String?
+  defaultDuration     String?
+  defaultRoute        String?
+  defaultInstructions String?
+
   // ✅ Add timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1972,6 +1981,7 @@ model Drug {
   @@index([categoryId])
   @@index([isActive])
   @@index([requiresPrescription])
+  @@index([isCommon])
   @@map("drugs")
 }
 
