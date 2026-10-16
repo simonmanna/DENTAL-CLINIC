@@ -2827,7 +2827,7 @@ export function PrescriptionTab({
                     onSelect={selectQuickDrug}
                   />
                 </div>
-                <div className="md:col-span-1">
+                <div className="md:col-span-2">
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
                     Dose <span className="text-danger">*</span>
                   </label>
@@ -2891,7 +2891,7 @@ export function PrescriptionTab({
                     ))}
                   </select>
                 </div>
-                <div className="md:col-span-1">
+                <div className="col-span-2 md:col-span-2">
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
                     Qty <span className="text-danger">*</span>
                   </label>
@@ -2899,12 +2899,12 @@ export function PrescriptionTab({
                     ref={qtyRef}
                     type="number"
                     min={1}
-                    className={fieldCls}
+                    className={cn(fieldCls, "h-9")}
                     value={quick.quantity}
                     onChange={(e) => setQuickField("quantity", e.target.value)}
                   />
                 </div>
-                <div className="col-span-2 md:col-span-9">
+                <div className="col-span-2 md:col-span-7">
                   <input
                     className={cn(fieldCls, "h-9")}
                     placeholder="Instructions (optional) — e.g. Take after food"
