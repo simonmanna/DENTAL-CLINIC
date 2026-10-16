@@ -236,13 +236,13 @@ function BookAppointmentForm({
 }) {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(9, 0, 0, 0);
-  const defaultDt = format(tomorrow, "yyyy-MM-dd'T'HH:mm");
+  const defaultDate = format(tomorrow, "yyyy-MM-dd");
 
   const [form, setForm] = useState({
     dentistId: currentDentistId || "",
     type: "FOLLOW_UP",
-    scheduledAt: defaultDt,
+    date: defaultDate,
+    time: "09:00",
     duration: 30,
     chiefComplaint: "",
     notes: "",
@@ -316,16 +316,28 @@ function BookAppointmentForm({
             </select>
           </div>
 
-          {/* Date/Time */}
-          <div>
-            <label className={labelCls}>Date & Time</label>
-            <input
-              type="datetime-local"
-              value={form.scheduledAt}
-              onChange={(e) => set("scheduledAt", e.target.value)}
-              className={inputCls}
-              required
-            />
+          {/* Date / Time */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className={labelCls}>Date</label>
+              <input
+                type="date"
+                value={form.date}
+                onChange={(e) => set("date", e.target.value)}
+                className={inputCls}
+                required
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Time</label>
+              <input
+                type="time"
+                value={form.time}
+                onChange={(e) => set("time", e.target.value)}
+                className={inputCls}
+                required
+              />
+            </div>
           </div>
 
           {/* Duration */}
@@ -396,10 +408,11 @@ function BookAppointmentForm({
         <div className="flex items-center gap-3 pt-2 border-t border-border/60">
           <button
             onClick={() => {
-              if (!form.dentistId || !form.scheduledAt) return;
-              onBook({ ...form, patientId });
+              if (!form.dentistId || !form.date || !form.time) return;
+              const { date, time, ...rest } = form;
+              onBook({ ...rest, scheduledAt: `${date}T${time}`, patientId });
             }}
-            disabled={loading || !form.dentistId || !form.scheduledAt}
+            disabled={loading || !form.dentistId || !form.date || !form.time}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
           >
             {loading ? (
