@@ -33,7 +33,6 @@ import {
   Phone,
   User,
   RefreshCw,
-  Check,
   ChevronDown,
 } from "lucide-react";
 import { appointmentsApi, staffApi } from "../../../lib/api";
@@ -369,52 +368,36 @@ function BookAppointmentForm({
           </div>
         </div>
 
-        {/* Chief Complaint */}
-        <div>
-          <label className={labelCls}>Chief Complaint / Reason</label>
-          <input
-            type="text"
-            placeholder="e.g. Follow-up for RCT, pain review, review filling…"
-            value={form.chiefComplaint}
-            onChange={(e) => set("chiefComplaint", e.target.value)}
-            className={inputCls}
-          />
-        </div>
-
-        {/* Notes */}
-        <div>
-          <label className={labelCls}>
-            Notes{" "}
-            <span className="normal-case font-normal text-muted-foreground/70">
-              (optional)
-            </span>
-          </label>
-          <textarea
-            rows={2}
-            placeholder="Additional context or instructions…"
-            value={form.notes}
-            onChange={(e) => set("notes", e.target.value)}
-            className={cn(inputCls, "resize-none")}
-          />
-        </div>
-
-        {/* Walk-in */}
-        <label className="flex items-center gap-2.5 cursor-pointer group">
-          <div
-            onClick={() => set("isWalkIn", !form.isWalkIn)}
-            className={cn(
-              "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all cursor-pointer",
-              form.isWalkIn
-                ? "border-primary bg-primary"
-                : "border-input group-hover:border-primary/40",
-            )}
-          >
-            {form.isWalkIn && <Check className="w-3 h-3 text-white" />}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Chief Complaint */}
+          <div>
+            <label className={labelCls}>Chief Complaint / Reason</label>
+            <input
+              type="text"
+              placeholder="e.g. Follow-up for RCT, pain review, review filling…"
+              value={form.chiefComplaint}
+              onChange={(e) => set("chiefComplaint", e.target.value)}
+              className={inputCls}
+            />
           </div>
-          <span className="text-sm text-muted-foreground font-medium">
-            Mark as walk-in
-          </span>
-        </label>
+
+          {/* Notes */}
+          <div>
+            <label className={labelCls}>
+              Notes{" "}
+              <span className="normal-case font-normal text-muted-foreground/70">
+                (optional)
+              </span>
+            </label>
+            <textarea
+              rows={2}
+              placeholder="Additional context or instructions…"
+              value={form.notes}
+              onChange={(e) => set("notes", e.target.value)}
+              className={cn(inputCls, "resize-none")}
+            />
+          </div>
+        </div>
 
         {/* Actions */}
         <div className="flex items-center gap-3 pt-2 border-t border-border/60">
