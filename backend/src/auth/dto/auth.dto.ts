@@ -7,9 +7,12 @@ import { IsEmail, IsString, MinLength, IsEnum, IsOptional } from 'class-validato
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 
+// Login only looks the credentials up, so it does not police their shape —
+// the format rules live on RegisterDto / ChangePasswordDto. This lets a demo
+// install sign in with a plain "admin" account.
 export class LoginDto {
-  @ApiProperty() @IsEmail() email: string;
-  @ApiProperty() @IsString() @MinLength(6) password: string;
+  @ApiProperty() @IsString() @MinLength(1) email: string;
+  @ApiProperty() @IsString() @MinLength(1) password: string;
 }
 
 export class RegisterDto {

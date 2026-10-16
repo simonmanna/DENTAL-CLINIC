@@ -19,13 +19,17 @@ function ToothMark({ className }: { className?: string }) {
 }
 
 const inputClass =
-  'w-full rounded-xl border border-sky-300/15 bg-[#0a1f44]/70 px-4 py-3.5 text-[15px] text-white ' +
+  'w-full rounded-xl border border-sky-300/15 bg-[#0a1f44]/70 px-4 py-3 text-[15px] text-white ' +
   'placeholder:text-sky-100/35 outline-none transition-all duration-200 ' +
   'hover:border-sky-300/30 focus:border-sky-400/70 focus:bg-[#0a1f44]/90 focus:ring-4 focus:ring-sky-400/15';
 
+// Demo installs (built with VITE_DEMO_LOGIN=true) open with the demo account
+// already filled in, so a visitor only has to press Sign in.
+const DEMO_LOGIN = (import.meta as any).env?.VITE_DEMO_LOGIN === 'true';
+
 export function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(DEMO_LOGIN ? 'admin' : '');
+  const [password, setPassword] = useState(DEMO_LOGIN ? 'admin' : '');
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const { login, isLoading } = useAuthStore();
@@ -61,7 +65,7 @@ export function LoginPage() {
 
       {/* ── Card ── */}
       <main
-        className="login-rise relative z-10 w-full max-w-[460px] rounded-[28px] border border-sky-300/20 p-8 shadow-[0_30px_80px_-20px_rgba(2,12,40,0.8)] backdrop-blur-xl sm:p-10"
+        className="login-rise relative z-10 w-full max-w-[540px] rounded-[28px] border border-sky-300/20 px-7 py-6 shadow-[0_30px_80px_-20px_rgba(2,12,40,0.8)] backdrop-blur-xl sm:px-12 sm:py-7"
         style={{
           background:
             'linear-gradient(160deg, rgba(17,78,122,0.92) 0%, rgba(14,52,110,0.9) 50%, rgba(16,36,110,0.92) 100%)',
@@ -70,29 +74,29 @@ export function LoginPage() {
         {/* top sheen */}
         <div aria-hidden="true" className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/50 to-transparent" />
 
-        <div className="mb-7 flex flex-col items-center gap-3 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-sky-300 shadow-inner">
-            <ToothMark className="h-8 w-8" />
+        <div className="mb-5 flex items-center justify-center gap-3">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-sky-300 shadow-inner">
+            <ToothMark className="h-7 w-7" />
           </div>
           <div className="leading-tight">
-            <p className="text-[26px] font-bold tracking-wide text-white">Fshikta Dental</p>
-            <p className="mt-1 text-[17px] font-medium text-sky-100/60">Clinic Management</p>
+            <p className="text-[28px] font-bold tracking-wide text-white">Fshikta Dental</p>
+            <p className="text-[17px] font-medium text-sky-100/60">Clinic Management</p>
           </div>
         </div>
 
-        <h1 className="text-center text-[38px] font-extrabold leading-tight tracking-[-0.02em] text-white">
+        <h1 className="text-center text-[32px] font-extrabold leading-tight tracking-[-0.02em] text-white">
           Welcome back
         </h1>
-        <p className="mt-2 text-center text-[17px] text-sky-100/65">Sign in to your clinic to continue.</p>
+        <p className="mt-1 text-center text-[16px] text-sky-100/65">Sign in to your clinic to continue.</p>
 
-        <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
           <div>
-            <label htmlFor="login-email" className="mb-2 block text-[14px] font-semibold text-sky-50/85">
+            <label htmlFor="login-email" className="mb-1.5 block text-[14px] font-semibold text-sky-50/85">
               Email
             </label>
             <input
               id="login-email"
-              type="email"
+              type={DEMO_LOGIN ? 'text' : 'email'}
               autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -103,7 +107,7 @@ export function LoginPage() {
           </div>
 
           <div>
-            <label htmlFor="login-password" className="mb-2 block text-[14px] font-semibold text-sky-50/85">
+            <label htmlFor="login-password" className="mb-1.5 block text-[14px] font-semibold text-sky-50/85">
               Password
             </label>
             <div className="relative">
@@ -141,7 +145,7 @@ export function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="group relative mt-1 flex h-[52px] w-full items-center justify-center gap-2.5 overflow-hidden rounded-xl text-[15.5px] font-bold text-white shadow-[0_10px_30px_-8px_rgba(56,189,248,0.6)] outline-none transition-all duration-200 hover:shadow-[0_14px_36px_-8px_rgba(99,102,241,0.7)] focus-visible:ring-4 focus-visible:ring-sky-400/40 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+            className="group relative mt-1 flex h-12 w-full items-center justify-center gap-2.5 overflow-hidden rounded-xl text-[15.5px] font-bold text-white shadow-[0_10px_30px_-8px_rgba(56,189,248,0.6)] outline-none transition-all duration-200 hover:shadow-[0_14px_36px_-8px_rgba(99,102,241,0.7)] focus-visible:ring-4 focus-visible:ring-sky-400/40 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
             style={{ background: 'linear-gradient(100deg, #0ea5e9 0%, #6366f1 55%, #0284c7 100%)' }}
           >
             <span
@@ -162,11 +166,11 @@ export function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-[13px] text-sky-100/55">
+        <p className="mt-4 text-center text-[13px] text-sky-100/55">
           Forgot your password? Ask your clinic administrator to reset it.
         </p>
 
-        <div className="mt-6 flex items-center justify-center gap-5 border-t border-white/10 pt-5 text-[12px] text-sky-100/45">
+        <div className="mt-4 flex items-center justify-center gap-5 border-t border-white/10 pt-4 text-[12px] text-sky-100/45">
           <span className="inline-flex items-center gap-1.5">
             <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
             Secure sign-in
