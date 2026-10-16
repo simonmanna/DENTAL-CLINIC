@@ -3008,18 +3008,24 @@ export function VisitBillingPage() {
               )}
 
               {/* Payment Summary Footer */}
-              <div className="mt-4 flex flex-col items-end justify-end gap-6 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Total Paid:</span>
-                  <span className="text-base font-bold text-success">
-                    {formatCurrency(
-                      ((selectedInvoice as any).receipts ?? [])
-                        .filter((r: any) => r.status !== "VOID")
-                        .reduce((sum: number, r: any) => sum + Number(r.amountReceived), 0),
-                      selectedInvoice.currency,
-                    )}
-                  </span>
-                </div>
+              <div className="mt-4 flex flex-col items-end justify-end gap-2 text-sm">
+                {(() => {
+                  // Sum receipts per currency; never mix UGX and USD in one total.
+                  const paidByCurrency: Record<string, number> = { UGX: 0, USD: 0 };
+                  for (const r of (selectedInvoice as any).receipts ?? []) {
+                    if (r.status === "VOID") continue;
+                    const code = r.currencyCode ?? selectedInvoice.currency ?? "UGX";
+                    paidByCurrency[code] = (paidByCurrency[code] ?? 0) + Number(r.amountReceived);
+                  }
+                  return Object.entries(paidByCurrency).map(([code, total]) => (
+                    <div key={code} className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Total Paid ({code}):</span>
+                      <span className="text-base font-bold text-success">
+                        {formatCurrency(total, code)}
+                      </span>
+                    </div>
+                  ));
+                })()}
                 {Number(selectedInvoice.balance ?? 0) > 0 && (
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground">Remaining Balance:</span>
