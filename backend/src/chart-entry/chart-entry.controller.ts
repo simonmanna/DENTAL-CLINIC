@@ -28,13 +28,14 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 import { extractClientContext } from '../common/audit/client-context';
 
-// Diagnoses + chart history are confidential clinical data. RECEPTIONIST /
-// PHARMACIST / LAB_TECHNICIAN are EXCLUDED (least privilege) — front-desk
-// staff schedule and bill, they do not read diagnoses or chart entries.
-// Mirrors PATIENT_CONDITION_READ_ROLES in conditions.controller.ts.
+// Diagnoses + chart history are confidential clinical data. PHARMACIST /
+// LAB_TECHNICIAN are EXCLUDED (least privilege). RECEPTIONIST may VIEW the
+// chart (clinic decision, Oct 2026) — every write route below stays
+// clinician-only, so the front desk sees it read-only.
 const CHART_ENTRY_READ_ROLES = [
   UserRole.DENTIST,
   UserRole.NURSE,
+  UserRole.RECEPTIONIST,
   UserRole.ADMIN,
   UserRole.SUPER_ADMIN,
 ];

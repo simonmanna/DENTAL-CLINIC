@@ -65,6 +65,11 @@ const CLINICAL_READ_ROLES = [
   UserRole.SUPER_ADMIN,
 ];
 
+// The dental chart paints planned / completed work from the patient's
+// procedures, so the front desk (who may view the chart read-only, see
+// CHART_ENTRY_READ_ROLES) can read those two routes — nothing else clinical.
+const CHART_VIEW_ROLES = [...CLINICAL_READ_ROLES, UserRole.RECEPTIONIST];
+
 // Catalog + visit-ledger reads expose pricing/billing data but no diagnoses;
 // front-desk staff need them to bill.
 const BILLING_READ_ROLES = [
@@ -445,14 +450,14 @@ export class TreatmentPlansController {
   }
 
   @ApiOperation({ summary: 'Get all treatment procedures for a patient' })
-  @Roles(...CLINICAL_READ_ROLES)
+  @Roles(...CHART_VIEW_ROLES)
   @Get('patient/:patientId/procedures')
   async getPatientProcedures(@Param('patientId') patientId: string) {
     return this.svc.getPatientProcedures(patientId);
   }
 
   @ApiOperation({ summary: 'Get procedures for a specific tooth' })
-  @Roles(...CLINICAL_READ_ROLES)
+  @Roles(...CHART_VIEW_ROLES)
   @Get('patient/:patientId/tooth/:toothNumber/procedures')
   async getToothProcedures(
     @Param('patientId') patientId: string,

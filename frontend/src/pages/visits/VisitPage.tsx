@@ -238,27 +238,49 @@ function ChartImagingTab({
 
 // ─── Tab definition ───────────────────────────────────────────────────────────
 const TABS = [
-  { id: "chart", label: "Dental Chart", icon: Activity },
-  { id: "treatment", label: "Treatment Plans", icon: ClipboardList },
+  { id: "chart", label: "Dental Chart", icon: Activity, chartView: true },
+  { id: "treatment", label: "Treatment Plans", icon: ClipboardList, clinical: true },
   { id: "exam", label: "Exam/Notes", icon: Stethoscope },
   { id: "appointments", label: "Appointments", icon: CalendarDays },
   { id: "prescriptions", label: "Prescriptions", icon: Pill },
   { id: "imaging", label: "Imaging", icon: Activity },
-  { id: "tx-progress", label: "Progress Report", icon: FileText },
+  { id: "tx-progress", label: "Progress Report", icon: FileText, clinical: true },
   { id: "sessions", label: "Procedure Sessions", icon: Activity },
-  { id: "patient-report", label: "Patient Report", icon: FileText },
+  { id: "patient-report", label: "Patient Report", icon: FileText, clinical: true },
+] as Array<{ id: string; label: string; icon: any; clinical?: boolean; chartView?: boolean }>;
+
+/** The clinical record is readable by clinicians only (same roles as the API). */
+const CLINICAL_ROLES = [
+  UserRole.SUPER_ADMIN,
+  UserRole.ADMIN,
+  UserRole.DENTIST,
+  UserRole.NURSE,
 ];
+
+/** Front desk may also VIEW the chart — read-only (same roles as the API). */
+const CHART_VIEW_ROLES = [...CLINICAL_ROLES, UserRole.RECEPTIONIST];
 
 // ─── Main VisitPage ───────────────────────────────────────────────────────────
 export function VisitPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
-  const [activeTab, setActiveTab] = useState("chart");
+  const [selectedTab, setActiveTab] = useState("chart");
   const [confirmComplete, setConfirmComplete] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const { hasRole } = usePermissions();
   const canManageVisit = hasRole(CAN_MANAGE_VISIT);
+  // Front desk can open a visit and view the chart read-only, but not read
+  // plans / reports (the API answers 403): hide those tabs and land on the
+  // first one they can use.
+  const canSeeClinical = hasRole(CLINICAL_ROLES);
+  const canViewChart = hasRole(CHART_VIEW_ROLES);
+  const visibleTabs = TABS.filter((t) =>
+    t.chartView ? canViewChart : !t.clinical || canSeeClinical,
+  );
+  const activeTab = visibleTabs.some((t) => t.id === selectedTab)
+    ? selectedTab
+    : visibleTabs[0]?.id;
 
   const {
     data: visitData,
@@ -521,7 +543,7 @@ export function VisitPage() {
         {/* ── Tabs ─────────────────────────────────────────────────────── */}
         <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
           <div className="flex border-b border-border bg-muted/50 overflow-x-auto">
-            {TABS.map((tab) => {
+            {visibleTabs.map((tab) => {
               const Icon = tab.icon;
               const active = activeTab === tab.id;
               return (
@@ -547,7 +569,7 @@ export function VisitPage() {
               patientId={patientId}
               visit={visitData}
               visitId={id}
-              readOnly={readOnly}
+              readOnly={readOnly || !canSeeClinical}
               dentistId={dentistId}
             />
           )}

@@ -2755,7 +2755,9 @@ function DentalChartInner({
       >
         <AlertCircle size={28} color="#dc2626" />
         <span style={{ color: "#dc2626", fontSize: 14 }}>
-          Failed to load dental chart
+          {(error as any)?.response?.status === 403
+            ? "Your role can't view the dental chart."
+            : "Failed to load dental chart"}
         </span>
         <button
           onClick={() => refetch()}
