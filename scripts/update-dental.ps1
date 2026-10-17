@@ -59,7 +59,7 @@ npm ci
 
 Write-Host "3/6 prisma generate + deploy..."
 npx prisma generate
-npx prisma db:deploy
+npx prisma migrate deploy
 
 Write-Host "4/6 build backend..."
 npm run build
