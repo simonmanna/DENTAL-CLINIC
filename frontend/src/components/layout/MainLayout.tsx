@@ -147,20 +147,19 @@ const navItems = [
     path: "#",
     children: [
      { label: "Expenses", path: "/expenses", icon: Banknote },
+     { label: "Expense Categories", path: "/expenses/categories", icon: FolderTree },
      { label: "Payments", path: "/PaymentsList", icon: CreditCard },
-     { label: "Accounts", path: "/accounts", icon: Landmark },
     ],
   },
-  // {
-  //   icon: Activity,
-  //   label: "Cash Flow",
-  //   path: "#",
-  //   children: [
-  //     { label: "Cash Flow", path: "/cashflow", icon: BarChart3 },
-  //     { label: "Receipts", path: "/receipts", icon: FileText },
-  //     { label: "Payments", path: "/PaymentsList", icon: CreditCard },
-  //   ],
-  // },
+  {
+    icon: TrendingUp,
+    label: "Cash Flow",
+    path: "#",
+    children: [
+      { label: "Cash Movements", path: "/cash-flow", icon: BarChart3 },
+      { label: "Accounts", path: "/accounts", icon: Landmark },
+    ],
+  },
   { icon: UserCog, label: "Staff", path: "/staff", badge: null },
   {
     icon: Activity,

@@ -1018,6 +1018,7 @@ export class InvoicesService {
           notes: dto.notes ?? null,
           createdById: currentUserId ?? null,
           updatedById: currentUserId ?? null,
+          accountId: account?.id ?? null,
           paidAt: new Date(),
         },
       });

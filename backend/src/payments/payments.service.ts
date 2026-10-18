@@ -227,6 +227,7 @@ export class PaymentsService {
             recordedById: userId,
             createdById: userId,
             updatedById: userId,
+            accountId: accountId ?? null,
             paidAt: paidAt || new Date(),
           },
         });
@@ -331,6 +332,7 @@ export class PaymentsService {
           exchangeRate: 1,
           baseAmount: amount,
           recordedById: userId,
+          accountId: accountId ?? null,
           paidAt: paidAt || new Date(),
         },
       });

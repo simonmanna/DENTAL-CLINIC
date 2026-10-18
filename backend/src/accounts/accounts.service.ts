@@ -34,6 +34,7 @@ export class AccountsService {
         accountNumber: dto.accountNumber,
         description: dto.description,
         isDefault: dto.isDefault ?? false,
+        openingBalance: dto.openingBalance ?? 0,
         currentBalance: dto.openingBalance ?? 0,
       },
     });

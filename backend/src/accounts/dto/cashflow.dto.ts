@@ -74,6 +74,11 @@ export class UpdateAccountDto {
   @IsBoolean()
   @IsOptional()
   isDefault?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  openingBalance?: number;
 }
 
 // ─── Cash Flow DTOs ────────────────────────────────────────────────────────────

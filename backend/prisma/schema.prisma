@@ -442,6 +442,8 @@ enum CashFlowSource {
   TRANSFER_IN // Received from another account (internal transfer)
   TRANSFER_OUT // Sent to another account (internal transfer)
   OPENING_BALANCE // Daily/period opening balance entry
+  DEPOSIT // Cash banked / money put into an account (manual)
+  WITHDRAWAL // Cash taken out of an account (manual)
   ADJUSTMENT // Manual correction
 }
 
@@ -1697,6 +1699,10 @@ model Payment {
   exchangeRate Decimal @default(1) @db.Decimal(10, 4)
   baseAmount   Decimal @default(0) @db.Decimal(10, 2)
 
+  // ── Physical account the money moved through (cash drawer, bank, MoMo) ─
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
   // ── Void tracking ─────────────────────────────────────────────────────
   voidedAt   DateTime?
   voidedBy   String?
@@ -1717,6 +1723,7 @@ model Payment {
   @@index([expenseId])
   @@index([status])
   @@index([paidAt])
+  @@index([accountId])
   @@map("payments")
 }
 
@@ -3030,6 +3037,7 @@ model Account {
   description    String?
   isActive       Boolean         @default(true)
   isDefault      Boolean         @default(false) // Default account for a given currency
+  openingBalance Decimal         @default(0) @db.Decimal(10, 2) // Balance before the first recorded movement
   currentBalance Decimal         @default(0) @db.Decimal(10, 2) // Running balance (kept in sync)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
@@ -3039,6 +3047,7 @@ model Account {
   transfersFrom   AccountTransfer[] @relation("TransferFrom")
   transfersTo     AccountTransfer[] @relation("TransferTo")
   receipts        Receipt[]
+  payments        Payment[] // Payments settled out of / into this account
   ledgerAccounts  LedgerAccount[] // GL buckets reconciled against this physical account
   orderNumber     Int               @default(0)
 

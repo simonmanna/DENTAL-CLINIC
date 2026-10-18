@@ -53,9 +53,11 @@ Rules:
 | Billing | Receipts History totals per currency |
 | Nav / Auth | Settings is top-level below Reports; compact login card |
 | Deploy | Production Docker setup + VPS deploy script |
+| Cash Flow | New "Cash Flow" nav parent → Cash Movements (`/cash-flow`) + Accounts (`/accounts`). One page for every money movement: receipts, expense/supplier payments, deposits, withdrawals, transfers — **DB migration** |
 
-Only one migration in this release:
-`backend/prisma/migrations/20261016120000_drug_prescribe_defaults/`.
+Migrations in this release:
+`backend/prisma/migrations/20261016120000_drug_prescribe_defaults/`
+`backend/prisma/migrations/20261018120000_cash_flow_movements/`.
 
 ## Drug prescribing defaults (important)
 
@@ -103,6 +105,34 @@ UPDATE drugs SET "isCommon" = true, "defaultDosage" = '1',
 WHERE name ILIKE 'amoxicillin%';
 ```
 Back up first; use only `value`s from `prescribing.ts`.
+
+## Cash flow (`/cash-flow`)
+
+Movements are **derived on read**, not materialised, so existing history shows
+up with no backfill and nothing is ever counted twice
+(`backend/src/accounts/cash-flow.service.ts`):
+
+| Source | Derived from | Direction |
+|---|---|---|
+| Patient receipt | `receipts` (status `ACTIVE`) | IN |
+| Expense / supplier payment | `payments` (`COMPLETED`, not voided) | OUT |
+| Other IN payment | `payments` with no receipt row | IN |
+| Transfer in / out | `cash_flow_entries` (two rows per transfer) | IN + OUT |
+| Deposit / Withdrawal / Adjustment | `cash_flow_entries` | IN / OUT |
+
+Rules:
+- An invoice payment and its receipt are the same money: receipts are read from
+  `receipts`, and IN payments are only read when they have no receipt.
+- Only manual sources (`DEPOSIT`, `WITHDRAWAL`, `ADJUSTMENT`, `OPENING_BALANCE`)
+  and transfers are read out of `cash_flow_entries`. Never write a `RECEIPT` or
+  `*_PAYMENT` entry there — it would double-count.
+- Account balance = `accounts.openingBalance` + Σ IN − Σ OUT. `currentBalance`
+  is a denormalised mirror, refreshed when a manual entry/transfer is written.
+- `payments.accountId` records which physical account a payment moved through
+  (new column; old invoice payments backfilled from their receipt). Pass it when
+  adding a new payment path, or the movement shows no account.
+- API: `GET /cash-flow/movements`, `GET /cash-flow/summary`,
+  `POST /cash-flow/deposit|withdraw|transfer`.
 
 ## Coding rules
 

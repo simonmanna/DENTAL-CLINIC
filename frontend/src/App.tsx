@@ -51,6 +51,7 @@ import PurchaseOrderDetailPage from "./pages/purchases/PurchaseOrderDetailPage";
 import { ReceiptsPage } from "./pages/receipts/ReceiptsPage";
 
 import AccountsPage from "./pages/accounts/AccountsPage";
+import CashFlowPage from "./pages/cash-flow/CashFlowPage";
 import GeneralLedgerPage from "./pages/general-ledger/GeneralLedgerPage";
 // import MultiDispensePage from "./pages/pharmacy/MultiDispensePage";
 
@@ -523,6 +524,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <AccountsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cash-flow"
+            element={
+              <ProtectedRoute>
+                <CashFlowPage />
               </ProtectedRoute>
             }
           />
