@@ -134,6 +134,32 @@ Rules:
 - API: `GET /cash-flow/movements`, `GET /cash-flow/summary`,
   `POST /cash-flow/deposit|withdraw|transfer`.
 
+## Seeding expense categories (do this on every install)
+
+The 16 default expense categories (Dental Supplies, Laboratory Fees, Staff
+Salaries, Utilities, Rent, Marketing, Equipment Maintenance, Equipment Purchase,
+Transportation, Cleaning Supplies, Internet & Communication, Professional Fees,
+Training, Insurance, Taxes, Miscellaneous) are defined in
+`backend/src/expense-categories/default-categories.ts`.
+
+After the update steps above (migrate + build), run from `backend/`:
+```
+npx ts-node prisma/seeds/0-seed-ledger-accounts.ts
+npx ts-node prisma/seeds/0-seed-expense-categories.ts
+```
+Then check Expenses → Expense Categories shows all 16.
+
+- Both seeds are idempotent: existing rows (by slug or name) are skipped, never
+  changed or deleted. Safe to re-run; safe on a clinic DB with real expenses.
+- Ledger accounts first, so categories get linked to their GL account
+  (Dental/Cleaning Supplies → 5000, Salaries → 5100, Rent → 5200,
+  Utilities/Internet → 5300, Miscellaneous → 5900; others unlinked).
+- If `ts-node` is missing (e.g. Docker image without dev deps), restarting the
+  backend does the same: `ExpenseCategoriesService` creates any missing default
+  category on startup.
+- Docker/VPS: the runtime image has no `src/`, so the ts-node seed can't run
+  inside it. Restart instead: `docker compose -f docker-compose.prod.yml restart backend`.
+
 ## Coding rules
 
 - All stock changes go through `StockMovementService`
