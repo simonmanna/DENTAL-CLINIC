@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { patientsApi, emrApi } from "../../lib/api";
 import { usePermissions } from "@/hooks/usePermissions";
+import { canViewFinance } from "@/lib/financeAccess";
 import { UserRole } from "@/types/shared";
 import {
   formatDate,
@@ -164,12 +165,12 @@ const TABS = [
   { id: "dental-chart", label: "Dental Chart", icon: Stethoscope, clinical: true },
   { id: "treatment", label: "Treatment Plans", icon: ClipboardList, clinical: true },
   { id: "prescriptions", label: "Prescriptions", icon: Pill },
-  { id: "billing", label: "Billing / Ledger", icon: Receipt },
+  { id: "billing", label: "Billing / Ledger", icon: Receipt, finance: true },
   { id: "progress", label: "Progress Report", icon: ShieldCheck, clinical: true },
   { id: "timeline", label: "Timeline", icon: Activity },
   { id: 'procedures', label: 'Procedures', icon: Activity, clinical: true },
   { id: 'patient-report', label: 'Patient Report', icon: FileText, clinical: true },
-] as Array<{ id: string; label: string; icon: any; clinical?: boolean }>;
+] as Array<{ id: string; label: string; icon: any; clinical?: boolean; finance?: boolean }>;
 
 /** The clinical record is readable by clinicians only (same roles as the API). */
 const CLINICAL_ROLES = [
@@ -185,10 +186,12 @@ function OverviewTab({
   patient,
   navigate,
   setActiveTab,
+  showFinance,
 }: {
   patient: any;
   navigate: any;
   setActiveTab: (t: string) => void;
+  showFinance: boolean;
 }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-1">
@@ -409,12 +412,16 @@ function OverviewTab({
                 color: "text-success",
                 bg: "bg-success-muted/60",
               },
-              {
-                label: "Invoices",
-                value: patient._count?.invoices ?? 0,
-                color: "text-warning",
-                bg: "bg-warning-muted/60",
-              },
+              ...(showFinance
+                ? [
+                    {
+                      label: "Invoices",
+                      value: patient._count?.invoices ?? 0,
+                      color: "text-warning",
+                      bg: "bg-warning-muted/60",
+                    },
+                  ]
+                : []),
               {
                 label: "Prescriptions",
                 value: patient._count?.prescriptions ?? 0,
@@ -437,6 +444,7 @@ function OverviewTab({
         </div>
 
         {/* Recent Invoices snapshot */}
+        {showFinance && (
         <div className="rounded-xl border border-border bg-muted/50 overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-white flex items-center justify-between">
             <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -479,6 +487,7 @@ function OverviewTab({
             )}
           </div>
         </div>
+        )}
 
         {/* Referred By */}
         {(patient.referredBy || patient.referralSource) && (
@@ -591,7 +600,7 @@ function EMRTab({ patient, navigate }: { patient: any; navigate: any }) {
 
 
 // ── Timeline Tab ──────────────────────────────────────────────────────────────
-function TimelineTab({ patientId }: { patientId: string }) {
+function TimelineTab({ patientId, showFinance }: { patientId: string; showFinance: boolean }) {
   const { data: timeline, isLoading } = useQuery({
     queryKey: ["patient-timeline", patientId],
     queryFn: () => emrApi.getTimeline(patientId),
@@ -630,7 +639,9 @@ function TimelineTab({ patientId }: { patientId: string }) {
   return (
     <div className="relative pl-6">
       <div className="absolute left-5 top-2 bottom-2 w-px bg-muted" />
-      {(timeline as any[]).map((event: any, i: number) => {
+      {(timeline as any[])
+        .filter((event: any) => showFinance || event.type !== "INVOICE")
+        .map((event: any, i: number) => {
         const Icon = ICON_MAP[event.type] ?? Activity;
         const cls =
           COLOR_MAP[event.type] ??
@@ -691,7 +702,11 @@ export function PatientDetailPage() {
   const [showNewVisit, setShowNewVisit] = useState(false);
   // Front desk, pharmacy and lab users would only get "Failed to load" from
   // the clinical endpoints (403), so those tabs are not offered to them.
-  const visibleTabs = TABS.filter((t) => !t.clinical || canSeeClinical);
+  const { userRole } = usePermissions();
+  const showFinance = canViewFinance(userRole);
+  const visibleTabs = TABS.filter(
+    (t) => (!t.clinical || canSeeClinical) && (!t.finance || showFinance),
+  );
 
   const {
     data: patient,
@@ -896,6 +911,7 @@ export function PatientDetailPage() {
                 patient={patient}
                 navigate={navigate}
                 setActiveTab={setActiveTab}
+                showFinance={showFinance}
               />
             )}
             {activeTab === "appointments" && (
@@ -919,7 +935,7 @@ export function PatientDetailPage() {
                 patientId={patient.id}
               />
             )}
-            {activeTab === "billing" && (
+            {showFinance && activeTab === "billing" && (
               <BillingTab
                 patientId={patient.id}
                 patientName={`${patient.firstName ?? ""} ${patient.lastName ?? ""}`.trim()}
@@ -932,7 +948,7 @@ export function PatientDetailPage() {
                 patientId={patient.id}
               />
             )}
-            {activeTab === "timeline" && <TimelineTab patientId={patient.id} />}
+            {activeTab === "timeline" && <TimelineTab patientId={patient.id} showFinance={showFinance} />}
             {canSeeClinical && activeTab === "patient-report" && <PatientReportTab patientId={patient.id} />}
           </div>
         </div>

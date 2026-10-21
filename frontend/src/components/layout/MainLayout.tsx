@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/auth.store";
+import { canViewFinance, isFinancePath } from "@/lib/financeAccess";
 import { getInitials } from "../../lib/utils";
 import {
   LayoutDashboard,
@@ -327,6 +328,19 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
 
+  // Clinical staff don't see finance pages; drop groups left empty.
+  const visibleNav = useMemo(() => {
+    if (canViewFinance(user?.role)) return navItems;
+    return navItems
+      .filter((n) => !isFinancePath(n.path))
+      .map((n) =>
+        "children" in n && n.children
+          ? { ...n, children: n.children.filter((c) => !isFinancePath(c.path)) }
+          : n,
+      )
+      .filter((n) => !("children" in n && n.children) || n.children.length > 0);
+  }, [user?.role]);
+
   // Longest matching nav path wins, so /appointments/list doesn't also light
   // up the /appointments calendar entry.
   const isActive = (path: string) => {
@@ -402,7 +416,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
 
       {/* Nav */}
       <nav className="sidebar-scroll flex-1 space-y-1 overflow-y-auto px-3 py-2">
-        {navItems.map((item) => (
+        {visibleNav.map((item) => (
           <NavItem
             key={`${item.label}-${item.path}`}
             item={item}

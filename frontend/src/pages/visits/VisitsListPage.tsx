@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+import { useAuthStore } from "@/store/auth.store";
+import { canViewFinance } from "@/lib/financeAccess";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { visitsApi } from "../../lib/api";
@@ -105,6 +107,7 @@ const COLUMNS: Column[] = [
 
 export function VisitsListPage() {
   const navigate = useNavigate();
+  const showFinance = canViewFinance(useAuthStore((st) => st.user?.role));
 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
@@ -435,7 +438,9 @@ export function VisitsListPage() {
                       <td className="px-4 py-3">
                         <RowActions>
                           <ActionButton tone="view" label="Open" onClick={() => navigate(`/visits/${visit.id}`)} />
+                          {showFinance && (
                           <ActionButton tone="success" label="Bills" icon={CheckCircle} onClick={() => handleCheckOut(visit)} />
+                          )}
                         </RowActions>
                       </td>
                     </tr>

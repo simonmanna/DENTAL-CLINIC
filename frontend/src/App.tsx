@@ -1,6 +1,7 @@
 // src/App.tsx
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { canViewFinance, isFinancePath } from "./lib/financeAccess";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MainLayout } from "./components/layout/MainLayout";
 import { LoginPage } from "./pages/auth/LoginPage";
@@ -111,8 +112,13 @@ const qc = new QueryClient({
 });
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
+  const { pathname } = useLocation();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  // Finance pages are for admins + reception only (see lib/financeAccess).
+  if (user && isFinancePath(pathname) && !canViewFinance(user.role)) {
+    return <Navigate to="/dashboard" replace />;
+  }
   return <MainLayout>{children}</MainLayout>;
 }
 

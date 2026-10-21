@@ -26,7 +26,7 @@ import type { Request as ExpressRequest } from 'express';
 // use the seed scripts.
 
 // C3: receipts expose patient PII + cash detail. Reads are gated to
-// billing-capable roles — clinical-only roles (NURSE / PHARMACIST /
+// finance roles (admins + front desk) — clinical roles (DENTIST / NURSE / PHARMACIST /
 // LAB_TECHNICIAN) have no business browsing the cash book. This restricts
 // WHICH roles can read; cross-patient access within a role is intentional
 // (clinic staff serve all patients). Per-tenant isolation needs a clinic
@@ -35,7 +35,6 @@ const CAN_VIEW_BILLING = [
   UserRole.SUPER_ADMIN,
   UserRole.ADMIN,
   UserRole.RECEPTIONIST,
-  UserRole.DENTIST,
 ];
 
 @Controller('receipts')

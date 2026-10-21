@@ -1,6 +1,8 @@
 // src/accounts/cash-flow.controller.ts
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CashFlowService } from './cash-flow.service';
 import {
   CashFlowQueryDto,
@@ -10,6 +12,8 @@ import {
 } from './dto/cashflow.dto';
 
 @ApiTags('cash-flow')
+// Every money movement — owner/front-desk only, not clinical staff.
+@Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.RECEPTIONIST)
 @Controller('cash-flow')
 @ApiBearerAuth()
 export class CashFlowController {

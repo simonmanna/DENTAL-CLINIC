@@ -20,6 +20,7 @@ import {
 import { PatientReportQueryDto, ReportPeriod } from './dto/report-query.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { canViewFinance } from '../common/finance-roles';
 import { UserRole } from '@prisma/client';
 
 @ApiTags('Patients')
@@ -127,8 +128,15 @@ export class PatientsController {
   // ─── Single-patient endpoints (:id must come LAST) ──────────────────
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.svc.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @CurrentUser('role') role: string | undefined,
+  ) {
+    const patient = await this.svc.findOne(id);
+    if (canViewFinance(role)) return patient;
+    // Clinical staff don't see the patient's invoices.
+    const { invoices: _invoices, ...rest } = patient as any;
+    return { ...rest, _count: { ...rest._count, invoices: undefined } };
   }
 
   @Patch(':id')

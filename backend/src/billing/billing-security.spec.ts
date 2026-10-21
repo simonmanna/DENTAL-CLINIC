@@ -24,13 +24,13 @@ describe('Billing RBAC (C2/C3 regression guards)', () => {
 
     it('BillingController.changeInvoiceCurrency allows billing-capable roles', () => {
       expect([...rolesOf(BillingController, 'changeInvoiceCurrency')].sort()).toEqual(
-        [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DENTIST, UserRole.RECEPTIONIST].sort(),
+        [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.RECEPTIONIST].sort(),
       );
     });
 
     it('BillingController.setInvoiceDiscount allows billing-capable roles only', () => {
       expect([...rolesOf(BillingController, 'setInvoiceDiscount')].sort()).toEqual(
-        [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.DENTIST, UserRole.RECEPTIONIST].sort(),
+        [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.RECEPTIONIST].sort(),
       );
     });
 

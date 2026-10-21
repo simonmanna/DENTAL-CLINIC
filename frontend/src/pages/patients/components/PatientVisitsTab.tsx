@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
+import { useAuthStore } from '@/store/auth.store';
+import { canViewFinance } from '@/lib/financeAccess';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, User, Loader2, CheckCircle } from 'lucide-react';
 import { ActionButton, RowActions } from '@/components/ui/action-button';
@@ -24,6 +26,7 @@ export function PatientVisitsTab({
   patientName?: string;
 }) {
   const navigate = useNavigate();
+  const showFinance = canViewFinance(useAuthStore((st) => st.user?.role));
   const { data: visits, isLoading, error } = useQuery({
     queryKey: ['patient-visits', patientId],
     queryFn: () => treatmentPlansApi.getPatientVisits(patientId),
@@ -70,7 +73,9 @@ export function PatientVisitsTab({
               </span>
               <RowActions>
                 <ActionButton tone="view" label="Open" onClick={() => navigate(`/visits/${visit.id}`)} />
+                {showFinance && (
                 <ActionButton tone="success" label="Bills" icon={CheckCircle} onClick={() => openBills(visit)} />
+                )}
               </RowActions>
             </div>
           </div>

@@ -52,13 +52,11 @@ const ADMIN_ONLY = [UserRole.SUPER_ADMIN, UserRole.ADMIN];
 const CAN_RECORD_PAYMENT = [
   UserRole.SUPER_ADMIN,
   UserRole.ADMIN,
-  UserRole.DENTIST,
   UserRole.RECEPTIONIST,
 ];
 const CAN_CREATE_INVOICE = [
   UserRole.SUPER_ADMIN,
   UserRole.ADMIN,
-  UserRole.DENTIST,
   UserRole.RECEPTIONIST,
 ];
 const CAN_CREATE_LEDGER = [
@@ -74,19 +72,16 @@ const CAN_CREATE_PRESCRIPTION_LEDGER = [
 const CAN_EDIT_INVOICE = [
   UserRole.SUPER_ADMIN,
   UserRole.ADMIN,
-  UserRole.DENTIST,
   UserRole.RECEPTIONIST,
 ];
-// C3: patient ledger / invoice / receipt reads expose financial PII. Gate them
-// to billing-capable roles (incl. DENTIST, who needs to see their patient's
-// charges) and keep clinical-only roles (NURSE / PHARMACIST / LAB_TECHNICIAN)
-// out of the cash book. Cross-patient access within these roles is intentional;
+// C3: patient ledger / invoice / receipt reads expose financial PII. The owner
+// keeps finances to admins + the front desk: clinical roles (DENTIST / NURSE /
+// PHARMACIST / LAB_TECHNICIAN) stay out of invoices, receipts and payments. Cross-patient access within these roles is intentional;
 // per-clinic tenant isolation is a separate (schema-level) follow-up.
 const CAN_VIEW_BILLING = [
   UserRole.SUPER_ADMIN,
   UserRole.ADMIN,
   UserRole.RECEPTIONIST,
-  UserRole.DENTIST,
 ];
 
 @Controller('billing')
@@ -383,7 +378,7 @@ export class BillingController {
   // Draft invoices can be created by anyone with billing access — dentist may
   // open one during a visit, receptionist finalises it.
   @Post('invoices/draft')
-  @Roles(...CAN_CREATE_INVOICE, UserRole.DENTIST)
+  @Roles(...CAN_CREATE_INVOICE)
   createDraftInvoice(
     @Body() dto: CreateDraftInvoiceDto,
     @CurrentUser('id') currentUserId: string | undefined,
@@ -419,7 +414,7 @@ export class BillingController {
 
   // Encounter items can be added by clinical staff and billing staff.
   @Post('invoices/:id/encounter-items')
-  @Roles(...CAN_EDIT_INVOICE, UserRole.DENTIST)
+  @Roles(...CAN_EDIT_INVOICE)
   addEncounterItem(
     @Param('id') id: string,
     @Body() dto: AddEncounterItemDto,

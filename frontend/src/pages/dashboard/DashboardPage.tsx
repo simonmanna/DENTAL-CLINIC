@@ -77,6 +77,7 @@ const CHART_COLORS = [
 ];
 
 const ADMIN_ROLES: UserRole[] = [UserRole.ADMIN, UserRole.SUPER_ADMIN];
+const FINANCE: UserRole[] = [...ADMIN_ROLES, UserRole.RECEPTIONIST];
 
 // ─── Panel ────────────────────────────────────────────────────────────────────
 function Panel({
@@ -221,8 +222,8 @@ const QUICK_ACTIONS: {
   { label: "Appointments", icon: CalendarDays, path: "/appointments", gradient: "from-violet-500 to-purple-700" },
   { label: "Visits", icon: Stethoscope, path: "/visits", gradient: "from-teal-500 to-emerald-700" },
   { label: "Treatment Plans", icon: ClipboardList, path: "/treatment-plans", gradient: "from-indigo-500 to-indigo-700" },
-  { label: "Billing", icon: CreditCard, path: "/billing", gradient: "from-emerald-500 to-green-700" },
-  { label: "Receipts", icon: Receipt, path: "/receipts", gradient: "from-cyan-600 to-sky-700" },
+  { label: "Billing", icon: CreditCard, path: "/billing", gradient: "from-emerald-500 to-green-700", roles: FINANCE },
+  { label: "Receipts", icon: Receipt, path: "/receipts", gradient: "from-cyan-600 to-sky-700", roles: FINANCE },
   {
     label: "Pharmacy",
     icon: Pill,
@@ -288,6 +289,8 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const isAdmin = !!user && ADMIN_ROLES.includes(user.role);
+  // Money figures are for admins + reception only.
+  const showFinance = !!user && FINANCE.includes(user.role);
 
   const { data: dash, isLoading } = useQuery({
     queryKey: ["dashboard"],
@@ -361,7 +364,7 @@ export function DashboardPage() {
       revenue: r.revenue,
     })) ?? [];
 
-  const overdue = d.pending?.overdueInvoices ?? 0;
+  const overdue = showFinance ? (d.pending?.overdueInvoices ?? 0) : 0;
   const outstanding = d.pending?.outstandingBalance ?? 0;
   const lastFull = backupStatus?.lastByKind?.full;
   const backupFailed = !!lastFull && lastFull.status !== "success";
@@ -472,6 +475,7 @@ export function DashboardPage() {
             tone="info"
             onClick={() => navigate("/appointments")}
           />
+          {showFinance && (
           <KpiCard
             label="Revenue Today"
             value={formatCurrency(d.revenue?.today ?? 0, "UGX", true)}
@@ -487,6 +491,8 @@ export function DashboardPage() {
             }}
             onClick={isAdmin ? () => navigate("/reports") : undefined}
           />
+          )}
+          {showFinance && (
           <KpiCard
             label="Pending Invoices"
             value={String(d.pending?.invoices ?? "—")}
@@ -495,6 +501,7 @@ export function DashboardPage() {
             tone={overdue > 0 ? "danger" : "warning"}
             onClick={() => navigate("/billing")}
           />
+          )}
         </div>
       </section>
 

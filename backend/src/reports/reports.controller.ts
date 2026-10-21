@@ -15,6 +15,8 @@ import { VisitReportQueryDto, ExportReportDto } from './dto/report.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 import { ReportAuditInterceptor, renderCsv } from '../reports-common';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { canViewFinance } from '../common/finance-roles';
 
 export enum ReportPeriod {
   TODAY = 'today',
@@ -158,8 +160,12 @@ async getDashboardReport(type: ReportType = ReportType.SUMMARY) {
     UserRole.ADMIN,
     UserRole.SUPER_ADMIN,
   )
-  getDashboard() {
-    return this.svc.getDashboardSummary();
+  async getDashboard(@CurrentUser('role') role?: string) {
+    const summary = await this.svc.getDashboardSummary();
+    if (canViewFinance(role)) return summary;
+    // Clinical staff get the clinical figures, not revenue or balances.
+    const { revenue: _revenue, pending: _pending, ...rest } = summary as any;
+    return rest;
   }
 
   @Get('revenue')

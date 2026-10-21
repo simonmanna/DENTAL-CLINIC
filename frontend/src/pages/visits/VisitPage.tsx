@@ -20,6 +20,8 @@ import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import { UserRole } from "@/types/shared";
 import { billingApi } from "@/lib/api/billing";
+import { useAuthStore } from "@/store/auth.store";
+import { canViewFinance } from "@/lib/financeAccess";
 
 import { TreatmentPlanTab } from "./components/TreatmentPlanTab";
 import { DentalChart } from "./components/DentalChart";
@@ -69,7 +71,8 @@ function CompleteVisitDialog({
   const { data: drafts } = useQuery({
     queryKey: ["billing-invoices", visitId, "DRAFT"],
     queryFn: () => billingApi.getInvoices({ visitId, status: "DRAFT" }),
-    enabled: open,
+    // Finance roles only; the API refuses clinical staff.
+    enabled: open && canViewFinance(useAuthStore.getState().user?.role),
   });
   const draftCount = (drafts as any)?.data?.length ?? 0;
   if (!open) return null;

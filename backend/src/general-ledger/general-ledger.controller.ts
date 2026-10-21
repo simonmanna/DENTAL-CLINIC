@@ -18,7 +18,11 @@ import {
   CreateLedgerAccountDto,
   UpdateLedgerAccountDto,
 } from './dto/account.dto';
-import { JournalStatus } from '@prisma/client';
+import { JournalStatus, UserRole } from '@prisma/client';
+import { Roles } from '../auth/decorators/roles.decorator';
+
+// Ledgers and statements are owner/front-desk only, not clinical staff.
+const FINANCE_ROLES = [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.RECEPTIONIST];
 
 @Controller('general-ledger')
 @UseGuards(JwtAuthGuard)
@@ -71,6 +75,7 @@ export class GeneralLedgerController {
 
   /** Account ledger (T-account) with running balance. */
   @Get('accounts/:code/ledger')
+  @Roles(...FINANCE_ROLES)
   accountLedger(
     @Param('code') code: string,
     @Query('from') from?: string,
@@ -89,11 +94,13 @@ export class GeneralLedgerController {
 
   // ── Reports ─────────────────────────────────────────────────────────────────
   @Get('trial-balance')
+  @Roles(...FINANCE_ROLES)
   trialBalance(@Query('asOf') asOf?: string) {
     return this.gl.trialBalance(asOf ? new Date(asOf) : undefined);
   }
 
   @Get('reports/income-statement')
+  @Roles(...FINANCE_ROLES)
   incomeStatement(@Query('from') from?: string, @Query('to') to?: string) {
     return this.gl.incomeStatement(
       from ? new Date(from) : undefined,
@@ -102,12 +109,14 @@ export class GeneralLedgerController {
   }
 
   @Get('reports/balance-sheet')
+  @Roles(...FINANCE_ROLES)
   balanceSheet(@Query('asOf') asOf?: string) {
     return this.gl.balanceSheet(asOf ? new Date(asOf) : undefined);
   }
 
   // ── Journal ────────────────────────────────────────────────────────────────
   @Get('journal')
+  @Roles(...FINANCE_ROLES)
   getJournal(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -131,6 +140,7 @@ export class GeneralLedgerController {
   }
 
   @Get('journal/:id')
+  @Roles(...FINANCE_ROLES)
   getEntry(@Param('id') id: string) {
     return this.gl.getEntry(id);
   }
