@@ -419,6 +419,7 @@ export class PatientsService {
     if (dto.email !== undefined) data.email = dto.email;
     if (dto.address !== undefined) data.address = dto.address;
     if (dto.city !== undefined) data.city = dto.city;
+    if (dto.country !== undefined) data.country = dto.country;
     if (dto.occupation !== undefined) data.occupation = dto.occupation;
     if (dto.bloodGroup !== undefined) data.bloodGroup = dto.bloodGroup;
 

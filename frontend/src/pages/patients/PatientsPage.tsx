@@ -58,6 +58,7 @@ import {
 import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { usePermissions } from "@/hooks/usePermissions";
 import { DeletePatientDialog } from "./components/DeletePatientDialog";
+import { COUNTRIES, DEFAULT_COUNTRY } from "@/lib/countries";
 
 interface PaginatedResponse<T> {
   data: T[];
@@ -712,6 +713,7 @@ const EMPTY_FORM = {
   gender: "",
   address: "",
   city: "",
+  country: DEFAULT_COUNTRY,
   age: "",
   bloodGroup: "",
   allergies: "",
@@ -792,6 +794,7 @@ function PatientFormModal({
     phone?: string;
     age?: string;
     gender?: string;
+    address?: string;
   }>({});
 
   // ✅ Properly sync form when modal opens or initial data changes
@@ -857,6 +860,7 @@ function PatientFormModal({
       newErrors.age = "Valid age (0-120) is required";
     }
     if (!form.gender) newErrors.gender = "Gender is required";
+    if (!form.address?.trim()) newErrors.address = "Address is required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -989,6 +993,22 @@ function PatientFormModal({
                   <option value="FEMALE">Female</option>
                 </select>
               </Field>
+              <Field label="Country">
+                <select
+                  className="pts-input-select"
+                  value={form.country || DEFAULT_COUNTRY}
+                  onChange={(e) => handleFieldChange("country", e.target.value)}
+                >
+                  {form.country && !COUNTRIES.includes(form.country) && (
+                    <option value={form.country}>{form.country}</option>
+                  )}
+                  {COUNTRIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </Field>
               <Field label="City">
                 <input
                   className="pts-input"
@@ -997,9 +1017,9 @@ function PatientFormModal({
                   placeholder="Kampala"
                 />
               </Field>
-              <Field label="Address">
+              <Field label="Address" required error={errors.address}>
                 <input
-                  className="pts-input"
+                  className={`pts-input ${errors.address ? "pts-input-error" : ""}`}
                   value={form.address}
                   onChange={(e) => handleFieldChange("address", e.target.value)}
                   placeholder="Street address"

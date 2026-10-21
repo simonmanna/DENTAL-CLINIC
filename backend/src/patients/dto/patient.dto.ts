@@ -13,6 +13,7 @@ import {
   IsBoolean,
   IsNumber,
   IsInt,
+  IsNotEmpty,
 } from 'class-validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { Gender } from '@prisma/client';
@@ -40,8 +41,9 @@ export class CreatePatientDto {
   @IsString()
   alternatePhone?: string;
   @ApiProperty({ required: false }) @IsOptional() @IsEmail() email?: string;
-  @ApiProperty({ required: false }) @IsOptional() @IsString() address?: string;
+  @ApiProperty() @IsString() @IsNotEmpty() address: string;
   @ApiProperty({ required: false }) @IsOptional() @IsString() city?: string;
+  @ApiProperty({ required: false }) @IsOptional() @IsString() country?: string;
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
