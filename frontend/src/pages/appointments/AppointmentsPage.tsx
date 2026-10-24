@@ -1617,7 +1617,7 @@ export function AppointmentsPage() {
   const { data: calData, isLoading } = useQuery({
     queryKey: ["cal", dateStr, filterDentist, view],
     queryFn: () =>
-      appointmentsApi.getAll({
+      appointmentsApi.getAllPages({
         date: view === "day" ? dateStr : undefined,
         startDate:
           view === "week"
@@ -1628,7 +1628,6 @@ export function AppointmentsPage() {
             ? format(weekDays[6], "yyyy-MM-dd") + "T23:59:59"
             : undefined,
         dentistId: filterDentist === "all" ? undefined : filterDentist,
-        limit: 200,
       }),
   });
 
@@ -1636,7 +1635,7 @@ export function AppointmentsPage() {
     queryKey: ["apt-stats"],
     queryFn: () =>
       appointmentsApi
-        .getAll({ date: format(new Date(), "yyyy-MM-dd"), limit: 200 })
+        .getAllPages({ date: format(new Date(), "yyyy-MM-dd") })
         .then((r) => {
           const apts = r.data || [];
           return {

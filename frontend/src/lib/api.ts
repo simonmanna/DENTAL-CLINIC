@@ -125,6 +125,24 @@ export const patientsApi = {
 export const appointmentsApi = {
   getAll: (params?: any) =>
     api.get("/appointments", { params }).then((r) => r.data),
+  // The API caps `limit` at 100, so walk every page for views that must show
+  // all matches (calendar week, drafts). Returns the same { data, meta } shape.
+  getAllPages: async (params?: any) => {
+    const limit = 100;
+    const first = await api
+      .get("/appointments", { params: { ...params, page: 1, limit } })
+      .then((r) => r.data);
+    const totalPages = first?.meta?.totalPages ?? 1;
+    const rest = await Promise.all(
+      Array.from({ length: Math.max(0, totalPages - 1) }, (_, i) =>
+        api
+          .get("/appointments", { params: { ...params, page: i + 2, limit } })
+          .then((r) => r.data),
+      ),
+    );
+    const data = [first, ...rest].flatMap((p) => p?.data ?? []);
+    return { data, meta: { ...first?.meta, page: 1, limit: data.length } };
+  },
   getOne: (id: string) => api.get(`/appointments/${id}`).then((r) => r.data),
   create: (data: any) => api.post("/appointments", data).then((r) => r.data),
   update: (id: string, data: any) =>

@@ -1073,10 +1073,9 @@ export function DraftAppointmentsPage() {
   } = useQuery({
     queryKey: ["drafts", filterDentist],
     queryFn: () =>
-      appointmentsApi.getAll({
+      appointmentsApi.getAllPages({
         status: "DRAFT",
         dentistId: filterDentist === "all" ? undefined : filterDentist,
-        limit: 500,
       }),
     refetchInterval: 60_000,
   });
