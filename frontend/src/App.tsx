@@ -86,6 +86,7 @@ import PatientListReportPage from "./pages/patients/PatientListReportPage";
 import TreatmentReports from "./pages/treatmentplans/TreatmentReports";
 import InventoryReports from "./pages/inventory/InventoryReport";
 import { SalesReports, ExpensePaymentsReports } from "./pages/finance/FinancialReports";
+import { NetReport, NetSummaryReport } from "./pages/finance/NetReports";
 import { DraftAppointmentsPage } from "./pages/appointments/AppointmentsDraftPage";
 import { AppointmentsListPage } from "./pages/appointments/AppointmentsListPage";
 import NotificationsPage from "./pages/notifications/NotificationsPage";
@@ -192,6 +193,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ExpensePaymentsReports />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/NetReport"
+            element={
+              <ProtectedRoute>
+                <NetReport />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/NetSummaryReport"
+            element={
+              <ProtectedRoute>
+                <NetSummaryReport />
               </ProtectedRoute>
             }
           />

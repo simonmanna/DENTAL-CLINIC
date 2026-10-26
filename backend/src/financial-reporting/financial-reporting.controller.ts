@@ -1,7 +1,11 @@
 import { Controller, Get, Query, UseInterceptors } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { FinancialReportingService } from './financial-reporting.service';
-import { FinancialReportQueryDto } from './dto/financial-report-query.dto';
+import {
+  FinancialReportQueryDto,
+  NetReportQueryDto,
+} from './dto/financial-report-query.dto';
+import { NetReportService } from './net-report.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 import { ReportAuditInterceptor } from '../reports-common';
@@ -11,7 +15,10 @@ import { ReportAuditInterceptor } from '../reports-common';
 @UseInterceptors(ReportAuditInterceptor)
 @Controller('financial-reporting')
 export class FinancialReportingController {
-  constructor(private readonly service: FinancialReportingService) {}
+  constructor(
+    private readonly service: FinancialReportingService,
+    private readonly netReports: NetReportService,
+  ) {}
 
   /**
    * All financial reports are gated to MANAGER+ — financial data is
@@ -44,5 +51,15 @@ export class FinancialReportingController {
   @ApiOperation({ summary: 'Expense report grouped by category' })
   getExpensesReport(@Query() query: FinancialReportQueryDto) {
     return this.service.getExpensesReport(query);
+  }
+
+  @Get('net')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.RECEPTIONIST)
+  @ApiOperation({
+    summary:
+      'Net report: sales vs expenses or receipts vs payments (lines + summary)',
+  })
+  getNetReport(@Query() query: NetReportQueryDto) {
+    return this.netReports.getNetReport(query);
   }
 }

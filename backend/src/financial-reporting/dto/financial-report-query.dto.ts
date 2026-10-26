@@ -48,3 +48,9 @@ export class FinancialReportQueryDto {
   /** Query strings arrive as "true"/"false"; coerce after validation. */
   @IsOptional() @IsBooleanString() overdueOnly?: string;
 }
+
+/** Net Report / Net Summary — which pair of money flows to net. */
+export class NetReportQueryDto extends FinancialReportQueryDto {
+  @IsOptional() @IsIn(['sales-expenses', 'receipts-payments']) basis?: string;
+  @IsOptional() @IsIn(['day', 'week', 'month']) groupBy?: string;
+}

@@ -178,6 +178,8 @@ const navItems = [
       },
       { label: "Sales & Receipts", path: "/SalesReports", icon: Receipt },
       { label: "Expenses & Payments", path: "/ExpensePaymentsReports", icon: Banknote },
+      { label: "Net Report", path: "/NetReport", icon: Scale },
+      { label: "Net Summary Report", path: "/NetSummaryReport", icon: BarChart3 },
       { label: "Inventory Report", path: "/InventoryReports", icon: FileText },
       { label: "General Ledger", path: "/general-ledger", icon: BookOpen },
       { label: "Audit Log", path: "/audit-log", icon: ShieldCheck },

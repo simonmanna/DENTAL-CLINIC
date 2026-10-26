@@ -3,6 +3,6 @@ import { createAutoMock } from '../test-utils/prisma-mock';
 
 describe('FinancialReportingController', () => {
   it('constructs with its injected service', () => {
-    expect(new FinancialReportingController(createAutoMock())).toBeDefined();
+    expect(new FinancialReportingController(createAutoMock(), createAutoMock())).toBeDefined();
   });
 });

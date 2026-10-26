@@ -20,6 +20,8 @@ export const FINANCE_PATHS = [
   "/accounts",
   "/SalesReports",
   "/ExpensePaymentsReports",
+  "/NetReport",
+  "/NetSummaryReport",
   "/general-ledger",
   "/VisitReports",
   "/reports",

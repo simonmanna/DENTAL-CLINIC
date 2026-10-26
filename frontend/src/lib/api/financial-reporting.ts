@@ -372,3 +372,70 @@ export interface ExpenseRow {
   }[];
 }
 
+
+// ── Net Report / Net Summary ───────────────────────────────────────────────
+
+export type NetBasis = "sales-expenses" | "receipts-payments";
+export type NetGroupBy = "day" | "week" | "month";
+
+export interface NetReportFilters {
+  basis: NetBasis;
+  groupBy?: NetGroupBy;
+  startDate?: string;
+  endDate?: string;
+  startTime?: string;
+  endTime?: string;
+}
+
+export interface NetLine {
+  id: string;
+  date: string;
+  direction: "IN" | "OUT";
+  kind: string;
+  reference: string;
+  party: string | null;
+  description: string | null;
+  category: string | null;
+  method: string | null;
+  currency: string;
+  amount: number;
+  baseAmount: number;
+  runningNet: number;
+}
+
+export interface NetReport {
+  asOf: string;
+  basis: NetBasis;
+  groupBy: NetGroupBy;
+  baseCurrency: string;
+  totals: {
+    in: number;
+    out: number;
+    net: number;
+    inCount: number;
+    outCount: number;
+    marginPct: number | null;
+  };
+  periods: {
+    period: string;
+    in: number;
+    out: number;
+    net: number;
+    inCount: number;
+    outCount: number;
+  }[];
+  inByCurrency: { currency: string; amount: number; baseAmount: number; count: number }[];
+  outByCurrency: { currency: string; amount: number; baseAmount: number; count: number }[];
+  inBreakdown: { label: string; amount: number; count: number }[];
+  outBreakdown: { label: string; amount: number; count: number }[];
+  lines: NetLine[];
+  linesTotal: number;
+  linesTruncated: boolean;
+}
+
+export const netReportApi = {
+  get: (filters: NetReportFilters) =>
+    api
+      .get<NetReport>(`${BASE}/net`, { params: cleanParams(filters) })
+      .then((r) => r.data),
+};
