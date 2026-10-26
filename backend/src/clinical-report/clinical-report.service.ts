@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TreatmentStatus, SessionStatus, Prisma } from '@prisma/client';
 import { UserRole } from '@prisma/client';
+import { DENTIST_STAFF_WHERE } from '../staff/dentist-filter';
 import { clinicDateRange } from '../reports-common';
 import {
     ClinicalReportQueryDto,
@@ -1017,7 +1018,7 @@ export class ClinicalReportsService {
         const dentistFilter = query.dentistId ? { id: query.dentistId } : {};
 
         const dentists = await this.prisma.staff.findMany({
-            where: { ...dentistFilter, user: { role: { in: ['DENTIST'] } } },
+            where: { ...dentistFilter, ...DENTIST_STAFF_WHERE },
             select: { id: true, firstName: true, lastName: true, specialization: true },
         });
 
@@ -1104,9 +1105,10 @@ export class ClinicalReportsService {
         const providerRoles = [UserRole.DENTIST, UserRole.NURSE];
         return this.prisma.staff.findMany({
           where: {
-            user: {
-              role: { in: providerRoles },
-            },
+            OR: [
+              { user: { role: { in: providerRoles } } },
+              DENTIST_STAFF_WHERE,
+            ],
           },
           select: {
             id: true,

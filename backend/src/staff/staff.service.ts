@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { UserRole } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { DENTIST_STAFF_WHERE } from './dentist-filter';
 
 @Injectable()
 export class StaffService {
@@ -14,13 +15,21 @@ export class StaffService {
   async findAll(role?: UserRole, search?: string) {
     return this.prisma.staff.findMany({
       where: {
-        ...(role && { user: { role } }),
-        ...(search && {
-          OR: [
-            { firstName: { contains: search, mode: 'insensitive' } },
-            { lastName: { contains: search, mode: 'insensitive' } },
-          ],
-        }),
+        AND: [
+          role === UserRole.DENTIST
+            ? DENTIST_STAFF_WHERE
+            : role
+              ? { user: { role } }
+              : {},
+          search
+            ? {
+                OR: [
+                  { firstName: { contains: search, mode: 'insensitive' } },
+                  { lastName: { contains: search, mode: 'insensitive' } },
+                ],
+              }
+            : {},
+        ],
       },
       include: {
         user: {
@@ -106,7 +115,7 @@ export class StaffService {
 
   async getDentists() {
     return this.prisma.staff.findMany({
-      where: { user: { role: 'DENTIST', isActive: true } },
+      where: { AND: [DENTIST_STAFF_WHERE, { user: { isActive: true } }] },
       select: {
         id: true,
         firstName: true,

@@ -13,6 +13,7 @@ import {
   CreateNotificationDto,
   NotificationQueryDto,
 } from './dto/notification.dto';
+import { DENTIST_USER_WHERE } from '../staff/dentist-filter';
 
 @Injectable()
 export class NotificationsService {
@@ -59,7 +60,12 @@ export class NotificationsService {
       targetUserIds = options.userIds;
     } else if (dto.targetRole) {
       const users = await this.prisma.user.findMany({
-        where: { role: dto.targetRole, isActive: true },
+        where: {
+          ...(dto.targetRole === UserRole.DENTIST
+            ? DENTIST_USER_WHERE
+            : { role: dto.targetRole }),
+          isActive: true,
+        },
         select: { id: true },
       });
       targetUserIds = users.map((u) => u.id);
@@ -122,7 +128,13 @@ export class NotificationsService {
     excludeUserId?: string,
   ) {
     const users = await this.prisma.user.findMany({
-      where: { role: { in: roles }, isActive: true },
+      where: {
+        OR: [
+          { role: { in: roles } },
+          ...(roles.includes(UserRole.DENTIST) ? [DENTIST_USER_WHERE] : []),
+        ],
+        isActive: true,
+      },
       select: { id: true },
     });
 

@@ -57,6 +57,7 @@ import {
 } from "lucide-react";
 import { ActionButton, RowActions } from "@/components/ui/action-button";
 import { usePermissions } from "@/hooks/usePermissions";
+import { UserRole } from "@/types/shared";
 import { DeletePatientDialog } from "./components/DeletePatientDialog";
 import { COUNTRIES, DEFAULT_COUNTRY } from "@/lib/countries";
 
@@ -1316,8 +1317,15 @@ export function PatientsPage() {
   const [page, setPage] = useState(1);
   const [showAdd, setShowAdd] = useState(false);
   const [editPatient, setEditPatient] = useState<any>(null);
-  // Soft delete — admins can switch the list to the deleted patients to restore.
-  const { isAdmin } = usePermissions();
+  // Soft delete — admins, dentists and reception can delete patients and
+  // switch the list to the deleted patients to restore (same roles as the API).
+  const { hasRole } = usePermissions();
+  const canDeletePatients = hasRole([
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.DENTIST,
+    UserRole.RECEPTIONIST,
+  ]);
   const [showDeleted, setShowDeleted] = useState(false);
   const [deletePatient, setDeletePatient] = useState<Patient | null>(null);
 
@@ -1607,7 +1615,7 @@ export function PatientsPage() {
             <option value="OTHER">Other</option>
           </select>
 
-          {isAdmin && (
+          {canDeletePatients && (
             <select
               className="pts-select"
               aria-label="Show active or deleted patients"
@@ -1913,7 +1921,7 @@ export function PatientsPage() {
                               ) : (
                                 <>
                                   <ActionButton iconOnly tone="edit" label={`Edit ${fullName}`} onClick={() => setEditPatient(p)} />
-                                  {isAdmin && (
+                                  {canDeletePatients && (
                                     <ActionButton iconOnly tone="delete" label={`Delete ${fullName}`} onClick={() => setDeletePatient(p)} />
                                   )}
                                 </>

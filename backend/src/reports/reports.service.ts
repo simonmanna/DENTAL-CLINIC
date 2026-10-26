@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { InvoiceStatus, Prisma, VisitStatus } from '@prisma/client';
+import { DENTIST_STAFF_WHERE } from '../staff/dentist-filter';
 
 /**
  * Per-visit money from the visit's invoices (base currency). Visit.totalCost
@@ -524,7 +525,10 @@ export class ReportsService {
 
   async getDentistPerformance(startDate: string, endDate: string) {
     const dentists = await this.prisma.staff.findMany({
-      where: { user: { role: { in: ['DENTIST', 'HYGIENIST', 'NURSE'] as any } }, isAvailable: true },
+      where: {
+        OR: [{ user: { role: 'NURSE' } }, DENTIST_STAFF_WHERE],
+        isAvailable: true,
+      },
       select: {
         id: true,
         firstName: true,

@@ -147,7 +147,12 @@ export class PatientsController {
   // Soft delete — the patient is hidden from lists but all history is kept
   // and the record can be restored.
   @Delete(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.DENTIST,
+    UserRole.RECEPTIONIST,
+  )
   softDelete(
     @Param('id') id: string,
     @Body() dto: { reason?: string },
@@ -157,7 +162,12 @@ export class PatientsController {
   }
 
   @Post(':id/restore')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.DENTIST,
+    UserRole.RECEPTIONIST,
+  )
   restore(
     @Param('id') id: string,
     @CurrentUser('id') currentUserId: string | undefined,
