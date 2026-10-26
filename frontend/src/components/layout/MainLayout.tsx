@@ -150,6 +150,9 @@ const navItems = [
      { label: "Expenses", path: "/expenses", icon: Banknote },
      { label: "Expense Categories", path: "/expenses/categories", icon: FolderTree },
      { label: "Payments", path: "/PaymentsList", icon: CreditCard },
+     // Shortcuts to pages that also live under Purchases / Reports.
+     { label: "Suppliers", path: "/suppliers", icon: Store },
+     { label: "Expenses Report", path: "/ExpensePaymentsReports", icon: BarChart3 },
     ],
   },
   {
