@@ -1,7 +1,8 @@
 // src/suppliers/suppliers.controller.ts
 // ─────────────────────────────────────────────────────────────────────────────
 // Production-hardened suppliers controller (post-audit).
-//   • @Roles on every endpoint — RECEPTIONIST cannot create/edit/delete vendors.
+//   • @Roles on every endpoint — RECEPTIONIST can read vendors (expense
+//     entry) but cannot create/edit/delete them.
 //   • Soft-delete by default; hard-delete reserved for retention job.
 // ─────────────────────────────────────────────────────────────────────────────
 import {
@@ -43,7 +44,7 @@ export class SuppliersController {
   }
 
   @Get()
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.PHARMACIST)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.PHARMACIST)
   findAll(@Query() query: SupplierQueryDto) {
     return this.suppliersService.findAll(query);
   }
@@ -55,7 +56,7 @@ export class SuppliersController {
   }
 
   @Get(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.PHARMACIST)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.PHARMACIST)
   findOne(@Param('id') id: string) {
     return this.suppliersService.findOne(id);
   }

@@ -1,7 +1,8 @@
 // src/expenses/expenses.controller.ts
 // ─────────────────────────────────────────────────────────────────────────────
 // Production-hardened expense controller (post-audit).
-//   • @Roles on every endpoint — receptionists cannot create/approve/pay/void.
+//   • @Roles on every endpoint — receptionists enter, edit, delete and restore
+//     expenses but cannot approve/pay/void.
 //   • Idempotency-Key header replay for every write (browser-retry safe).
 //   • Client-context (IP / user-agent) extracted once and threaded through to
 //     the audit log; pay/void endpoints accept it via @Req().
@@ -56,7 +57,7 @@ export class ExpensesController {
   // ─── CRUD ───────────────────────────────────────────────────────────────────
 
   @Post()
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.DENTIST, UserRole.NURSE, UserRole.PHARMACIST)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.DENTIST, UserRole.NURSE, UserRole.PHARMACIST)
   @ApiOperation({
     summary:
       'Create an expense. Idempotent via Idempotency-Key header (24h replay).',
@@ -104,7 +105,7 @@ export class ExpensesController {
   }
 
   @Get('stats')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.PHARMACIST)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.PHARMACIST)
   @ApiOperation({ summary: 'Expense statistics' })
   getStats(
     @Query('dateFrom') dateFrom?: string,
@@ -120,7 +121,7 @@ export class ExpensesController {
   }
 
   @Get(':id/audit')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.PHARMACIST)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.PHARMACIST)
   @ApiOperation({ summary: 'Audit trail for an expense (incl. its payments)' })
   getAudit(@Param('id') id: string) {
     return this.svc.getExpenseAudit(id);
@@ -129,7 +130,7 @@ export class ExpensesController {
   // PATCH restricted to DRAFT only. APPROVED rows must be voided + recreated
   // or amended through POST /:id/amend (which re-enters approval queue).
   @Patch(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.DENTIST, UserRole.NURSE, UserRole.PHARMACIST)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.DENTIST, UserRole.NURSE, UserRole.PHARMACIST)
   @ApiOperation({ summary: 'Update a DRAFT expense (APPROVED requires amend)' })
   update(
     @Req() req: any,
@@ -152,7 +153,7 @@ export class ExpensesController {
   // Creates a draft amendment (carry-over fields) and requires re-approval,
   // preserving a full audit trail of who-changed-what-when and why.
   @Post(':id/amend')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.DENTIST, UserRole.NURSE, UserRole.PHARMACIST)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.DENTIST, UserRole.NURSE, UserRole.PHARMACIST)
   @ApiOperation({
     summary:
       'Request amendment of an APPROVED expense (re-enters approval queue)',
@@ -177,7 +178,7 @@ export class ExpensesController {
   // Soft-delete only — never hard-deletes a financial row. Reports can still
   // surface deleted rows in an "archive" view by passing ?includeDeleted=true.
   @Delete(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.RECEPTIONIST)
   @ApiOperation({
     summary: 'Soft-delete an expense (never hard-deletes a financial row)',
   })
@@ -203,7 +204,7 @@ export class ExpensesController {
   }
 
   @Post(':id/restore')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.RECEPTIONIST)
   @ApiOperation({ summary: 'Restore a soft-deleted expense' })
   restore(
     @Req() req: any,
@@ -263,7 +264,7 @@ export class ExpensesController {
   }
 
   @Post(':id/cancel')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.DENTIST, UserRole.NURSE, UserRole.PHARMACIST)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.DENTIST, UserRole.NURSE, UserRole.PHARMACIST)
   @ApiOperation({ summary: 'Cancel an unpaid expense (creator-self allowed)' })
   cancel(
     @Req() req: any,

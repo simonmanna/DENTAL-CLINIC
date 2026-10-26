@@ -1,7 +1,8 @@
 // src/expense-categories/expense-categories.controller.ts
 // ─────────────────────────────────────────────────────────────────────────────
 // Production-hardened expense-categories controller (post-audit).
-//   • @Roles on every endpoint — RECEPTIONIST can read but cannot mutate.
+//   • @Roles on every endpoint — RECEPTIONIST can read, add, edit and
+//     delete.
 // ─────────────────────────────────────────────────────────────────────────────
 import {
   Controller,
@@ -43,6 +44,7 @@ export class ExpenseCategoriesController {
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.ADMIN,
+    UserRole.RECEPTIONIST,
     UserRole.DENTIST,
     UserRole.NURSE,
     UserRole.PHARMACIST,
@@ -58,6 +60,7 @@ export class ExpenseCategoriesController {
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.ADMIN,
+    UserRole.RECEPTIONIST,
     UserRole.DENTIST,
     UserRole.NURSE,
     UserRole.PHARMACIST,
@@ -68,7 +71,7 @@ export class ExpenseCategoriesController {
   }
 
   @Post()
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.RECEPTIONIST)
   @ApiOperation({ summary: 'Create an expense category' })
   @HttpCode(HttpStatus.CREATED)
   create(@Req() req: any, @Body() dto: CreateExpenseCategoryDto) {
@@ -77,7 +80,7 @@ export class ExpenseCategoriesController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.RECEPTIONIST)
   @ApiOperation({ summary: 'Edit / disable an expense category' })
   update(
     @Req() req: any,
@@ -89,7 +92,7 @@ export class ExpenseCategoriesController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.RECEPTIONIST)
   @ApiOperation({ summary: 'Delete an unused, non-system category' })
   @HttpCode(HttpStatus.OK)
   remove(
