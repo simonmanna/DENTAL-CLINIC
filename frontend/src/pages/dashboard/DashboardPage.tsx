@@ -253,8 +253,8 @@ function DashboardSkeleton() {
   return (
     <div className="space-y-4 p-4" aria-busy="true" aria-label="Loading dashboard">
       <Skeleton className="h-9 w-64" />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
           <Skeleton key={i} className="h-28" />
         ))}
       </div>
@@ -456,7 +456,7 @@ export function DashboardPage() {
 
       {/* ── KPIs ── */}
       <section aria-label="Key figures">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <KpiCard
             label="Total Patients"
             value={d.patients?.total?.toLocaleString() ?? "—"}
@@ -475,23 +475,6 @@ export function DashboardPage() {
             tone="info"
             onClick={() => navigate("/appointments")}
           />
-          {showFinance && (
-          <KpiCard
-            label="Revenue Today"
-            value={formatCurrency(d.revenue?.today ?? 0, "UGX", true)}
-            icon={TrendingUp}
-            tone="success"
-            delta={{
-              value: d.revenue?.growth ?? 0,
-              label: `${formatCurrency(
-                d.revenue?.thisMonth ?? 0,
-                "UGX",
-                true,
-              )} MTD vs last month`,
-            }}
-            onClick={isAdmin ? () => navigate("/reports") : undefined}
-          />
-          )}
           {showFinance && (
           <KpiCard
             label="Pending Invoices"
