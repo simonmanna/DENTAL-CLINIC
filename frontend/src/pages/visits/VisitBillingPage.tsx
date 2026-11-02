@@ -269,6 +269,22 @@ function VoidInvoiceDialog({
 
 // ─── Payment Dialog ───────────────────────────────────────────────────────────
 
+// Amount the doctor asked the patient to pay now (deposit), shown to the
+// receptionist/cashier until the first payment is recorded.
+function getPayNowRequest(
+  invoice: Invoice,
+): { amount: number; currency: string } | null {
+  const amount = Number(invoice.initialPaymentAmount ?? 0);
+  if (
+    invoice.status === "VOID" ||
+    amount <= 0 ||
+    Number(invoice.amountPaid ?? 0) > 0 ||
+    Number(invoice.balance ?? 0) <= 0
+  )
+    return null;
+  return { amount, currency: invoice.initialPaymentCurrency || invoice.currency };
+}
+
 function PaymentDialog({
   open,
   onClose,
@@ -390,6 +406,7 @@ function PaymentDialog({
     ? numAmount * effectiveRate
     : numAmount;
   const remaining = invoice.balance - numAmountInInvoiceCurrency;
+  const payNow = getPayNowRequest(invoice);
 
   if (!open) return null;
 
@@ -469,6 +486,17 @@ function PaymentDialog({
               </p>
             </div>
           </div>
+
+          {payNow && (
+            <div className="mx-1 bg-danger-muted/60 border border-danger/40 rounded-xl px-4 py-2 flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-danger">
+                Doctor requests to pay now
+              </span>
+              <span className="text-lg font-bold text-danger">
+                {formatCurrency(payNow.amount, payNow.currency)}
+              </span>
+            </div>
+          )}
 
           {/* Amount & Currency Row */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -664,7 +692,7 @@ function PaymentDialog({
               )}
               <div className="border-t border-success/25 pt-3 flex justify-between items-center">
                 <span className="text-muted-foreground font-medium">
-                  Balance Remaining
+                  Payment Type
                 </span>
                 <span
                   className={cn(
@@ -673,7 +701,7 @@ function PaymentDialog({
                   )}
                 >
                   {remaining <= 0
-                    ? "✅ Fully Paid"
+                    ? "Pay in Full"
                     : formatCurrency(remaining, invoice.currency)}
                 </span>
               </div>
@@ -2016,6 +2044,25 @@ export function VisitBillingPage() {
               </div>
               </div>
             </div>
+
+              {(() => {
+                const payNow = getPayNowRequest(selectedInvoice);
+                return (
+                  payNow && (
+                    <div className="mt-4 bg-danger-muted/60 border border-danger/40 rounded-lg px-4 py-3 flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-danger" />
+                        <span className="text-sm font-semibold text-danger">
+                          Doctor requests to pay now
+                        </span>
+                      </div>
+                      <span className="text-lg font-bold text-danger">
+                        {formatCurrency(payNow.amount, payNow.currency)}
+                      </span>
+                    </div>
+                  )
+                );
+              })()}
 
               {selectedInvoice.status === "VOID" && (
                 <div className="mt-4 bg-danger-muted/60 border border-danger/25 rounded-lg px-4 py-3">
